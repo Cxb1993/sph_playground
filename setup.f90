@@ -3,32 +3,36 @@ module setup
 
 contains
 
-  subroutine periodic(fromX, toX, n, bn, rho, sk, pos, mas, vel, den, slen)
-    integer :: n, bn
-    real, intent(in)    :: fromX, toX, rho, sk
+  subroutine periodic_ic(Xa, Xb, n, bn, rho, sk, pos, mas, vel, den, slen)
+    integer, intent(in) :: n, bn
+    real, intent(in)    :: Xa, Xb, rho, sk
     real, intent(out)   :: pos(n), mas(n), vel(n), den(n), slen(n)
     real, parameter :: pi = 4.*atan(1.)
-    integer :: i
+    integer :: i, nr
     real :: step
 
-    step = (toX - fromX) / (n - 2 * bn - 1)
+    nr = n - 2 * bn
+    step = (Xb - Xa) / nr
+
     do i = 1, n
-      pos(i) = step * (i - bn - 1)
-      mas(i) = (1.0 * rho)/(n - 2 * bn)
-      vel(i) = sin(2.*pi*pos(i)) * (0.0001)
+      pos(i) = step * (i - bn)
+      mas(i) = rho / nr
+      vel(i) = 0.0001 * sin(2.*pi*pos(i))
       den(i) = rho
       slen(i) = step * sk
     end do
+! 1   2   3   4   5   6   7   8   9   10  ......... 101 102 103 104 105 106 107 108 109 110
+!                     106 107 108 109 110 ......... 1   2   3   4   5
     do i = 1, bn
-      mas(bn - i + 1) = mas(n - bn - i)
-      vel(bn - i + 1) = vel(n - bn - i)
-      den(bn - i + 1) = den(n - bn - i)
-      slen(bn - i + 1) = slen(n - bn - i)
+      mas(i) = mas(nr + i)
+      vel(i) = vel(nr + i)
+      den(i) = den(nr + i)
+      slen(i) = slen(nr + i)
 
-      mas(n - bn + i) = mas(bn + i + 1)
-      vel(n - bn + i) = vel(bn + i + 1)
-      den(n - bn + i) = den(bn + i + 1)
-      slen(n - bn + i) = slen(bn + i + 1)
+      mas(nr + bn + i) = mas(bn + i)
+      vel(nr + bn + i) = vel(bn + i)
+      den(nr + bn + i) = den(bn + i)
+      slen(nr + bn + i) = slen(bn + i)
     end do
-  end subroutine periodic
+  end subroutine periodic_ic
 end module setup

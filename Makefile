@@ -10,8 +10,8 @@ execute: $(OBJ)
 	$(FC) $(FFLAGS) -o $@ $(OBJ)
 
 main.o : internal.o setup.o print.o
-
+internal.o : print.o
 .PHONY: execute
 
 clean:
-	rm *.o *.mod *.dat execute fort.18 step_*
+	rm *.o *.mod *.dat execute fort.18 output_*
