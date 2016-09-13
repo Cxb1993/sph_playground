@@ -3,11 +3,11 @@ module setup
 
 contains
 
-  subroutine periodic_ic(Xa, Xb, n, bn, rho, sk, pos, mas, vel, den, slen)
+  subroutine periodic_ic(Xa, Xb, n, bn, rho, sk, pos, mas, vel, acc, den, slen)
     integer, intent(in) :: n, bn
     real, intent(in)    :: Xa, Xb, rho, sk
-    real, intent(out)   :: pos(n), mas(n), vel(n), den(n), slen(n)
-    real, parameter :: pi = 4.*atan(1.)
+    real, intent(out)   :: pos(n), mas(n), vel(n), den(n), slen(n), acc(n)
+    real, parameter     :: pi = 4.*atan(1.)
     integer :: i, nr
     real :: step
 
@@ -20,6 +20,7 @@ contains
       vel(i) = 0.0001 * sin(2.*pi*pos(i))
       den(i) = rho
       slen(i) = step * sk
+      acc(i) = 0.
     end do
 ! 1   2   3   4   5   6   7   8   9   10  ......... 101 102 103 104 105 106 107 108 109 110
 !                     106 107 108 109 110 ......... 1   2   3   4   5

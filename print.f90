@@ -11,7 +11,7 @@ contains
     character (len=40)  :: fname
     integer :: iu, j
 
-    write(fname, "(a,i2.2)") 'output_', ifile
+    write(fname, "(a,i5.5)") 'steps/output_', ifile
     open(newunit=iu, file=fname, status='replace', form='formatted')
     write(iu,*) time
     do j = 1, n

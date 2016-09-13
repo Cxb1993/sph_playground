@@ -14,4 +14,4 @@ internal.o : print.o
 .PHONY: execute
 
 clean:
-	rm *.o *.mod *.dat execute fort.18 output_*
+	rm *.o *.mod *.dat execute fort.18 steps/output_* || touch energy.dat

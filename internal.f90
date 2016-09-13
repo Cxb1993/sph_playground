@@ -33,14 +33,11 @@ contains
          q = abs(pos(i)-pos(j))/slen(i)
          if (q < 2.) then
             call get_kernel(q, w, dw)
-            den(i) = den(i) + mas(j) * w
+            den(i) = den(i) + mas(j) * w / slen(i)
          endif
       end do
-      ! if (i == 25) then
-      !   print *, den(i)
-      ! end if
     end do
-    ! call set_periodic(n, bn, den)
+    call set_periodic(n, bn, den)
   end subroutine get_density
 
   subroutine get_kernel(q, w, dw)
@@ -55,13 +52,13 @@ contains
       dw = (- 0.75 * ((2. - q) ** 2)) / q
     else if (q >= 0) then
       w  = 0.25 * ((2. - q) ** 3) - ((1. - q) ** 3)
-      dw = (- 0.75 * ((2. - q) ** 2) + 3. * ((1. - q) ** 2)) / q
+      dw = (- 0.75 * ((2. - q) ** 2) + 3.0 * ((1. - q) ** 2)) / q
     else
       print *, 'something went wrong, q =', q
       w  = 0.
       dw = 0.
     end if
-    w  = 2./3. * w
+    w = 2./3. * w
     dw = 2./3. * dw
   end subroutine get_kernel
 
@@ -81,7 +78,7 @@ contains
     integer, intent(in) :: n, bn
     real, intent(in)    :: pos(n), mas(n), slen(n), den(n), P(n)
     real, intent(out)   :: acc(n)
-    real                :: Pi, Pj, wi, wj, dwi, dwj, qi, qj, dx
+    real                :: Pi, Pj, wi, wj, dwi, dwj, qi, qj, dx, hi21
     integer             :: i, j
 
     do i = bn, n - bn
@@ -94,11 +91,8 @@ contains
           if (qi < 2. .or. qj < 2.) then
             call get_kernel(qi, wi, dwi)
             call get_kernel(qj, wj, dwj)
-            dwi = dwi * (pos(i) - pos(j))
-            dwj = dwj * (pos(j) - pos(i))
-            ! if (dwi < 0.000001) then
-            !   print *, dwi
-            ! end if
+            dwi = dwi * (pos(i) - pos(j)) / (slen(i) * slen(i))
+            dwj = dwj * (pos(i) - pos(j)) / (slen(j) * slen(j))
             Pi = P(i) * dwi / (den(i) * den(i))
             Pj = P(j) * dwj / (den(j) * den(j))
             acc(i) = acc(i) - mas(j) * (Pi + Pj)
@@ -128,7 +122,7 @@ contains
     integer             :: i
 
     do i = bn, n - bn
-      slen(i) = slen(i) * (mas(i) / den(i))
+      slen(i) = 1.2 * (mas(i) / den(i))
     end do
     call set_periodic(n, bn, slen)
   end subroutine get_slength
@@ -144,7 +138,6 @@ contains
       call get_slength(n, bn, mas, den, slen)
     end do
     call equation_of_state(n, bn, den, pres, sos)
-    ! print *, den(25)
     call get_accel(n, bn, pos, mas, den, slen, pres, acc)
   end subroutine derivs
 
