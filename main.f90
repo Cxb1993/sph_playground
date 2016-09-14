@@ -20,15 +20,16 @@ program main
 
   call periodic_ic(xmin, xmax, nmax, nbnd, init_rho, init_smlen, position, mass, velocity, acceleration, density, slength)
 
+  tfinish = 350
   t = 0.
-  dtout = 1.
+  ! dtout = tfinish / 100
+  dtout = 1
   ltout = 0.
-  call derivs(nmax, nbnd,position, mass, density, slength, pressure, acceleration, speeedOfSound)
+  call derivs(nmax, nbnd,position, mass, density, slength, pressure, acceleration, speeedOfSound, init_smlen)
   dt = 0.3 * minval(slength) / speeedOfSound
-
-  do while (t <= 50.)
+  do while (t <= tfinish)
     if (t >= ltout) then
-      write (*, *) dt
+      write (*, *) t
       call output(nmax, t, position, velocity, acceleration, mass, density, slength)
       ltout = ltout + dtout
     end if

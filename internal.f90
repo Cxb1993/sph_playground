@@ -51,14 +51,15 @@ contains
       w  = 0.25 * ((2. - q) ** 3)
       dw = (- 0.75 * ((2. - q) ** 2)) / q
     else if (q >= 0) then
-      w  = 0.25 * ((2. - q) ** 3) - ((1. - q) ** 3)
-      dw = (- 0.75 * ((2. - q) ** 2) + 3.0 * ((1. - q) ** 2)) / q
+      w  = 1. - 1.5 * q**2 + 0.75 * q ** 3
+      dw = -3. + 2.25 * q
+      ! dw = (- 0.75 * ((2. - q) ** 2) + 3.0 * ((1. - q) ** 2)) / q
     else
       print *, 'something went wrong, q =', q
       w  = 0.
       dw = 0.
     end if
-    w = 2./3. * w
+     w = 2./3. * w
     dw = 2./3. * dw
   end subroutine get_kernel
 
@@ -111,23 +112,23 @@ contains
 
     e = 0.
     do i = bn, n - bn
-      e = e + 0.5 * mas(i) * vel(i) * vel(i)
+      e = e + 0.5 * mas(i) * vel(i) ** 2
     end do
   end subroutine get_kinetic_energy
 
-  subroutine get_slength(n, bn, mas, den, slen)
+  subroutine get_slength(n, bn, mas, den, slen, sk)
     integer, intent(in) :: n, bn
-    real, intent(in)    :: mas(n), den(n)
+    real, intent(in)    :: sk, mas(n), den(n)
     real, intent(out)   :: slen(n)
     integer             :: i
 
     do i = bn, n - bn
-      slen(i) = 1.2 * (mas(i) / den(i))
+      slen(i) = sk * (mas(i) / den(i))
     end do
     call set_periodic(n, bn, slen)
   end subroutine get_slength
 
-  subroutine derivs(n, bn, pos, mas, den, slen, pres, acc, sos)
+  subroutine derivs(n, bn, pos, mas, den, slen, pres, acc, sos, sk)
     integer, intent(in) :: n, bn
     real, intent(in)    :: sos
     real, intent(out)   :: pos(n), mas(n), den(n), slen(n), pres(n), acc(n)
@@ -135,7 +136,7 @@ contains
 
     do i = 1, 3
       call get_density(n, bn, pos, mas, den, slen)
-      call get_slength(n, bn, mas, den, slen)
+      call get_slength(n, bn, mas, den, slen, sk)
     end do
     call equation_of_state(n, bn, den, pres, sos)
     call get_accel(n, bn, pos, mas, den, slen, pres, acc)
