@@ -130,7 +130,7 @@ contains
 
   subroutine derivs(n, bn, pos, mas, den, slen, pres, acc, sos, sk)
     integer, intent(in) :: n, bn
-    real, intent(in)    :: sos
+    real, intent(in)    :: sos, sk
     real, intent(out)   :: pos(n), mas(n), den(n), slen(n), pres(n), acc(n)
     integer             :: i
 

@@ -11,7 +11,7 @@ program main
   real, parameter    :: xmax = 1.
   real, parameter    :: init_rho = 1.
   real, parameter    :: init_smlen = 1.2
-  real, parameter    :: speeedOfSound = 1.
+  real, parameter    :: speeedOfSound = 70.
 
   real :: position(nmax), velocity(nmax), density(nmax), slength(nmax)
   real :: pressure(nmax), mass(nmax), acceleration(nmax)
@@ -20,10 +20,10 @@ program main
 
   call periodic_ic(xmin, xmax, nmax, nbnd, init_rho, init_smlen, position, mass, velocity, acceleration, density, slength)
 
-  tfinish = 350
+  tfinish = 10
   t = 0.
   ! dtout = tfinish / 100
-  dtout = 1
+  dtout = 0.01
   ltout = 0.
   call derivs(nmax, nbnd,position, mass, density, slength, pressure, acceleration, speeedOfSound, init_smlen)
   dt = 0.3 * minval(slength) / speeedOfSound
@@ -38,7 +38,7 @@ program main
     a(:) = acceleration(:)
     position(:) = p(:) + dt * v(:) + 0.5 * dt * dt * a(:)
     velocity(:) = v(:) + dt * a(:)
-    call derivs(nmax, nbnd,position, mass, density, slength, pressure, acceleration, speeedOfSound)
+    call derivs(nmax, nbnd,position, mass, density, slength, pressure, acceleration, speeedOfSound, init_smlen)
     velocity(:) = velocity(:) + 0.5 * dt * (acceleration(:) - a(:))
     call get_kinetic_energy(nmax, nbnd, mass, velocity, kenergy)
     call plot_simple(t, kenergy, 'energy.dat')
