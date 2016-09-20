@@ -1,6 +1,8 @@
 module setup
   implicit none
 
+  public :: periodic_ic, set_periodic
+
 contains
 
   subroutine periodic_ic(Xa, Xb, n, bn, rho, sk, pos, mas, vel, acc, den, slen)
@@ -36,4 +38,17 @@ contains
       slen(nr + bn + i) = slen(bn + i)
     end do
   end subroutine periodic_ic
+
+  subroutine set_periodic(n, bn, A)
+    integer, intent(in) :: n, bn
+    real, intent(out)   :: A(n)
+    integer             :: i, nr
+
+    nr = n - 2 * bn
+    do i = 1, bn
+      A(i) = A(nr + i)
+      A(nr + bn + i) = A(bn + i)
+    end do
+  end subroutine set_periodic
+
 end module setup

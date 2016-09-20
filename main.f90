@@ -2,6 +2,7 @@ program main
   use setup
   use internal
   use printer
+  use kernel
 
   integer, parameter :: n = 100
   integer, parameter :: nbnd = 5
@@ -11,7 +12,7 @@ program main
   real, parameter    :: xmax = 1.
   real, parameter    :: init_rho = 1.
   real, parameter    :: init_smlen = 1.2
-  real, parameter    :: speeedOfSound = 70.
+  real, parameter    :: speeedOfSound = 140.
 
   real :: position(nmax), velocity(nmax), density(nmax), slength(nmax)
   real :: pressure(nmax), mass(nmax), acceleration(nmax)
@@ -20,7 +21,7 @@ program main
 
   call periodic_ic(xmin, xmax, nmax, nbnd, init_rho, init_smlen, position, mass, velocity, acceleration, density, slength)
 
-  tfinish = 10
+  tfinish = 1
   t = 0.
   ! dtout = tfinish / 100
   dtout = 0.01

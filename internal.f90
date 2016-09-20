@@ -1,5 +1,8 @@
 module internal
+  use kernel
   use printer
+  use setup
+
  implicit none
 
  public :: get_kinetic_energy, derivs
@@ -7,18 +10,6 @@ module internal
  private
 
 contains
-
-  subroutine set_periodic(n, bn, A)
-    integer, intent(in) :: n, bn
-    real, intent(out)   :: A(n)
-    integer             :: i, nr
-
-    nr = n - 2 * bn
-    do i = 1, bn
-      A(i) = A(nr + i)
-      A(nr + bn + i) = A(bn + i)
-    end do
-  end subroutine set_periodic
 
   subroutine get_density(n, bn, pos, mas, den, slen)
     integer, intent(in) :: n, bn
@@ -40,29 +31,6 @@ contains
     call set_periodic(n, bn, den)
   end subroutine get_density
 
-  subroutine get_kernel(q, w, dw)
-    real, intent(in) :: q
-    real             :: w, dw
-
-    if (q >= 2) then
-      w  = 0.
-      dw = 0.
-    else if (q >= 1) then
-      w  = 0.25 * ((2. - q) ** 3)
-      dw = (- 0.75 * ((2. - q) ** 2)) / q
-    else if (q >= 0) then
-      w  = 1. - 1.5 * q**2 + 0.75 * q ** 3
-      dw = -3. + 2.25 * q
-      ! dw = (- 0.75 * ((2. - q) ** 2) + 3.0 * ((1. - q) ** 2)) / q
-    else
-      print *, 'something went wrong, q =', q
-      w  = 0.
-      dw = 0.
-    end if
-     w = 2./3. * w
-    dw = 2./3. * dw
-  end subroutine get_kernel
-
   subroutine equation_of_state(n, bn, den, P, c)
     integer, intent(in) :: n, bn
     real, intent(in)    :: den(n), c
@@ -79,7 +47,7 @@ contains
     integer, intent(in) :: n, bn
     real, intent(in)    :: pos(n), mas(n), slen(n), den(n), P(n)
     real, intent(out)   :: acc(n)
-    real                :: Pi, Pj, wi, wj, dwi, dwj, qi, qj, dx, hi21
+    real                :: Pi, Pj, wi, wj, dwi, dwj, qi, qj, dx
     integer             :: i, j
 
     do i = bn, n - bn
@@ -92,8 +60,8 @@ contains
           if (qi < 2. .or. qj < 2.) then
             call get_kernel(qi, wi, dwi)
             call get_kernel(qj, wj, dwj)
-            dwi = dwi * (pos(i) - pos(j)) / (slen(i) * slen(i))
-            dwj = dwj * (pos(i) - pos(j)) / (slen(j) * slen(j))
+            dwi = dwi * (pos(i) - pos(j)) / slen(i) ** 2
+            dwj = dwj * (pos(i) - pos(j)) / slen(j) ** 2
             Pi = P(i) * dwi / (den(i) * den(i))
             Pj = P(j) * dwj / (den(j) * den(j))
             acc(i) = acc(i) - mas(j) * (Pi + Pj)
