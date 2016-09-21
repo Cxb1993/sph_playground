@@ -4,34 +4,55 @@ program main
   use printer
   use kernel
 
-  integer, parameter :: n = 100
-  integer, parameter :: nbnd = 5
-  integer, parameter :: nmax = n + 2 * nbnd
+  character (len=40) :: ptype
 
-  real, parameter    :: xmin = 0.
-  real, parameter    :: xmax = 1.
-  real, parameter    :: init_rho = 1.
-  real, parameter    :: init_smlen = 1.2
-  real, parameter    :: speeedOfSound = 140.
+  ! integer, parameter :: n = 100
+  ! integer, parameter :: nbnd = 5
+  ! integer, parameter :: nmax = n + 2 * nbnd
+  ! real, parameter    :: xmin = 0.
+  ! real, parameter    :: xmax = 1.
+  ! real, parameter    :: init_rho = 1.
+  ! real, parameter    :: sk = 1.2
+  ! real, parameter    :: speedOfSound = 1.
+
+  real, parameter    :: shock_xa = 0.5
+  real, parameter    :: shock_xb = 0.5
+  integer, parameter :: shock_na = 500
+  integer, parameter :: shock_nb = 50
+  integer, parameter :: shock_nl = 6
+  integer, parameter :: nbnd = 6
+  real, parameter    :: shock_rhoa = 1.
+  real, parameter    :: shock_rhob = 0.1
+  real, parameter    :: sk = 1.2
+  integer, parameter :: nmax = shock_na+shock_nb+1
+  real, parameter    :: speedOfSound = 1.
+
 
   real :: position(nmax), velocity(nmax), density(nmax), slength(nmax)
-  real :: pressure(nmax), mass(nmax), acceleration(nmax)
-  real :: dt, t, dtout, ltout, kenergy
+  real :: pressure(nmax), mass(nmax), acceleration(nmax), ienergy(nmax), dienergy(nmax)
+  real :: dt, t, dtout, ltout!, kenergy
   real :: a(nmax), p(nmax), v(nmax)
 
-  call periodic_ic(xmin, xmax, nmax, nbnd, init_rho, init_smlen, position, mass, velocity, acceleration, density, slength)
+  ! call periodic_ic(xmin, xmax, nmax, nbnd, init_rho, sk, &
+  !                  position, mass, velocity, acceleration, density, slength)
+  ! ptype='periodic'
+  call shock_ic(shock_xa, shock_xb, shock_na, shock_nb, shock_rhoa, shock_rhob, sk, &
+                position, mass, velocity, acceleration, density, slength)
+  ptype='fixed'
 
-  tfinish = 1
+  tfinish = 5
   t = 0.
-  ! dtout = tfinish / 100
-  dtout = 0.01
+  dtout = 0.001
   ltout = 0.
-  call derivs(nmax, nbnd,position, mass, density, slength, pressure, acceleration, speeedOfSound, init_smlen)
-  dt = 0.3 * minval(slength) / speeedOfSound
+
+  call derivs(ptype, nmax, nbnd, &
+              position, velocity, mass, density, slength, pressure, acceleration, &
+              ienergy, dienergy, speedOfSound, sk)
   do while (t <= tfinish)
+    dt = 0.3 * minval(slength) / speedOfSound
     if (t >= ltout) then
       write (*, *) t
-      call output(nmax, t, position, velocity, acceleration, mass, density, slength)
+      call output(nmax, t, position, velocity, acceleration, mass, density, slength, pressure, ienergy)
       ltout = ltout + dtout
     end if
     p(:) = position(:)
@@ -39,12 +60,15 @@ program main
     a(:) = acceleration(:)
     position(:) = p(:) + dt * v(:) + 0.5 * dt * dt * a(:)
     velocity(:) = v(:) + dt * a(:)
-    call derivs(nmax, nbnd,position, mass, density, slength, pressure, acceleration, speeedOfSound, init_smlen)
+    ienergy(:) = ienergy(:) + dt * dienergy(:)
+    call derivs(ptype, nmax, nbnd, &
+                position, velocity, mass, density, slength, pressure, acceleration, &
+                ienergy, dienergy, speedOfSound, sk)
     velocity(:) = velocity(:) + 0.5 * dt * (acceleration(:) - a(:))
-    call get_kinetic_energy(nmax, nbnd, mass, velocity, kenergy)
-    call plot_simple(t, kenergy, 'energy.dat')
+  !   call get_kinetic_energy(nmax, nbnd, mass, velocity, kenergy)
+  !   call plot_simple(t, kenergy, 'energy.dat')
     t = t + dt
   end do
   write (*, *) t
-  call output(nmax, t, position, velocity, acceleration, mass, density, slength)
+  call output(nmax, t, position, velocity, acceleration, mass, density, slength, pressure, ienergy)
 end program main

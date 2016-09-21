@@ -1,7 +1,9 @@
 module setup
   implicit none
 
-  public :: periodic_ic, set_periodic
+  public :: periodic_ic, set_periodic, shock_ic, set_fixed
+
+  private
 
 contains
 
@@ -18,7 +20,7 @@ contains
 
     do i = 1, n
       pos(i) = step * (i - bn)
-      mas(i) = rho / nr
+      mas(i) = step * rho
       vel(i) = 0.0001 * sin(2.*pi*pos(i))
       den(i) = rho
       slen(i) = step * sk
@@ -50,5 +52,45 @@ contains
       A(nr + bn + i) = A(bn + i)
     end do
   end subroutine set_periodic
+
+  subroutine shock_ic(Xa, Xb, na, nb, rhoa, rhob, sk, pos, mas, vel, acc, den, slen)
+    integer, intent(in) :: na, nb
+    real, intent(in)    :: Xa, Xb, rhoa, rhob, sk
+    real, intent(out)   :: pos(na+nb+1), mas(na+nb+1), vel(na+nb+1), den(na+nb+1), slen(na+nb+1), acc(na+nb+1)
+    integer             :: i
+    real                :: stepa, stepb
+
+    stepa = Xa / na
+    stepb = Xb / nb
+
+    do i = 1, na
+      pos(i) = -(Xa - stepa * (i-1))
+      mas(i) = stepa * rhoa
+      vel(i) = 0.
+      den(i) = rhoa
+      slen(i) = stepa * sk
+      acc(i) = 0.
+    end do
+
+    do i = 1, nb+1
+      pos(na+i) = stepb * (i-1)
+      mas(na+i) = stepb * rhob
+      vel(na+i) = 0.
+      den(na+i) = rhob
+      slen(na+i) = stepb * sk
+      acc(na+i) = 0.
+    end do
+  end subroutine shock_ic
+
+  subroutine set_fixed(n, bn, A)
+    integer, intent(in) :: n, bn
+    real, intent(out)   :: A(n)
+    integer             :: i
+
+    do i = 1, bn
+      A(i) = 0.
+      A(n-i+1) = 0.
+    end do
+  end subroutine set_fixed
 
 end module setup
