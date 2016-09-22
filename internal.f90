@@ -32,17 +32,27 @@ contains
     end do
   end subroutine get_density
 
-  subroutine equation_of_state(n, den, u, P, c, gamma)
+  subroutine eos_adiabatic(n, den, u, P, gamma)
     integer, intent(in) :: n
-    real, intent(in)    :: den(n), u(n), c, gamma
+    real, intent(in)    :: den(n), u(n), gamma
+    real, intent(out)   :: P(n)
+    integer             :: i
+
+    do i = 1, n
+      P(i) = (gamma - 1) * den(i) * u(i)
+    end do
+  end subroutine eos_adiabatic
+
+  subroutine eos_isothermal(n, den, P, c)
+    integer, intent(in) :: n
+    real, intent(in)    :: den(n), c
     real, intent(out)   :: P(n)
     integer             :: i
 
     do i = 1, n
       P(i) = den(i) * c * c
-      ! P(i) = (gamma - 1) * den(i) * u(i)
     end do
-  end subroutine equation_of_state
+  end subroutine eos_isothermal
 
   subroutine get_accel(n, c, pos, vel, mas, den, slen, P, acc, du)
     integer, intent(in) :: n
@@ -50,6 +60,9 @@ contains
     real, intent(out)   :: acc(n), du(n)
     real                :: Pi, Pj, wi, wj, dwi, dwj, qi, qj, dx, qa, qb
     integer             :: i, j
+
+    qa = 0.
+    qb = 0.
 
     do i = 1, n
       acc(i) = 0.
@@ -79,7 +92,7 @@ contains
   subroutine art_viscosity(da, db, va, vb, ra, rb, c, qa, qb)
     real, intent(in)  :: da, db, va, vb, ra, rb, c
     real, intent(out) :: qa, qb
-    real              :: alpha, betta, vab, vba, r
+    real              :: alpha, betta, vab, vba, rab, rba
     qa = 0.
     qb = 0.
     alpha = 1.
@@ -87,12 +100,13 @@ contains
 
     vab = va - vb
     vba = -vab
-    r = abs(ra - rb)
-    if (vab * r < 0) then
-      qa = -0.5 * da * (alpha*c - betta*(vab * r)) * (vab * r)
+    rab = ra - rb
+    rba = -rab
+    if (vab * rab < 0) then
+      qa = -0.5 * da * (alpha*c - betta*(vab * rab)) * (vab * rab)
     end if
-    if (vba * r < 0) then
-      qb = -0.5 * db * (alpha*c - betta*(vba * r)) * (vba * r)
+    if (vba * rba < 0) then
+      qb = -0.5 * db * (alpha*c - betta*(vba * rba)) * (vba * rba)
     end if
   end subroutine art_viscosity
 
@@ -140,7 +154,12 @@ contains
       end if
     end do
 
-    call equation_of_state(n, den, u, pres, sos, 1.2)
+    select case (t)
+      case ('periodic')
+        call eos_isothermal(n, den, pres, sos)
+      case ('fixed')
+        call eos_adiabatic(n, den, u, pres, 1.4)
+    end select
 
     if (t .EQ. 'periodic') then
       call set_periodic(n, bn, pres)

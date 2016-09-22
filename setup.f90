@@ -7,10 +7,10 @@ module setup
 
 contains
 
-  subroutine periodic_ic(Xa, Xb, n, bn, rho, sk, pos, mas, vel, acc, den, slen)
+  subroutine periodic_ic(Xa, Xb, n, bn, rho, sk, pos, mas, vel, acc, den, slen, u)
     integer, intent(in) :: n, bn
     real, intent(in)    :: Xa, Xb, rho, sk
-    real, intent(out)   :: pos(n), mas(n), vel(n), den(n), slen(n), acc(n)
+    real, intent(out)   :: pos(n), mas(n), vel(n), den(n), slen(n), acc(n), u(n)
     real, parameter     :: pi = 4.*atan(1.)
     integer :: i, nr
     real :: step
@@ -25,6 +25,7 @@ contains
       den(i) = rho
       slen(i) = step * sk
       acc(i) = 0.
+      u(i) = 1.
     end do
 ! 1   2   3   4   5   6   7   8   9   10  ......... 101 102 103 104 105 106 107 108 109 110
 !                     106 107 108 109 110 ......... 1   2   3   4   5
@@ -53,10 +54,11 @@ contains
     end do
   end subroutine set_periodic
 
-  subroutine shock_ic(Xa, Xb, na, nb, rhoa, rhob, sk, pos, mas, vel, acc, den, slen)
+  subroutine shock_ic(Xa, Xb, na, nb, rhoa, rhob, pa, pb, sk, pos, mas, vel, acc, den, slen, p, u, gamma)
     integer, intent(in) :: na, nb
-    real, intent(in)    :: Xa, Xb, rhoa, rhob, sk
+    real, intent(in)    :: Xa, Xb, rhoa, rhob, sk, pa, pb, gamma
     real, intent(out)   :: pos(na+nb+1), mas(na+nb+1), vel(na+nb+1), den(na+nb+1), slen(na+nb+1), acc(na+nb+1)
+    real, intent(out)   :: p(na+nb+1), u(na+nb+1)
     integer             :: i
     real                :: stepa, stepb
 
@@ -70,6 +72,8 @@ contains
       den(i) = rhoa
       slen(i) = stepa * sk
       acc(i) = 0.
+      p(i) = pa
+      u(i) = pa / (gamma - 1) / den(i)
     end do
 
     do i = 1, nb+1
@@ -79,6 +83,8 @@ contains
       den(na+i) = rhob
       slen(na+i) = stepb * sk
       acc(na+i) = 0.
+      p(na+i) = pb
+      u(na+i) = pb / (gamma - 1) / den(na+i)
     end do
   end subroutine shock_ic
 

@@ -16,13 +16,15 @@ program main
   ! real, parameter    :: speedOfSound = 1.
 
   real, parameter    :: shock_xa = 0.5
-  real, parameter    :: shock_xb = 0.5
+  real, parameter    :: shock_xb = 0.48
   integer, parameter :: shock_na = 500
-  integer, parameter :: shock_nb = 50
+  integer, parameter :: shock_nb = 60
   integer, parameter :: shock_nl = 6
+  real, parameter    :: shock_pa = 1.
+  real, parameter    :: shock_pb = 0.1
   integer, parameter :: nbnd = 6
   real, parameter    :: shock_rhoa = 1.
-  real, parameter    :: shock_rhob = 0.1
+  real, parameter    :: shock_rhob = 0.125
   real, parameter    :: sk = 1.2
   integer, parameter :: nmax = shock_na+shock_nb+1
   real, parameter    :: speedOfSound = 1.
@@ -34,13 +36,13 @@ program main
   real :: a(nmax), p(nmax), v(nmax)
 
   ! call periodic_ic(xmin, xmax, nmax, nbnd, init_rho, sk, &
-  !                  position, mass, velocity, acceleration, density, slength)
+  !                  position, mass, velocity, acceleration, density, slength, pressure)
   ! ptype='periodic'
-  call shock_ic(shock_xa, shock_xb, shock_na, shock_nb, shock_rhoa, shock_rhob, sk, &
-                position, mass, velocity, acceleration, density, slength)
+  call shock_ic(shock_xa, shock_xb, shock_na, shock_nb, shock_rhoa, shock_rhob, shock_pa, shock_pb, sk, &
+                position, mass, velocity, acceleration, density, slength, pressure, ienergy, 1.4)
   ptype='fixed'
 
-  tfinish = 5
+  tfinish = 1
   t = 0.
   dtout = 0.001
   ltout = 0.
