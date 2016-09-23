@@ -17,4 +17,5 @@ internal.o : print.o kernel.o setup.o
 clean:
 	echo '' > energy.dat
 	rm -r obj/*
+	rm -r mod/*
 	rm execute steps/output_*

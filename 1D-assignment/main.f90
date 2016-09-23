@@ -28,6 +28,7 @@ program main
   real, parameter    :: sk = 1.2
   integer, parameter :: nmax = shock_na+shock_nb+1
   real, parameter    :: speedOfSound = 1.
+  real, parameter    :: gamma = 1.4
 
 
   real :: position(nmax), velocity(nmax), density(nmax), slength(nmax)
@@ -39,17 +40,17 @@ program main
   !                  position, mass, velocity, acceleration, density, slength, pressure)
   ! ptype='periodic'
   call shock_ic(shock_xa, shock_xb, shock_na, shock_nb, shock_rhoa, shock_rhob, shock_pa, shock_pb, sk, &
-                position, mass, velocity, acceleration, density, slength, pressure, ienergy, 1.4)
+                position, mass, velocity, acceleration, density, slength, pressure, ienergy, gamma)
   ptype='fixed'
 
-  tfinish = 1
+  tfinish = 0.2
   t = 0.
   dtout = 0.001
   ltout = 0.
 
   call derivs(ptype, nmax, nbnd, &
               position, velocity, mass, density, slength, pressure, acceleration, &
-              ienergy, dienergy, speedOfSound, sk)
+              ienergy, dienergy, speedOfSound, sk, gamma)
   do while (t <= tfinish)
     dt = 0.3 * minval(slength) / speedOfSound
     if (t >= ltout) then
@@ -65,7 +66,7 @@ program main
     ienergy(:) = ienergy(:) + dt * dienergy(:)
     call derivs(ptype, nmax, nbnd, &
                 position, velocity, mass, density, slength, pressure, acceleration, &
-                ienergy, dienergy, speedOfSound, sk)
+                ienergy, dienergy, speedOfSound, sk, gamma)
     velocity(:) = velocity(:) + 0.5 * dt * (acceleration(:) - a(:))
   !   call get_kinetic_energy(nmax, nbnd, mass, velocity, kenergy)
   !   call plot_simple(t, kenergy, 'energy.dat')

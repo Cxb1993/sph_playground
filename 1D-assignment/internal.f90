@@ -133,9 +133,9 @@ contains
     end do
   end subroutine get_slength
 
-  subroutine derivs(t, n, bn, pos, vel, mas, den, slen, pres, acc, u, du, sos, sk)
+  subroutine derivs(t, n, bn, pos, vel, mas, den, slen, pres, acc, u, du, sos, sk, gamma)
     integer, intent(in)           :: n, bn
-    real, intent(in)              :: sos, sk
+    real, intent(in)              :: sos, sk, gamma
     real, intent(out)             :: pos(n), vel(n), mas(n), den(n), slen(n), pres(n), acc(n), u(n), du(n)
     character (len=*), intent(in) :: t
     integer                       :: i
@@ -158,7 +158,7 @@ contains
       case ('periodic')
         call eos_isothermal(n, den, pres, sos)
       case ('fixed')
-        call eos_adiabatic(n, den, u, pres, 1.4)
+        call eos_adiabatic(n, den, u, pres, gamma)
     end select
 
     if (t .EQ. 'periodic') then
