@@ -54,77 +54,86 @@ contains
     end do
   end subroutine set_periodic
 
-  subroutine shock_ic(dim, nx, nb, sk, g, pos, vel, acc, mas, den, sln, p, u, n)
-    integer, intent(in)  :: dim, nx, nb
+  subroutine shock_ic(dim, nx, n, sk, g, pos, vel, acc, mas, den, sln, prs, uie)
+    integer, intent(in)  :: dim, nx
     real, intent(in)     :: sk, g
-    real, intent(out)    :: pos(dim,nx), mas(dim,nx), vel(dim,nx), den(dim,nx), sln(dim,nx), acc(dim,nx)
-    real, intent(out)    :: p(dim,nx), u(dim,nx)
-    integer, intent(out) :: n(dim)
-    integer              :: d, i
-    real                 :: spatVarBrdrs(dim,2), parSpacing(2), shockPressure(2), shockDensity(2)
-    real                 :: x, svb1, svb2, p1, p2, r1, r2, l1, l2
+    real, intent(out)    :: pos(3,nx), mas(nx), vel(nx), den(nx), sln(nx), acc(nx), prs(nx), uie(nx)
+    integer, intent(out) :: n
+    real                 :: spatVarBrdrs11, spatVarBrdrs12, spatVarBrdrs21, spatVarBrdrs22, spatVarBrdrs31, spatVarBrdrs32
+    real                 :: parSpacing1, parSpacing2, shockPressure1, shockPressure2, shockDensity1, shockDensity2
+    real                 :: x, y, z
 
-    spatVarBrdrs(1,1) = -0.5
-    spatVarBrdrs(1,2) = 0.5
-    spatVarBrdrs(2,1) = 0.
-    spatVarBrdrs(2,2) = 0.1
+    spatVarBrdrs11 = -0.5
+    spatVarBrdrs12 = 0.5
+    spatVarBrdrs21 = 0.
+    spatVarBrdrs22 = 0.
+    spatVarBrdrs31 = 0.
+    spatVarBrdrs32 = 0.
+    if (dim.gt.1) then
+      spatVarBrdrs21 = 0.
+      spatVarBrdrs22 = 0.1
+    end if
+    if (dim.eq.3) then
+      spatVarBrdrs31 = 0.
+      spatVarBrdrs32 = 0.1
+    end if
 
-    parSpacing(1) = 0.001
-    parSpacing(2) = 0.008
+    parSpacing1 = 0.001
+    parSpacing2 = 0.008
 
-    shockPressure(1) = 1.
-    shockPressure(2) = 0.1
+    shockPressure1 = 1.
+    shockPressure2 = 0.1
 
-    shockDensity(1) = 1.
-    shockDensity(2) = 0.125
+    shockDensity1 = 1.
+    shockDensity2 = 0.125
 
-    do d = 1,dim
-      svb1 = spatVarBrdrs(d,1)
-      svb2 = spatVarBrdrs(d,2)
-      p1 = shockPressure(1)
-      p2 = shockPressure(2)
-      r1 = shockDensity(1)
-      r2 = shockDensity(2)
-      l1 = parSpacing(1)
-      l2 = parSpacing(2)
-
-      x = svb1
-      i = 1
-      do while ((x >= svb1).and.(x < svb2))
-        print  *, x
+    x = spatVarBrdrs11
+    n = 1
+    do while ((x >= spatVarBrdrs11).and.(x <= spatVarBrdrs12))
+      y = spatVarBrdrs21
+      do while ((y >= spatVarBrdrs21).and.(y <= spatVarBrdrs22))
+        z = spatVarBrdrs31
+        do while ((z >= spatVarBrdrs31).and.(z <= spatVarBrdrs32))
+          pos(1,n) = x
+          pos(2,n) = y
+          pos(3,n) = z
+          if (x<0) then
+            mas(n) = (parSpacing1**3) * shockDensity1
+            vel(n) = 0.
+            den(n) = shockDensity1
+            sln(n) = (parSpacing1**3) * sk
+            acc(n) = 0.
+            prs(n) = shockPressure1
+            uie(n) = shockPressure1 / (g - 1) / shockDensity1
+          else
+            mas(n) = (parSpacing2**3) * shockDensity2
+            vel(n) = 0.
+            den(n) = shockDensity2
+            sln(n) = (parSpacing2**3) * sk
+            acc(n) = 0.
+            prs(n) = shockPressure2
+            uie(n) = shockPressure2 / (g - 1) / shockDensity2
+          end if
+          if (x<0) then
+            z = z + parSpacing1
+          else
+            z = z + parSpacing2
+          end if
+          n = n + 1
+        end do
         if (x<0) then
-          pos(d,i) = x
-          mas(d,i) = l1 * r1
-          vel(d,i) = 0.
-          den(d,i) = r1
-          sln(d,i) = l1 * sk
-          acc(d,i) = 0.
-          p(d,i) = p1
-          u(d,i) = p1 / (g - 1) / r1
-          x = x + l1
+          y = y + parSpacing1
         else
-          pos(d,i) = x
-          mas(d,i) = l2 * r2
-          vel(d,i) = 0.
-          den(d,i) = r2
-          sln(d,i) = l2 * sk
-          acc(d,i) = 0.
-          p(d,i) = p2
-          u(d,i) = p2 / (g - 1) / r2
-          x = x + l2
+          y = y + parSpacing2
         end if
       end do
-    end do    !
-    ! do i = 1, nb+1
-    !   pos(na+i) = stepb * (i-1)
-    !   mas(na+i) = stepb * rhob
-    !   vel(na+i) = 0.
-    !   den(na+i) = rhob
-    !   slen(na+i) = stepb * sk
-    !   acc(na+i) = 0.
-    !   p(na+i) = pb
-    !   u(na+i) = pb / (gamma - 1) / den(na+i)
-    ! end do
+      if (x<0) then
+        x = x + parSpacing1
+      else
+        x = x + parSpacing2
+      end if
+    end do
+    print *, 'Particles placed : ', n
   end subroutine shock_ic
 
   subroutine set_fixed(n, bn, A)
@@ -137,5 +146,4 @@ contains
       A(n-i+1) = 0.
     end do
   end subroutine set_fixed
-
 end module setup

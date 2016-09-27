@@ -18,28 +18,27 @@ program main
 
   integer             :: nb = 6
   real                :: sk = 1.2
-  integer, parameter  :: nmax = 1000
+  integer, parameter  :: nmax = 100000
   real                :: speedOfSound = 1.
   real                :: gamma = 1.4
-  integer             :: n(dim)
+  integer             :: n
 
-  real :: position(nmax,nmax,nmax), velocity(nmax,nmax,nmax), density(nmax,nmax,nmax), slength(nmax,nmax,nmax)
-  real :: pressure(nmax,nmax,nmax), mass(nmax,nmax,nmax), acceleration(nmax,nmax,nmax), ienergy(nmax,nmax,nmax)
-  real :: dienergy(nmax,nmax,nmax)
+  real :: position(3,nmax), velocity(nmax), density(nmax), slength(nmax)
+  real :: pressure(nmax), mass(nmax), acceleration(nmax), ienergy(nmax), dienergy(nmax)
   real :: dt, t, dtout, ltout
 
   ! call periodic_ic(xmin, xmax, nmax, nbnd, init_rho, sk, &
   !                  position, mass, velocity, acceleration, density, slength, pressure)
   ! ptype='periodic'
-  call shock_ic(dim, nmax, nb, sk, gamma, &
-                position, velocity, acceleration, mass, density, slength, pressure, ienergy, n)
+  call shock_ic(dim, nmax, n, sk, gamma, &
+                position, velocity, acceleration, mass, density, slength, pressure, ienergy)
   ptype='shock_fixed'
-  !
-  ! tfinish = 0.2
-  ! t = 0.
-  ! dtout = 0.001
-  ! ltout = 0.
-  !
+
+  tfinish = 0.2
+  t = 0.
+  dtout = 0.001
+  ltout = 0.
+
   ! call derivs(ptype, nmax, nbnd, &
   !             position, velocity, mass, density, slength, pressure, acceleration, &
   !             ienergy, dienergy, speedOfSound, sk, gamma)
@@ -65,5 +64,5 @@ program main
   !   t = t + dt
   ! end do
   ! write (*, *) t
-  ! call output(nmax, t, position, velocity, acceleration, mass, density, slength, pressure, ienergy)
+  call output(n, t, position, velocity, acceleration, mass, density, slength, pressure, ienergy)
 end program main
