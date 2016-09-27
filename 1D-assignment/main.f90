@@ -32,9 +32,9 @@ program main
 
 
   real :: position(nmax), velocity(nmax), density(nmax), slength(nmax)
-  real :: pressure(nmax), mass(nmax), acceleration(nmax), ienergy(nmax), dienergy(nmax)
-  real :: dt, t, dtout, ltout!, kenergy
-  real :: a(nmax), p(nmax), v(nmax)
+  real :: pressure(nmax), c(nmax), mass(nmax), acceleration(nmax), ienergy(nmax), dienergy(nmax)
+  real :: dt, t, dtout, ltout, de !, , kenergy
+  real :: a(nmax), p(nmax), v(nmax), du(nmax)
 
   ! call periodic_ic(xmin, xmax, nmax, nbnd, init_rho, sk, &
   !                  position, mass, velocity, acceleration, density, slength, pressure)
@@ -48,26 +48,31 @@ program main
   dtout = 0.001
   ltout = 0.
 
+  c(:) = speedOfSound
+
   call derivs(ptype, nmax, nbnd, &
-              position, velocity, mass, density, slength, pressure, acceleration, &
+              position, velocity, mass, density, slength, pressure, c, acceleration, &
               ienergy, dienergy, speedOfSound, sk, gamma)
   do while (t <= tfinish)
-    dt = 0.3 * minval(slength) / speedOfSound
+    dt = 0.3 * minval(slength) / maxval(c)
     if (t >= ltout) then
       write (*, *) t
       call output(nmax, t, position, velocity, acceleration, mass, density, slength, pressure, ienergy)
       ltout = ltout + dtout
     end if
+
     p(:) = position(:)
     v(:) = velocity(:)
     a(:) = acceleration(:)
+    du(:) = dienergy(:)
     position(:) = p(:) + dt * v(:) + 0.5 * dt * dt * a(:)
     velocity(:) = v(:) + dt * a(:)
     ienergy(:) = ienergy(:) + dt * dienergy(:)
     call derivs(ptype, nmax, nbnd, &
-                position, velocity, mass, density, slength, pressure, acceleration, &
+                position, velocity, mass, density, slength, pressure, c, acceleration, &
                 ienergy, dienergy, speedOfSound, sk, gamma)
     velocity(:) = velocity(:) + 0.5 * dt * (acceleration(:) - a(:))
+    ienergy(:) = ienergy(:) + 0.5 * dt * (dienergy(:) - du(:))
   !   call get_kinetic_energy(nmax, nbnd, mass, velocity, kenergy)
   !   call plot_simple(t, kenergy, 'energy.dat')
     t = t + dt
