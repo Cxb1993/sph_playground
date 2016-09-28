@@ -56,15 +56,16 @@ contains
     end do
   end subroutine eos_isothermal
 
-  subroutine get_accel(n, c, pos, vel, mas, den, slen, P, acc, du)
+  subroutine get_accel(n, c, pos, vel, mas, den, slen, P, acc, u, du)
     integer, intent(in) :: n
     real, intent(in)    :: pos(n), mas(n), slen(n), den(n), P(n), vel(n), c(n)
-    real, intent(out)   :: acc(n), du(n)
-    real                :: Pi, Pj, wi, wj, dwi, dwj, qi, qj, dx, qa, qb
+    real, intent(out)   :: acc(n), u(n), du(n)
+    real                :: Pi, Pj, wi, wj, dwi, dwj, qi, qj, dx, qa, qb, qc
     integer             :: i, j
 
     qa = 0.
     qb = 0.
+    qc = 0.
 
     do i = 1, n
       acc(i) = 0.
@@ -78,19 +79,29 @@ contains
             call get_kernel(qi, wi, dwi)
             call get_kernel(qj, wj, dwj)
             call art_viscosity(den(i), den(j), vel(i), vel(j), pos(i), pos(j), c(i), c(j), qa, qb)
+            call art_termcond(P(i), P(j), den(i), den(j), pos(i), pos(j), qc)
             ! v + 2 in dimmentions
             dwi = dwi * (pos(i) - pos(j)) / slen(i) ** 3
             dwj = dwj * (pos(i) - pos(j)) / slen(j) ** 3
             Pi = (P(i) + qa) * dwi / den(i)**2
             Pj = (P(j) + qb) * dwj / den(j)**2
             acc(i) = acc(i) - mas(j) * (Pi + Pj)
-            du(i) = du(i) + mas(j) * (vel(i) - vel(j)) * Pi !&
-                          ! + mas(j) * vsigu * (en(i)-en(j)) * 0.5(dwi/den(i) + dwj/den(j))
+            du(i) = du(i) + mas(j) * (vel(i) - vel(j)) * Pi &
+                          + mas(j) / (0.5 *(den(i) + den(j))) * qc * (u(i) - u(j)) * &
+                          0.5 * (dwi + dwj) * ((pos(i) - pos(j))/abs(pos(i) - pos(j)))
           end if
         end if
       end do
     end do
   end subroutine get_accel
+
+  subroutine art_termcond(pa, pb, da, db, ra, rb, vsigu)
+    real, intent(in)  :: pa, pb, da, db, ra, rb
+    real, intent(out) :: vsigu
+
+    vsigu = sqrt(abs(pa - pb)/(0.5 * (da + db)))
+
+  end subroutine art_termcond
 
   subroutine art_viscosity(da, db, va, vb, ra, rb, ca, cb, qa, qb)
     real, intent(in)  :: da, db, va, vb, ra, rb, ca, cb
@@ -179,7 +190,7 @@ contains
       call set_periodic(n, bn, pres)
     end if
 
-    call get_accel(n, c, pos, vel, mas, den, slen, pres, acc, du)
+    call get_accel(n, c, pos, vel, mas, den, slen, pres, acc, u, du)
 
     select case (t)
       case ('periodic')

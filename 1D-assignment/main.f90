@@ -43,7 +43,7 @@ program main
                 position, mass, velocity, acceleration, density, slength, pressure, ienergy, gamma)
   ptype='fixed'
 
-  tfinish = 0.2
+  tfinish = 0.3
   t = 0.
   dtout = 0.001
   ltout = 0.
