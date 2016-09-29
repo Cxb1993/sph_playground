@@ -39,9 +39,9 @@ program main
   dtout = 0.001
   ltout = 0.
 
-  ! call derivs(ptype, nmax, nbnd, &
-  !             position, velocity, mass, density, slength, pressure, acceleration, &
-  !             ienergy, dienergy, speedOfSound, sk, gamma)
+  call derivs(ptype, n, nb, &
+              position, velocity, acceleration, mass, density, slength, pressure, ienergy, &
+              dienergy, speedOfSound, sk, gamma)
   ! do while (t <= tfinish)
   !   dt = 0.3 * minval(slength) / speedOfSound
   !   if (t >= ltout) then
