@@ -48,5 +48,4 @@ module kernel
     w = 2./3. * w
     dwdh = 2./3. * dwdh
   end subroutine get_kernel_dh
-
 end module kernel

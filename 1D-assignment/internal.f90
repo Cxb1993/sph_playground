@@ -52,7 +52,6 @@ contains
              call get_kernel(q, w, dw)
              dw = dw * (pos(i) - pos(j)) / slen(i) ** 3
              dden(i) = dden(i) + mas(j) * (vel(i) - vel(j)) * dw
-
            end if
         end do
       end if
