@@ -5,7 +5,7 @@ program main
   use kernel
 
   character (len=40) :: ptype
-  integer, parameter :: dim = 2
+  integer, parameter :: dim = 1
 
   ! integer, parameter :: n = 100
   ! integer, parameter :: nbnd = 5
@@ -23,7 +23,7 @@ program main
   real                :: gamma = 1.4
   integer             :: n
 
-  real :: position(3,nmax), velocity(nmax), density(nmax), slength(nmax)
+  real :: position(nmax,3), velocity(nmax), density(nmax), slength(nmax)
   real :: pressure(nmax), mass(nmax), acceleration(nmax), ienergy(nmax), dienergy(nmax)
   real :: dt, t, dtout, ltout
 
@@ -34,7 +34,7 @@ program main
                 position, velocity, acceleration, mass, density, slength, pressure, ienergy)
   ptype='shock_fixed'
 
-  tfinish = 0.2
+  tfinish = 0.3
   t = 0.
   dtout = 0.001
   ltout = 0.

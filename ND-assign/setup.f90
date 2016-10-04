@@ -27,8 +27,8 @@ contains
       acc(i) = 0.
       u(i) = 1.
     end do
-! 1   2   3   4   5   6   7   8   9   10  ......... 101 102 103 104 105 106 107 108 109 110
-!                     106 107 108 109 110 ......... 1   2   3   4   5
+    ! 1   2   3   4   5   6   7   8   9   10  ......... 101 102 103 104 105 106 107 108 109 110
+    !                     106 107 108 109 110 ......... 1   2   3   4   5
     do i = 1, bn
       mas(i) = mas(nr + i)
       vel(i) = vel(nr + i)
@@ -57,7 +57,7 @@ contains
   subroutine shock_ic(dim, nx, n, sk, g, pos, vel, acc, mas, den, sln, prs, uie)
     integer, intent(in)  :: dim, nx
     real, intent(in)     :: sk, g
-    real, intent(out)    :: pos(3,nx), mas(nx), vel(nx), den(nx), sln(nx), acc(nx), prs(nx), uie(nx)
+    real, intent(out)    :: pos(nx,3), mas(nx), vel(nx), den(nx), sln(nx), acc(nx), prs(nx), uie(nx)
     integer, intent(out) :: n
     real                 :: spatVarBrdrs11, spatVarBrdrs12, spatVarBrdrs21, spatVarBrdrs22, spatVarBrdrs31, spatVarBrdrs32
     real                 :: parSpacing1, parSpacing2, shockPressure1, shockPressure2, shockDensity1, shockDensity2
@@ -94,22 +94,22 @@ contains
       do while ((y >= spatVarBrdrs21).and.(y <= spatVarBrdrs22))
         z = spatVarBrdrs31
         do while ((z >= spatVarBrdrs31).and.(z <= spatVarBrdrs32))
-          pos(1,n) = x
-          pos(2,n) = y
-          pos(3,n) = z
+          pos(n,1) = x
+          pos(n,2) = y
+          pos(n,3) = z
           if (x<0) then
-            mas(n) = (parSpacing1**3) * shockDensity1
+            mas(n) = (parSpacing1**dim) * shockDensity1
             vel(n) = 0.
             den(n) = shockDensity1
-            sln(n) = (parSpacing1**3) * sk
+            sln(n) = (parSpacing1**dim) * sk
             acc(n) = 0.
             prs(n) = shockPressure1
             uie(n) = shockPressure1 / (g - 1) / shockDensity1
           else
-            mas(n) = (parSpacing2**3) * shockDensity2
+            mas(n) = (parSpacing2**dim) * shockDensity2
             vel(n) = 0.
             den(n) = shockDensity2
-            sln(n) = (parSpacing2**3) * sk
+            sln(n) = (parSpacing2**dim) * sk
             acc(n) = 0.
             prs(n) = shockPressure2
             uie(n) = shockPressure2 / (g - 1) / shockDensity2
@@ -133,6 +133,7 @@ contains
         x = x + parSpacing2
       end if
     end do
+    n = n - 1
     print *, 'Particles placed : ', n
   end subroutine shock_ic
 
