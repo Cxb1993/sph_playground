@@ -2,13 +2,14 @@ module kernel
   implicit none
 
   public :: set_dim, get_nabla_w, get_dw_dh, get_w
-  real, save :: dim = 1
+  integer, save   :: dim = 1
+  real, parameter :: pi = 4.*atan(1.)
 
   private
 
  contains
    subroutine set_dim(d)
-     real, intent(in) :: d
+     integer, intent(in) :: d
      dim = d
    end subroutine set_dim
 
@@ -28,7 +29,14 @@ module kernel
       print *, 'something went wrong, q =', q
       stop
     end if
-    f = 2./3. * f
+    select case(dim)
+      case(1)
+        f = 2./3. * f
+      case(2)
+        f = 10./(7. * pi) * f
+      case(3)
+        f = 1./pi * f
+    end select
   end subroutine get_kernel_f
 
   subroutine get_kernel_df(r, h, df)
@@ -47,7 +55,14 @@ module kernel
       print *, 'something went wrong, q =', q
       stop
     end if
-    df = 2./3. * df
+    select case(dim)
+      case(1)
+        df = 2./3. * df
+      case(2)
+        df = 10./(7. * pi) * df
+      case(3)
+        df = 1./pi * df
+    end select
   end subroutine get_kernel_df
 
   subroutine get_nabla_w(rab, h, nw)

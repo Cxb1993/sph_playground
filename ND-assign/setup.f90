@@ -57,9 +57,9 @@ contains
   end subroutine set_periodic
 
   subroutine shock_ic(dim, nx, n, sk, g, pos, vel, acc, mas, den, sln, prs, uie)
-    integer, intent(in)  :: nx
-    real, intent(in)     :: dim, sk, g
-    real, intent(out)    :: pos(nx,3), mas(nx), vel(nx), den(nx), sln(nx), acc(nx), prs(nx), uie(nx)
+    integer, intent(in)  :: nx, dim
+    real, intent(in)     :: sk, g
+    real, intent(out)    :: pos(nx,3), mas(nx), vel(nx,3), den(nx), sln(nx), acc(nx), prs(nx), uie(nx)
     integer, intent(out) :: n
     real                 :: spatVarBrdrs11, spatVarBrdrs12, spatVarBrdrs21, spatVarBrdrs22, spatVarBrdrs31, spatVarBrdrs32
     real                 :: parSpacing1, parSpacing2, shockPressure1, shockPressure2, shockDensity1, shockDensity2
@@ -103,7 +103,7 @@ contains
           pos(n,3) = z
           if (x<0) then
             mas(n) = (parSpacing1**dim) * shockDensity1
-            vel(n) = 0.
+            vel(n,:) = 0.
             den(n) = shockDensity1
             sln(n) = (parSpacing1**dim) * sk
             acc(n) = 0.
@@ -111,7 +111,7 @@ contains
             uie(n) = shockPressure1 / (g - 1) / shockDensity1
           else
             mas(n) = (parSpacing2**dim) * shockDensity2
-            vel(n) = 0.
+            vel(n,:) = 0.
             den(n) = shockDensity2
             sln(n) = (parSpacing2**dim) * sk
             acc(n) = 0.

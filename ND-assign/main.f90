@@ -5,7 +5,7 @@ program main
   use kernel
 
   character (len=40) :: ptype
-  real, parameter :: dim = 1
+  integer, parameter :: dim = 1
 
   ! integer, parameter :: n = 100
   ! integer, parameter :: nbnd = 5
@@ -23,7 +23,7 @@ program main
   real                :: gamma = 1.4
   integer             :: n
 
-  real :: position(nmax,3), velocity(nmax), density(nmax), slength(nmax), c(nmax)
+  real :: position(nmax,3), velocity(nmax,3), density(nmax), slength(nmax), c(nmax)
   real :: pressure(nmax), mass(nmax), acceleration(nmax), ienergy(nmax), dienergy(nmax), omega(nmax)
   real :: dt, t, dtout, ltout
   real :: p(nmax,3), v(nmax,3), a(nmax,3), du(nmax)
@@ -52,16 +52,16 @@ program main
       ltout = ltout + dtout
     end if
     p(:,:) = position(:,:)
-    v(:,1) = velocity(:)
+    v(:,:) = velocity(:,:)
     a(:,1) = acceleration(:)
     du(:) = dienergy(:)
     position(:,:) = p(:,:) + dt * v(:,:) + 0.5 * dt * dt * a(:,:)
-    velocity(:) = v(:,1) + dt * a(:,1)
+    velocity(:,1) = v(:,1) + dt * a(:,1)
     ienergy(:) = ienergy(:) + dt * dienergy(:)
     call derivs(ptype, n, nb, &
                 position, velocity, acceleration, mass, density, slength, omega, pressure, c, ienergy, &
                 dienergy, speedOfSound, sk, gamma)
-    velocity(:) = velocity(:) + 0.5 * dt * (acceleration(:) - a(:,1))
+    velocity(:,1) = velocity(:,1) + 0.5 * dt * (acceleration(:) - a(:,1))
     ienergy(:) = ienergy(:) + 0.5 * dt * (dienergy(:) - du(:))
     t = t + dt
   end do
