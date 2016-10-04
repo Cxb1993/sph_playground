@@ -1,4 +1,6 @@
 module setup
+  use kernel
+
   implicit none
 
   public :: periodic_ic, set_periodic, shock_ic, set_fixed
@@ -55,13 +57,15 @@ contains
   end subroutine set_periodic
 
   subroutine shock_ic(dim, nx, n, sk, g, pos, vel, acc, mas, den, sln, prs, uie)
-    integer, intent(in)  :: dim, nx
-    real, intent(in)     :: sk, g
+    integer, intent(in)  :: nx
+    real, intent(in)     :: dim, sk, g
     real, intent(out)    :: pos(nx,3), mas(nx), vel(nx), den(nx), sln(nx), acc(nx), prs(nx), uie(nx)
     integer, intent(out) :: n
     real                 :: spatVarBrdrs11, spatVarBrdrs12, spatVarBrdrs21, spatVarBrdrs22, spatVarBrdrs31, spatVarBrdrs32
     real                 :: parSpacing1, parSpacing2, shockPressure1, shockPressure2, shockDensity1, shockDensity2
     real                 :: x, y, z
+
+    call set_dim(dim)
 
     spatVarBrdrs11 = -0.5
     spatVarBrdrs12 = 0.5
