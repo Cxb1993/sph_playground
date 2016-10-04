@@ -1,7 +1,7 @@
 module kernel
   implicit none
 
-  public :: set_dim, get_nabla_w, get_dw_dh
+  public :: set_dim, get_nabla_w, get_dw_dh, get_w
   real, save :: dim = 1
 
   private
@@ -12,46 +12,72 @@ module kernel
      dim = d
    end subroutine set_dim
 
-  subroutine get_kernel(r, h, w, dw)
+  subroutine get_kernel_f(r, h, f)
     real, intent(in)  :: r, h
-    real, intent(out) :: w, dw
+    real, intent(out) :: f
     real              :: q
 
     q = r / h
     if (q >= 2.) then
-      w  = 0.
-      dw = 0.
+      f  = 0.
     else if (q >= 1.) then
-      w  = 0.25 * ((2. - q) ** 3)
-      dw = (- 0.75 * ((2. - q) ** 2)) / q
+      f  = 0.25 * ((2. - q) ** 3)
     else if (q >= 0.) then
-      w  = 1. - 1.5 * q**2 + 0.75 * q ** 3
-      dw = -3. + 2.25 * q
+      f  = 1. - 1.5 * q**2 + 0.75 * q ** 3
     else
       print *, 'something went wrong, q =', q
       stop
     end if
-     w = 2./3. * w
-    dw = 2./3. * dw
-  end subroutine get_kernel
+    f = 2./3. * f
+  end subroutine get_kernel_f
 
-  subroutine get_nabla_w(rab, h, w, nw)
+  subroutine get_kernel_df(r, h, df)
+    real, intent(in)  :: r, h
+    real, intent(out) :: df
+    real              :: q
+
+    q = r / h
+    if (q >= 2.) then
+      df = 0.
+    else if (q >= 1.) then
+      df = (- 0.75 * ((2. - q) ** 2)) / q
+    else if (q >= 0.) then
+      df = -3. + 2.25 * q
+    else
+      print *, 'something went wrong, q =', q
+      stop
+    end if
+    df = 2./3. * df
+  end subroutine get_kernel_df
+
+  subroutine get_nabla_w(rab, h, nw)
     real, intent(in)  :: rab(3), h
-    real, intent(out) :: w, nw(3)
-    real              :: f, df
+    real, intent(out) :: nw(3)
+    real              :: df
 
-    call get_kernel(sqrt(dot_product(rab(:),rab(:))), h, f, df)
-    w = f / h
+    call get_kernel_df(sqrt(dot_product(rab(:),rab(:))), h, df)
+
     nw(:) = df * rab(:) / h**(dim+2)
   end subroutine get_nabla_w
 
-  subroutine get_dw_dh(r, h, w, dwdh)
+  subroutine get_dw_dh(r, h, dwdh)
     real, intent(in)  :: r, h
-    real, intent(out) :: w, dwdh
+    real, intent(out) :: dwdh
     real              :: f, df
 
-    call get_kernel(r, h, f, df)
-    w = f / h
+    call get_kernel_f(r, h, f)
+    call get_kernel_df(r, h, df)
+
     dwdh = - (dim * f + r * df / h) / h ** (dim + 1)
   end subroutine get_dw_dh
+
+  subroutine get_w(r, h, w)
+    real, intent(in)  :: r, h
+    real, intent(out) :: w
+    real              :: f
+
+    call get_kernel_f(r, h, f)
+
+    w = f / h
+  end subroutine get_w
 end module kernel

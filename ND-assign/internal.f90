@@ -28,7 +28,8 @@ contains
           r(:) = pos(i,:) - pos(j,:)
           dr = sqrt(dot_product(r(:),r(:)))
           if (dr < 2. * sln(i)) then
-            call get_dw_dh(dr, sln(i), w, dwdh)
+            call get_dw_dh(dr, sln(i), dwdh)
+            call get_w(dr, sln(i), w)
             den(i) = den(i) + mas(j) * w
             om(i) = om(i) + mas(j) * dwdh
           end if
@@ -42,7 +43,7 @@ contains
     integer, intent(in) :: n
     real, intent(in)    :: pos(n,3), mas(n), sln(n), den(n), P(n), vel(n), c(n), om(n)
     real, intent(out)   :: acc(n), u(n), du(n)
-    real                :: Pi, Pj, wi, wj, nwi(3), nwj(3), dr, qa, qb, qc, r(3)
+    real                :: Pi, Pj, nwi(3), nwj(3), dr, qa, qb, qc, r(3)
     integer             :: i, j
 
     qa = 0.
@@ -57,8 +58,8 @@ contains
           r(:) = pos(i,:) - pos(j,:)
           dr = sqrt(dot_product(r(:),r(:)))
           if (dr < 2. * sln(i) .or. dr < 2. * sln(j)) then
-            call get_nabla_w(r, sln(i), wi, nwi)
-            call get_nabla_w(r, sln(j), wj, nwj)
+            call get_nabla_w(r, sln(i), nwi)
+            call get_nabla_w(r, sln(j), nwj)
             call art_viscosity(den(i), den(j), vel(i), vel(j), pos(i,1), pos(j,1), c(i), c(j), qa, qb)
             call art_termcond(P(i), P(j), den(i), den(j), qc)
             ! v + 2 in dimmentions
