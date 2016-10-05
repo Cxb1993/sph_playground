@@ -3,7 +3,7 @@ module setup
 
   implicit none
 
-  public :: periodic_ic, set_periodic, shock_ic, set_fixed
+  public :: periodic_ic, set_periodic, shock_ic, set_fixed1, set_fixed3
 
   private
 
@@ -12,7 +12,7 @@ contains
   subroutine periodic_ic(Xa, Xb, n, bn, rho, sk, pos, mas, vel, acc, den, slen, u)
     integer, intent(in) :: n, bn
     real, intent(in)    :: Xa, Xb, rho, sk
-    real, intent(out)   :: pos(n), mas(n), vel(n), den(n), slen(n), acc(n), u(n)
+    real, intent(out)   :: pos(n), vel(n), acc(n), mas(n), den(n), slen(n), u(n)
     real, parameter     :: pi = 4.*atan(1.)
     integer :: i, nr
     real :: step
@@ -59,7 +59,7 @@ contains
   subroutine shock_ic(dim, nx, n, sk, g, pos, vel, acc, mas, den, sln, prs, uie)
     integer, intent(in)  :: nx, dim
     real, intent(in)     :: sk, g
-    real, intent(out)    :: pos(nx,3), mas(nx), vel(nx,3), den(nx), sln(nx), acc(nx), prs(nx), uie(nx)
+    real, intent(out)    :: pos(nx,3), vel(nx,3), acc(nx,3), mas(nx), den(nx), sln(nx), prs(nx), uie(nx)
     integer, intent(out) :: n
     real                 :: spatVarBrdrs11, spatVarBrdrs12, spatVarBrdrs21, spatVarBrdrs22, spatVarBrdrs31, spatVarBrdrs32
     real                 :: parSpacing1, parSpacing2, shockPressure1, shockPressure2, shockDensity1, shockDensity2
@@ -102,19 +102,19 @@ contains
           pos(n,2) = y
           pos(n,3) = z
           if (x<0) then
-            mas(n) = (parSpacing1**dim) * shockDensity1
             vel(n,:) = 0.
+            acc(n,:) = 0.
+            mas(n) = (parSpacing1**dim) * shockDensity1
             den(n) = shockDensity1
             sln(n) = (parSpacing1**dim) * sk
-            acc(n) = 0.
             prs(n) = shockPressure1
             uie(n) = shockPressure1 / (g - 1) / shockDensity1
           else
-            mas(n) = (parSpacing2**dim) * shockDensity2
             vel(n,:) = 0.
+            acc(n,:) = 0.
+            mas(n) = (parSpacing2**dim) * shockDensity2
             den(n) = shockDensity2
             sln(n) = (parSpacing2**dim) * sk
-            acc(n) = 0.
             prs(n) = shockPressure2
             uie(n) = shockPressure2 / (g - 1) / shockDensity2
           end if
@@ -141,7 +141,7 @@ contains
     print *, 'Particles placed : ', n
   end subroutine shock_ic
 
-  subroutine set_fixed(n, bn, A)
+  subroutine set_fixed1(n, bn, A)
     integer, intent(in) :: n, bn
     real, intent(out)   :: A(n)
     integer             :: i
@@ -150,5 +150,16 @@ contains
       A(i) = 0.
       A(n-i+1) = 0.
     end do
-  end subroutine set_fixed
+  end subroutine set_fixed1
+
+  subroutine set_fixed3(n, bn, A)
+    integer, intent(in) :: n, bn
+    real, intent(out)   :: A(n,3)
+    integer             :: i
+
+    do i = 1, bn
+      A(i,:) = 0.
+      A(n-i+1,:) = 0.
+    end do
+  end subroutine set_fixed3
 end module setup
