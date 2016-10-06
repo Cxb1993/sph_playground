@@ -1,5 +1,5 @@
 FC=gfortran
-FFLAGS=-O3 -Wall -fcheck=all -fdefault-real-8 -fdefault-double-8 #-g -fbacktrace -ffpe-trap=invalid
+FFLAGS=-fopenmp -O3 -Wall -fcheck=all -fdefault-real-8 -fdefault-double-8 #-g -fbacktrace -ffpe-trap=invalid
 SRC=main.f90 internal.f90 setup.f90 printer.f90 kernel.f90 eos.f90
 OBJ=$(SRC:.f90=.o)
 SUBOBJ=$(addprefix obj/, $(OBJ))
@@ -12,11 +12,10 @@ execute: $(OBJ)
 
 main.o: internal.o setup.o printer.o
 internal.o: printer.o kernel.o setup.o eos.o
-setup.o: kernel.o 
+setup.o: kernel.o
 .PHONY: execute
 
 clean:
-	echo '' > energy.dat
 	rm -r obj/*
 	rm -r mod/*
 	rm execute steps/output_*

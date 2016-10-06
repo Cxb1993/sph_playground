@@ -1,7 +1,7 @@
 module kernel
   implicit none
 
-  public :: set_dim, get_nabla_w, get_dw_dh, get_w
+  public :: set_dim, get_nabla_w, get_dw_dh, get_w, get_dim
   integer, save   :: dim = 1
   real, parameter :: pi = 4.*atan(1.)
 
@@ -12,6 +12,11 @@ module kernel
      integer, intent(in) :: d
      dim = d
    end subroutine set_dim
+
+   subroutine get_dim(d)
+     integer, intent(out) :: d
+     d = dim
+   end subroutine get_dim
 
   subroutine get_kernel_f(r, h, f)
     real, intent(in)  :: r, h
@@ -35,7 +40,7 @@ module kernel
       case(2)
         f = 10./(7. * pi) * f
       case(3)
-        f = 1./pi * f
+        f = f / pi
     end select
   end subroutine get_kernel_f
 
@@ -69,6 +74,7 @@ module kernel
     real, intent(in)  :: rab(3), h
     real, intent(out) :: nw(3)
     real              :: df
+    integer :: i
 
     call get_kernel_df(sqrt(dot_product(rab(:),rab(:))), h, df)
 
@@ -93,6 +99,6 @@ module kernel
 
     call get_kernel_f(r, h, f)
 
-    w = f / h
+    w = f / h ** dim
   end subroutine get_w
 end module kernel

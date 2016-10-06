@@ -236,7 +236,7 @@
  NYPLOTMULTI=          4,
  ITRANS= 64*0          ,
  MULTIPLOTX= 64*1          ,
- MULTIPLOTY=          9,          4,         11,         12, 60*0          ,
+ MULTIPLOTY=         11,          4,         13,         14, 60*0          ,
  
  IRENDERMULTI= 64*0          ,
  IVECPLOTMULTI= 64*0          ,
@@ -1059,3 +1059,4 @@ steps/output_00297
 steps/output_00298
 steps/output_00299
 steps/output_00300
+steps/output_00301

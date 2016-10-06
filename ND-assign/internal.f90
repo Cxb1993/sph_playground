@@ -3,6 +3,7 @@ module internal
   use printer
   use setup
   use eos
+  use omp_lib
 
  implicit none
 
@@ -18,11 +19,13 @@ contains
     real, intent(out)   :: den(n), om(n)
     real                :: w, dwdh, r(3), dr
     integer             :: i, j
-    j = 0
 
+    !$OMP PARALLEL
+    !$OMP DO PRIVATE(r, dr, dwdh, w)
     do i = 1, n
       den(i) = 0.
       om(i) = 0.
+      j = 0
       if (i.ne.j) then
         do j = 1, n
           r(:) = pos(i,:) - pos(j,:)
@@ -37,6 +40,8 @@ contains
       end if
       om(i) = 1. - om(i) * (- sln(i) / (3. * den(i)))
     end do
+    !$OMP END DO
+    !$OMP END PARALLEL
   end subroutine get_density
 
   subroutine get_accel(n, c, pos, vel, acc, mas, den, sln, om, P, u, du)
@@ -45,12 +50,15 @@ contains
     real, intent(out)   :: acc(n,3), u(n), du(n)
     real                :: dr, di, dj, qa, qb, qc
     real                :: nwi(3), nwj(3), r(3), vab(3), urab(3), Pi(3), Pj(3)
-    integer             :: i, j
+    integer             :: i, j, dim
 
+    call get_dim(dim)
     qa = 0.
     qb = 0.
     qc = 0.
 
+    !$OMP PARALLEL
+    !$OMP DO PRIVATE(r, dr, vab, urab,di, dj, nwi, nwj, qa, qb, qc, Pi, Pj)
     do i = 1, n
       acc(i,:) = 0.
       du(i) = 0.
@@ -68,9 +76,8 @@ contains
             call get_nabla_w(r, sln(j), nwj)
             call art_viscosity(di, dj, vab, urab, c(i), c(j), qa, qb)
             call art_termcond(P(i), P(j), di, dj, qc)
-            ! v + 2 in dimmentions
-            Pi(:) = (P(i) + qa) * nwi(:) / (di**2 * om(i))
-            Pj(:) = (P(j) + qb) * nwj(:) / (dj**2 * om(j))
+            Pi(:) = (P(i) + qa) * nwi(:) / (di**(dim+1) * om(i))
+            Pj(:) = (P(j) + qb) * nwj(:) / (dj**(dim+1) * om(j))
             acc(i,:) = acc(i,:) - mas(j) * (Pi(:) + Pj(:))
             du(i) = du(i) + mas(j) * dot_product(vab(:),Pi(:)) &
                           + mas(j) / (0.5 *(di + dj)) * qc * (u(i) - u(j)) * &
@@ -79,6 +86,9 @@ contains
         end if
       end do
     end do
+    !$OMP END DO
+    !$OMP END PARALLEL
+
   end subroutine get_accel
 
   subroutine art_termcond(pa, pb, da, db, vsigu)
@@ -108,20 +118,20 @@ contains
     integer, intent(in) :: n
     real, intent(in)    :: sk, mas(n), den(n)
     real, intent(out)   :: sln(n)
-    integer             :: i
+    integer             :: i, dim
 
+    call get_dim(dim)
     do i = 1, n
-      sln(i) = sk * (mas(i) / den(i))
+      sln(i) = sk * (mas(i) / den(i)) ** (1./dim)
     end do
   end subroutine get_slength
 
   subroutine derivs(t, n, bn, pos, vel, acc, mas, den, sln, om, prs, c, uei, due, sos, sk, gamma)
     integer, intent(in)           :: n, bn
     real, intent(in)              :: sos, sk, gamma
-    real, intent(out)             :: pos(n,3), vel(n,3), acc(n,3), mas(n), den(n), sln(n), prs(n), c(n), uei(n), due(n), om(n)
+    real, intent(inout)           :: pos(n,3), vel(n,3), acc(n,3), mas(n), den(n), sln(n), prs(n), c(n), uei(n), due(n), om(n)
     character (len=*), intent(in) :: t
     integer                       :: i
-
     do i = 1, 3
       call get_density(n, pos, mas, sln, den, om)
 
@@ -156,6 +166,7 @@ contains
         call set_fixed3(n, bn, acc)
         call set_fixed1(n, bn, due)
       end select
+
   end subroutine derivs
 
 end module internal

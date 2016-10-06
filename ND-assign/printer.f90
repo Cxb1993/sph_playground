@@ -6,16 +6,16 @@ contains
 
   subroutine output(n, time, pos, vel, acc, mas, den, slen, pres, ien)
     integer, intent(in) :: n
-    real, intent(in)    :: pos(n,3), mas(n), vel(n,3), den(n), slen(n), acc(n), pres(n), ien(n)
+    real, intent(in)    :: pos(n,3), mas(n), vel(n,3), acc(n,3), den(n), slen(n), pres(n), ien(n)
     real, intent(in)    :: time
     character (len=40)  :: fname
-    integer :: iu, j
+    integer :: iu, j, k
 
     write(fname, "(a,i5.5)") 'steps/output_', ifile
     open(newunit=iu, file=fname, status='replace', form='formatted')
     write(iu,*) time
     do j = 1, n
-      write(iu, *) pos(j,:), vel(j,:), acc(j), mas(j), den(j), slen(j), pres(j), ien(j)
+      write(iu, *) pos(j,:), vel(j,:), acc(j,:), mas(j), den(j), slen(j), pres(j), ien(j)
     end do
     close(iu)
     ifile = ifile + 1

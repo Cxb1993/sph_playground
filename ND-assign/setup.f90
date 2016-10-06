@@ -75,11 +75,11 @@ contains
     spatVarBrdrs32 = 0.
     if (dim.gt.1) then
       spatVarBrdrs21 = 0.
-      spatVarBrdrs22 = 0.1
+      spatVarBrdrs22 = 0.005
     end if
     if (dim.eq.3) then
       spatVarBrdrs31 = 0.
-      spatVarBrdrs32 = 0.1
+      spatVarBrdrs32 = 0.005
     end if
 
     parSpacing1 = 0.001
@@ -106,7 +106,7 @@ contains
             acc(n,:) = 0.
             mas(n) = (parSpacing1**dim) * shockDensity1
             den(n) = shockDensity1
-            sln(n) = (parSpacing1**dim) * sk
+            sln(n) = sk * parSpacing1
             prs(n) = shockPressure1
             uie(n) = shockPressure1 / (g - 1) / shockDensity1
           else
@@ -114,7 +114,7 @@ contains
             acc(n,:) = 0.
             mas(n) = (parSpacing2**dim) * shockDensity2
             den(n) = shockDensity2
-            sln(n) = (parSpacing2**dim) * sk
+            sln(n) = sk * parSpacing2
             prs(n) = shockPressure2
             uie(n) = shockPressure2 / (g - 1) / shockDensity2
           end if
