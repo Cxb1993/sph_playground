@@ -11,30 +11,38 @@ module internal
 
 contains
 
-  subroutine get_omega(n, pos, mas, slen, den, om)
+  subroutine get_density(n, pos, mas, slen, den, om)
     integer, intent(in) :: n
-    real, intent(in)    :: pos(n), mas(n), slen(n), den(n)
-    real, intent(out)   :: om(n)
-    real                :: w, dwdh, q, dhdrho
+    real, intent(in)    :: pos(n), mas(n), slen(n)
+    real, intent(out)   :: om(n), den(n)
+    real                :: w, dwdh, dw, q, dhdrho, omsum, sum
     integer             :: i, j, k
     j = 0
 
     do i = 1, n
       om(i) = 1.
-      dhdrho = - slen(i) / (3 * den(i))
+      den(i) = 0.
+      omsum = 0.
+      sum = 0.
       if (i /= j) then
         do j = 1, n
            q = abs(pos(i)-pos(j))/slen(i)
            if (q < 2.) then
-              call get_kernel_dh(q, w, dwdh)
-              do k = 1,n
-                om(i) = om(i) - dhdrho * mas(k) * dwdh / slen(i)
-              end do
+
+              call get_kernel(q, w, dw)
+              ! v -n of dim                      1+1
+              dwdh = - (1 * w + q * dw) / slen(i) ** 2
+              ! call get_kernel_dh(q, w, dwdh)
+              sum = sum + mas(j)*w/slen(i)
+              omsum = omsum + mas(j) * dwdh
            endif
         end do
       end if
+      den(i) = sum
+      dhdrho = - slen(i) / (3. * den(i))
+      om(i) = om(i) - dhdrho * omsum
     end do
-  end subroutine get_omega
+  end subroutine get_density
 
   subroutine get_ddensity(n, pos, mas, slen, vel, om, den, dden)
     integer, intent(in) :: n
@@ -50,12 +58,13 @@ contains
           q = abs(pos(i)-pos(j))/slen(i)
           if (q < 2.) then
              call get_kernel(q, w, dw)
-             dw = dw * (pos(i) - pos(j)) / slen(i) ** 3
+             dw = dw / slen(i) ** 3
              dden(i) = dden(i) + mas(j) * (vel(i) - vel(j)) * dw
            end if
         end do
       end if
       dden(i) = dden(i) / om(i)
+      print *, dden(i)
     end do
   end subroutine get_ddensity
 
@@ -82,9 +91,9 @@ contains
     end do
   end subroutine eos_isothermal
 
-  subroutine get_accel(n, c, pos, vel, mas, den, slen, P, acc, u, du)
+  subroutine get_accel(n, c, pos, vel, mas, den, slen, om, P, acc, u, du)
     integer, intent(in) :: n
-    real, intent(in)    :: pos(n), mas(n), slen(n), den(n), P(n), vel(n), c(n)
+    real, intent(in)    :: pos(n), mas(n), slen(n), den(n), P(n), vel(n), c(n), om(n)
     real, intent(out)   :: acc(n), u(n), du(n)
     real                :: Pi, Pj, wi, wj, dwi, dwj, qi, qj, dx, qa, qb, qc
     integer             :: i, j
@@ -106,15 +115,15 @@ contains
             call get_kernel(qi, wi, dwi)
             call get_kernel(qj, wj, dwj)
             call art_viscosity(den(i), den(j), vel(i), vel(j), pos(i), pos(j), c(i), c(j), qa, qb)
-            ! call art_termcond(P(i), P(j), den(i), den(j), qc)
+            call art_termcond(P(i), P(j), den(i), den(j), qc)
             ! v + 2 in dimmentions
             dwi = dwi * (pos(i) - pos(j)) / slen(i) ** 3
             dwj = dwj * (pos(i) - pos(j)) / slen(j) ** 3
-            Pi = (P(i) + qa) * dwi / den(i)**2
-            Pj = (P(j) + qb) * dwj / den(j)**2
+            Pi = (P(i) + qa) * dwi / (den(i)**2 * om(i))
+            Pj = (P(j) + qb) * dwj / (den(j)**2 * om(j))
             acc(i) = acc(i) - mas(j) * (Pi + Pj)
             du(i) = du(i) + mas(j) * (vel(i) - vel(j)) * Pi &
-                          - mas(j) / (0.5 *(den(i) + den(j))) * qc * (u(i) - u(j)) * &
+                          + mas(j) / (0.5 *(den(i) + den(j))) * qc * (u(i) - u(j)) * &
                           0.5 * (dwi + dwj) * ((pos(i) - pos(j))/abs(pos(i) - pos(j)))
           end if
         end if
@@ -189,21 +198,21 @@ contains
     character (len=*), intent(in) :: t
     integer                       :: i
 
-    ! do i = 1, 3
-    call get_omega(n, pos, mas, slen, den, om)
+    do i = 1, 3
+    call get_density(n, pos, mas, slen, den, om)
 
-    call get_ddensity(n, pos, mas, slen, vel, om, den, dden)
+    ! call get_ddensity(n, pos, mas, slen, vel, om, den, dden)
 
-    !   if (t .EQ. 'periodic') then
-    !     call set_periodic(n, bn, den)
-    !   end if
+      ! if (t .EQ. 'periodic') then
+      !   call set_periodic(n, bn, den)
+      ! end if
     !
     call get_slength(n, mas, den, slen, sk)
     !
     !   if (t .EQ. 'periodic') then
     !     call set_periodic(n, bn, slen)
     !   end if
-    ! end do
+    end do
 
     select case (t)
       case ('periodic')
@@ -216,7 +225,7 @@ contains
       call set_periodic(n, bn, pres)
     end if
 
-    call get_accel(n, c, pos, vel, mas, den, slen, pres, acc, u, du)
+    call get_accel(n, c, pos, vel, mas, den, slen, om, pres, acc, u, du)
 
     select case (t)
       case ('periodic')

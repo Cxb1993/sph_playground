@@ -43,12 +43,13 @@ program main
                 position, mass, velocity, acceleration, density, slength, pressure, ienergy, gamma)
   ptype='fixed'
 
+  c(:) = speedOfSound
+
+
   tfinish = 0.3
   t = 0.
   dtout = 0.001
   ltout = 0.
-
-  c(:) = speedOfSound
 
   call derivs(ptype, nmax, nbnd, &
               position, velocity, mass, density, ddensity, omega, slength, pressure, c, acceleration, &
@@ -69,15 +70,11 @@ program main
     position(:) = p(:) + dt * v(:) + 0.5 * dt * dt * a(:)
     velocity(:) = v(:) + dt * a(:)
     ienergy(:) = ienergy(:) + dt * dienergy(:)
-    density(:) = density(:) + dt * ddensity(:)
     call derivs(ptype, nmax, nbnd, &
                 position, velocity, mass, density, ddensity, omega, slength, pressure, c, acceleration, &
                 ienergy, dienergy, speedOfSound, sk, gamma)
     velocity(:) = velocity(:) + 0.5 * dt * (acceleration(:) - a(:))
     ienergy(:) = ienergy(:) + 0.5 * dt * (dienergy(:) - du(:))
-    density(:) = density(:) + 0.5 * dt * (ddensity(:) - drho(:))
-  !   call get_kinetic_energy(nmax, nbnd, mass, velocity, kenergy)
-  !   call plot_simple(t, kenergy, 'energy.dat')
     t = t + dt
   end do
   write (*, *) t
