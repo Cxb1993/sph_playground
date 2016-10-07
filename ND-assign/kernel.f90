@@ -74,7 +74,6 @@ module kernel
     real, intent(in)  :: rab(3), h
     real, intent(out) :: nw(3)
     real              :: df
-    integer :: i
 
     call get_kernel_df(sqrt(dot_product(rab(:),rab(:))), h, df)
 

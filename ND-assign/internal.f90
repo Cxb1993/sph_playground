@@ -13,15 +13,16 @@ module internal
 
 contains
 
-  subroutine get_density(n, pos, mas, sln, den, om)
+  subroutine get_density(n, pos, mas, sk, sln, den, om)
     integer, intent(in) :: n
-    real, intent(in)    :: pos(n,3), mas(n), sln(n)
-    real, intent(out)   :: den(n), om(n)
-    real                :: w, dwdh, r(3), dr
-    integer             :: i, j
+    real, intent(in)    :: pos(n,3), mas(n), sk
+    real, intent(out)   :: sln(n), den(n), om(n)
+    real                :: w, dwdh, r(3), dr, dnrfh, nrfh, h0, hp, hn
+    integer             :: i, j, dim
 
+    call get_dim(dim)
     !$OMP PARALLEL
-    !$OMP DO PRIVATE(r, dr, dwdh, w)
+    !$OMP DO PRIVATE(r, dr, dwdh, w, dnrfh, nrfh, h0, hp, hn)
     do i = 1, n
       den(i) = 0.
       om(i) = 0.
@@ -39,15 +40,26 @@ contains
         end do
       end if
       om(i) = 1. - om(i) * (- sln(i) / (3. * den(i)))
+
+      h0 = sln(i)
+      hp = 1000 * h0
+      hn = h0
+      do while (abs(hn - hp) / h0 > 0.0001)
+        hp = hn
+        dnrfh = - 3. * den(i) * om(i) / hp
+        nrfh  = mas(i) / (hp / sk) ** dim - den(i)
+        hn = hp - nrfh / dnrfh
+      end do
+      sln(i) = hn
     end do
     !$OMP END DO
     !$OMP END PARALLEL
   end subroutine get_density
 
-  subroutine get_accel(n, c, pos, vel, acc, mas, den, sln, om, P, u, du)
+  subroutine get_accel(n, c, pos, vel, acc, mas, den, sln, om, P, u, du, dh)
     integer, intent(in) :: n
     real, intent(in)    :: pos(n,3), vel(n,3), mas(n), sln(n), den(n), P(n), c(n), om(n)
-    real, intent(out)   :: acc(n,3), u(n), du(n)
+    real, intent(out)   :: acc(n,3), u(n), du(n), dh(n)
     real                :: dr, di, dj, qa, qb, qc
     real                :: nwi(3), nwj(3), r(3), vab(3), urab(3), Pi(3), Pj(3)
     integer             :: i, j, dim
@@ -62,6 +74,7 @@ contains
     do i = 1, n
       acc(i,:) = 0.
       du(i) = 0.
+      dh(i) = 0.
       do j = 1, n
         if (i.ne.j) then
           r(:) = pos(i,:) - pos(j,:)
@@ -78,13 +91,18 @@ contains
             call art_termcond(P(i), P(j), di, dj, qc)
             Pi(:) = (P(i) + qa) * nwi(:) / (di**(dim+1) * om(i))
             Pj(:) = (P(j) + qb) * nwj(:) / (dj**(dim+1) * om(j))
+
             acc(i,:) = acc(i,:) - mas(j) * (Pi(:) + Pj(:))
+
             du(i) = du(i) + mas(j) * dot_product(vab(:),Pi(:)) &
                           + mas(j) / (0.5 *(di + dj)) * qc * (u(i) - u(j)) * &
                           0.5 * dot_product((nwi(:) + nwj(:)),urab(:))
+
+            dh(i) = dh(i) + mas(j) * dot_product(vab(:), nwi(:))
           end if
         end if
       end do
+      dh(i) =  (- sln(i) / (3 * den(i))) * dh(i) / om(i)
     end do
     !$OMP END DO
     !$OMP END PARALLEL
@@ -114,37 +132,17 @@ contains
     end if
   end subroutine art_viscosity
 
-  subroutine get_slength(n, mas, den, sln, sk)
-    integer, intent(in) :: n
-    real, intent(in)    :: sk, mas(n), den(n)
-    real, intent(out)   :: sln(n)
-    integer             :: i, dim
-
-    call get_dim(dim)
-    do i = 1, n
-      sln(i) = sk * (mas(i) / den(i)) ** (1./dim)
-    end do
-  end subroutine get_slength
-
-  subroutine derivs(t, n, bn, pos, vel, acc, mas, den, sln, om, prs, c, uei, due, sos, sk, gamma)
+  subroutine derivs(t, n, bn, pos, vel, acc, mas, den, h, dh, om, prs, c, uei, due, sos, sk, gamma)
     integer, intent(in)           :: n, bn
     real, intent(in)              :: sos, sk, gamma
-    real, intent(inout)           :: pos(n,3), vel(n,3), acc(n,3), mas(n), den(n), sln(n), prs(n), c(n), uei(n), due(n), om(n)
+    real, intent(inout)           :: pos(n,3), vel(n,3), acc(n,3)
+    real, intent(inout)           :: mas(n), den(n), h(n), dh(n), prs(n), c(n), uei(n), due(n), om(n)
     character (len=*), intent(in) :: t
-    integer                       :: i
-    do i = 1, 3
-      call get_density(n, pos, mas, sln, den, om)
 
-      if (t.eq.'periodic') then
-        call set_periodic(n, bn, den)
-      end if
-
-      call get_slength(n, mas, den, sln, sk)
-
-      if (t.eq.'periodic') then
-        call set_periodic(n, bn, sln)
-      end if
-    end do
+    call get_density(n, pos, mas, sk, h, den, om)
+    if (t.eq.'periodic') then
+      call set_periodic(n, bn, den)
+    end if
 
     select case (t)
       case ('periodic')
@@ -157,7 +155,7 @@ contains
       call set_periodic(n, bn, prs)
     end if
 
-    call get_accel(n, c, pos, vel, acc, mas, den, sln, om, prs, uei, due)
+    call get_accel(n, c, pos, vel, acc, mas, den, h, om, prs, uei, due, dh)
 
     select case (t)
       case ('periodic')

@@ -9,7 +9,7 @@ contains
     real, intent(in)    :: pos(n,3), mas(n), vel(n,3), acc(n,3), den(n), slen(n), pres(n), ien(n)
     real, intent(in)    :: time
     character (len=40)  :: fname
-    integer :: iu, j, k
+    integer :: iu, j
 
     write(fname, "(a,i5.5)") 'steps/output_', ifile
     open(newunit=iu, file=fname, status='replace', form='formatted')
