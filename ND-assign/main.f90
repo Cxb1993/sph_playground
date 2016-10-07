@@ -17,7 +17,6 @@ program main
   ! real, parameter    :: sk = 1.2
   ! real, parameter    :: speedOfSound = 1.
 
-  integer             :: nb = 6
   real                :: sk = 1.2
   integer, parameter  :: nmax = 100000
   real                :: speedOfSound = 1.
@@ -34,7 +33,7 @@ program main
 
   call get_command_argument(1, arg)
   read(arg(:), fmt="(i5)") dim
-  print *, "Number of dimmentions:", dim
+  print *, "# of dim :", dim
 
   ! call periodic_ic(xmin, xmax, nmax, nbnd, init_rho, sk, &
   !                  position, mass, velocity, acceleration, density, slength, pressure)
@@ -42,7 +41,6 @@ program main
   call shock_ic(dim, nmax, n, sk, gamma, &
                 position, velocity, acceleration, mass, density, slength, pressure, ienergy)
   ptype='shock_fixed'
-
   pos = position(1:n,:)
   p   = pos(:,:)
   vel = velocity(1:n,:)
@@ -67,11 +65,11 @@ program main
   t = 0.
   dtout = 0.001
   ltout = 0.
-
   call output(n, 0., pos, vel, acc, mas, den, h, prs, ieu)
-  call derivs(ptype, n, nb, pos, vel, acc, mas, den, h, dh, o, prs, c, ieu, diu, &
+  call derivs(ptype, n, pos, vel, acc, mas, den, h, dh, o, prs, c, ieu, diu, &
               speedOfSound, sk, gamma)
 
+  print *, ''
   do while (t <= tfinish)
     dt = 0.3 * minval(h) / maxval(c)
     if (t >= ltout) then
@@ -90,7 +88,7 @@ program main
     ieu = ieu + dt * diu
     h   = h   + dt * dh
 
-    call derivs(ptype, n, nb, pos, vel, acc, mas, den, h, dh, o, prs, c, ieu, diu, &
+    call derivs(ptype, n, pos, vel, acc, mas, den, h, dh, o, prs, c, ieu, diu, &
                 speedOfSound, sk, gamma)
 
     vel = vel + 0.5 * dt * (acc - a)

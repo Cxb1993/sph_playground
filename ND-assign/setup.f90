@@ -6,6 +6,8 @@ module setup
   public :: periodic_ic, set_periodic, shock_ic, set_fixed1, set_fixed3
 
   private
+    integer, save        :: ns
+    integer, allocatable :: border(:)
 
 contains
 
@@ -44,10 +46,11 @@ contains
     end do
   end subroutine periodic_ic
 
-  subroutine set_periodic(n, bn, A)
-    integer, intent(in) :: n, bn
+  subroutine set_periodic(n, A)
+    integer, intent(in) :: n
     real, intent(out)   :: A(n)
-    integer             :: i, nr
+    integer             :: i, nr, bn
+    bn = 2
 
     nr = n - 2 * bn
     do i = 1, bn
@@ -63,10 +66,12 @@ contains
     integer, intent(out) :: n
     real                 :: spatVarBrdrs11, spatVarBrdrs12, spatVarBrdrs21, spatVarBrdrs22, spatVarBrdrs31, spatVarBrdrs32
     real                 :: parSpacing1, parSpacing2, shockPressure1, shockPressure2, shockDensity1, shockDensity2
-    real                 :: x, y, z
+    real                 :: x, y, z, sp
+    integer              :: nb, nbnew, brdarr(nx)
 
     call set_dim(dim)
 
+    nb = 3
     spatVarBrdrs11 = -0.5
     spatVarBrdrs12 = 0.5
     spatVarBrdrs21 = 0.
@@ -75,11 +80,11 @@ contains
     spatVarBrdrs32 = 0.
     if (dim.gt.1) then
       spatVarBrdrs21 = 0.
-      spatVarBrdrs22 = 0.005
+      spatVarBrdrs22 = 0.05
     end if
     if (dim.eq.3) then
       spatVarBrdrs31 = 0.
-      spatVarBrdrs32 = 0.005
+      spatVarBrdrs32 = 0.05
     end if
 
     parSpacing1 = 0.001
@@ -93,7 +98,13 @@ contains
 
     x = spatVarBrdrs11
     n = 1
+    nbnew = 1
     do while ((x >= spatVarBrdrs11).and.(x <= spatVarBrdrs12))
+      if (x.lt.0) then
+        sp = parSpacing1
+      else
+        sp = parSpacing2
+      end if
       y = spatVarBrdrs21
       do while ((y >= spatVarBrdrs21).and.(y <= spatVarBrdrs22))
         z = spatVarBrdrs31
@@ -101,65 +112,60 @@ contains
           pos(n,1) = x
           pos(n,2) = y
           pos(n,3) = z
+          if ((x.lt.(spatVarBrdrs11 + nb * sp)).or.(x.gt.(spatVarBrdrs12 - nb * sp))) then
+            brdarr(nbnew) = n
+            nbnew = nbnew + 1
+          end if
+          if (dim.gt.1) then
+            if ((y.lt.(spatVarBrdrs21 + nb * sp)).or.(y.gt.(spatVarBrdrs22 - nb * sp))) then
+              brdarr(nbnew) = n
+              nbnew = nbnew + 1
+            end if
+          end if
+
           if (x<0) then
             vel(n,:) = 0.
             acc(n,:) = 0.
-            mas(n) = (parSpacing1**dim) * shockDensity1
+            mas(n) = (sp**dim) * shockDensity1
             den(n) = shockDensity1
-            sln(n) = sk * parSpacing1
+            sln(n) = sk * sp
             prs(n) = shockPressure1
             uie(n) = shockPressure1 / (g - 1) / shockDensity1
           else
             vel(n,:) = 0.
             acc(n,:) = 0.
-            mas(n) = (parSpacing2**dim) * shockDensity2
+            mas(n) = (sp**dim) * shockDensity2
             den(n) = shockDensity2
-            sln(n) = sk * parSpacing2
+            sln(n) = sk * sp
             prs(n) = shockPressure2
             uie(n) = shockPressure2 / (g - 1) / shockDensity2
           end if
-          if (x<0) then
-            z = z + parSpacing1
-          else
-            z = z + parSpacing2
-          end if
+          z = z + sp
           n = n + 1
         end do
-        if (x<0) then
-          y = y + parSpacing1
-        else
-          y = y + parSpacing2
-        end if
+        y = y + sp
       end do
-      if (x<0) then
-        x = x + parSpacing1
-      else
-        x = x + parSpacing2
-      end if
+      x = x + sp
     end do
+    nbnew = nbnew - 1
     n = n - 1
-    print *, 'Particles placed : ', n
+    ns = n
+
+    allocate(border(nbnew))
+    border = brdarr(1:nbnew)
+    print *, '# placed :', n
+    print *, '# border :', nbnew
   end subroutine shock_ic
 
-  subroutine set_fixed1(n, bn, A)
-    integer, intent(in) :: n, bn
-    real, intent(out)   :: A(n)
-    integer             :: i
+  subroutine set_fixed1(A)
+    real, intent(out)   :: A(ns)
 
-    do i = 1, bn
-      A(i) = 0.
-      A(n-i+1) = 0.
-    end do
+    A(border) = 0.
   end subroutine set_fixed1
 
-  subroutine set_fixed3(n, bn, A)
-    integer, intent(in) :: n, bn
-    real, intent(out)   :: A(n,3)
-    integer             :: i
+  subroutine set_fixed3(A)
+    real, intent(out)   :: A(ns,3)
 
-    do i = 1, bn
-      A(i,:) = 0.
-      A(n-i+1,:) = 0.
-    end do
+    A(border,:) = 0.
   end subroutine set_fixed3
 end module setup

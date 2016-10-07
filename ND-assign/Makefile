@@ -18,4 +18,5 @@ setup.o: kernel.o
 clean:
 	rm -r obj/*
 	rm -r mod/*
+	rm -r *.png
 	rm execute steps/output_*
