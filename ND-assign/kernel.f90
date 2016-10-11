@@ -1,7 +1,7 @@
 module kernel
   implicit none
 
-  public :: set_dim, get_nabla_w, get_dw_dh, get_w, get_dim
+  public :: set_dim, get_nabla_w, get_dw_dh, get_w, get_dim, get_dphi_dh
   integer, save   :: dim = 1
   real, parameter :: pi = 4.*atan(1.)
 
@@ -70,6 +70,13 @@ module kernel
     end select
   end subroutine get_kernel_df
 
+  subroutine get_kernel_phi(r, h, phi)
+    real, intent(in)  :: r, h
+    real, intent(out) :: phi
+
+    phi = 1./h * (1. + (r/h)**2)**(1./2.)
+  end subroutine get_kernel_phi
+
   subroutine get_nabla_w(rab, h, nw)
     real, intent(in)  :: rab(3), h
     real, intent(out) :: nw(3)
@@ -100,4 +107,13 @@ module kernel
 
     w = f / h ** dim
   end subroutine get_w
+
+  subroutine get_dphi_dh(r, h, dphidh)
+    real, intent(in)  :: r, h
+    real, intent(out) :: dphidh
+    real              :: phi
+
+    call get_kernel_phi(r, h, phi)
+    dphidh = - 1./h * phi - r**2/(h**5 * phi)
+  end subroutine get_dphi_dh
 end module kernel
