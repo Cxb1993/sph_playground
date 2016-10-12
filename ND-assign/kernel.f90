@@ -11,11 +11,15 @@ module kernel
    subroutine set_dim(d)
      integer, intent(in) :: d
      dim = d
+    !  print *, 'Dim in set call: ', dim
+    !  read *
    end subroutine set_dim
 
    subroutine get_dim(d)
      integer, intent(out) :: d
      d = dim
+    !  print *, 'Dim in get call: ', d
+    !  read *
    end subroutine get_dim
 
   subroutine get_kernel_f(r, h, f)

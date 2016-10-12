@@ -13,51 +13,49 @@ contains
     integer, intent(in) :: n
     real, intent(in)    :: pos(n,3), mas(n), sk
     real, intent(out)   :: sln(n), den(n), om(n)
-    real                :: w, dwdh, r(3), dr, dnrfh, nrfh, h0, hp, hn
-    integer             :: i, j, dim, itern
+    real                :: w, dwdh, r(3), dr, dfdh, fh, hn
+    real                :: allowerror, slnint(n), resid(n)
+    integer             :: i, j, dim, maxiter
 
     call get_dim(dim)
+    ! print *, 'Dim in circuit1: ', dim
+    ! read *
+    allowerror = 0.0001
+    slnint(:) = sln(:)
+    resid(:)  = 1.
 
-    !$OMP PARALLEL
-    !$OMP DO PRIVATE(r, dr, dwdh, w, dnrfh, nrfh, h0, hp, hn, itern)
-    do i = 1, n
-      den(i) = 0.
-      om(i) = 0.
-      j = 0
-      if (i.ne.j) then
-        do j = 1, n
-          r(:) = pos(i,:) - pos(j,:)
-          dr = sqrt(dot_product(r(:),r(:)))
-          if (dr < 2. * sln(i)) then
-            call get_dw_dh(dr, sln(i), dwdh)
-            call get_w(dr, sln(i), w)
-            den(i) = den(i) + mas(j) * w
-            om(i) = om(i) + mas(j) * dwdh
+    do while (maxval(resid, mask=(resid>0)).gt.allowerror)
+      !$OMP PARALLEL
+      !$OMP DO PRIVATE(r, dr, dwdh, w, dfdh, fh, hn, maxiter)
+      do i = 1, n
+        if (resid(i).gt.allowerror) then
+          den(i) = 0.
+          om(i) = 0.
+          j = 0
+          if (i.ne.j) then
+            do j = 1, n
+              r(:) = pos(i,:) - pos(j,:)
+              dr = sqrt(dot_product(r(:),r(:)))
+              if (dr < 2. * slnint(i)) then
+                call get_dw_dh(dr, slnint(i), dwdh)
+                call get_w(dr, slnint(i), w)
+                den(i) = den(i) + mas(j) * w
+                om(i) = om(i) + mas(j) * dwdh
+              end if
+            end do
           end if
-        end do
-      end if
-      om(i) = 1. - om(i) * (- sln(i) / (3 * dim * den(i)))
-      h0 = sln(i)
-      hp = 1000 * h0
-      hn = h0
-      itern = 50
-      do while ((abs(hn - hp) / h0 > 0.0001).and.(itern.gt.0))
-        hp = hn
-        dnrfh = - 3 * dim * den(i) * om(i) / hp
-        nrfh  = mas(i) * (sk / hp) ** dim - den(i)
-        hn = hp - nrfh / dnrfh
-        itern = itern - 1
-        if (itern.eq.0) then
-          print *, 'More then 50 iterations in NR scheme. i:', i, 'h_new', hn
-          print *, pos(i,:)
-          print *, hp, nrfh, dnrfh
-          stop
+          om(i) = 1. - om(i) * (- slnint(i) / (3 * dim * den(i)))
+          dfdh = - 3 * dim * den(i) * om(i) / slnint(i)
+          fh  = mas(i) * (sk / slnint(i)) ** dim - den(i)
+          hn = slnint(i) - fh / dfdh
+          resid(i) = abs(hn - slnint(i)) / sln(i)
+          slnint(i) = hn
         end if
       end do
-      sln(i) = hn
+      !$OMP END DO
+      !$OMP END PARALLEL
     end do
-    !$OMP END DO
-    !$OMP END PARALLEL
+    sln(:) = slnint(:)
   end subroutine circuit1
 
 end module circuit1_mod

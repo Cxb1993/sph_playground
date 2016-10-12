@@ -19,6 +19,8 @@ contains
     integer             :: i, j, dim
 
     call get_dim(dim)
+    ! print *, 'Dim in circuit2: ', dim
+    ! read *
     !$OMP PARALLEL
     !$OMP DO PRIVATE(r, dr, vab, urab,di, dj, nwi, nwj, qa, qb, qc, Pi, Pj, dphidh)
     do i = 1, n

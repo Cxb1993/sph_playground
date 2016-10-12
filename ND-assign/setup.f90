@@ -7,7 +7,7 @@ module setup
 
   private
     integer, save        :: ns
-    integer, allocatable :: border(:)
+    integer, allocatable :: borderX(:), borderY(:), borderZ(:)
 
 contains
 
@@ -67,7 +67,7 @@ contains
     real                 :: spatVarBrdrs11, spatVarBrdrs12, spatVarBrdrs21, spatVarBrdrs22, spatVarBrdrs31, spatVarBrdrs32
     real                 :: parSpacing1, parSpacing2, shockPressure1, shockPressure2, shockDensity1, shockDensity2
     real                 :: x, y, z, sp
-    integer              :: nb, nbnew, brdarr(nx)
+    integer              :: nb, nbnewX, nbnewY, nbnewZ, brdarrX(nx), brdarrY(nx), brdarrZ(nx)
 
     call set_dim(dim)
 
@@ -98,7 +98,9 @@ contains
 
     x = spatVarBrdrs11
     n = 1
-    nbnew = 1
+    nbnewX = 1
+    nbnewY = 1
+    nbnewZ = 1
     do while ((x >= spatVarBrdrs11).and.(x <= spatVarBrdrs12))
       if (x.lt.0) then
         sp = parSpacing1
@@ -113,13 +115,13 @@ contains
           pos(n,2) = y
           pos(n,3) = z
           if ((x.lt.(spatVarBrdrs11 + nb * sp)).or.(x.gt.(spatVarBrdrs12 - nb * sp))) then
-            brdarr(nbnew) = n
-            nbnew = nbnew + 1
+            brdarrX(nbnewX) = n
+            nbnewX = nbnewX + 1
           end if
           if (dim.gt.1) then
             if ((y.lt.(spatVarBrdrs21 + nb * sp)).or.(y.gt.(spatVarBrdrs22 - nb * sp))) then
-              brdarr(nbnew) = n
-              nbnew = nbnew + 1
+              brdarrY(nbnewY) = n
+              nbnewY = nbnewY + 1
             end if
           end if
 
@@ -151,25 +153,52 @@ contains
       end do
       x = x + sp
     end do
-    nbnew = nbnew - 1
+    nbnewX = nbnewX - 1
+    nbnewY = nbnewY - 1
+    nbnewZ = nbnewZ - 1
     n = n - 1
     ns = n
 
-    allocate(border(nbnew))
-    border = brdarr(1:nbnew)
-    print *, '# placed :', n
-    print *, '# border :', nbnew
+    allocate(borderX(nbnewX))
+    borderX = brdarrX(1:nbnewX)
+    allocate(borderY(nbnewY))
+    borderY = brdarrY(1:nbnewY)
+    allocate(borderZ(nbnewZ))
+    borderZ = brdarrZ(1:nbnewZ)
+    print *, '#   placed:', n
+    print *, '# border-x:', nbnewX
+    print *, '# border-y:', nbnewY
+    print *, '# border-z:', nbnewZ
+
   end subroutine shock_ic
 
   subroutine set_fixed1(A)
-    real, intent(out)   :: A(ns)
+    real, intent(out) :: A(ns)
+    integer           :: dim
 
-    A(border) = 0.
+    call get_dim(dim)
+
+    A(borderX) = 0.
+    if(dim.gt.1) then
+      A(borderY) = 0.
+      if(dim.eq.3) then
+        A(borderZ) = 0.
+      end if
+    end if
   end subroutine set_fixed1
 
   subroutine set_fixed3(A)
-    real, intent(out)   :: A(ns,3)
+    real, intent(out) :: A(ns,3)
+    integer           :: dim
 
-    A(border,:) = 0.
+    call get_dim(dim)
+
+    A(borderX,1) = 0.
+    if(dim.gt.1) then
+      A(borderY,2) = 0.
+      if(dim.eq.3) then
+        A(borderZ,3) = 0.
+      end if
+    end if
   end subroutine set_fixed3
 end module setup

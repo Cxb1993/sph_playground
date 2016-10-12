@@ -22,11 +22,11 @@ program main
   real :: dt, t, dtout, ltout, tfinish
   real, allocatable, dimension(:,:) :: p, v, a
   real, allocatable, dimension(:,:) :: pos, vel, acc
-  real, allocatable, dimension(:) :: den, prs, mas, ieu, diu, o, du, c, h, dh, tdh, f, eps
+  real, allocatable, dimension(:)   :: den, prs, mas, ieu, diu, o, du, c, h, dh, tdh, f, eps
 
   call get_command_argument(1, arg)
   read(arg(:), fmt="(i5)") dim
-  print *, "# of dim :", dim
+  print *, "#      dim:", dim
 
   ! call periodic_ic(xmin, xmax, nmax, nbnd, init_rho, sk, &
   !                  position, mass, velocity, acceleration, density, slength, pressure)
@@ -35,6 +35,7 @@ program main
                 position, velocity, acceleration, &
                 mass, density, slength, pressure, ienergy, actacc, dustfraction)
   ptype='shock_fixed'
+  
   pos = position(1:n,:)
   p   = pos(:,:)
   vel = velocity(1:n,:)
