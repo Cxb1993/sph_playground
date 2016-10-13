@@ -1,15 +1,15 @@
-module circuit1_mod
+module purehydro_circuit1
   use omp_lib
   use kernel
 
   implicit none
 
-  public :: circuit1
+  public :: purehydro_c1
 
   private
 contains
 
-  subroutine circuit1(n, pos, mas, sk, sln, den, om)
+  subroutine purehydro_c1(n, pos, mas, sk, sln, den, om)
     integer, intent(in) :: n
     real, intent(in)    :: pos(n,3), mas(n), sk
     real, intent(out)   :: sln(n), den(n), om(n)
@@ -56,6 +56,6 @@ contains
       !$OMP END PARALLEL
     end do
     sln(:) = slnint(:)
-  end subroutine circuit1
+  end subroutine purehydro_c1
 
-end module circuit1_mod
+end module purehydro_circuit1

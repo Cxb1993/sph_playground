@@ -1,20 +1,20 @@
-module circuit2_mod
+module tempr_circuit2
   use omp_lib
   use kernel
 
   implicit none
 
-  public :: circuit2
+  public :: tempr_c2
 
   private
 
 contains
 
-  subroutine circuit2(n, c, pos, vel, acc, mas, den, sln, om, P, u, du, dh, f, eps)
+  subroutine tempr_c2(n, c, pos, vel, acc, mas, den, sln, om, P, u, du, dh, cf, dcf, kcf)
     integer, intent(in) :: n
-    real, intent(in)    :: pos(n,3), vel(n,3), mas(n), sln(n), den(n), P(n), c(n), om(n)
-    real, intent(out)   :: acc(n,3), u(n), du(n), dh(n), f(n), eps(n)
-    real                :: dr, di, dj, qa, qb, qc, dphidh
+    real, intent(in)    :: pos(n,3), vel(n,3), mas(n), sln(n), den(n), P(n), c(n), om(n), cf(n)
+    real, intent(out)   :: acc(n,3), u(n), du(n), dh(n), dcf(n), kcf(n)
+    real                :: dr, di, dj, qa, qb, qc, n2y
     real                :: nwi(3), nwj(3), r(3), vab(3), urab(3), Pi(3), Pj(3)
     integer             :: i, j, dim
 
@@ -22,11 +22,12 @@ contains
     ! print *, 'Dim in circuit2: ', dim
     ! read *
     !$OMP PARALLEL
-    !$OMP DO PRIVATE(r, dr, vab, urab,di, dj, nwi, nwj, qa, qb, qc, Pi, Pj, dphidh)
+    !$OMP DO PRIVATE(r, dr, vab, urab,di, dj, nwi, nwj, qa, qb, qc, Pi, Pj, n2y)
     do i = 1, n
       acc(i,:) = 0.
-      du(i) = 0.
-      dh(i) = 0.
+      du(i)    = 0.
+      dh(i)    = 0.
+      dcf(i)   = 0.
       do j = 1, n
         if (i.ne.j) then
           r(:) = pos(i,:) - pos(j,:)
@@ -42,29 +43,34 @@ contains
 
             call get_nabla_w(r, sln(i), nwi)
             call get_nabla_w(r, sln(j), nwj)
-            call get_dphi_dh(dr, sln(i), dphidh)
+            call get_n2y(r, sln(i), n2y)
             call art_viscosity(di, dj, vab, urab, c(i), c(j), qa, qb)
             call art_termcond(P(i), P(j), di, dj, qc)
             Pi(:) = (P(i) + qa) * nwi(:) / (di**2 * om(i))
             Pj(:) = (P(j) + qb) * nwj(:) / (dj**2 * om(j))
 
-            acc(i,:) = acc(i,:) - mas(j) * (Pi(:) + Pj(:)) + f(i)
+            acc(i,:) = acc(i,:) - mas(j) * (Pi(:) + Pj(:))
 
-            du(i)   = du(i) + mas(j) * dot_product(vab(:),Pi(:)) &
-                          + mas(j) / (0.5 *(di + dj)) * qc * (u(i) - u(j)) * &
-                          0.5 * dot_product((nwi(:) + nwj(:)),urab(:))
+            du(i)    = du(i) + mas(j) * dot_product(vab(:),Pi(:)) &
+                            + mas(j) / (0.5 *(di + dj)) * qc * (u(i) - u(j)) &
+                            * 0.5 * dot_product((nwi(:) + nwj(:)),urab(:))
 
-            dh(i)   = dh(i) + mas(j) * dot_product(vab(:), nwi(:))
-            ! ts = dj
-            ! deps(i) = deps(i) - mas(j) * ts * eps(i) * (P(i) - P(j)) * Yab / di / dj
+            dh(i)    = dh(i) + mas(j) * dot_product(vab(:), nwi(:))
+
+            ! dcf(i)  = dcf(i) + 4 * mas(j) / (di * dj) * kcf(i) * kcf(j) / (kcf(i) + kcf(j)) &
+            !                  * (cf(i) - cf(j)) * n2y
+            ! print *, i, dcf(i)
+            ! read *
           end if
         end if
       end do
-      dh(i) =  (- sln(i) / (dim * den(i))) * dh(i) / om(i)
+      dh(i)  =  (- sln(i) / (dim * den(i))) * dh(i) / om(i)
+      ! print *, "Final", i, dcf(i)
+      ! read *
     end do
     !$OMP END DO
     !$OMP END PARALLEL
-  end subroutine circuit2
+  end subroutine tempr_c2
 
   subroutine art_termcond(pa, pb, da, db, vsigu)
     real, intent(in)  :: pa, pb, da, db
@@ -89,4 +95,4 @@ contains
     end if
   end subroutine art_viscosity
 
-end module circuit2_mod
+end module tempr_circuit2

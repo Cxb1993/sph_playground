@@ -4,9 +4,9 @@ module printer
 
 contains
 
-  subroutine output(n, time, pos, vel, acc, mas, den, slen, pres, ien)
+  subroutine output(n, time, pos, vel, acc, mas, den, slen, pres, ien, cf)
     integer, intent(in) :: n
-    real, intent(in)    :: pos(n,3), mas(n), vel(n,3), acc(n,3), den(n), slen(n), pres(n), ien(n)
+    real, intent(in)    :: pos(n,3), mas(n), vel(n,3), acc(n,3), den(n), slen(n), pres(n), ien(n), cf(n)
     real, intent(in)    :: time
     character (len=40)  :: fname
     integer :: iu, j
@@ -15,7 +15,7 @@ contains
     open(newunit=iu, file=fname, status='replace', form='formatted')
     write(iu,*) time
     do j = 1, n
-      write(iu, *) pos(j,:), vel(j,:), acc(j,:), mas(j), den(j), slen(j), pres(j), ien(j)
+      write(iu, *) pos(j,:), vel(j,:), acc(j,:), mas(j), den(j), slen(j), pres(j), ien(j), cf(j)
     end do
     close(iu)
     ifile = ifile + 1

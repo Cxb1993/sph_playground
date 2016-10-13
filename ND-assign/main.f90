@@ -1,13 +1,14 @@
 program main
-  use setup
+  use purehydro_setup
+  use tempr_setup
   use internal
   use printer
   use kernel
 
   implicit none
 
-  character (len=40) :: ptype
-  character (len=1) :: arg
+  character (len=40) :: ttype
+  character (len=1)  :: arg
 
   real                :: sk = 1.2
   integer, parameter  :: nmax = 400000
@@ -15,27 +16,42 @@ program main
   real                :: gamma = 1.4
   integer             :: n, dim
 
-  real :: position(nmax,3), velocity(nmax,3), acceleration(nmax,3), density(nmax), slength(nmax)
-  real :: pressure(nmax), mass(nmax), ienergy(nmax), dienergy(nmax), omega(nmax), actacc(nmax)
-  real :: dustfraction(nmax)
+  real, allocatable, dimension(:,:) :: position, velocity, acceleration
+  ! real :: position(nmax,3), velocity(nmax,3), acceleration(nmax,3)
+  real :: density(nmax), slength(nmax), pressure(nmax), mass(nmax), ienergy(nmax), dienergy(nmax), omega(nmax)
+  real :: coupledfield(nmax), kcoupledfield(nmax)
 
   real :: dt, t, dtout, ltout, tfinish
   real, allocatable, dimension(:,:) :: p, v, a
   real, allocatable, dimension(:,:) :: pos, vel, acc
-  real, allocatable, dimension(:)   :: den, prs, mas, ieu, diu, o, du, c, h, dh, tdh, f, eps
+  real, allocatable, dimension(:)   :: den, prs, mas, ieu, diu, o, du, c, h, dh, tdh
+  real, allocatable, dimension(:)   :: cf, tcf, dcf, kcf
+
+  allocate(position(nmax,3))
+  allocate(velocity(nmax,3))
+  allocate(acceleration(nmax,3))
 
   call get_command_argument(1, arg)
   read(arg(:), fmt="(i5)") dim
-  print *, "#      dim:", dim
+  print *, "#       dim:", dim
+
+  call get_command_argument(2, ttype)
+  print *, "# task type: ", ttype
 
   ! call periodic_ic(xmin, xmax, nmax, nbnd, init_rho, sk, &
   !                  position, mass, velocity, acceleration, density, slength, pressure)
   ! ptype='periodic'
-  call shock_ic(dim, nmax, n, sk, gamma, &
-                position, velocity, acceleration, &
-                mass, density, slength, pressure, ienergy, actacc, dustfraction)
-  ptype='shock_fixed'
-  
+  select case(ttype)
+  case('purehydroshock')
+    call purehydro_shock_ic(dim, nmax, n, sk, gamma, &
+                  position, velocity, acceleration, &
+                  mass, density, slength, pressure, ienergy)
+  case('temperhomog01')
+    call tempr_homog01(dim, nmax, n, sk, gamma, &
+                  position, velocity, acceleration, &
+                  mass, density, slength, pressure, ienergy, coupledfield, kcoupledfield)
+  end select
+
   pos = position(1:n,:)
   p   = pos(:,:)
   vel = velocity(1:n,:)
@@ -54,24 +70,32 @@ program main
   c(:)= speedOfSound
   allocate(dh(1:n))
   tdh = dh
-  f   = actacc(1:n)
-  eps = dustfraction(1:n)
+  cf  = coupledfield(1:n)
+  tcf = coupledfield(1:n)
+  allocate(dcf(1:n))
+  dcf = 0.
+  kcf  = kcoupledfield(1:n)
+
+  deallocate(position)
+  deallocate(velocity)
+  deallocate(acceleration)
 
   tfinish = 0.3
   t = 0.
   dtout = 0.001
   ltout = 0.
-  call output(n, 0., pos, vel, acc, mas, den, h, prs, ieu)
-  call derivs(ptype, n, speedOfSound, sk, gamma, &
+  call output(n, 0., pos, vel, acc, mas, den, h, prs, ieu, cf)
+  call derivs(ttype, n, speedOfSound, sk, gamma, &
               pos, vel, acc, &
-              mas, den, h, dh, o, prs, c, ieu, diu, f, eps)
+              mas, den, h, dh, o, prs, c, ieu, diu, &
+              cf, dcf, kcf)
 
   print *, ''
   do while (t <= tfinish)
     dt = 0.3 * minval(h) / maxval(c)
     if (t >= ltout) then
       write (*, *) t
-      call output(n, t, pos, vel, acc, mas, den, h, prs, ieu)
+      call output(n, t, pos, vel, acc, mas, den, h, prs, ieu, cf)
       ltout = ltout + dtout
     end if
     p(:,:) = pos(:,:)
@@ -79,22 +103,26 @@ program main
     a(:,:) = acc(:,:)
     du(:)  = diu(:)
     tdh(:) = dh(:)
+    tcf(:) = dcf(:)
 
     pos(:,:) = p(:,:) + dt * v(:,:) + 0.5 * dt * dt * a(:,:)
     vel(:,:) = v(:,:) + dt * a(:,:)
     ieu(:)   = ieu(:) + dt * diu(:)
-    h(:)     = h(:)   + dt * dh(:)
+    h(:)     = h(:)   + dt *  dh(:)
+    ! cf(:)    = cf(:)  + dt * dcf(:)
 
-    call derivs(ptype, n, speedOfSound, sk, gamma, &
+    call derivs(ttype, n, speedOfSound, sk, gamma, &
                 pos, vel, acc, &
-                mas, den, h, dh, o, prs, c, ieu, diu, f, eps)
+                mas, den, h, dh, o, prs, c, ieu, diu, &
+                cf, dcf, kcf)
 
     vel(:,:) = vel(:,:) + 0.5 * dt * (acc(:,:) - a(:,:))
     ieu(:)   = ieu(:)   + 0.5 * dt * (diu(:) - du(:))
     h(:)     = h(:)     + 0.5 * dt * (dh(:) - tdh(:))
-
+    ! cf(:)    = cf(:)    + 0.5 * dt * (dcf(:) - tcf(:))
+    ! cf(:)    = ieu(:) / c(:)
     t = t + dt
   end do
   write (*, *) t - dt
-  call output(n, t, pos, vel, acc, mas, den, h, prs, ieu)
+  call output(n, t, pos, vel, acc, mas, den, h, prs, ieu, cf)
 end program main

@@ -1,8 +1,11 @@
 module internal
   use eos
-  use setup
-  use circuit1_mod
-  use circuit2_mod
+  use purehydro_setup
+  use purehydro_circuit1
+  use purehydro_circuit2
+  use tempr_setup
+  use tempr_circuit1
+  use tempr_circuit2
 
  implicit none
 
@@ -11,40 +14,32 @@ module internal
  private
 
 contains
-
-  subroutine derivs(t, n, sos, sk, gamma, pos, vel, acc, mas, den, h, dh, om, prs, c, uei, due, f, eps)
+  subroutine derivs(t, n, sos, sk, gamma, pos, vel, acc, mas, den, h, dh, om, prs, c, uei, due, cf, dcf, kcf)
     integer, intent(in)           :: n
     real, intent(in)              :: sos, sk, gamma
     real, intent(inout)           :: pos(n,3), vel(n,3), acc(n,3)
-    real, intent(inout)           :: mas(n), den(n), h(n), dh(n), prs(n), c(n), uei(n), due(n), om(n), f(n), eps(n)
+    real, intent(inout)           :: mas(n), den(n), h(n), dh(n), prs(n), c(n), uei(n), due(n), om(n)
+    real, intent(inout)           :: cf(n), dcf(n), kcf(n)
     character (len=*), intent(in) :: t
 
-    call circuit1(n, pos, mas, sk, h, den, om)
-    if (t.eq.'periodic') then
+    select case (t)
+    case ('periodic')
+      call purehydro_c1(n, pos, mas, sk, h, den, om)
       call set_periodic(n, den)
-    end if
-
-    select case (t)
-      case ('periodic')
-        call eos_isothermal(n, den, prs, sos)
-      case ('shock_fixed')
-        call eos_adiabatic(n, den, uei, prs, c, gamma)
-    end select
-
-    if (t.eq.'periodic') then
+      call eos_isothermal(n, den, prs, sos)
       call set_periodic(n, prs)
-    end if
-
-    call circuit2(n, c, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, f, eps)
-
-    select case (t)
-      case ('periodic')
-        call set_periodic(n, acc)
-      case ('shock_fixed')
-        call set_fixed3(acc)
-        call set_fixed1(due)
-      end select
-
+      call purehydro_c2(n, c, pos, vel, acc, mas, den, h, om, prs, uei, due, dh)
+      call set_periodic(n, acc)
+    case ('purehydroshock')
+      call purehydro_c1(n, pos, mas, sk, h, den, om)
+      call eos_adiabatic(n, den, uei, prs, c, gamma)
+      call purehydro_c2(n, c, pos, vel, acc, mas, den, h, om, prs, uei, due, dh)
+      call purehydro_set_fixed3(acc)
+      call purehydro_set_fixed1(due)
+    case ('temperhomog01')
+      call tempr_c1(n, pos, mas, sk, h, den, om)
+      call eos_adiabatic(n, den, uei, prs, c, gamma)
+      call tempr_c2(n, c, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
+    end select
   end subroutine derivs
-
 end module internal

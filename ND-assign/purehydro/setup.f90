@@ -1,9 +1,9 @@
-module setup
+module purehydro_setup
   use kernel
 
   implicit none
 
-  public :: periodic_ic, set_periodic, shock_ic, set_fixed1, set_fixed3
+  public :: periodic_ic, set_periodic, purehydro_shock_ic, purehydro_set_fixed1, purehydro_set_fixed3
 
   private
     integer, save        :: ns
@@ -59,10 +59,10 @@ contains
     end do
   end subroutine set_periodic
 
-  subroutine shock_ic(dim, nx, n, sk, g, pos, vel, acc, mas, den, sln, prs, uie, f, eps)
+  subroutine purehydro_shock_ic(dim, nx, n, sk, g, pos, vel, acc, mas, den, sln, prs, uie)
     integer, intent(in)  :: nx, dim
     real, intent(in)     :: sk, g
-    real, intent(out)    :: pos(nx,3), vel(nx,3), acc(nx,3), mas(nx), den(nx), sln(nx), prs(nx), uie(nx), f(nx), eps(nx)
+    real, intent(out)    :: pos(nx,3), vel(nx,3), acc(nx,3), mas(nx), den(nx), sln(nx), prs(nx), uie(nx)
     integer, intent(out) :: n
     real                 :: spatVarBrdrs11, spatVarBrdrs12, spatVarBrdrs21, spatVarBrdrs22, spatVarBrdrs31, spatVarBrdrs32
     real                 :: parSpacing1, parSpacing2, shockPressure1, shockPressure2, shockDensity1, shockDensity2
@@ -133,8 +133,6 @@ contains
             sln(n) = sk * sp
             prs(n) = shockPressure1
             uie(n) = shockPressure1 / (g - 1) / shockDensity1
-            f(n)   = 0.
-            eps(n) = 0.
           else
             vel(n,:) = 0.
             acc(n,:) = 0.
@@ -143,8 +141,6 @@ contains
             sln(n) = sk * sp
             prs(n) = shockPressure2
             uie(n) = shockPressure2 / (g - 1) / shockDensity2
-            f(n)   = 0.
-            eps(n) = 0.
           end if
           z = z + sp
           n = n + 1
@@ -165,14 +161,14 @@ contains
     borderY = brdarrY(1:nbnewY)
     allocate(borderZ(nbnewZ))
     borderZ = brdarrZ(1:nbnewZ)
-    print *, '#   placed:', n
-    print *, '# border-x:', nbnewX
-    print *, '# border-y:', nbnewY
-    print *, '# border-z:', nbnewZ
+    print *, '#    placed:', n
+    print *, '#  border-x:', nbnewX
+    print *, '#  border-y:', nbnewY
+    print *, '#  border-z:', nbnewZ
 
-  end subroutine shock_ic
+  end subroutine purehydro_shock_ic
 
-  subroutine set_fixed1(A)
+  subroutine purehydro_set_fixed1(A)
     real, intent(out) :: A(ns)
     integer           :: dim
 
@@ -185,9 +181,9 @@ contains
         A(borderZ) = 0.
       end if
     end if
-  end subroutine set_fixed1
+  end subroutine purehydro_set_fixed1
 
-  subroutine set_fixed3(A)
+  subroutine purehydro_set_fixed3(A)
     real, intent(out) :: A(ns,3)
     integer           :: dim
 
@@ -200,5 +196,5 @@ contains
         A(borderZ,3) = 0.
       end if
     end if
-  end subroutine set_fixed3
-end module setup
+  end subroutine purehydro_set_fixed3
+end module purehydro_setup

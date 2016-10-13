@@ -10,7 +10,6 @@ contains
     real, intent(in)    :: den(n), u(n), gamma
     real, intent(out)   :: P(n), c(n)
     integer             :: i
-
     !$OMP PARALLEL
     !$OMP DO
     do i = 1, n
@@ -26,7 +25,6 @@ contains
     real, intent(in)    :: den(n), c
     real, intent(out)   :: P(n)
     integer             :: i
-
     !$OMP PARALLEL
     !$OMP DO
     do i = 1, n
