@@ -31,19 +31,16 @@ contains
     spatVarBrdrs31 = 0.
     spatVarBrdrs32 = 0.
     if (dim.gt.1) then
-      spatVarBrdrs21 = 0.
-      spatVarBrdrs22 = 0.05
+      spatVarBrdrs21 = 0
+      spatVarBrdrs22 = 0.5
     end if
     if (dim.eq.3) then
       spatVarBrdrs31 = 0.
       spatVarBrdrs32 = 0.05
     end if
 
-    parSpacing1 = 0.001
-    parSpacing2 = 0.001
-
-    shockPressure1 = 1.
-    shockPressure2 = 1.
+    parSpacing1 = .025
+    parSpacing2 = .025
 
     shockDensity1 = 1000.
     shockDensity2 = 1000.
@@ -52,7 +49,7 @@ contains
     nbnewX = 1
     nbnewY = 1
     nbnewZ = 1
-
+    
     x = spatVarBrdrs11
     do while ((x >= spatVarBrdrs11).and.(x <= spatVarBrdrs12))
       if (x.lt.0) then
@@ -84,9 +81,9 @@ contains
             mas(n) = (sp**dim) * shockDensity1
             den(n) = shockDensity1
             sln(n) = sk * sp
-            prs(n) = shockPressure1
-            uie(n) = shockPressure1 / (g - 1) / shockDensity1
-            cf(n) = 0.
+            prs(n) = 0
+            uie(n) = 0.
+            cf(n)  = 0.
             kcf(n) = 1.
           else
             vel(n,:) = 0.
@@ -94,9 +91,9 @@ contains
             mas(n) = (sp**dim) * shockDensity2
             den(n) = shockDensity2
             sln(n) = sk * sp
-            prs(n) = shockPressure2
-            uie(n) = shockPressure2 / (g - 1) / shockDensity2
-            cf(n) = 1.
+            prs(n) = 0
+            uie(n) = 1.
+            cf(n)  = 1.
             kcf(n) = 1.
           end if
           z = z + sp
@@ -122,7 +119,6 @@ contains
     print *, '#  border-x:', nbnewX
     print *, '#  border-y:', nbnewY
     print *, '#  border-z:', nbnewZ
-
   end subroutine tempr_homog01
 
   subroutine tempr_set_fixed1(A)

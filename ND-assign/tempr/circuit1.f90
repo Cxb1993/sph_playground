@@ -4,7 +4,7 @@ module tempr_circuit1
 
   implicit none
 
-  public :: tempr_c1
+  public :: tempr_c1, tempr_solid_c1
 
   private
 contains
@@ -44,8 +44,8 @@ contains
               end if
             end do
           end if
-          om(i) = 1. - om(i) * (- slnint(i) / (3 * dim * den(i)))
-          dfdh = - 3 * dim * den(i) * om(i) / slnint(i)
+          om(i) = 1. - om(i) * (- slnint(i) / (dim * den(i)))
+          dfdh = - dim * den(i) * om(i) / slnint(i)
           fh  = mas(i) * (sk / slnint(i)) ** dim - den(i)
           hn = slnint(i) - fh / dfdh
           resid(i) = abs(hn - slnint(i)) / sln(i)
@@ -58,4 +58,28 @@ contains
     sln(:) = slnint(:)
   end subroutine tempr_c1
 
+  subroutine tempr_solid_c1(n, pos, mas, sk, sln, den)
+    integer, intent(in) :: n
+    real, intent(in)    :: pos(n,3), mas(n), sk
+    real, intent(out)   :: sln(n), den(n)
+    real                :: w, dr
+    integer             :: i, j, dim
+    !$OMP PARALLEL
+    !$OMP DO PRIVATE(dr, w)
+    do i = 1, n
+      den(i) = 0.
+      do j = 1, n
+        if (i.ne.j) then
+          dr = sqrt(dot_product(pos(i,:) - pos(j,:),pos(i,:) - pos(j,:)))
+          if (dr < 2. * sln(i)) then
+            call get_w(dr, sln(i), w)
+            den(i) = den(i) + mas(j) * w
+          end if
+        end if
+      end do
+      sln(i) = sk * (mas(i) / den(i))
+    end do
+    !$OMP END DO
+    !$OMP END PARALLEL
+  end subroutine tempr_solid_c1
 end module tempr_circuit1

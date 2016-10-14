@@ -10,7 +10,7 @@ program main
   character (len=40) :: ttype
   character (len=1)  :: arg
 
-  real                :: sk = 1.2
+  real                :: sk = 1.
   integer, parameter  :: nmax = 400000
   real                :: speedOfSound = 1.
   real                :: gamma = 1.4
@@ -69,6 +69,7 @@ program main
   allocate(c(1:n))
   c(:)= speedOfSound
   allocate(dh(1:n))
+  dh  = 0
   tdh = dh
   cf  = coupledfield(1:n)
   tcf = coupledfield(1:n)
@@ -80,7 +81,7 @@ program main
   deallocate(velocity)
   deallocate(acceleration)
 
-  tfinish = 0.3
+  tfinish = 5
   t = 0.
   dtout = 0.001
   ltout = 0.
@@ -89,10 +90,16 @@ program main
               pos, vel, acc, &
               mas, den, h, dh, o, prs, c, ieu, diu, &
               cf, dcf, kcf)
-
   print *, ''
   do while (t <= tfinish)
-    dt = 0.3 * minval(h) / maxval(c)
+    select case(ttype)
+    case('purehydroshock')
+      dt = .3 * minval(h) / maxval(c)
+    case('temperhomog01')
+      dt = .144 * minval(den) * minval(c) * minval(h) ** 4 / maxval(kcf)
+    end select
+    ! print *, dt
+    ! read *
     if (t >= ltout) then
       write (*, *) t
       call output(n, t, pos, vel, acc, mas, den, h, prs, ieu, cf)
@@ -121,6 +128,7 @@ program main
     h(:)     = h(:)     + 0.5 * dt * (dh(:) - tdh(:))
     ! cf(:)    = cf(:)    + 0.5 * dt * (dcf(:) - tcf(:))
     ! cf(:)    = ieu(:) / c(:)
+
     t = t + dt
   end do
   write (*, *) t - dt

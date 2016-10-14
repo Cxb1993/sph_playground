@@ -21,6 +21,8 @@ hydroshock3:
 
 tempr1:
 	make && time ./execute 1 temperhomog01
+tempr2:
+	make && time ./execute 2 temperhomog01
 
 .PHONY: execute
 

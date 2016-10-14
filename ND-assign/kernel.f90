@@ -11,15 +11,11 @@ module kernel
    subroutine set_dim(d)
      integer, intent(in) :: d
      dim = d
-    !  print *, 'Dim in set call: ', dim
-    !  read *
    end subroutine set_dim
 
    subroutine get_dim(d)
      integer, intent(out) :: d
      d = dim
-    !  print *, 'Dim in get call: ', d
-    !  read *
    end subroutine get_dim
 
   subroutine get_kernel_f(r, h, f)
@@ -121,12 +117,10 @@ module kernel
     dphidh = - 1./h * phi - r**2/(h**5 * phi)
   end subroutine get_dphi_dh
 
-  subroutine get_n2y(rab, h, n2y)
-    real, intent(in)  :: rab(3), h
+  subroutine get_n2y(r, h, n2y)
+    real, intent(in)  :: r, h
     real, intent(out) :: n2y
-    real              :: df, Fab, r
-
-    r = sqrt(dot_product(rab, rab))
+    real              :: df, Fab
 
     call get_kernel_df(r, h, df)
     Fab = df / h**(dim+2)

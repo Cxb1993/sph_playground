@@ -4,13 +4,13 @@ module tempr_circuit2
 
   implicit none
 
-  public :: tempr_c2
+  public :: tempr_hydro_c2, tempr_solid_c2
 
   private
 
 contains
 
-  subroutine tempr_c2(n, c, pos, vel, acc, mas, den, sln, om, P, u, du, dh, cf, dcf, kcf)
+  subroutine tempr_hydro_c2(n, c, pos, vel, acc, mas, den, sln, om, P, u, du, dh, cf, dcf, kcf)
     integer, intent(in) :: n
     real, intent(in)    :: pos(n,3), vel(n,3), mas(n), sln(n), den(n), P(n), c(n), om(n), cf(n)
     real, intent(out)   :: acc(n,3), u(n), du(n), dh(n), dcf(n), kcf(n)
@@ -25,9 +25,8 @@ contains
     !$OMP DO PRIVATE(r, dr, vab, urab,di, dj, nwi, nwj, qa, qb, qc, Pi, Pj, n2y)
     do i = 1, n
       acc(i,:) = 0.
-      du(i)    = 0.
-      dh(i)    = 0.
-      dcf(i)   = 0.
+      du(i) = 0.
+      dh(i) = 0.
       do j = 1, n
         if (i.ne.j) then
           r(:) = pos(i,:) - pos(j,:)
@@ -43,7 +42,7 @@ contains
 
             call get_nabla_w(r, sln(i), nwi)
             call get_nabla_w(r, sln(j), nwj)
-            call get_n2y(r, sln(i), n2y)
+            call get_n2y(dr, sln(i), n2y)
             call art_viscosity(di, dj, vab, urab, c(i), c(j), qa, qb)
             call art_termcond(P(i), P(j), di, dj, qc)
             Pi(:) = (P(i) + qa) * nwi(:) / (di**2 * om(i))
@@ -51,26 +50,22 @@ contains
 
             acc(i,:) = acc(i,:) - mas(j) * (Pi(:) + Pj(:))
 
-            du(i)    = du(i) + mas(j) * dot_product(vab(:),Pi(:)) &
-                            + mas(j) / (0.5 *(di + dj)) * qc * (u(i) - u(j)) &
-                            * 0.5 * dot_product((nwi(:) + nwj(:)),urab(:))
+            du(i)   = du(i) + mas(j) * dot_product(vab(:),Pi(:)) &
+                          + mas(j) / (0.5 *(di + dj)) * qc * (u(i) - u(j)) * &
+                          0.5 * dot_product((nwi(:) + nwj(:)),urab(:))
 
-            dh(i)    = dh(i) + mas(j) * dot_product(vab(:), nwi(:))
+            dh(i)   = dh(i) + mas(j) * dot_product(vab(:), nwi(:))
 
-            ! dcf(i)  = dcf(i) + 4 * mas(j) / (di * dj) * kcf(i) * kcf(j) / (kcf(i) + kcf(j)) &
-            !                  * (cf(i) - cf(j)) * n2y
-            ! print *, i, dcf(i)
-            ! read *
+            dcf(i) = du(i) - 4 * mas(j) / (di * dj) * kcf(i) * kcf(j) / (kcf(i) + kcf(j)) &
+                             * (cf(i) - cf(j)) * n2y * 0.01 ** 2
           end if
         end if
       end do
-      dh(i)  =  (- sln(i) / (dim * den(i))) * dh(i) / om(i)
-      ! print *, "Final", i, dcf(i)
-      ! read *
+      dh(i) =  (- sln(i) / (dim * den(i))) * dh(i) / om(i)
     end do
     !$OMP END DO
     !$OMP END PARALLEL
-  end subroutine tempr_c2
+  end subroutine tempr_hydro_c2
 
   subroutine art_termcond(pa, pb, da, db, vsigu)
     real, intent(in)  :: pa, pb, da, db
@@ -95,4 +90,31 @@ contains
     end if
   end subroutine art_viscosity
 
+  subroutine tempr_solid_c2(n, pos, mas, den, sln, u, du, kcf)
+    integer, intent(in) :: n
+    real, intent(in)    :: pos(n,3), mas(n), sln(n), den(n), u(n), kcf(n)
+    real, intent(out)   :: du(n)
+    real                :: dr, n2y, r(3), dt
+    integer             :: i, j
+
+    !$OMP PARALLEL
+    !$OMP DO PRIVATE(r, dr, n2y)
+    do i = 1, n
+      du(i) = 0.
+      do j = 1, n
+        if (i.ne.j) then
+          r(:) = pos(i,:) - pos(j,:)
+          dr = sqrt(dot_product(r(:),r(:)))
+          if (dr < 2. * sln(i)) then
+            call get_n2y(dr, sln(i), n2y)
+
+            du(i) = du(i) - 4 * mas(j) / (den(i) * den(j)) * kcf(i) * kcf(j) / (kcf(i) + kcf(j)) &
+                          * (u(i) - u(j)) * n2y
+          end if
+        end if
+      end do
+    end do
+    !$OMP END DO
+    !$OMP END PARALLEL
+  end subroutine tempr_solid_c2
 end module tempr_circuit2
