@@ -10,7 +10,7 @@ program main
   character (len=40) :: ttype
   character (len=1)  :: arg
 
-  real                :: sk = 1.
+  real                :: sk = 1.2
   integer, parameter  :: nmax = 400000
   real                :: speedOfSound = 1.
   real                :: gamma = 1.4
@@ -46,10 +46,14 @@ program main
     call purehydro_shock_ic(dim, nmax, n, sk, gamma, &
                   position, velocity, acceleration, &
                   mass, density, slength, pressure, ienergy)
+    tfinish = 0.3
+    dtout = 0.001
   case('temperhomog01')
     call tempr_homog01(dim, nmax, n, sk, gamma, &
                   position, velocity, acceleration, &
                   mass, density, slength, pressure, ienergy, coupledfield, kcoupledfield)
+    tfinish = 650
+    dtout = .1
   end select
 
   pos = position(1:n,:)
@@ -81,9 +85,7 @@ program main
   deallocate(velocity)
   deallocate(acceleration)
 
-  tfinish = 5
   t = 0.
-  dtout = 0.001
   ltout = 0.
   call output(n, 0., pos, vel, acc, mas, den, h, prs, ieu, cf)
   call derivs(ttype, n, speedOfSound, sk, gamma, &
@@ -96,7 +98,7 @@ program main
     case('purehydroshock')
       dt = .3 * minval(h) / maxval(c)
     case('temperhomog01')
-      dt = .144 * minval(den) * minval(c) * minval(h) ** 4 / maxval(kcf)
+      dt = .144 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
     end select
     ! print *, dt
     ! read *

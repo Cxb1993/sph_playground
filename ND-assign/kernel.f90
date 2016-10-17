@@ -123,7 +123,6 @@ module kernel
     real              :: df, Fab
 
     call get_kernel_df(r, h, df)
-    Fab = df / h**(dim+2)
-    n2y = - 2 * Fab  / r
+    n2y = -2 * df / h**(dim+2) * r
   end subroutine get_n2y
 end module kernel

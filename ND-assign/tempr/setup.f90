@@ -39,8 +39,8 @@ contains
       spatVarBrdrs32 = 0.05
     end if
 
-    parSpacing1 = .025
-    parSpacing2 = .025
+    parSpacing1 = .01
+    parSpacing2 = .01
 
     shockDensity1 = 1000.
     shockDensity2 = 1000.
@@ -49,7 +49,7 @@ contains
     nbnewX = 1
     nbnewY = 1
     nbnewZ = 1
-    
+
     x = spatVarBrdrs11
     do while ((x >= spatVarBrdrs11).and.(x <= spatVarBrdrs12))
       if (x.lt.0) then
@@ -84,7 +84,7 @@ contains
             prs(n) = 0
             uie(n) = 0.
             cf(n)  = 0.
-            kcf(n) = 1.
+            kcf(n) = 10.
           else
             vel(n,:) = 0.
             acc(n,:) = 0.

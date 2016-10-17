@@ -44,8 +44,8 @@ contains
               end if
             end do
           end if
-          om(i) = 1. - om(i) * (- slnint(i) / (3 * dim * den(i)))
-          dfdh = - 3 * dim * den(i) * om(i) / slnint(i)
+          om(i) = 1. - om(i) * (- slnint(i) / (dim * den(i)))
+          dfdh = - dim * den(i) * om(i) / slnint(i)
           fh  = mas(i) * (sk / slnint(i)) ** dim - den(i)
           hn = slnint(i) - fh / dfdh
           resid(i) = abs(hn - slnint(i)) / sln(i)
