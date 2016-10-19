@@ -197,4 +197,21 @@ contains
       end if
     end if
   end subroutine purehydro_set_fixed3
+
+  subroutine purehydro_set_periodic(A, k)
+    integer, intent(in) :: k
+    real, intent(out)   :: A(ns,3)
+    integer             :: dim
+
+    call get_dim(dim)
+
+    select case(k)
+    case (1)
+      A(borderX,1) = 0.
+    case (2)
+      A(borderY,2) = 0.
+    case (3)
+      A(borderZ,3) = 0.
+    end select
+  end subroutine purehydro_set_periodic
 end module purehydro_setup

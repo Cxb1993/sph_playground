@@ -94,11 +94,11 @@ contains
     integer, intent(in) :: n
     real, intent(in)    :: pos(n,3), mas(n), sln(n), den(n), u(n), kcf(n)
     real, intent(out)   :: du(n)
-    real                :: dr, n2y, r(3), dt
+    real                :: dr, n2y, r(3), nw(3), Fab
     integer             :: i, j
 
     !$OMP PARALLEL
-    !$OMP DO PRIVATE(r, dr, n2y)
+    !$OMP DO PRIVATE(r, dr, n2y, nw, Fab)
     do i = 1, n
       du(i) = 0.
       do j = 1, n
@@ -107,9 +107,13 @@ contains
           dr = sqrt(dot_product(r(:),r(:)))
           if (dr < 2. * sln(i)) then
             call get_n2y(dr, sln(i), n2y)
+            call get_nabla_w(r, sln(i), nw)
+            Fab = sqrt(dot_product(nw,nw)) / dr
+            ! print *, sqrt(dot_product(nw,nw)) / dr, n2y
+            ! read *
 
-            du(i) = du(i) - 4 * mas(j) / (den(i) * den(j)) * kcf(i) * kcf(j) / (kcf(i) + kcf(j)) &
-                          * (u(i) - u(j)) * n2y
+            du(i) = du(i) - 4. * mas(j) / (den(i) * den(j)) * kcf(i) * kcf(j) / (kcf(i) + kcf(j)) &
+                          * (u(i) - u(j)) * Fab
           end if
         end if
       end do

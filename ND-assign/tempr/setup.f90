@@ -24,8 +24,8 @@ contains
     call set_dim(dim)
 
     nb = 3
-    spatVarBrdrs11 = -0.5
-    spatVarBrdrs12 = 0.5
+    spatVarBrdrs11 = -1
+    spatVarBrdrs12 = 1
     spatVarBrdrs21 = 0.
     spatVarBrdrs22 = 0.
     spatVarBrdrs31 = 0.
@@ -39,8 +39,8 @@ contains
       spatVarBrdrs32 = 0.05
     end if
 
-    parSpacing1 = .01
-    parSpacing2 = .01
+    parSpacing1 = 0.025
+    parSpacing2 = 0.025
 
     shockDensity1 = 1000.
     shockDensity2 = 1000.
@@ -84,7 +84,7 @@ contains
             prs(n) = 0
             uie(n) = 0.
             cf(n)  = 0.
-            kcf(n) = 10.
+            kcf(n) = 1.
           else
             vel(n,:) = 0.
             acc(n,:) = 0.

@@ -37,9 +37,9 @@ contains
       call purehydro_set_fixed3(acc)
       call purehydro_set_fixed1(due)
     case ('temperhomog01')
-      call tempr_solid_c1(n, pos, mas, sk, h, den)
-      call tempr_solid_c1(n, pos, mas, sk, h, den)
-      call tempr_solid_c1(n, pos, mas, sk, h, den)
+      call tempr_solid_c1(n, pos, mas, sk, h, den, om)
+      ! print *, 'i1'
+      ! read *
       call tempr_solid_c2(n, pos, mas, den, h, uei, due, kcf)
     end select
   end subroutine derivs

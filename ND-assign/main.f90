@@ -53,7 +53,7 @@ program main
                   position, velocity, acceleration, &
                   mass, density, slength, pressure, ienergy, coupledfield, kcoupledfield)
     tfinish = 650
-    dtout = .1
+    dtout = 1
   end select
 
   pos = position(1:n,:)
@@ -100,7 +100,7 @@ program main
     case('temperhomog01')
       dt = .144 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
     end select
-    ! print *, dt
+    ! print *, "dt: ", dt, minval(den), minval(c), minval(h), maxval(kcf)
     ! read *
     if (t >= ltout) then
       write (*, *) t

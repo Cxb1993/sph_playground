@@ -54,6 +54,7 @@ contains
       end do
       !$OMP END DO
       !$OMP END PARALLEL
+      ! print *, 1, den(1), int(size(den)/2), den(int(size(den)/2)), int(size(den)), den(int(size(den)))
     end do
     sln(:) = slnint(:)
   end subroutine purehydro_c1

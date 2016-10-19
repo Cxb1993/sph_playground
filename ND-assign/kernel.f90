@@ -66,7 +66,7 @@ module kernel
       case(2)
         df = 10./(7. * pi) * df
       case(3)
-        df = 1./pi * df
+        df = df / pi
     end select
   end subroutine get_kernel_df
 
