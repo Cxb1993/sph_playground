@@ -1,6 +1,7 @@
 program main
-  use purehydro_setup
-  use tempr_setup
+  use BC
+  use IC_hydro_shock
+  use IC_heat_cond
   use internal
   use printer
   use kernel
@@ -36,20 +37,22 @@ program main
   print *, "#       dim:", dim
 
   call get_command_argument(2, ttype)
-  print *, "# task type: ", ttype
+  print *, "# task type:   ", ttype
 
   ! call periodic_ic(xmin, xmax, nmax, nbnd, init_rho, sk, &
   !                  position, mass, velocity, acceleration, density, slength, pressure)
   ! ptype='periodic'
   select case(ttype)
-  case('purehydroshock')
-    call purehydro_shock_ic(dim, nmax, n, sk, gamma, &
+  case('hydroshock')
+    call set_tasktype(ttype)
+    call setup_hydro_shock(dim, nmax, n, sk, gamma, &
                   position, velocity, acceleration, &
                   mass, density, slength, pressure, ienergy)
     tfinish = 0.3
     dtout = 0.001
   case('temperhomog01')
-    call tempr_homog01(dim, nmax, n, sk, gamma, &
+    call set_tasktype(ttype)
+    call setup_heat_cond(dim, nmax, n, sk, gamma, &
                   position, velocity, acceleration, &
                   mass, density, slength, pressure, ienergy, coupledfield, kcoupledfield)
     tfinish = 650
@@ -88,14 +91,14 @@ program main
   t = 0.
   ltout = 0.
   call output(n, 0., pos, vel, acc, mas, den, h, prs, ieu, cf)
-  call derivs(ttype, n, speedOfSound, sk, gamma, &
+  call derivs(n, speedOfSound, sk, gamma, &
               pos, vel, acc, &
               mas, den, h, dh, o, prs, c, ieu, diu, &
               cf, dcf, kcf)
   print *, ''
   do while (t <= tfinish)
     select case(ttype)
-    case('purehydroshock')
+    case('hydroshock')
       dt = .3 * minval(h) / maxval(c)
     case('temperhomog01')
       dt = .144 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
@@ -120,7 +123,7 @@ program main
     h(:)     = h(:)   + dt *  dh(:)
     ! cf(:)    = cf(:)  + dt * dcf(:)
 
-    call derivs(ttype, n, speedOfSound, sk, gamma, &
+    call derivs(n, speedOfSound, sk, gamma, &
                 pos, vel, acc, &
                 mas, den, h, dh, o, prs, c, ieu, diu, &
                 cf, dcf, kcf)

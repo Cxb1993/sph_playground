@@ -120,7 +120,7 @@ module kernel
   subroutine get_n2y(r, h, n2y)
     real, intent(in)  :: r, h
     real, intent(out) :: n2y
-    real              :: df, Fab
+    real              :: df
 
     call get_kernel_df(r, h, df)
     n2y = -2 * df / h**(dim+2) * r
