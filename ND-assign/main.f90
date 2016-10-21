@@ -1,14 +1,13 @@
 program main
   use BC
-  use IC_hydro_shock
-  use IC_heat_cond
+  use IC
   use internal
   use printer
   use kernel
 
   implicit none
 
-  character (len=40) :: ttype
+  character (len=40) :: itype
   character (len=1)  :: arg
 
   real                :: sk = 1.2
@@ -20,7 +19,7 @@ program main
   real, allocatable, dimension(:,:) :: position, velocity, acceleration
   ! real :: position(nmax,3), velocity(nmax,3), acceleration(nmax,3)
   real :: density(nmax), slength(nmax), pressure(nmax), mass(nmax), ienergy(nmax), dienergy(nmax), omega(nmax)
-  real :: coupledfield(nmax), kcoupledfield(nmax)
+  real :: coupledfield(nmax), kcoupledfield(nmax), dcoupledfield(nmax)
 
   real :: dt, t, dtout, ltout, tfinish
   real, allocatable, dimension(:,:) :: p, v, a
@@ -36,28 +35,12 @@ program main
   read(arg(:), fmt="(i5)") dim
   print *, "#       dim:", dim
 
-  call get_command_argument(2, ttype)
-  print *, "# task type:   ", ttype
+  call get_command_argument(2, itype)
+  print *, "# task type:   ", itype
 
-  ! call periodic_ic(xmin, xmax, nmax, nbnd, init_rho, sk, &
-  !                  position, mass, velocity, acceleration, density, slength, pressure)
-  ! ptype='periodic'
-  select case(ttype)
-  case('hydroshock')
-    call set_tasktype(ttype)
-    call setup_hydro_shock(dim, nmax, n, sk, gamma, &
-                  position, velocity, acceleration, &
-                  mass, density, slength, pressure, ienergy)
-    tfinish = 0.3
-    dtout = 0.001
-  case('temperhomog01')
-    call set_tasktype(ttype)
-    call setup_heat_cond(dim, nmax, n, sk, gamma, &
-                  position, velocity, acceleration, &
-                  mass, density, slength, pressure, ienergy, coupledfield, kcoupledfield)
-    tfinish = 650
-    dtout = 1
-  end select
+  call setup(itype, dim, nmax, n, sk, gamma, &
+                position, velocity, acceleration, &
+                mass, density, slength, pressure, ienergy, coupledfield, kcoupledfield, dcoupledfield)
 
   pos = position(1:n,:)
   p   = pos(:,:)
@@ -81,12 +64,21 @@ program main
   cf  = coupledfield(1:n)
   tcf = coupledfield(1:n)
   allocate(dcf(1:n))
-  dcf = 0.
-  kcf  = kcoupledfield(1:n)
+  dcf = dcoupledfield(1:n)
+  kcf = kcoupledfield(1:n)
 
   deallocate(position)
   deallocate(velocity)
   deallocate(acceleration)
+
+  select case(itype)
+  case('hydroshock')
+    tfinish = 0.3
+    dtout = 0.001
+  case('temperhomog01')
+    tfinish = 120
+    dtout = 1
+  end select
 
   t = 0.
   ltout = 0.
@@ -97,7 +89,7 @@ program main
               cf, dcf, kcf)
   print *, ''
   do while (t <= tfinish)
-    select case(ttype)
+    select case(itype)
     case('hydroshock')
       dt = .3 * minval(h) / maxval(c)
     case('temperhomog01')

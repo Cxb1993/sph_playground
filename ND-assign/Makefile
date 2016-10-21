@@ -4,10 +4,9 @@ SRC=kernel.f90\
 		printer.f90\
 		eos.f90\
 		internal/BC.f90\
+		internal/IC.f90\
 		internal/circuit1.f90\
 		internal/circuit2.f90\
-		internal/IC_hydro_shock.f90\
-		internal/IC_heat_cond.f90\
 		internal.f90\
 		main.f90
 OBJ=$(SRC:.f90=.o)
@@ -33,6 +32,8 @@ tempr1:
 	make && time ./execute 1 temperhomog01
 tempr2:
 	make && time ./execute 2 temperhomog01
+tempr3:
+	make && time ./execute 3 temperhomog01
 
 .PHONY: execute
 

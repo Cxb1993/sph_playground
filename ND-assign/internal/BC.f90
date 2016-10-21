@@ -1,15 +1,12 @@
 module BC
-  use kernel
-
   implicit none
 
-  public :: set_periodic, set_fixed1, set_fixed3, set_periodic_dim
-  public :: set_ns, set_borders, set_tasktype, get_tasktype
+  public :: set_periodic, set_fixed1, set_fixed3
+  public :: set_ns, set_border
 
   private
-    character (len=40)          :: tasktype
     integer, save              :: ns
-    integer, allocatable, save :: borderX(:), borderY(:), borderZ(:)
+    integer, allocatable, save :: borderX1(:), borderY1(:), borderZ1(:), borderX2(:), borderY2(:), borderZ2(:)
 
 contains
   subroutine set_ns(ins)
@@ -17,27 +14,32 @@ contains
     ns = ins
   end subroutine set_ns
 
-  subroutine set_borders(nx, ny, nz, ibx, iby, ibz)
-    integer, intent(in) :: nx, ny, nz, ibx(nx), iby(ny), ibz(nz)
+  subroutine set_border(itb, inp, A)
+    integer, intent(in) :: itb, inp, A(inp)
 
-    allocate(borderX(nx))
-    allocate(borderY(ny))
-    allocate(borderZ(nz))
-
-    borderX(:) = ibx(:)
-    borderY(:) = iby(:)
-    borderZ(:) = ibz(:)
-  end subroutine set_borders
-
-  subroutine set_tasktype(itt)
-    character (len=*), intent(in) :: itt
-    tasktype = itt
-  end subroutine set_tasktype
-
-  subroutine get_tasktype(ott)
-    character (len=*), intent(out) :: ott
-    ott = tasktype
-  end subroutine get_tasktype
+    if(inp.ne.0) then
+      select case(itb)
+      case (11)
+        allocate(borderX1(inp))
+        borderX1 = A
+      case (12)
+        allocate(borderX2(inp))
+        borderX2 = A
+      case (21)
+        allocate(borderY1(inp))
+        borderY1 = A
+      case (22)
+        allocate(borderY2(inp))
+        borderY2 = A
+      case (31)
+        allocate(borderZ1(inp))
+        borderZ1 = A
+      case (32)
+        allocate(borderZ2(inp))
+        borderZ2 = A
+      end select
+    end if
+  end subroutine set_border
 
   subroutine set_periodic(n, A)
     integer, intent(in) :: n
@@ -52,51 +54,60 @@ contains
     end do
   end subroutine set_periodic
 
-  subroutine set_fixed1(A)
-    real, intent(out) :: A(ns)
-    integer           :: dim
+  subroutine set_fixed1(A, axeside, k)
+    integer, intent(in) :: axeside
+    real, intent(in)    :: k
+    real, intent(out)   :: A(ns)
 
-    call get_dim(dim)
-
-    A(borderX) = 0.
-    if(dim.gt.1) then
-      A(borderY) = 0.
-      if(dim.eq.3) then
-        A(borderZ) = 0.
-      end if
-    end if
+    select case(axeside)
+    case (00)
+      A(borderX1) = k
+      A(borderX2) = k
+      A(borderY1) = k
+      A(borderY2) = k
+      A(borderZ1) = k
+      A(borderZ2) = k
+    case (11)
+      A(borderX1) = k
+    case (12)
+      A(borderX2) = k
+    case (21)
+      A(borderY1) = k
+    case (22)
+      A(borderY2) = k
+    case (31)
+      A(borderZ1) = k
+    case (32)
+      A(borderZ2) = k
+    end select
   end subroutine set_fixed1
 
-  subroutine set_fixed3(A)
-    real, intent(out) :: A(ns,3)
-    integer           :: dim
-
-    call get_dim(dim)
-
-    A(borderX,1) = 0.
-    if(dim.gt.1) then
-      A(borderY,2) = 0.
-      if(dim.eq.3) then
-        A(borderZ,3) = 0.
-      end if
-    end if
-  end subroutine set_fixed3
-
-  subroutine set_periodic_dim(A, k)
-    integer, intent(in) :: k
+  subroutine set_fixed3(A, axeside, dim, k)
+    integer, intent(in) :: axeside, dim
+    real, intent(in)    :: k
     real, intent(out)   :: A(ns,3)
-    integer             :: dim
 
-    call get_dim(dim)
-
-    select case(k)
-    case (1)
-      A(borderX,1) = 0.
-    case (2)
-      A(borderY,2) = 0.
-    case (3)
-      A(borderZ,3) = 0.
+    select case(axeside)
+    case (00)
+      A(borderX1, dim) = k
+      A(borderX2, dim) = k
+      A(borderY1, dim) = k
+      A(borderY2, dim) = k
+      A(borderZ1, dim) = k
+      A(borderZ2, dim) = k
+    case (11)
+      A(borderX1, dim) = k
+    case (12)
+      A(borderX2, dim) = k
+    case (21)
+      A(borderY1, dim) = k
+    case (22)
+      A(borderY2, dim) = k
+    case (31)
+      A(borderZ1, dim) = k
+    case (32)
+      A(borderZ2, dim) = k
     end select
-  end subroutine set_periodic_dim
+  end subroutine set_fixed3
 
 end module BC

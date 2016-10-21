@@ -3,6 +3,7 @@ module internal
   use circuit1
   use circuit2
   use BC
+  use kernel
 
  implicit none
 
@@ -25,11 +26,15 @@ contains
       call make_c1(n, pos, mas, sk, h, den, om)
       call eos_adiabatic(n, den, uei, prs, c, gamma)
       call make_c2(n, c, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, kcf)
-      call set_fixed3(acc)
-      call set_fixed1(due)
+      call set_fixed3(acc, 11, 1, 0.)
+      call set_fixed3(acc, 12, 1, 0.)
+      call set_fixed1(due, 11, 0.)
+      call set_fixed1(due, 12, 0.)
     case ('temperhomog01')
       call make_c1(n, pos, mas, sk, h, den, om)
       call make_c2(n, c, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, kcf)
+      call set_fixed1(uei, 11, 0.)
+      call set_fixed1(uei, 12, 1.)
     end select
   end subroutine derivs
 end module internal

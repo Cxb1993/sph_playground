@@ -1,11 +1,13 @@
 module kernel
   implicit none
 
-  public :: set_dim, get_nabla_w, get_dw_dh, get_w, get_dim, get_dphi_dh, get_n2y
-  integer, save   :: dim = 1
-  real, parameter :: pi = 4.*atan(1.)
+  public :: set_dim, get_nabla_w, get_dw_dh, get_w, get_dim, get_dphi_dh, get_n2y, &
+            set_tasktype, get_tasktype
 
   private
+    integer, save            :: dim = 1
+    real, parameter          :: pi = 4.*atan(1.)
+    character (len=40), save :: tasktype
 
  contains
    subroutine set_dim(d)
@@ -17,6 +19,16 @@ module kernel
      integer, intent(out) :: d
      d = dim
    end subroutine get_dim
+
+   subroutine set_tasktype(itt)
+     character (len=*), intent(in) :: itt
+     tasktype = itt
+   end subroutine set_tasktype
+
+   subroutine get_tasktype(ott)
+     character (len=*), intent(out) :: ott
+     ott = tasktype
+   end subroutine get_tasktype
 
   subroutine get_kernel_f(r, h, f)
     real, intent(in)  :: r, h
@@ -70,13 +82,6 @@ module kernel
     end select
   end subroutine get_kernel_df
 
-  subroutine get_kernel_phi(r, h, phi)
-    real, intent(in)  :: r, h
-    real, intent(out) :: phi
-
-    phi = 1./h * (1. + (r/h)**2)**(1./2.)
-  end subroutine get_kernel_phi
-
   subroutine get_w(r, h, w)
     real, intent(in)  :: r, h
     real, intent(out) :: w
@@ -125,4 +130,11 @@ module kernel
     call get_kernel_df(r, h, df)
     n2y = -2 * df / h**(dim+2) * r
   end subroutine get_n2y
+
+  subroutine get_kernel_phi(r, h, phi)
+    real, intent(in)  :: r, h
+    real, intent(out) :: phi
+
+    phi = 1./h * (1. + (r/h)**2)**(1./2.)
+  end subroutine get_kernel_phi
 end module kernel
