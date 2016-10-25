@@ -11,10 +11,11 @@ module circuit2
 
 contains
 
-  subroutine make_c2(n, c, pos, vel, acc, mas, den, sln, om, P, u, du, dh, kcf)
+  subroutine make_c2(n, c, pos, vel, acc, mas, den, sln, om, P, u, du, dh, cf, dcf, kcf)
     integer, intent(in) :: n
-    real, intent(in)    :: pos(n,3), vel(n,3), mas(n), sln(n), den(n), P(n), c(n), om(n), kcf(n)
-    real, intent(out)   :: acc(n,3), u(n), du(n), dh(n)
+    real, intent(in)    :: pos(n,3), vel(n,3), mas(n), sln(n), den(n), P(n), c(n), om(n),&
+                           cf(n), kcf(n)
+    real, intent(out)   :: acc(n,3), u(n), du(n), dh(n), dcf(n)
     real                :: dr, di, dj, qa, qb, qc, dphidh
     real                :: nwi(3), nwj(3), r(3), vab(3), urab(3), Pi(3), Pj(3)
     integer             :: i, j, dim
@@ -22,14 +23,14 @@ contains
 
     call get_dim(dim)
     call get_tasktype(t)
-    ! print *, 'Dim in circuit2: ', dim
-    ! read *
+
     !$OMP PARALLEL
     !$OMP DO PRIVATE(r, dr, vab, urab,di, dj, nwi, nwj, qa, qb, qc, Pi, Pj, dphidh)
     do i = 1, n
       acc(i,:) = 0.
       du(i) = 0.
       dh(i) = 0.
+      dcf(i) = 0.
       do j = 1, n
         if (i.ne.j) then
           r(:) = pos(i,:) - pos(j,:)
@@ -60,10 +61,11 @@ contains
                             0.5 * dot_product((nwi(:) + nwj(:)),urab(:))
 
               dh(i)   = dh(i) + mas(j) * dot_product(vab(:), nwi(:))
-            case ('temperhomog01')
+            case ('heatslab')
               call get_nabla_w(r, sln(i), nwi)
-              du(i) = du(i) - 4. * mas(j) / (den(i) * den(j)) * kcf(i) * kcf(j) / (kcf(i) + kcf(j)) &
-                            * (u(i) - u(j)) * sqrt(dot_product(nwi,nwi)) / dr
+              du(i)   = du(i) - 4. * mas(j) / (den(i) * den(j)) * kcf(i) * kcf(j) / (kcf(i) + kcf(j)) &
+                            * (cf(i) - cf(j)) * sqrt(dot_product(nwi,nwi)) / dr
+
             end select
           end if
         end if

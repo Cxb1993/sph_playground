@@ -1,5 +1,5 @@
 FC=gfortran
-FFLAGS=-fopenmp -O3 -Wall -fcheck=all -fdefault-real-8 -fdefault-double-8 #-g -fbacktrace -ffpe-trap=invalid
+FFLAGS=-fopenmp -O3 -Wall -fcheck=all -fdefault-real-8 -fdefault-double-8 -fstack-arrays #-g -fbacktrace -ffpe-trap=invalid
 SRC=kernel.f90\
 		printer.f90\
 		eos.f90\
@@ -7,6 +7,7 @@ SRC=kernel.f90\
 		internal/IC.f90\
 		internal/circuit1.f90\
 		internal/circuit2.f90\
+		internal/errcalc.f90\
 		internal.f90\
 		main.f90
 OBJ=$(SRC:.f90=.o)
@@ -15,7 +16,7 @@ SUBOBJ=$(addprefix obj/, $(OBJ))
 %.o : %.f90
 	@mkdir -p obj/internal
 	@mkdir -p obj/tempr
-	@mkdir -p steps
+	@mkdir -p output
 	$(FC) $(FFLAGS) -J mod/ -o obj/$@ -c $<
 
 execute: $(OBJ)
@@ -29,11 +30,11 @@ hydroshock3:
 	make && time ./execute 3 hydroshock
 
 tempr1:
-	make && time ./execute 1 temperhomog01
+	make && time ./execute 1 heatslab
 tempr2:
-	make && time ./execute 2 temperhomog01
+	make && time ./execute 2 heatslab
 tempr3:
-	make && time ./execute 3 temperhomog01
+	make && time ./execute 3 heatslab
 
 .PHONY: execute
 

@@ -1,18 +1,19 @@
 module BC
   implicit none
 
-  public :: set_periodic, set_fixed1, set_fixed3
-  public :: set_ns, set_border
+  public :: set_periodic1, set_periodic3, set_fixed1, set_fixed3
+  public :: set_particles_numbers, set_border
 
   private
-    integer, save              :: ns
+    integer, save              :: ns, nbrd
     integer, allocatable, save :: borderX1(:), borderY1(:), borderZ1(:), borderX2(:), borderY2(:), borderZ2(:)
 
 contains
-  subroutine set_ns(ins)
-    integer, intent(in) :: ins
+  subroutine set_particles_numbers(ins, inbrd)
+    integer, intent(in) :: ins, inbrd
     ns = ins
-  end subroutine set_ns
+    nbrd = inbrd
+  end subroutine set_particles_numbers
 
   subroutine set_border(itb, inp, A)
     integer, intent(in) :: itb, inp, A(inp)
@@ -41,18 +42,45 @@ contains
     end if
   end subroutine set_border
 
-  subroutine set_periodic(n, A)
-    integer, intent(in) :: n
-    real, intent(out)   :: A(n)
-    integer             :: i, nr, bn
-    bn = 2
+  subroutine set_periodic1(A, axe)
+    integer, intent(in) :: axe
+    real, intent(out)   :: A(ns)
 
-    nr = n - 2 * bn
-    do i = 1, bn
-      A(i) = A(nr + i)
-      A(nr + bn + i) = A(bn + i)
-    end do
-  end subroutine set_periodic
+    select case(axe)
+    case (1)
+      A(borderX1) = A(borderX2 - nbrd)
+      A(nbrd + borderX1) = A(borderX2)
+    case (2)
+      A(borderY1) = A(borderY2 - nbrd)
+      A(nbrd + borderY1) = A(borderY2)
+    case (3)
+      A(borderZ1) = A(borderZ2 - nbrd)
+      A(nbrd + borderZ1) = A(borderZ2)
+    end select
+  end subroutine set_periodic1
+
+  subroutine set_periodic3(A, axe, dim)
+    integer, intent(in) :: axe, dim
+    real, intent(out)   :: A(ns,3)
+
+    select case(axe)
+    case (10)
+      A(borderX1,:) = A(borderX2 - nbrd,:)
+      A(nbrd + borderX1,:) = A(borderX2,:)
+    case (1)
+      A(borderX1,dim) = A(borderX2 - nbrd,dim)
+      A(nbrd + borderX1,dim) = A(borderX2,dim)
+    case (20)
+      A(borderY1,:) = A(borderY2 - nbrd,:)
+      A(nbrd + borderY1,:) = A(borderY2,:)
+    case (2)
+      A(borderY1,dim) = A(borderY2 - nbrd,dim)
+      A(nbrd + borderY1,dim) = A(borderY2,dim)
+    case (3)
+      A(borderZ1,dim) = A(borderZ2 - nbrd,dim)
+      A(nbrd + borderZ1,dim) = A(borderZ2,dim)
+    end select
+  end subroutine set_periodic3
 
   subroutine set_fixed1(A, axeside, k)
     integer, intent(in) :: axeside

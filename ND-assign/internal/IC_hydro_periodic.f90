@@ -2,7 +2,7 @@
 !   integer, intent(in) :: n, bn
 !   real, intent(in)    :: Xa, Xb, rho, sk
 !   real, intent(out)   :: pos(n), vel(n), acc(n), mas(n), den(n), slen(n), u(n)
-!   real, parameter     :: pi = 4.*atan(1.)
+!   
 !   integer :: i, nr
 !   real :: step
 !

@@ -4,6 +4,7 @@ program main
   use internal
   use printer
   use kernel
+  use err_calc
 
   implicit none
 
@@ -12,7 +13,7 @@ program main
 
   real                :: sk = 1.2
   integer, parameter  :: nmax = 400000
-  real                :: speedOfSound = 1.
+  real                :: cv = 1.
   real                :: gamma = 1.4
   integer             :: n, dim
 
@@ -25,7 +26,7 @@ program main
   real, allocatable, dimension(:,:) :: p, v, a
   real, allocatable, dimension(:,:) :: pos, vel, acc
   real, allocatable, dimension(:)   :: den, prs, mas, ieu, diu, o, du, c, h, dh, tdh
-  real, allocatable, dimension(:)   :: cf, tcf, dcf, kcf
+  real, allocatable, dimension(:)   :: cf, tcf, dcf, kcf, err
 
   allocate(position(nmax,3))
   allocate(velocity(nmax,3))
@@ -38,7 +39,7 @@ program main
   call get_command_argument(2, itype)
   print *, "# task type:   ", itype
 
-  call setup(itype, dim, nmax, n, sk, gamma, &
+  call setup(itype, dim, nmax, n, sk, gamma, cv, &
                 position, velocity, acceleration, &
                 mass, density, slength, pressure, ienergy, coupledfield, kcoupledfield, dcoupledfield)
 
@@ -48,6 +49,9 @@ program main
   v   = vel(:,:)
   acc = acceleration(1:n,:)
   a   = acc(:,:)
+  deallocate(position)
+  deallocate(velocity)
+  deallocate(acceleration)
   den = density(1:n)
   h   = slength(1:n)
   prs = pressure(1:n)
@@ -57,7 +61,7 @@ program main
   du  = diu(:)
   o   = omega(1:n)
   allocate(c(1:n))
-  c(:)= speedOfSound
+  c(:)= cv
   allocate(dh(1:n))
   dh  = 0
   tdh = dh
@@ -66,40 +70,40 @@ program main
   allocate(dcf(1:n))
   dcf = dcoupledfield(1:n)
   kcf = kcoupledfield(1:n)
-
-  deallocate(position)
-  deallocate(velocity)
-  deallocate(acceleration)
-
-  select case(itype)
-  case('hydroshock')
-    tfinish = 0.3
-    dtout = 0.001
-  case('temperhomog01')
-    tfinish = 120
-    dtout = 1
-  end select
+  allocate(err(1:n))
 
   t = 0.
   ltout = 0.
-  call output(n, 0., pos, vel, acc, mas, den, h, prs, ieu, cf)
-  call derivs(n, speedOfSound, sk, gamma, &
+  call print_output(n, 0., pos, vel, acc, mas, den, h, prs, ieu, cf, err)
+  call derivs(n, sk, gamma, &
               pos, vel, acc, &
               mas, den, h, dh, o, prs, c, ieu, diu, &
               cf, dcf, kcf)
   print *, ''
+
+  tfinish = 0.
+  dt = 0.
+  dtout = 0.
+  select case(itype)
+  case('hydroshock')
+    tfinish = 0.4
+  case('heatslab')
+    tfinish = 7.
+  end select
   do while (t <= tfinish)
     select case(itype)
     case('hydroshock')
       dt = .3 * minval(h) / maxval(c)
-    case('temperhomog01')
+      dtout = 10. * dt
+    case('heatslab')
       dt = .144 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
+      dtout = 20. * dt
     end select
     ! print *, "dt: ", dt, minval(den), minval(c), minval(h), maxval(kcf)
     ! read *
     if (t >= ltout) then
       write (*, *) t
-      call output(n, t, pos, vel, acc, mas, den, h, prs, ieu, cf)
+      call print_output(n, t, pos, vel, acc, mas, den, h, prs, ieu, cf, err)
       ltout = ltout + dtout
     end if
     p(:,:) = pos(:,:)
@@ -115,7 +119,7 @@ program main
     h(:)     = h(:)   + dt *  dh(:)
     ! cf(:)    = cf(:)  + dt * dcf(:)
 
-    call derivs(n, speedOfSound, sk, gamma, &
+    call derivs(n, sk, gamma, &
                 pos, vel, acc, &
                 mas, den, h, dh, o, prs, c, ieu, diu, &
                 cf, dcf, kcf)
@@ -123,11 +127,15 @@ program main
     vel(:,:) = vel(:,:) + 0.5 * dt * (acc(:,:) - a(:,:))
     ieu(:)   = ieu(:)   + 0.5 * dt * (diu(:) - du(:))
     h(:)     = h(:)     + 0.5 * dt * (dh(:) - tdh(:))
-    ! cf(:)    = cf(:)    + 0.5 * dt * (dcf(:) - tcf(:))
-    ! cf(:)    = ieu(:) / c(:)
+    if (itype.eq.'heatslab') then
+      cf(:) = ieu(:) / cv
+      call err_T0sxsyet(n, pos, cf, t, err)
+    else
+      cf(:) = cf(:)     + 0.5 * dt * (dcf(:) - tcf(:))
+    end if
 
     t = t + dt
   end do
   write (*, *) t - dt
-  call output(n, t, pos, vel, acc, mas, den, h, prs, ieu, cf)
+  call print_output(n, t, pos, vel, acc, mas, den, h, prs, ieu, cf, err)
 end program main
