@@ -44,10 +44,10 @@ contains
       if (dim.gt.0) then
         call set_fixed1(due, 11, 0.)
         call set_fixed1(due, 12, 0.)
-        ! if (dim.gt.1) then
-        !   call set_fixed1(due, 21, 0.)
-        !   call set_fixed1(due, 22, 0.)
-        ! end if
+        if (dim.gt.1) then
+          call set_fixed1(due, 21, 0.)
+          call set_fixed1(due, 22, 0.)
+        end if
       end if
     end select
   end subroutine derivs

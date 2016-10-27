@@ -1,7 +1,7 @@
 module printer
   implicit none
 
-  public :: print_output
+  public :: print_output, plot_simple
 
   private
 
@@ -26,13 +26,14 @@ contains
     close(iu)
     ifile = ifile + 1
   end subroutine print_output
-  ! subroutine plot_simple(x, y, fname)
-  !   real, intent(in)  :: x, y
-  !   character (len=*), intent(in) :: fname
-  !   integer :: iu
-  !
-  !   open(newunit=iu, file=fname, status='old', form='formatted', access='append')
-  !   write(iu, *) x, y
-  !   close(iu)
-  ! end subroutine plot_simple
+
+  subroutine plot_simple(x, y1, y2, y3, y4, fname)
+    real, intent(in)  :: x, y1, y2, y3, y4
+    character (len=*), intent(in) :: fname
+    integer :: iu
+
+    open(newunit=iu, file=fname, status='old', form='formatted', access='append')
+    write(iu, *) x, y1, y2, y3, y4
+    close(iu)
+  end subroutine plot_simple
 end module printer

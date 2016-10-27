@@ -134,8 +134,20 @@ program main
       cf(:) = cf(:)     + 0.5 * dt * (dcf(:) - tcf(:))
     end if
 
+    if ((t < 1 + dt/2).and.(t > 1 - dt/2)) then
+      call plot_simple(sqrt(real(n)), maxval(err), maxval(err) *100, &
+                       sum(err)/size(err), sum(err)/size(err) * 100, 'error@1s.dat')
+    end if
+    if ((t < 3 + dt/2).and.(t > 3 - dt/2)) then
+      call plot_simple(sqrt(real(n)), maxval(err), maxval(err) *100, &
+                       sum(err)/size(err), sum(err)/size(err) * 100, 'error@3s.dat')
+    end if
+
     t = t + dt
   end do
   write (*, *) t - dt
   call print_output(n, t, pos, vel, acc, mas, den, h, prs, ieu, cf, err)
+  call plot_simple(sqrt(real(n)), maxval(err), maxval(err) *100, &
+                   sum(err)/size(err), sum(err)/size(err) * 100, 'error@7s.dat')
+
 end program main

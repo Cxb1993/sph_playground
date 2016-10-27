@@ -39,4 +39,4 @@ tempr3:
 .PHONY: execute
 
 clean:
-	rm -rf obj/*; rm -rf mod/*; rm -r *.png; rm execute; rm -f steps/*
+	rm -rf obj/*; rm -rf mod/*; rm -r *.png; rm execute; rm -f output/*
