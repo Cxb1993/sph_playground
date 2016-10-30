@@ -27,13 +27,14 @@ contains
     ifile = ifile + 1
   end subroutine print_output
 
-  subroutine plot_simple(x, y1, y2, y3, y4, fname)
-    real, intent(in)  :: x, y1, y2, y3, y4
+  subroutine plot_simple(x, n, A, fname)
+    integer           :: n
+    real, intent(in)  :: x, A(n)
     character (len=*), intent(in) :: fname
     integer :: iu
 
     open(newunit=iu, file=fname, status='old', form='formatted', access='append')
-    write(iu, *) x, y1, y2, y3, y4
+    write(iu, *) x, A
     close(iu)
   end subroutine plot_simple
 end module printer

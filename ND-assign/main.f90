@@ -18,11 +18,11 @@ program main
   integer             :: n, dim
 
   real, allocatable, dimension(:,:) :: position, velocity, acceleration
-  ! real :: position(nmax,3), velocity(nmax,3), acceleration(nmax,3)
   real :: density(nmax), slength(nmax), pressure(nmax), mass(nmax), ienergy(nmax), dienergy(nmax), omega(nmax)
   real :: coupledfield(nmax), kcoupledfield(nmax), dcoupledfield(nmax)
 
-  real :: dt, t, dtout, ltout, tfinish
+  real                              :: dt, t, dtout, ltout, tfinish, error(6)
+  integer                           :: finish, iter
   real, allocatable, dimension(:,:) :: p, v, a
   real, allocatable, dimension(:,:) :: pos, vel, acc
   real, allocatable, dimension(:)   :: den, prs, mas, ieu, diu, o, du, c, h, dh, tdh
@@ -72,37 +72,43 @@ program main
   kcf = kcoupledfield(1:n)
   allocate(err(1:n))
 
-  t = 0.
-  ltout = 0.
-  call print_output(n, 0., pos, vel, acc, mas, den, h, prs, ieu, cf, err)
   call derivs(n, sk, gamma, &
               pos, vel, acc, &
               mas, den, h, dh, o, prs, c, ieu, diu, &
               cf, dcf, kcf)
+  call print_output(n, 0., pos, vel, acc, mas, den, h, prs, ieu, cf, err)
+
   print *, ''
 
-  tfinish = 0.
+  t = 0.
   dt = 0.
-  dtout = 0.
-  select case(itype)
-  case('hydroshock')
-    tfinish = 0.4
-  case('heatslab')
-    tfinish = 7.
-  end select
+  ltout = 0.
+  finish = 3000.
+  tfinish = 0.0001
+  dtout = 50.
+  iter = 0.
+
+  ! select case(itype)
+  ! case('hydroshock')
+  !   tfinish = 0.4
+  ! case('heatslab')
+  !   tfinish = 100.
+  ! end select
+  ! do while ((iter <= finish).or.(t <= tfinish))
   do while (t <= tfinish)
+    call err_infplate(n, pos, cf, t, err)
+    ! call err_nonhplate(n, pos, cf, t, err)
+
     select case(itype)
     case('hydroshock')
       dt = .3 * minval(h) / maxval(c)
-      dtout = 10. * dt
     case('heatslab')
       dt = .144 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
-      dtout = 20. * dt
     end select
     ! print *, "dt: ", dt, minval(den), minval(c), minval(h), maxval(kcf)
     ! read *
-    if (t >= ltout) then
-      write (*, *) t
+    if (iter >= ltout) then
+      print *, iter, t
       call print_output(n, t, pos, vel, acc, mas, den, h, prs, ieu, cf, err)
       ltout = ltout + dtout
     end if
@@ -129,25 +135,26 @@ program main
     h(:)     = h(:)     + 0.5 * dt * (dh(:) - tdh(:))
     if (itype.eq.'heatslab') then
       cf(:) = ieu(:) / cv
-      call err_T0sxsyet(n, pos, cf, t, err)
     else
       cf(:) = cf(:)     + 0.5 * dt * (dcf(:) - tcf(:))
     end if
 
-    if ((t < 1 + dt/2).and.(t > 1 - dt/2)) then
-      call plot_simple(sqrt(real(n)), maxval(err), maxval(err) *100, &
-                       sum(err)/size(err), sum(err)/size(err) * 100, 'error@1s.dat')
-    end if
-    if ((t < 3 + dt/2).and.(t > 3 - dt/2)) then
-      call plot_simple(sqrt(real(n)), maxval(err), maxval(err) *100, &
-                       sum(err)/size(err), sum(err)/size(err) * 100, 'error@3s.dat')
+    if ((t-dt<0.00003).and.(0.00003<t+dt)) then
+      error(1)=maxval(err)
+      error(2)=sum(err)/size(err)
+    else if ((t-dt<0.00006).and.(0.00006<t+dt)) then
+      error(3)=maxval(err)
+      error(4)=sum(err)/size(err)
     end if
 
     t = t + dt
+    iter = iter + 1
   end do
+
   write (*, *) t - dt
   call print_output(n, t, pos, vel, acc, mas, den, h, prs, ieu, cf, err)
-  call plot_simple(sqrt(real(n)), maxval(err), maxval(err) *100, &
-                   sum(err)/size(err), sum(err)/size(err) * 100, 'error@7s.dat')
+  error(5)=maxval(err)
+  error(6)=sum(err)/size(err)
+  call plot_simple(sqrt(real(n)), 6, error, 'err-infslb-1000.dat')
 
 end program main

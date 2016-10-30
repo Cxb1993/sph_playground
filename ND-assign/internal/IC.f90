@@ -80,10 +80,10 @@ contains
           brdz2 = 0.05
         end if
       end if
-      parSpacing1 = 0.016
-      parSpacing2 = 0.016
-      shockDensity1 = 10.
-      shockDensity2 = 10.
+      parSpacing1 = 0.014
+      parSpacing2 = 0.014
+      shockDensity1 = 1.
+      shockDensity2 = 1.
     end select
 
     n = 1
@@ -154,11 +154,11 @@ contains
               den(n) = shockDensity1
               sln(n) = sk * sp
               prs(n) = 0
-              cf(n)  = sin(pi * (x - brdx1) / abs(brdx2-brdx1))*sin(pi * (y - brdy1) / abs(brdy2-brdy1))
+              ! cf(n)  = sin(pi * (x - brdx1) / abs(brdx2-brdx1))*sin(pi * (y - brdy1) / abs(brdy2-brdy1))
               ! cf(n)  = sin(pi * (x + 1.) / abs(brdx2-brdx1))
-              ! cf(n)  = 0.
+              cf(n)  = 1.
               uie(n) = cf(n) / cv
-              kcf(n) = 1.
+              kcf(n) = 1000.
             else
               vel(n,:) = 0.
               acc(n,:) = 0.
@@ -167,9 +167,9 @@ contains
               den(n) = shockDensity2
               sln(n) = sk * sp
               prs(n) = 0
-              cf(n)  = sin(pi * (x - brdx1) / abs(brdx2-brdx1))*sin(pi * (y - brdy1) / abs(brdy2-brdy1))
+              ! cf(n)  = sin(pi * (x - brdx1) / abs(brdx2-brdx1))*sin(pi * (y - brdy1) / abs(brdy2-brdy1))
               ! cf(n)  = sin(pi * (x + 1.) / abs(brdx2-brdx1))
-              ! cf(n)  = 1.
+              cf(n)  = 2.
               uie(n) = cf(n) / cv
               kcf(n) = 1.
             end if
