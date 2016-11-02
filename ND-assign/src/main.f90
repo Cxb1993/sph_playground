@@ -21,17 +21,19 @@ program main
   real :: density(nmax), slength(nmax), pressure(nmax), mass(nmax), ienergy(nmax), dienergy(nmax), omega(nmax)
   real :: coupledfield(nmax), kcoupledfield(nmax), dcoupledfield(nmax)
 
-  real                              :: dt, t, dtout, ltout, tfinish, error(6)
-  integer                           :: finish, iter
+  real                              :: dt, t, dtout, ltout, tfinish, error(5), pspc1, pspc2, brdx1, brdx2
+  integer                           :: finish, iter, npic
   real, allocatable, dimension(:,:) :: p, v, a
   real, allocatable, dimension(:,:) :: pos, vel, acc
   real, allocatable, dimension(:)   :: den, prs, mas, ieu, diu, o, du, c, h, dh, tdh
-  real, allocatable, dimension(:)   :: cf, tcf, dcf, kcf, err
+  real, allocatable, dimension(:)   :: cf, tcf, dcf, kcf
 
   allocate(position(nmax,3))
   allocate(velocity(nmax,3))
   allocate(acceleration(nmax,3))
 
+  print *, '####################'
+  print *, '#'
   call get_command_argument(1, arg)
   read(arg(:), fmt="(i5)") dim
   print *, "#       dim:", dim
@@ -39,7 +41,12 @@ program main
   call get_command_argument(2, itype)
   print *, "# task type:   ", itype
 
+  pspc1 = 1./100
+  pspc2 = pspc1
+  brdx1 = -10.
+  brdx2 = 10.
   call setup(itype, dim, nmax, n, sk, gamma, cv, &
+                pspc1, pspc2, brdx1, brdx2, &
                 position, velocity, acceleration, &
                 mass, density, slength, pressure, ienergy, coupledfield, kcoupledfield, dcoupledfield)
 
@@ -70,35 +77,30 @@ program main
   allocate(dcf(1:n))
   dcf = dcoupledfield(1:n)
   kcf = kcoupledfield(1:n)
-  allocate(err(1:n))
 
   call derivs(n, sk, gamma, &
               pos, vel, acc, &
               mas, den, h, dh, o, prs, c, ieu, diu, &
               cf, dcf, kcf)
-  call print_output(n, 0., pos, vel, acc, mas, den, h, prs, ieu, cf, err)
-
-  print *, ''
+  call print_output(n, 0., pos, vel, acc, mas, den, h, prs, ieu, cf)
 
   t = 0.
   dt = 0.
   ltout = 0.
   finish = 3000.
-  tfinish = 0.0001
-  dtout = 50.
-  iter = 0.
+  tfinish = 5.
+  npic = 200.
+  dtout = tfinish / npic
+  print *, '#  print dt:', dtout
+  print *, '#'
+  print *, '####################'
 
-  ! select case(itype)
-  ! case('hydroshock')
-  !   tfinish = 0.4
-  ! case('heatslab')
-  !   tfinish = 100.
-  ! end select
-  ! do while ((iter <= finish).or.(t <= tfinish))
+  read *
+  error(1) = pspc1
+  error(2) = n
+
+  call plot_simple(2, error(1:2), 'fab-infslb-1-snp')
   do while (t <= tfinish)
-    call err_infplate(n, pos, cf, t, err)
-    ! call err_nonhplate(n, pos, cf, t, err)
-
     select case(itype)
     case('hydroshock')
       dt = .3 * minval(h) / maxval(c)
@@ -107,9 +109,9 @@ program main
     end select
     ! print *, "dt: ", dt, minval(den), minval(c), minval(h), maxval(kcf)
     ! read *
-    if (iter >= ltout) then
+    if (t >= ltout) then
       print *, iter, t
-      call print_output(n, t, pos, vel, acc, mas, den, h, prs, ieu, cf, err)
+      call print_output(n, t, pos, vel, acc, mas, den, h, prs, ieu, cf)
       ltout = ltout + dtout
     end if
     p(:,:) = pos(:,:)
@@ -139,12 +141,14 @@ program main
       cf(:) = cf(:)     + 0.5 * dt * (dcf(:) - tcf(:))
     end if
 
-    if ((t-dt<0.00003).and.(0.00003<t+dt)) then
-      error(1)=maxval(err)
-      error(2)=sum(err)/size(err)
-    else if ((t-dt<0.00006).and.(0.00006<t+dt)) then
-      error(3)=maxval(err)
-      error(4)=sum(err)/size(err)
+    if ((t-dt/2<tfinish*1/3).and.(tfinish*1/3<t+dt/2)) then
+      call plot_simple(n, pos, 'fab-infslb-1-snp')
+      call plot_simple(n, cf, 'fab-infslb-1-snp')
+      call err_infplate(n, pos, cf, t, error(3))
+    else if ((t-dt/2<tfinish*2/3).and.(tfinish*2/3<t+dt/2)) then
+      call plot_simple(n, pos, 'fab-infslb-1-snp')
+      call plot_simple(n, cf, 'fab-infslb-1-snp')
+      call err_infplate(n, pos, cf, t, error(4))
     end if
 
     t = t + dt
@@ -152,9 +156,10 @@ program main
   end do
 
   write (*, *) t - dt
-  call print_output(n, t, pos, vel, acc, mas, den, h, prs, ieu, cf, err)
-  error(5)=maxval(err)
-  error(6)=sum(err)/size(err)
-  call plot_simple(sqrt(real(n)), 6, error, 'err-infslb-1000.dat')
+  call print_output(n, t, pos, vel, acc, mas, den, h, prs, ieu, cf)
+  call plot_simple(n, pos, 'fab-infslb-1-snp')
+  call plot_simple(n, cf, 'fab-infslb-1-snp')
+  call err_infplate(n, pos, cf, t, error(5))
+  call plot_simple(5, error, 'fab-infslb-1-err')
 
 end program main

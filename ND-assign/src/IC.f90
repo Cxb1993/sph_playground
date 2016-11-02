@@ -11,14 +11,17 @@ module IC
 
 contains
 
-  subroutine setup(t, dim, nx, n, sk, g, cv, pos, vel, acc, mas, den, sln, prs, uie, cf, kcf, dcf)
+  subroutine setup(t, dim, nx, n, sk, g, cv, &
+    pspc1, pspc2, brdx1, brdx2, &
+    pos, vel, acc, mas, den, sln, prs, uie, cf, kcf, dcf)
     character(len=*), intent(in) :: t
     integer, intent(in)  :: nx, dim
     real, intent(in)     :: sk, g, cv
+    real, intent(in)     :: pspc1, pspc2, brdx1, brdx2
     real, intent(out)    :: pos(nx,3), vel(nx,3), acc(nx,3),&
                             mas(nx), den(nx), sln(nx), prs(nx), uie(nx), cf(nx), kcf(nx), dcf(nx)
     integer, intent(out) :: n
-    real                 :: brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, parSpacing1, parSpacing2,&
+    real                 :: brdy1, brdy2, brdz1, brdz2,&
                             shockPressure1, shockPressure2, shockDensity1, shockDensity2, &
                             x, y, z, sp, eps
     integer              :: nb, nbnewX1, nbnewY1, nbnewZ1, nbnewX2, nbnewY2, nbnewZ2, &
@@ -30,22 +33,16 @@ contains
     eps = 0.00001
 
     nb = 0
-    brdx1 = 0.
-    brdx2 = 0.
     brdy1 = 0.
     brdy2 = 0.
     brdz1 = 0.
     brdz2 = 0.
     shockDensity1 = 0.
     shockDensity2 = 0.
-    parSpacing1 = 0.
-    parSpacing2 = 0.
 
     select case (t)
     case ('hydroshock')
       nb = 4
-      brdx1 = -0.5
-      brdx2 = 0.5
       brdy1 = 0.
       brdy2 = 0.
       brdz1 = 0.
@@ -58,30 +55,24 @@ contains
           brdz2 = 0.05
         end if
       end if
-      parSpacing1 = 0.001
-      parSpacing2 = 0.008
       shockPressure1 = 1.
       shockPressure2 = 0.1
       shockDensity1 = 1.
       shockDensity2 = 0.125
     case ('heatslab')
       nb = 1
-      brdx1 = -1.
-      brdx2 = 1.
       brdy1 = 0.
       brdy2 = 0.
       brdz1 = 0.
       brdz2 = 0.
       if (dim.gt.1) then
-        brdy1 = -1.
-        brdy2 = 1.
+        brdy1 = -.3
+        brdy2 = .3
         if (dim.eq.3) then
           brdz1 = 0.
           brdz2 = 0.05
         end if
       end if
-      parSpacing1 = 0.014
-      parSpacing2 = 0.014
       shockDensity1 = 1.
       shockDensity2 = 1.
     end select
@@ -97,9 +88,9 @@ contains
     x = brdx1
     do while ((x >= brdx1).and.(x <= brdx2 + eps))
       if (x.lt.0) then
-        sp = parSpacing1
+        sp = pspc1
       else
-        sp = parSpacing2
+        sp = pspc2
       end if
       y = brdy1
       do while ((y >= brdy1).and.(y <= brdy2 + eps))
@@ -158,7 +149,7 @@ contains
               ! cf(n)  = sin(pi * (x + 1.) / abs(brdx2-brdx1))
               cf(n)  = 1.
               uie(n) = cf(n) / cv
-              kcf(n) = 1000.
+              kcf(n) = 1.
             else
               vel(n,:) = 0.
               acc(n,:) = 0.

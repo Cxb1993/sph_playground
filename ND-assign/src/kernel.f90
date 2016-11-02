@@ -1,8 +1,8 @@
 module kernel
   implicit none
 
-  public :: set_dim, get_nabla_w, get_dw_dh, get_w, get_dim, get_dphi_dh, get_n2y, &
-            set_tasktype, get_tasktype
+  public :: set_dim, get_nw, get_dw_dh, get_w, get_dim, get_dphi_dh, get_n2y, &
+            set_tasktype, get_tasktype, get_n2w, get_Fab
 
   private
     integer, save            :: dim = 1
@@ -10,6 +10,7 @@ module kernel
     character (len=40), save :: tasktype
 
  contains
+  !  GetterSetter accecc methods
    subroutine set_dim(d)
      integer, intent(in) :: d
      dim = d
@@ -30,6 +31,7 @@ module kernel
      ott = tasktype
    end subroutine get_tasktype
 
+!  Kernel functions with normalization
   subroutine get_kernel_f(r, h, f)
     real, intent(in)  :: r, h
     real, intent(out) :: f
@@ -82,6 +84,34 @@ module kernel
     end select
   end subroutine get_kernel_df
 
+  subroutine get_kernel_ddf(r, h, ddf)
+    real, intent(in)  :: r, h
+    real, intent(out) :: ddf
+    real              :: q
+
+    q = r / h
+    if (q >= 2.) then
+      ddf = 0.
+    else if (q >= 1.) then
+      ddf = 3. - 1.5 * q
+    else if (q >= 0.) then
+      ddf = -3. + 4.5 * q
+    else
+      print *, 'something went wrong, q =', q
+      stop
+    end if
+    select case(dim)
+      case(1)
+        ddf = 2./3. * ddf
+      case(2)
+        ddf = 10./(7. * pi) * ddf
+      case(3)
+        ddf = ddf / pi
+    end select
+  end subroutine get_kernel_ddf
+
+! Approximation kernels
+
   subroutine get_w(r, h, w)
     real, intent(in)  :: r, h
     real, intent(out) :: w
@@ -92,7 +122,7 @@ module kernel
     w = f / h ** dim
   end subroutine get_w
 
-  subroutine get_nabla_w(rab, h, nw)
+  subroutine get_nw(rab, h, nw)
     real, intent(in)  :: rab(3), h
     real, intent(out) :: nw(3)
     real              :: df
@@ -100,7 +130,7 @@ module kernel
     call get_kernel_df(sqrt(dot_product(rab(:),rab(:))), h, df)
 
     nw(:) = df * rab(:) / h**(dim+2)
-  end subroutine get_nabla_w
+  end subroutine get_nw
 
   subroutine get_dw_dh(r, h, dwdh)
     real, intent(in)  :: r, h
@@ -113,14 +143,14 @@ module kernel
     dwdh = - (dim * f + r * df / h) / h ** (dim + 1)
   end subroutine get_dw_dh
 
-  subroutine get_dphi_dh(r, h, dphidh)
-    real, intent(in)  :: r, h
-    real, intent(out) :: dphidh
-    real              :: phi
+  subroutine get_Fab(r, h, Fab)
+    real, intent(in)  :: r(3), h
+    real, intent(out) :: Fab
+    real              :: nw(3)
 
-    call get_kernel_phi(r, h, phi)
-    dphidh = - 1./h * phi - r**2/(h**5 * phi)
-  end subroutine get_dphi_dh
+    call get_nw(r, h, nw)
+    Fab = -2. * dot_product(r,nw)/dot_product(r,r)
+  end subroutine get_Fab
 
   subroutine get_n2y(r, h, n2y)
     real, intent(in)  :: r, h
@@ -131,10 +161,30 @@ module kernel
     n2y = -2 * df / h**(dim+2) * r
   end subroutine get_n2y
 
+  subroutine get_n2w(r, h, n2w)
+    real, intent(in)  :: r, h
+    real, intent(out) :: n2w
+    real              :: df, ddf
+
+    call get_kernel_ddf(r, h, ddf)
+    call get_kernel_df(r, h, df)
+
+    n2w = (ddf + (dim - 1) * df)/h**(dim+2)
+  end subroutine get_n2w
+
   subroutine get_kernel_phi(r, h, phi)
     real, intent(in)  :: r, h
     real, intent(out) :: phi
 
     phi = 1./h * (1. + (r/h)**2)**(1./2.)
   end subroutine get_kernel_phi
+
+  subroutine get_dphi_dh(r, h, dphidh)
+    real, intent(in)  :: r, h
+    real, intent(out) :: dphidh
+    real              :: phi
+
+    call get_kernel_phi(r, h, phi)
+    dphidh = - 1./h * phi - r**2/(h**5 * phi)
+  end subroutine get_dphi_dh
 end module kernel

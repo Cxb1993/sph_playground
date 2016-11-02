@@ -1,21 +1,23 @@
 FC=gfortran
 FFLAGS=-fopenmp -O3 -Wall -fcheck=all -fdefault-real-8 -fdefault-double-8 -fstack-arrays #-g -fbacktrace -ffpe-trap=invalid
-SRC=kernel.f90\
-		printer.f90\
-		eos.f90\
-		internal/BC.f90\
-		internal/IC.f90\
-		internal/circuit1.f90\
-		internal/circuit2.f90\
-		internal/errcalc.f90\
-		internal.f90\
-		main.f90
+
+SRC=\
+	kernel.f90\
+	printer.f90\
+	eos.f90\
+	BC.f90\
+	IC.f90\
+	circuit1.f90\
+	circuit2.f90\
+	errcalc.f90\
+	internal.f90\
+	main.f90
 OBJ=$(SRC:.f90=.o)
+SUBSRC=$(addprefix src/, $(SRC))
 SUBOBJ=$(addprefix obj/, $(OBJ))
 
-%.o : %.f90
-	@mkdir -p obj/internal
-	@mkdir -p obj/tempr
+%.o : src/%.f90
+	@mkdir -p obj
 	@mkdir -p output
 	$(FC) $(FFLAGS) -J mod/ -o obj/$@ -c $<
 

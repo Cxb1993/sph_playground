@@ -16,7 +16,7 @@ contains
     real, intent(in)    :: pos(n,3), vel(n,3), mas(n), sln(n), den(n), P(n), c(n), om(n),&
                            cf(n), kcf(n)
     real, intent(out)   :: acc(n,3), u(n), du(n), dh(n), dcf(n)
-    real                :: dr, di, dj, qa, qb, qc, dphidh
+    real                :: dr, di, dj, qa, qb, qc, dphidh, n2w, Fab
     real                :: nwi(3), nwj(3), r(3), vab(3), urab(3), Pi(3), Pj(3)
     integer             :: i, j, dim
     character(len=40)   :: t
@@ -25,7 +25,7 @@ contains
     call get_tasktype(t)
 
     !$OMP PARALLEL
-    !$OMP DO PRIVATE(r, dr, vab, urab,di, dj, nwi, nwj, qa, qb, qc, Pi, Pj, dphidh)
+    !$OMP DO PRIVATE(r, dr, vab, urab, di, dj, nwi, nwj, qa, qb, qc, Pi, Pj, dphidh, n2w, Fab)
     do i = 1, n
       acc(i,:) = 0.
       du(i) = 0.
@@ -46,8 +46,8 @@ contains
               di = den(i)
               dj = den(j)
 
-              call get_nabla_w(r, sln(i), nwi)
-              call get_nabla_w(r, sln(j), nwj)
+              call get_nw(r, sln(i), nwi)
+              call get_nw(r, sln(j), nwj)
               call get_dphi_dh(dr, sln(i), dphidh)
               call art_viscosity(di, dj, vab, urab, c(i), c(j), qa, qb)
               call art_termcond(P(i), P(j), di, dj, qc)
@@ -62,10 +62,18 @@ contains
 
               dh(i)   = dh(i) + mas(j) * dot_product(vab(:), nwi(:))
             case ('heatslab')
-              call get_nabla_w(r, sln(i), nwi)
-              du(i)   = du(i) - 4. * mas(j) / (den(i) * den(j)) * kcf(i) * kcf(j) / (kcf(i) + kcf(j)) &
-                            * (cf(i) - cf(j)) * sqrt(dot_product(nwi,nwi)) / dr
+              ! call get_nw(r, sln(i), nwi)
+              ! call get_n2w(dr, sln(i), n2w)
+              call get_Fab(r, sln(i), Fab)
 
+              ! 2 * kcf(i) * kcf(j) /
+              du(i)   = du(i) - mas(j) / (den(i) * den(j)) * 2 * kcf(i) * kcf(j) / (kcf(i) + kcf(j)) &
+                            * (cf(i) - cf(j)) * Fab
+
+              ! print *, (-0.13 + 2.22/(50*(dr/sln(i) - 1.12)**2 + 1)), &
+              !          Fab, &
+              !          n2w
+              ! read *
             end select
           end if
         end if
