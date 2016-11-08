@@ -35,7 +35,7 @@ contains
         if (i.ne.j) then
           r(:) = pos(i,:) - pos(j,:)
           dr = sqrt(dot_product(r(:),r(:)))
-          if ((dr < 3. * sln(i)) .or. (dr < 3. * sln(j))) then
+          if (dr < 2. * sln(i) .or. dr < 2. * sln(j)) then
             select case (t)
             case ('hydroshock')
               qa = 0.
@@ -61,11 +61,10 @@ contains
 
               dh(i)   = dh(i) + mas(j) * dot_product(vab(:), nwi(:))
             case ('heatslab')
-              call get_n2w(dr, sln(i), n2w)
+              ! call get_n2w(dr, sln(i), n2w)
               call get_Fab(r, sln(i), fab)
-              ! 2 * kcf(i) * kcf(j) /
               du(i) = du(i) - mas(j) / (den(i) * den(j)) * 2 * kcf(i) * kcf(j) / (kcf(i) + kcf(j)) &
-                            * (cf(i) - cf(j)) * n2w
+                            * (cf(i) - cf(j)) * fab
 
               ! print *, (-0.13 + 2.22/(50*(dr/sln(i) - 1.12)**2 + 1)), &
               !          Fab, &

@@ -1,11 +1,11 @@
-module quantic
+module quintic
   implicit none
 
   public :: kf, kdf, kddf, knorm
 
   private
 
-    real :: knorm(3) = (/ 1./120., 7./(478. * 4.*atan(1.)), 3./(359. * 4.*atan(1.)) /)
+    real :: knorm(3) = (/ 1./120., 7./(478. * 4.*atan(1.)), 1./(120. * 4.*atan(1.)) /)
 
  contains
 
@@ -68,4 +68,4 @@ module quantic
       stop
     end if
   end subroutine kddf
-end module quantic
+end module quintic

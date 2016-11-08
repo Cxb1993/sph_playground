@@ -23,10 +23,13 @@ contains
     resid(:)  = 1.
 
     do while (maxval(resid, mask=(resid>0)).gt.allowerror)
-      !$OMP PARALLEL
-      !$OMP DO PRIVATE(r, dr, dwdh, w, dfdh, fh, hn, maxiter)
+      ! print *, maxval(resid, mask=(resid>0))
+      ! read *
+      !$omp parallel do default(none)&
+      !$omp private(r, dr, dwdh, w, dfdh, fh, hn, maxiter)&
+      !$omp shared(resid, allowerror, den, om, n, pos, slnint, mas, dim, sk, sln)
       do i = 1, n
-        if (resid(i).gt.allowerror) then
+        if (resid(i) > allowerror) then
           den(i) = 0.
           om(i) = 0.
           do j = 1, n
@@ -35,6 +38,8 @@ contains
               dr = sqrt(dot_product(r(:),r(:)))
               if (dr < 3. * slnint(i)) then
                 call get_dw_dh(dr, slnint(i), dwdh)
+                ! print *, slnint(i), sln(i)
+                ! read *
                 call get_w(dr, slnint(i), w)
                 den(i) = den(i) + mas(j) * w
                 om(i) = om(i) + mas(j) * dwdh
@@ -48,9 +53,10 @@ contains
           resid(i) = abs(hn - slnint(i)) / sln(i)
           slnint(i) = hn
         end if
+        ! print *, den(i)
+        ! read *
       end do
-      !$OMP END DO
-      !$OMP END PARALLEL
+      !$omp end parallel do
       ! print *, 1, den(1), int(size(den)/2), den(int(size(den)/2)), int(size(den)), den(int(size(den)))
     end do
     sln(:) = slnint(:)

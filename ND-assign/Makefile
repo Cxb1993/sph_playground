@@ -3,7 +3,7 @@ FFLAGS=-fopenmp -O3 -Wall -fcheck=all -fdefault-real-8 -fdefault-double-8 -fstac
 
 SRC=\
 	kernel_cubic.f90\
-	kernel_quantic.f90\
+	kernel_quintic.f90\
 	kernel.f90\
 	printer.f90\
 	eos.f90\

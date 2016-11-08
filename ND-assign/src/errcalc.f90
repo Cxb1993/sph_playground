@@ -4,7 +4,7 @@ module err_calc
 
   implicit none
 
-  public :: err_T0sxsyet, err_infplate, err_nonhplate
+  public :: err_T0sxsyet, err_infplate
 
   private
   real, parameter     :: pi = 4.*atan(1.)
@@ -65,8 +65,10 @@ contains
     tc = (tr - tl) * (kr / sqrt(ar)) / (kr / sqrt(ar) + kl / sqrt(al))
 
     err = 0
-    !$OMP PARALLEL
-    !$OMP DO PRIVATE(exact, ttmp)
+    !$omp parallel do default(none) &
+    !$omp shared(pos,n,xm,al,ar,kl,kr,tc,tl,num,t) &
+    !$omp private(exact, ttmp, i) &
+    !$omp reduction(+:err)
     do i=1,n
       if (pos(i,1) < xm) then
         ttmp = erfc((xm-pos(i,1))/(2 * sqrt(al*t)))
@@ -78,58 +80,8 @@ contains
       ! err(i) = abs(exact - num(i))
       err = err + (num(i) - exact)**2
     end do
-    !$OMP END DO
-    !$OMP END PARALLEL
-    err = sqrt(err)
+    !$omp end parallel do
+    err = sqrt(err/n)
     return
   end subroutine err_infplate
-
-  subroutine err_nonhplate(n, pos, num, t, err)
-    integer, intent(in) :: n
-    real, intent(in) :: pos(n,3), num(n), t
-    real, intent(inout) :: err(n)
-
-    integer :: i, j
-    real :: tl, tr, tc, al, ar, ttmp, exact, xm, kl, kr, rhol, rhor, cvl, cvr, f, x, li
-
-    kl = 10.
-    kr = 1.
-    rhol = 1.
-    rhor = 1.
-    cvl = 1.
-    cvr = 1.
-    tl = 4.
-    tr = 1.
-    xm = 0.
-
-    al = kl / rhol / cvl
-    ar = kr / rhor / cvr
-    tc = (tl - tr) * (kr / sqrt(ar)) / (kr / sqrt(ar) + kl / sqrt(al))
-
-    do i=1,n
-      ttmp = 0.
-      if (pos(i,1) < xm) then
-        x = pos(i,1)/(xm-pos(1,1))
-        f = al*t/(xm-pos(1,1))**2
-        do j=1,100
-          li = j*pi
-          ttmp = ttmp - 2./pi * sin(li * x) * exp(-li**2*f) / j
-        end do
-        ttmp = 1 + (kl/kr)*sqrt(ar/al)*(ttmp - x)
-        exact = ttmp*tc + tr
-      else
-        x = pos(i,1)/(pos(n,1)-xm)
-        f = ar*t/(pos(n,1)-xm)**2
-        do j=1,100
-          li = j*pi
-          ttmp = ttmp - 2./pi * sin(li * x) * exp(-li**2*f) / j
-        end do
-        ttmp = 1 - x + ttmp
-        exact = ttmp * tc + tr
-      end if
-      ! print *, exact
-      err(i) = exact - num(i)
-    end do
-    ! read *
-  end subroutine err_nonhplate
 end module err_calc

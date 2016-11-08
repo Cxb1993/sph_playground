@@ -8,7 +8,7 @@ program main
 
   implicit none
 
-  character (len=40) :: itype, snpfname, errfname
+  character (len=40) :: itype, errfname
   character (len=1)  :: arg
 
   real                :: sk = 1.2
@@ -68,7 +68,6 @@ program main
 
   error(1) = pspc1
   error(2) = n
-  snpfname = 'n2wc-infslb-1-2D-snp'
   errfname = 'n2wc-infslb-1-2D-err'
 
   t = 0.
@@ -112,13 +111,12 @@ program main
   dcf = dcoupledfield(1:n)
   kcf = kcoupledfield(1:n)
 
-  call derivs(n, sk, gamma, &
-              pos, vel, acc, &
-              mas, den, h, dh, o, prs, c, ieu, diu, &
-              cf, dcf, kcf)
-  call print_output(n, 0., pos, vel, acc, mas, den, h, prs, ieu, cf)
+  ! call derivs(n, sk, gamma, &
+  !             pos, vel, acc, &
+  !             mas, den, h, dh, o, prs, c, ieu, diu, &
+  !             cf, dcf, kcf)
+  ! call print_output(n, 0., pos, vel, acc, mas, den, h, prs, ieu, cf)
 
-  call plot_simple(2, error(1:2), snpfname)
   do while (t <= tfinish)
     select case(itype)
     case('hydroshock')
@@ -161,12 +159,8 @@ program main
     end if
 
     if ((t-dt/2<tfinish*1/3).and.(tfinish*1/3<t+dt/2)) then
-      call plot_simple(n, pos, snpfname)
-      call plot_simple(n, cf, snpfname)
       call err_infplate(n, pos, cf, t, error(3))
     else if ((t-dt/2<tfinish*2/3).and.(tfinish*2/3<t+dt/2)) then
-      call plot_simple(n, pos, snpfname)
-      call plot_simple(n, cf, snpfname)
       call err_infplate(n, pos, cf, t, error(4))
     end if
 
@@ -176,8 +170,6 @@ program main
 
   write (*, *) t - dt
   call print_output(n, t, pos, vel, acc, mas, den, h, prs, ieu, cf)
-  call plot_simple(n, pos, snpfname)
-  call plot_simple(n, cf, snpfname)
   call err_infplate(n, pos, cf, t, error(5))
   call plot_simple(5, error, errfname)
 

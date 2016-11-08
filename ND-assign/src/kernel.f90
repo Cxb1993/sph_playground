@@ -1,10 +1,10 @@
 module kernel
   use cubic
-  ! use quantic
+  ! use quintic
   implicit none
 
-  public :: set_dim, get_nw, get_dw_dh, get_w, get_dim, get_n2y, &
-            set_tasktype, get_tasktype, get_n2w, get_Fab , get_dphi_dh
+  public :: set_dim, get_nw, get_dw_dh, get_w, get_dim, &
+            set_tasktype, get_tasktype, get_n2w, get_Fab !get_n2y, get_dphi_dh,
 
   private
     integer, save            :: dim = 1
@@ -49,8 +49,8 @@ module kernel
     real              :: df
 
     call kdf(sqrt(dot_product(rab(:),rab(:))), h, df)
-    df = knorm(dim) * df
-    nw(:) = df * rab(:) / h**(dim+2)
+
+    nw(:) = knorm(dim) * df * rab(:) / h**(dim+2)
   end subroutine get_nw
 
   subroutine get_dw_dh(r, h, dwdh)
@@ -74,15 +74,15 @@ module kernel
     Fab = -2. * dot_product(r,nw)/dot_product(r,r)
   end subroutine get_Fab
 
-  subroutine get_n2y(r, h, n2y)
-    real, intent(in)  :: r, h
-    real, intent(out) :: n2y
-    real              :: df
-
-    call kdf(r, h, df)
-    df = knorm(dim) * df
-    n2y = -2 * df / h**(dim+2) * r
-  end subroutine get_n2y
+  ! subroutine get_n2y(r, h, n2y)
+  !   real, intent(in)  :: r, h
+  !   real, intent(out) :: n2y
+  !   real              :: df
+  !
+  !   call kdf(r, h, df)
+  !   df = knorm(dim) * df
+  !   n2y = -2 * df / h**(dim+2) * r
+  ! end subroutine get_n2y
 
   subroutine get_n2w(r, h, n2w)
     real, intent(in)  :: r, h
@@ -96,19 +96,19 @@ module kernel
     n2w = (ddf + (dim - 1) * df)/h**(dim+2)
   end subroutine get_n2w
 
-  subroutine get_kernel_phi(r, h, phi)
-    real, intent(in)  :: r, h
-    real, intent(out) :: phi
-
-    phi = 1./h * (1. + (r/h)**2)**(1./2.)
-  end subroutine get_kernel_phi
-
-  subroutine get_dphi_dh(r, h, dphidh)
-    real, intent(in)  :: r, h
-    real, intent(out) :: dphidh
-    real              :: phi
-
-    call get_kernel_phi(r, h, phi)
-    dphidh = - 1./h * phi - r**2/(h**5 * phi)
-  end subroutine get_dphi_dh
+  ! subroutine get_kernel_phi(r, h, phi)
+  !   real, intent(in)  :: r, h
+  !   real, intent(out) :: phi
+  !
+  !   phi = 1./h * (1. + (r/h)**2)**(1./2.)
+  ! end subroutine get_kernel_phi
+  !
+  ! subroutine get_dphi_dh(r, h, dphidh)
+  !   real, intent(in)  :: r, h
+  !   real, intent(out) :: dphidh
+  !   real              :: phi
+  !
+  !   call get_kernel_phi(r, h, phi)
+  !   dphidh = - 1./h * phi - r**2/(h**5 * phi)
+  ! end subroutine get_dphi_dh
 end module kernel

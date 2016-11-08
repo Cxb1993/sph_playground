@@ -18,9 +18,9 @@ module cubic
     if (q >= 2.) then
       f  = 0.
     else if (q >= 1.) then
-      f  = 0.25 * ((2. - q) ** 3)
+      f  = 0.25 * (2. - q)**3
     else if (q >= 0.) then
-      f  = 1. - 1.5 * q**2 + 0.75 * q ** 3
+      f  = 0.25 * (2. - q)**3 - (1. - q)**3
     else
       print *, 'something went wrong, q =', q
       stop
