@@ -1,8 +1,10 @@
 module kernel
+  use cubic
+  ! use quantic
   implicit none
 
-  public :: set_dim, get_nw, get_dw_dh, get_w, get_dim, get_dphi_dh, get_n2y, &
-            set_tasktype, get_tasktype, get_n2w, get_Fab
+  public :: set_dim, get_nw, get_dw_dh, get_w, get_dim, get_n2y, &
+            set_tasktype, get_tasktype, get_n2w, get_Fab , get_dphi_dh
 
   private
     integer, save            :: dim = 1
@@ -31,94 +33,13 @@ module kernel
      ott = tasktype
    end subroutine get_tasktype
 
-!  Kernel functions with normalization
-  subroutine get_kernel_f(r, h, f)
-    real, intent(in)  :: r, h
-    real, intent(out) :: f
-    real              :: q
-
-    q = r / h
-    if (q >= 2.) then
-      f  = 0.
-    else if (q >= 1.) then
-      f  = 0.25 * ((2. - q) ** 3)
-    else if (q >= 0.) then
-      f  = 1. - 1.5 * q**2 + 0.75 * q ** 3
-    else
-      print *, 'something went wrong, q =', q
-      stop
-    end if
-    select case(dim)
-      case(1)
-        f = 2./3. * f
-      case(2)
-        f = 10./(7. * pi) * f
-      case(3)
-        f = f / pi
-    end select
-  end subroutine get_kernel_f
-
-  subroutine get_kernel_df(r, h, df)
-    real, intent(in)  :: r, h
-    real, intent(out) :: df
-    real              :: q
-
-    q = r / h
-    if (q >= 2.) then
-      df = 0.
-    else if (q >= 1.) then
-      df = (- 0.75 * ((2. - q) ** 2)) / q
-    else if (q >= 0.) then
-      df = -3. + 2.25 * q
-    else
-      print *, 'something went wrong, q =', q
-      stop
-    end if
-    select case(dim)
-      case(1)
-        df = 2./3. * df
-      case(2)
-        df = 10./(7. * pi) * df
-      case(3)
-        df = df / pi
-    end select
-  end subroutine get_kernel_df
-
-  subroutine get_kernel_ddf(r, h, ddf)
-    real, intent(in)  :: r, h
-    real, intent(out) :: ddf
-    real              :: q
-
-    q = r / h
-    if (q >= 2.) then
-      ddf = 0.
-    else if (q >= 1.) then
-      ddf = 3. - 1.5 * q
-    else if (q >= 0.) then
-      ddf = -3. + 4.5 * q
-    else
-      print *, 'something went wrong, q =', q
-      stop
-    end if
-    select case(dim)
-      case(1)
-        ddf = 2./3. * ddf
-      case(2)
-        ddf = 10./(7. * pi) * ddf
-      case(3)
-        ddf = ddf / pi
-    end select
-  end subroutine get_kernel_ddf
-
-! Approximation kernels
-
   subroutine get_w(r, h, w)
     real, intent(in)  :: r, h
     real, intent(out) :: w
     real              :: f
 
-    call get_kernel_f(r, h, f)
-
+    call kf(r, h, f)
+    f = knorm(dim) * f
     w = f / h ** dim
   end subroutine get_w
 
@@ -127,8 +48,8 @@ module kernel
     real, intent(out) :: nw(3)
     real              :: df
 
-    call get_kernel_df(sqrt(dot_product(rab(:),rab(:))), h, df)
-
+    call kdf(sqrt(dot_product(rab(:),rab(:))), h, df)
+    df = knorm(dim) * df
     nw(:) = df * rab(:) / h**(dim+2)
   end subroutine get_nw
 
@@ -137,9 +58,10 @@ module kernel
     real, intent(out) :: dwdh
     real              :: f, df
 
-    call get_kernel_f(r, h, f)
-    call get_kernel_df(r, h, df)
-
+    call kf(r, h, f)
+    call kdf(r, h, df)
+    f  = knorm(dim) * f
+    df = knorm(dim) * df
     dwdh = - (dim * f + r * df / h) / h ** (dim + 1)
   end subroutine get_dw_dh
 
@@ -157,7 +79,8 @@ module kernel
     real, intent(out) :: n2y
     real              :: df
 
-    call get_kernel_df(r, h, df)
+    call kdf(r, h, df)
+    df = knorm(dim) * df
     n2y = -2 * df / h**(dim+2) * r
   end subroutine get_n2y
 
@@ -166,9 +89,10 @@ module kernel
     real, intent(out) :: n2w
     real              :: df, ddf
 
-    call get_kernel_ddf(r, h, ddf)
-    call get_kernel_df(r, h, df)
-
+    call kddf(r, h, ddf)
+    call kdf(r, h, df)
+    ddf = knorm(dim) * ddf
+    df  = knorm(dim) * df
     n2w = (ddf + (dim - 1) * df)/h**(dim+2)
   end subroutine get_n2w
 

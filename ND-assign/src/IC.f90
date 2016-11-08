@@ -12,17 +12,16 @@ module IC
 contains
 
   subroutine setup(t, dim, nx, n, sk, g, cv, &
-    pspc1, pspc2, brdx1, brdx2, &
+    pspc1, pspc2, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, &
     pos, vel, acc, mas, den, sln, prs, uie, cf, kcf, dcf)
     character(len=*), intent(in) :: t
     integer, intent(in)  :: nx, dim
     real, intent(in)     :: sk, g, cv
-    real, intent(in)     :: pspc1, pspc2, brdx1, brdx2
+    real, intent(in)     :: pspc1, pspc2, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2
     real, intent(out)    :: pos(nx,3), vel(nx,3), acc(nx,3),&
                             mas(nx), den(nx), sln(nx), prs(nx), uie(nx), cf(nx), kcf(nx), dcf(nx)
     integer, intent(out) :: n
-    real                 :: brdy1, brdy2, brdz1, brdz2,&
-                            shockPressure1, shockPressure2, shockDensity1, shockDensity2, &
+    real                 :: shockPressure1, shockPressure2, shockDensity1, shockDensity2, &
                             x, y, z, sp, eps
     integer              :: nb, nbnewX1, nbnewY1, nbnewZ1, nbnewX2, nbnewY2, nbnewZ2, &
                             brdarrX1(nx), brdarrY1(nx), brdarrZ1(nx), brdarrX2(nx), &
@@ -33,46 +32,18 @@ contains
     eps = 0.00001
 
     nb = 0
-    brdy1 = 0.
-    brdy2 = 0.
-    brdz1 = 0.
-    brdz2 = 0.
     shockDensity1 = 0.
     shockDensity2 = 0.
 
     select case (t)
     case ('hydroshock')
       nb = 4
-      brdy1 = 0.
-      brdy2 = 0.
-      brdz1 = 0.
-      brdz2 = 0.
-      if (dim.gt.1) then
-        brdy1 = 0.
-        brdy2 = 0.5
-        if (dim.eq.3) then
-          brdz1 = 0.
-          brdz2 = 0.05
-        end if
-      end if
       shockPressure1 = 1.
       shockPressure2 = 0.1
       shockDensity1 = 1.
       shockDensity2 = 0.125
     case ('heatslab')
       nb = 1
-      brdy1 = 0.
-      brdy2 = 0.
-      brdz1 = 0.
-      brdz2 = 0.
-      if (dim.gt.1) then
-        brdy1 = -.3
-        brdy2 = .3
-        if (dim.eq.3) then
-          brdz1 = 0.
-          brdz2 = 0.05
-        end if
-      end if
       shockDensity1 = 1.
       shockDensity2 = 1.
     end select
@@ -113,6 +84,15 @@ contains
             else if (y.gt.(brdy2 + eps - nb * sp)) then
               brdarrY2(nbnewY2) = n
               nbnewY2 = nbnewY2 + 1
+            end if
+            if (dim.eq.3) then
+              if (z.lt.(brdz1 + nb * sp)) then
+                brdarrZ1(nbnewZ1) = n
+                nbnewZ1 = nbnewZ1 + 1
+              else if (z.gt.(brdz2 + eps - nb * sp)) then
+                brdarrZ2(nbnewZ2) = n
+                nbnewZ2 = nbnewZ2 + 1
+              end if
             end if
           end if
           select case (t)

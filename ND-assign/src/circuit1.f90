@@ -18,8 +18,6 @@ contains
     integer             :: i, j, dim, maxiter
 
     call get_dim(dim)
-    ! print *, 'Dim in circuit1: ', dim
-    ! read *
     allowerror = 0.0001
     slnint(:) = sln(:)
     resid(:)  = 1.
@@ -31,19 +29,18 @@ contains
         if (resid(i).gt.allowerror) then
           den(i) = 0.
           om(i) = 0.
-          j = 0
-          if (i.ne.j) then
-            do j = 1, n
+          do j = 1, n
+            if (i.ne.j) then
               r(:) = pos(i,:) - pos(j,:)
               dr = sqrt(dot_product(r(:),r(:)))
-              if (dr < 2. * slnint(i)) then
+              if (dr < 3. * slnint(i)) then
                 call get_dw_dh(dr, slnint(i), dwdh)
                 call get_w(dr, slnint(i), w)
                 den(i) = den(i) + mas(j) * w
                 om(i) = om(i) + mas(j) * dwdh
               end if
-            end do
-          end if
+            end if
+          end do
           om(i) = 1. - om(i) * (- slnint(i) / (dim * den(i)))
           dfdh = - dim * den(i) * om(i) / slnint(i)
           fh  = mas(i) * (sk / slnint(i)) ** dim - den(i)
