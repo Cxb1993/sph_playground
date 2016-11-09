@@ -43,7 +43,7 @@ contains
 
   subroutine err_infplate(n, pos, num, t, err)
     integer, intent(in) :: n
-    real, intent(in) :: pos(n,3), num(n), t
+    real, intent(in)    :: pos(n,3), num(n), t
     real, intent(inout) :: err
 
     integer :: i
@@ -55,8 +55,8 @@ contains
     rhor = 1.
     cvl = 1.
     cvr = 1.
-    tl = 1.
-    tr = 2.
+    tl = 0.
+    tr = 1.
     xm = 0.
 
     al = kl / rhol / cvl
@@ -76,8 +76,6 @@ contains
         ttmp = 1 + (kl/kr)*sqrt(ar/al)*erf((pos(i,1)-xm)/(2 * sqrt(ar*t)))
       end if
       exact = ttmp * tc + tl
-      ! err(i) = ttmp * tc + tl
-      ! err(i) = abs(exact - num(i))
       err = err + (num(i) - exact)**2
     end do
     !$omp end parallel do

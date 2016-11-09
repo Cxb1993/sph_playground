@@ -38,7 +38,7 @@ contains
           call set_fixed3(acc, 22, 2, 0.)
         end if
       end if
-    case ('heatslab')
+    case ('infslb')
       call c1(n, pos, mas, sk, h, den, om)
       call c2(n, c, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
       ! if (dim.gt.0) then

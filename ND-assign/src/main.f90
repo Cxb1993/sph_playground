@@ -5,25 +5,23 @@ program main
   use printer
   use kernel
   use err_calc
-
+  use args, only:fillargs
   implicit none
-
-  character (len=40) :: itype, errfname
-  character (len=1)  :: arg
 
   real                :: sk = 1.
   integer, parameter  :: nmax = 400000
   real                :: cv = 1.
   real                :: gamma = 1.4
   integer             :: n, dim
+  character (len=40)  :: itype, errfname, ktype
 
   real, allocatable, dimension(:,:) :: position, velocity, acceleration
   real :: density(nmax), slength(nmax), pressure(nmax), mass(nmax), ienergy(nmax), dienergy(nmax), omega(nmax)
   real :: coupledfield(nmax), kcoupledfield(nmax), dcoupledfield(nmax)
 
-  real                              :: dt, t, dtout, ltout, tfinish, error(5),&
+  real                              :: dt, t, dtout, ltout, tfinish, error(5), npic, &
                                        pspc1, pspc2, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2
-  integer                           :: finish, iter, npic
+  integer                           :: finish, iter
   real, allocatable, dimension(:,:) :: p, v, a
   real, allocatable, dimension(:,:) :: pos, vel, acc
   real, allocatable, dimension(:)   :: den, prs, mas, ieu, diu, o, du, c, h, dh, tdh
@@ -35,56 +33,24 @@ program main
 
   print *, '####################'
   print *, '#'
-  call get_command_argument(1, arg)
-  read(arg(:), fmt="(i5)") dim
-  print *, "#       dim:", dim
+  call fillargs(dim, pspc1, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc2,&
+                itype, ktype, errfname, dtout, npic, tfinish)
 
-  call get_command_argument(2, itype)
-  print *, "# task type:   ", itype
-
-  call get_command_argument(3, itype)
-  print *, "# task type:   ", itype
-
-  pspc1 = 1.
-  pspc2 = pspc1
-  print *, "# p.spacing:   ", pspc1, pspc2
-  brdx1 = -10.
-  brdx2 = 10.
-  if (dim.gt.1) then
-    brdy1 = - pspc1 * 4.5
-    brdy2 = pspc2 * 4.5
-  else
-    brdy1 = 0.
-    brdy2 = 0.
-  end if
-  if (dim.eq.3) then
-    brdz1 = - pspc1 * 4.5
-    brdz2 = pspc2 * 4.5
-  else
-    brdz1 = 0.
-    brdz2 = 0.
-  end if
-  call setup(itype, dim, nmax, n, sk, gamma, cv, &
+  call setup(itype, ktype, dim, nmax, n, sk, gamma, cv, &
                 pspc1, pspc2, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, &
                 position, velocity, acceleration, &
                 mass, density, slength, pressure, ienergy, coupledfield, kcoupledfield, dcoupledfield)
+  print *, '#'
+  print *, '####################'
+  ! read *
 
   error(1) = pspc1
   error(2) = n
-  errfname = 'n2wc-infslb-1-2D-err'
 
   t = 0.
   dt = 0.
   ltout = 0.
   finish = 3000.
-  tfinish = 5.
-  npic = 200.
-  dtout = tfinish / npic
-  print *, '#  print dt:', dtout
-  print *, '#'
-  print *, '####################'
-
-  read *
 
   pos = position(1:n,:)
   p   = pos(:,:)
@@ -118,7 +84,7 @@ program main
     select case(itype)
     case('hydroshock')
       dt = .3 * minval(h) / maxval(c)
-    case('heatslab')
+    case('infslb')
       dt = .144 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
     end select
     ! print *, "dt: ", dt, minval(den), minval(c), minval(h), maxval(kcf)
@@ -149,7 +115,7 @@ program main
     vel(:,:) = vel(:,:) + 0.5 * dt * (acc(:,:) - a(:,:))
     ieu(:)   = ieu(:)   + 0.5 * dt * (diu(:) - du(:))
     h(:)     = h(:)     + 0.5 * dt * (dh(:) - tdh(:))
-    if (itype.eq.'heatslab') then
+    if (itype.eq.'infslb') then
       cf(:) = ieu(:) / cv
     else
       cf(:) = cf(:)     + 0.5 * dt * (dcf(:) - tcf(:))

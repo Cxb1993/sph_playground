@@ -11,10 +11,10 @@ module IC
 
 contains
 
-  subroutine setup(t, dim, nx, n, sk, g, cv, &
+  subroutine setup(tt, kt, dim, nx, n, sk, g, cv, &
     pspc1, pspc2, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, &
     pos, vel, acc, mas, den, sln, prs, uie, cf, kcf, dcf)
-    character(len=*), intent(in) :: t
+    character(len=*), intent(in) :: tt, kt
     integer, intent(in)  :: nx, dim
     real, intent(in)     :: sk, g, cv
     real, intent(in)     :: pspc1, pspc2, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2
@@ -27,21 +27,22 @@ contains
                             brdarrY2(nx), brdarrZ2(nx)
 
     call set_dim(dim)
-    call set_tasktype(t)
+    call set_tasktype(tt)
+    call set_kerntype(kt)
     eps = 1e-8
 
     nb = 0
     rho1 = 0.
     rho2 = 0.
 
-    select case (t)
+    select case (tt)
     case ('hydroshock')
       nb = 4
       prs1 = 1.
       prs2 = 0.1
       rho1 = 1.
       rho2 = 0.125
-    case ('heatslab')
+    case ('infslb')
       nb = 1
       rho1 = 1.
       rho2 = 1.
@@ -102,7 +103,7 @@ contains
           dcf(n) = 0.
           sln(n) = sk * sp
 
-          select case (t)
+          select case (tt)
           case ('hydroshock')
             if (x<0) then
               mas(n) = (sp**dim) * rho1
@@ -115,7 +116,7 @@ contains
               prs(n) = prs2
               uie(n) = prs2 / (g - 1) / rho2
             end if
-          case ('heatslab')
+          case ('infslb')
             if (x<0-eps) then
               mas(n) = (sp**dim) * rho1
               den(n) = rho1

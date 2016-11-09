@@ -4,12 +4,13 @@ module kernel
   implicit none
 
   public :: set_dim, get_nw, get_dw_dh, get_w, get_dim, &
-            set_tasktype, get_tasktype, get_n2w, get_Fab !get_n2y, get_dphi_dh,
+            set_tasktype, get_tasktype, set_kerntype, get_kerntype, &
+            get_n2w, get_Fab !get_n2y, get_dphi_dh,
 
   private
     integer, save            :: dim = 1
     real, parameter          :: pi = 4.*atan(1.)
-    character (len=40), save :: tasktype
+    character (len=40), save :: ttype, ktype
 
  contains
   !  GetterSetter accecc methods
@@ -25,13 +26,23 @@ module kernel
 
    subroutine set_tasktype(itt)
      character (len=*), intent(in) :: itt
-     tasktype = itt
+     ttype = itt
    end subroutine set_tasktype
 
    subroutine get_tasktype(ott)
      character (len=*), intent(out) :: ott
-     ott = tasktype
+     ott = ttype
    end subroutine get_tasktype
+
+   subroutine set_kerntype(itt)
+     character (len=*), intent(in) :: itt
+     ktype = itt
+   end subroutine set_kerntype
+
+   subroutine get_kerntype(ott)
+     character (len=*), intent(out) :: ott
+     ott = ktype
+   end subroutine get_kerntype
 
   subroutine get_w(r, h, w)
     real, intent(in)  :: r, h
@@ -73,16 +84,6 @@ module kernel
     call get_nw(r, h, nw)
     Fab = -2. * dot_product(r,nw)/dot_product(r,r)
   end subroutine get_Fab
-
-  ! subroutine get_n2y(r, h, n2y)
-  !   real, intent(in)  :: r, h
-  !   real, intent(out) :: n2y
-  !   real              :: df
-  !
-  !   call kdf(r, h, df)
-  !   df = knorm(dim) * df
-  !   n2y = -2 * df / h**(dim+2) * r
-  ! end subroutine get_n2y
 
   subroutine get_n2w(r, h, n2w)
     real, intent(in)  :: r, h

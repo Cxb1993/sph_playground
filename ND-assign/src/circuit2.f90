@@ -19,14 +19,15 @@ contains
     real                :: dr, di, dj, qa, qb, qc, n2w
     real                :: nwi(3), nwj(3), r(3), vab(3), urab(3), Pi(3), Pj(3)
     integer             :: i, j, dim
-    character(len=40)   :: t
+    character(len=40)   :: tt, kt
 
     call get_dim(dim)
-    call get_tasktype(t)
+    call get_tasktype(tt)
+    call get_kerntype(kt)
 
     !$omp parallel do default(none)&
     !$omp private(r, dr, vab, urab, di, dj, nwi, nwj, qa, qb, qc, Pi, Pj, n2w) &
-    !$omp shared(acc, du, dh, dcf, n, pos, sln, t, vel, den, c, p, om, mas, u, kcf, cf, dim)
+    !$omp shared(acc, du, dh, dcf, n, pos, sln, tt, kt, vel, den, c, p, om, mas, u, kcf, cf, dim)
     do i = 1, n
       acc(i,:) = 0.
       du(i) = 0.
@@ -37,7 +38,7 @@ contains
           r(:) = pos(i,:) - pos(j,:)
           dr = sqrt(dot_product(r(:),r(:)))
           if (dr < 2. * sln(i) .or. dr < 2. * sln(j)) then
-            select case (t)
+            select case (tt)
             case ('hydroshock')
               qa = 0.
               qb = 0.
@@ -61,9 +62,16 @@ contains
                             0.5 * dot_product((nwi(:) + nwj(:)),urab(:))
 
               dh(i)   = dh(i) + mas(j) * dot_product(vab(:), nwi(:))
-            case ('heatslab')
-              call get_n2w(dr, sln(i), n2w)
-              ! call get_Fab(r, sln(i), n2w)
+            case ('infslb')
+              if (kt == 'n2w') then
+                call get_n2w(dr, sln(i), n2w)
+              else if (kt == 'fab') then
+                call get_Fab(r, sln(i), n2w)
+              else
+                print *, 'kernel type not chosen, arg #5'
+                stop
+              end if
+
               du(i) = du(i) - mas(j) / (den(i) * den(j)) * 2 * kcf(i) * kcf(j) / (kcf(i) + kcf(j)) &
                             * (cf(i) - cf(j)) * n2w
             end select

@@ -2,6 +2,7 @@ FC=gfortran
 FFLAGS=-fopenmp -O3 -Wall -fcheck=all -fdefault-real-8 -fdefault-double-8 -fstack-arrays #-g -fbacktrace -ffpe-trap=invalid
 
 SRC=\
+	args.f90\
 	kernel_cubic.f90\
 	kernel_quintic.f90\
 	kernel.f90\
@@ -34,11 +35,11 @@ hydroshock3:
 	make && time ./execute 3 hydroshock
 
 tempr1:
-	make && time ./execute 1 heatslab
+	make && time ./execute 1 infslb
 tempr2:
-	make && time ./execute 2 heatslab
+	make && time ./execute 2 infslb
 tempr3:
-	make && time ./execute 3 heatslab
+	make && time ./execute 3 infslb
 
 .PHONY: execute
 
