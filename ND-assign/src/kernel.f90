@@ -39,7 +39,7 @@ module kernel
     real              :: f
 
     call kf(r, h, f)
-    f = knorm(dim) * f
+    f = knorm(dim)* f
     w = f / h ** dim
   end subroutine get_w
 

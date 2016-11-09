@@ -5,18 +5,18 @@ module circuit2
 
   implicit none
 
-  public :: make_c2
+  public :: c2
 
   private
 
 contains
 
-  subroutine make_c2(n, c, pos, vel, acc, mas, den, sln, om, P, u, du, dh, cf, dcf, kcf)
+  subroutine c2(n, c, pos, vel, acc, mas, den, sln, om, P, u, du, dh, cf, dcf, kcf)
     integer, intent(in) :: n
     real, intent(in)    :: pos(n,3), vel(n,3), mas(n), sln(n), den(n), P(n), c(n), om(n),&
                            cf(n), kcf(n)
     real, intent(out)   :: acc(n,3), u(n), du(n), dh(n), dcf(n)
-    real                :: dr, di, dj, qa, qb, qc, n2w, fab
+    real                :: dr, di, dj, qa, qb, qc, n2w
     real                :: nwi(3), nwj(3), r(3), vab(3), urab(3), Pi(3), Pj(3)
     integer             :: i, j, dim
     character(len=40)   :: t
@@ -24,8 +24,9 @@ contains
     call get_dim(dim)
     call get_tasktype(t)
 
-    !$OMP PARALLEL
-    !$OMP DO PRIVATE(r, dr, vab, urab, di, dj, nwi, nwj, qa, qb, qc, Pi, Pj, n2w, fab)
+    !$omp parallel do default(none)&
+    !$omp private(r, dr, vab, urab, di, dj, nwi, nwj, qa, qb, qc, Pi, Pj, n2w) &
+    !$omp shared(acc, du, dh, dcf, n, pos, sln, t, vel, den, c, p, om, mas, u, kcf, cf, dim)
     do i = 1, n
       acc(i,:) = 0.
       du(i) = 0.
@@ -61,24 +62,18 @@ contains
 
               dh(i)   = dh(i) + mas(j) * dot_product(vab(:), nwi(:))
             case ('heatslab')
-              ! call get_n2w(dr, sln(i), n2w)
-              call get_Fab(r, sln(i), fab)
+              call get_n2w(dr, sln(i), n2w)
+              ! call get_Fab(r, sln(i), n2w)
               du(i) = du(i) - mas(j) / (den(i) * den(j)) * 2 * kcf(i) * kcf(j) / (kcf(i) + kcf(j)) &
-                            * (cf(i) - cf(j)) * fab
-
-              ! print *, (-0.13 + 2.22/(50*(dr/sln(i) - 1.12)**2 + 1)), &
-              !          Fab, &
-              !          n2w
-              ! read *
+                            * (cf(i) - cf(j)) * n2w
             end select
           end if
         end if
       end do
       dh(i) =  (- sln(i) / (dim * den(i))) * dh(i) / om(i)
     end do
-    !$OMP END DO
-    !$OMP END PARALLEL
-  end subroutine make_c2
+    !$omp end parallel do
+  end subroutine c2
 
   subroutine art_termcond(pa, pb, da, db, vsigu)
     real, intent(in)  :: pa, pb, da, db
@@ -102,5 +97,4 @@ contains
       qb = -0.5 * db * (alpha*cb - betta*dvr) * dvr
     end if
   end subroutine art_viscosity
-
 end module circuit2

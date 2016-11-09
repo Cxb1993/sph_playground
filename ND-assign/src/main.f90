@@ -11,7 +11,7 @@ program main
   character (len=40) :: itype, errfname
   character (len=1)  :: arg
 
-  real                :: sk = 1.2
+  real                :: sk = 1.
   integer, parameter  :: nmax = 400000
   real                :: cv = 1.
   real                :: gamma = 1.4
@@ -42,7 +42,10 @@ program main
   call get_command_argument(2, itype)
   print *, "# task type:   ", itype
 
-  pspc1 = 1./5
+  call get_command_argument(3, itype)
+  print *, "# task type:   ", itype
+
+  pspc1 = 1.
   pspc2 = pspc1
   print *, "# p.spacing:   ", pspc1, pspc2
   brdx1 = -10.
@@ -110,12 +113,6 @@ program main
   allocate(dcf(1:n))
   dcf = dcoupledfield(1:n)
   kcf = kcoupledfield(1:n)
-
-  ! call derivs(n, sk, gamma, &
-  !             pos, vel, acc, &
-  !             mas, den, h, dh, o, prs, c, ieu, diu, &
-  !             cf, dcf, kcf)
-  ! call print_output(n, 0., pos, vel, acc, mas, den, h, prs, ieu, cf)
 
   do while (t <= tfinish)
     select case(itype)

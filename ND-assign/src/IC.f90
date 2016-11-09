@@ -21,31 +21,30 @@ contains
     real, intent(out)    :: pos(nx,3), vel(nx,3), acc(nx,3),&
                             mas(nx), den(nx), sln(nx), prs(nx), uie(nx), cf(nx), kcf(nx), dcf(nx)
     integer, intent(out) :: n
-    real                 :: shockPressure1, shockPressure2, shockDensity1, shockDensity2, &
-                            x, y, z, sp, eps
+    real                 :: prs1, prs2, rho1, rho2, x, y, z, sp, eps
     integer              :: nb, nbnewX1, nbnewY1, nbnewZ1, nbnewX2, nbnewY2, nbnewZ2, &
                             brdarrX1(nx), brdarrY1(nx), brdarrZ1(nx), brdarrX2(nx), &
                             brdarrY2(nx), brdarrZ2(nx)
 
     call set_dim(dim)
     call set_tasktype(t)
-    eps = 0.00001
+    eps = 1e-8
 
     nb = 0
-    shockDensity1 = 0.
-    shockDensity2 = 0.
+    rho1 = 0.
+    rho2 = 0.
 
     select case (t)
     case ('hydroshock')
       nb = 4
-      shockPressure1 = 1.
-      shockPressure2 = 0.1
-      shockDensity1 = 1.
-      shockDensity2 = 0.125
+      prs1 = 1.
+      prs2 = 0.1
+      rho1 = 1.
+      rho2 = 0.125
     case ('heatslab')
       nb = 1
-      shockDensity1 = 1.
-      shockDensity2 = 1.
+      rho1 = 1.
+      rho2 = 1.
     end select
 
     n = 1
@@ -95,35 +94,40 @@ contains
               end if
             end if
           end if
+          !
+          ! common values
+          !
+          vel(n,:) = 0.
+          acc(n,:) = 0.
+          dcf(n) = 0.
+          sln(n) = sk * sp
+
           select case (t)
           case ('hydroshock')
             if (x<0) then
-              vel(n,:) = 0.
-              acc(n,:) = 0.
-              dcf(n) = 0.
-              mas(n) = (sp**dim) * shockDensity1
-              den(n) = shockDensity1
-              sln(n) = sk * sp
-              prs(n) = shockPressure1
-              uie(n) = shockPressure1 / (g - 1) / shockDensity1
+              mas(n) = (sp**dim) * rho1
+              den(n) = rho1
+              prs(n) = prs1
+              uie(n) = prs1 / (g - 1) / rho1
             else
-              vel(n,:) = 0.
-              acc(n,:) = 0.
-              dcf(n) = 0.
-              mas(n) = (sp**dim) * shockDensity2
-              den(n) = shockDensity2
-              sln(n) = sk * sp
-              prs(n) = shockPressure2
-              uie(n) = shockPressure2 / (g - 1) / shockDensity2
+              mas(n) = (sp**dim) * rho2
+              den(n) = rho2
+              prs(n) = prs2
+              uie(n) = prs2 / (g - 1) / rho2
             end if
           case ('heatslab')
-            if (x<0) then
-              vel(n,:) = 0.
-              acc(n,:) = 0.
-              dcf(n) = 0.
-              mas(n) = (sp**dim) * shockDensity1
-              den(n) = shockDensity1
-              sln(n) = sk * sp
+            if (x<0-eps) then
+              mas(n) = (sp**dim) * rho1
+              den(n) = rho1
+              prs(n) = 0
+              ! cf(n)  = sin(pi * (x - brdx1) / abs(brdx2-brdx1))*sin(pi * (y - brdy1) / abs(brdy2-brdy1))
+              ! cf(n)  = sin(pi * (x + 1.) / abs(brdx2-brdx1))
+              cf(n)  = 0.
+              uie(n) = cf(n) / cv
+              kcf(n) = 1.
+            else if (x > 0+eps) then
+              mas(n) = (sp**dim) * rho2
+              den(n) = rho2
               prs(n) = 0
               ! cf(n)  = sin(pi * (x - brdx1) / abs(brdx2-brdx1))*sin(pi * (y - brdy1) / abs(brdy2-brdy1))
               ! cf(n)  = sin(pi * (x + 1.) / abs(brdx2-brdx1))
@@ -131,16 +135,12 @@ contains
               uie(n) = cf(n) / cv
               kcf(n) = 1.
             else
-              vel(n,:) = 0.
-              acc(n,:) = 0.
-              dcf(n) = 0.
-              mas(n) = (sp**dim) * shockDensity2
-              den(n) = shockDensity2
-              sln(n) = sk * sp
+              mas(n) = (sp**dim) * rho2
+              den(n) = rho2
               prs(n) = 0
               ! cf(n)  = sin(pi * (x - brdx1) / abs(brdx2-brdx1))*sin(pi * (y - brdy1) / abs(brdy2-brdy1))
               ! cf(n)  = sin(pi * (x + 1.) / abs(brdx2-brdx1))
-              cf(n)  = 2.
+              cf(n)  = .5
               uie(n) = cf(n) / cv
               kcf(n) = 1.
             end if

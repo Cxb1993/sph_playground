@@ -27,9 +27,9 @@ contains
 
     select case (t)
     case ('hydroshock')
-      call make_c1(n, pos, mas, sk, h, den, om)
+      call c1(n, pos, mas, sk, h, den, om)
       call eos_adiabatic(n, den, uei, prs, c, gamma)
-      call make_c2(n, c, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
+      call c2(n, c, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
       if (dim.gt.0) then
         call set_fixed3(acc, 11, 1, 0.)
         call set_fixed3(acc, 12, 1, 0.)
@@ -39,8 +39,8 @@ contains
         end if
       end if
     case ('heatslab')
-      call make_c1(n, pos, mas, sk, h, den, om)
-      call make_c2(n, c, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
+      call c1(n, pos, mas, sk, h, den, om)
+      call c2(n, c, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
       ! if (dim.gt.0) then
       !   call set_fixed1(due, 11, 0.)
       !   call set_fixed1(due, 12, 0.)
