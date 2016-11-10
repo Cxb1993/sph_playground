@@ -13,6 +13,7 @@ SRC=\
 	circuit1.f90\
 	circuit2.f90\
 	errcalc.f90\
+	bias.f90\
 	internal.f90\
 	main.f90
 OBJ=$(SRC:.f90=.o)
@@ -28,18 +29,18 @@ execute: $(OBJ)
 	$(FC) $(FFLAGS) -I mod/ -o $@ $(SUBOBJ)
 
 hydroshock1:
-	make && time ./execute 1 hydroshock
+	make && time ./execute 1 hydroshock 0.1 runresult.info fab
 hydroshock2:
-	make && time ./execute 2 hydroshock
+	make && time ./execute 2 hydroshock 0.1 runresult.info fab
 hydroshock3:
-	make && time ./execute 3 hydroshock
+	make && time ./execute 3 hydroshock 0.1 runresult.info fab
 
-tempr1:
-	make && time ./execute 1 infslb
-tempr2:
-	make && time ./execute 2 infslb
-tempr3:
-	make && time ./execute 3 infslb
+infslb1:
+	make && time ./execute 1 infslb 1 runresult.info fab
+infslb2:
+	make && time ./execute 2 infslb 1 runresult.info fab
+infslb3:
+	make && time ./execute 3 infslb 1 runresult.info fab
 
 .PHONY: execute
 

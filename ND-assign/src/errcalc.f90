@@ -49,7 +49,7 @@ contains
     integer :: i
     real :: tl, tr, tc, al, ar, ttmp, exact, xm, kl, kr, rhol, rhor, cvl, cvr
 
-    kl = 1.
+    kl = 10.
     kr = 1.
     rhol = 1.
     rhor = 1.

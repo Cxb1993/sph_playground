@@ -102,6 +102,7 @@ contains
           acc(n,:) = 0.
           dcf(n) = 0.
           sln(n) = sk * sp
+          prs(n) = 0
 
           select case (tt)
           case ('hydroshock')
@@ -120,12 +121,10 @@ contains
             if (x<0-eps) then
               mas(n) = (sp**dim) * rho1
               den(n) = rho1
-              prs(n) = 0
               ! cf(n)  = sin(pi * (x - brdx1) / abs(brdx2-brdx1))*sin(pi * (y - brdy1) / abs(brdy2-brdy1))
               ! cf(n)  = sin(pi * (x + 1.) / abs(brdx2-brdx1))
               cf(n)  = 0.
-              uie(n) = cf(n) / cv
-              kcf(n) = 1.
+              kcf(n) = 10.
             else if (x > 0+eps) then
               mas(n) = (sp**dim) * rho2
               den(n) = rho2
@@ -133,18 +132,16 @@ contains
               ! cf(n)  = sin(pi * (x - brdx1) / abs(brdx2-brdx1))*sin(pi * (y - brdy1) / abs(brdy2-brdy1))
               ! cf(n)  = sin(pi * (x + 1.) / abs(brdx2-brdx1))
               cf(n)  = 1.
-              uie(n) = cf(n) / cv
               kcf(n) = 1.
             else
               mas(n) = (sp**dim) * rho2
               den(n) = rho2
-              prs(n) = 0
               ! cf(n)  = sin(pi * (x - brdx1) / abs(brdx2-brdx1))*sin(pi * (y - brdy1) / abs(brdy2-brdy1))
               ! cf(n)  = sin(pi * (x + 1.) / abs(brdx2-brdx1))
               cf(n)  = .5
-              uie(n) = cf(n) / cv
               kcf(n) = 1.
             end if
+            uie(n) = cf(n) / cv
           end select
           z = z + sp
           n = n + 1

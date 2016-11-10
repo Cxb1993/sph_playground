@@ -50,6 +50,14 @@ contains
 
               call get_nw(r, sln(i), nwi)
               call get_nw(r, sln(j), nwj)
+              if (kt == 'n2w') then
+                call get_n2w(dr, sln(i), n2w)
+              else if (kt == 'fab') then
+                call get_Fab(r, sln(i), n2w)
+              else
+                print *, 'kernel type not chosen, arg #5'
+                stop
+              end if
               call art_viscosity(di, dj, vab, urab, c(i), c(j), qa, qb)
               call art_termcond(P(i), P(j), di, dj, qc)
               Pi(:) = (P(i) + qa) * nwi(:) / (di**2 * om(i))
@@ -62,7 +70,25 @@ contains
                             0.5 * dot_product((nwi(:) + nwj(:)),urab(:))
 
               dh(i)   = dh(i) + mas(j) * dot_product(vab(:), nwi(:))
+
+              ! if (kt == 'n2w') then
+              !   call get_n2w(dr, sln(i), n2w)
+              ! else if (kt == 'fab') then
+              !   call get_Fab(r, sln(i), n2w)
+              ! else
+              !   print *, 'kernel type not chosen, arg #5'
+              !   stop
+              ! end if
+              ! ! 2 * kcf(i) * kcf(j) /
+              ! du(i) = du(i) - mas(j) / (den(i) * den(j)) *  (kcf(i) + kcf(j)) &
+              !               * (cf(i) - cf(j)) * n2w
             case ('infslb')
+              ! call get_n2w(dr, sln(i), n2w)
+              ! print *, n2w
+              ! call get_Fab(r, sln(i), n2w)
+              ! print *, n2w
+              ! print *, '------------'
+              ! read *
               if (kt == 'n2w') then
                 call get_n2w(dr, sln(i), n2w)
               else if (kt == 'fab') then
@@ -71,9 +97,10 @@ contains
                 print *, 'kernel type not chosen, arg #5'
                 stop
               end if
-
-              du(i) = du(i) - mas(j) / (den(i) * den(j)) * 2 * kcf(i) * kcf(j) / (kcf(i) + kcf(j)) &
-                            * (cf(i) - cf(j)) * n2w
+              du(i) = du(i) - mas(j) / (den(i) * den(j)) * 2 * kcf(i) * kcf(j) &
+                      / (kcf(i) + kcf(j)) * (cf(i) - cf(j)) * n2w
+              ! du(i) = du(i) - mas(j) / (den(i) * den(j)) * (kcf(i) + kcf(j)) / 2. &
+              !               * (cf(i) - cf(j)) * n2w
             end select
           end if
         end if

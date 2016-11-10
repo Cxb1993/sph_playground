@@ -1,11 +1,12 @@
 module cubic
   implicit none
 
-  public :: kf, kdf, kddf, knorm
+  public :: kf, kdf, kddf, knorm, krad
 
   private
 
     real :: knorm(3) = (/ 2./3., 10./(7. * 4.*atan(1.)), 1./(4.*atan(1.)) /)
+    real :: krad = 2.
 
  contains
 

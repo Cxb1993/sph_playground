@@ -3,9 +3,9 @@ program main
   use IC
   use internal
   use printer
-  use kernel
   use err_calc
   use args, only:fillargs
+  use bias, only:ex22
   implicit none
 
   real                :: sk = 1.
@@ -19,7 +19,7 @@ program main
   real :: density(nmax), slength(nmax), pressure(nmax), mass(nmax), ienergy(nmax), dienergy(nmax), omega(nmax)
   real :: coupledfield(nmax), kcoupledfield(nmax), dcoupledfield(nmax)
 
-  real                              :: dt, t, dtout, ltout, tfinish, error(5), npic, &
+  real                              :: dt, t, dtout, ltout, tfinish, error(11), npic, &
                                        pspc1, pspc2, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2
   integer                           :: finish, iter
   real, allocatable, dimension(:,:) :: p, v, a
@@ -123,17 +123,22 @@ program main
 
     if ((t-dt/2<tfinish*1/3).and.(tfinish*1/3<t+dt/2)) then
       call err_infplate(n, pos, cf, t, error(3))
+      call ex22(n, mas, den, pos, h, error(4))
+      error(5) = t
     else if ((t-dt/2<tfinish*2/3).and.(tfinish*2/3<t+dt/2)) then
-      call err_infplate(n, pos, cf, t, error(4))
+      call err_infplate(n, pos, cf, t, error(6))
+      call ex22(n, mas, den, pos, h, error(7))
+      error(8) = t
     end if
 
     t = t + dt
     iter = iter + 1
   end do
 
-  write (*, *) t - dt
+  print *, iter, t
   call print_output(n, t, pos, vel, acc, mas, den, h, prs, ieu, cf)
-  call err_infplate(n, pos, cf, t, error(5))
-  call plot_simple(5, error, errfname)
-
+  call err_infplate(n, pos, cf, t, error(9))
+  call ex22(n, mas, den, pos, h, error(10))
+  error(11) = t
+  call plot_simple(11, error, errfname)
 end program main

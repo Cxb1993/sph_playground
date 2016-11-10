@@ -1,11 +1,12 @@
 module quintic
   implicit none
 
-  public :: kf, kdf, kddf, knorm
+  public :: kf, kdf, kddf, knorm, krad
 
   private
 
     real :: knorm(3) = (/ 1./120., 7./(478. * 4.*atan(1.)), 1./(120. * 4.*atan(1.)) /)
+    real :: krad = 3.
 
  contains
 

@@ -5,7 +5,7 @@ module kernel
 
   public :: set_dim, get_nw, get_dw_dh, get_w, get_dim, &
             set_tasktype, get_tasktype, set_kerntype, get_kerntype, &
-            get_n2w, get_Fab !get_n2y, get_dphi_dh,
+            get_n2w, get_Fab, get_krad !get_n2y, get_dphi_dh,
 
   private
     integer, save            :: dim = 1
@@ -43,6 +43,11 @@ module kernel
      character (len=*), intent(out) :: ott
      ott = ktype
    end subroutine get_kerntype
+
+   subroutine get_krad(kr)
+     real, intent(out) :: kr
+     kr = krad
+   end subroutine get_krad
 
   subroutine get_w(r, h, w)
     real, intent(in)  :: r, h
