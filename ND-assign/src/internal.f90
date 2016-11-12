@@ -16,7 +16,7 @@ contains
                     mas, den, h, dh, om, prs, c, uei, due, cf, dcf, kcf)
     integer, intent(in) :: n
     real, intent(in)    :: sk, gamma
-    real, intent(inout) :: pos(n,3), vel(n,3), acc(n,3)
+    real, intent(inout) :: pos(3,n), vel(3,n), acc(3,n)
     real, intent(inout) :: mas(n), den(n), h(n), dh(n), prs(n), c(n), uei(n), due(n), om(n)
     real, intent(inout) :: cf(n), dcf(n), kcf(n)
     character (len=40)  :: t
@@ -42,8 +42,8 @@ contains
       call c1(n, pos, mas, sk, h, den, om)
       call c2(n, c, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
       ! if (dim.gt.0) then
-      !   call set_fixed1(due, 11, 0.)
-      !   call set_fixed1(due, 12, 0.)
+        ! call set_fixed1(due, 11, 0.)
+        ! call set_fixed1(due, 12, 0.)
       !   if (dim.gt.1) then
       !     call set_fixed1(due, 21, 0.)
       !     call set_fixed1(due, 22, 0.)

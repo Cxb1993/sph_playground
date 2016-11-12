@@ -36,11 +36,11 @@ hydroshock3:
 	make && time ./execute 3 hydroshock 0.1 runresult.info fab
 
 infslb1:
-	make && time ./execute 1 infslb 1 runresult.info fab
+	make && time ./execute 1 infslb 0.1 runresult.info n2w
 infslb2:
-	make && time ./execute 2 infslb 1 runresult.info fab
+	make && time ./execute 2 infslb 0.1 runresult.info fab
 infslb3:
-	make && time ./execute 3 infslb 1 runresult.info fab
+	make && time ./execute 3 infslb 0.1 runresult.info fab
 
 .PHONY: execute
 

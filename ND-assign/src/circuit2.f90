@@ -13,10 +13,10 @@ contains
 
   subroutine c2(n, c, pos, vel, acc, mas, den, sln, om, P, u, du, dh, cf, dcf, kcf)
     integer, intent(in) :: n
-    real, intent(in)    :: pos(n,3), vel(n,3), mas(n), sln(n), den(n), P(n), c(n), om(n),&
+    real, intent(in)    :: pos(3,n), vel(3,n), mas(n), sln(n), den(n), P(n), c(n), om(n),&
                            cf(n), kcf(n)
-    real, intent(out)   :: acc(n,3), u(n), du(n), dh(n), dcf(n)
-    real                :: dr, di, dj, qa, qb, qc, n2w
+    real, intent(out)   :: acc(3,n), u(n), du(n), dh(n), dcf(n)
+    real                :: dr, di, dj, qa, qb, qc, n2w, kr, r2
     real                :: nwi(3), nwj(3), r(3), vab(3), urab(3), Pi(3), Pj(3)
     integer             :: i, j, dim
     character(len=40)   :: tt, kt
@@ -24,26 +24,28 @@ contains
     call get_dim(dim)
     call get_tasktype(tt)
     call get_kerntype(kt)
+    call get_krad(kr)
 
     !$omp parallel do default(none)&
-    !$omp private(r, dr, vab, urab, di, dj, nwi, nwj, qa, qb, qc, Pi, Pj, n2w) &
-    !$omp shared(acc, du, dh, dcf, n, pos, sln, tt, kt, vel, den, c, p, om, mas, u, kcf, cf, dim)
+    !$omp private(r, dr, vab, urab, di, dj, nwi, nwj, qa, qb, qc, Pi, Pj, n2w, j, i, r2) &
+    !$omp shared(acc, du, dh, dcf, n, pos, sln, tt, kt, vel, den, c, p, om, mas, u, kcf, cf, dim, kr)
     do i = 1, n
-      acc(i,:) = 0.
+      acc(:,i) = 0.
       du(i) = 0.
       dh(i) = 0.
       dcf(i) = 0.
       do j = 1, n
         if (i.ne.j) then
-          r(:) = pos(i,:) - pos(j,:)
-          dr = sqrt(dot_product(r(:),r(:)))
-          if (dr < 2. * sln(i) .or. dr < 2. * sln(j)) then
+          r(:) = pos(:,i) - pos(:,j)
+          r2 = dot_product(r(:),r(:))
+          if ((r2 < (kr * sln(i))**2).or.(r2 < (kr * sln(j))**2)) then
+            dr = sqrt(r2)
             select case (tt)
             case ('hydroshock')
               qa = 0.
               qb = 0.
               qc = 0.
-              vab(:) = vel(i,:) - vel(j,:)
+              vab(:) = vel(:,i) - vel(:,j)
               urab(:) = r(:) / dr
               di = den(i)
               dj = den(j)
@@ -63,7 +65,7 @@ contains
               Pi(:) = (P(i) + qa) * nwi(:) / (di**2 * om(i))
               Pj(:) = (P(j) + qb) * nwj(:) / (dj**2 * om(j))
 
-              acc(i,:) = acc(i,:) - mas(j) * (Pi(:) + Pj(:))
+              acc(:,i) = acc(:,i) - mas(j) * (Pi(:) + Pj(:))
 
               du(i)   = du(i) + mas(j) * dot_product(vab(:),Pi(:)) &
                             + mas(j) / (0.5 *(di + dj)) * qc * (u(i) - u(j)) * &

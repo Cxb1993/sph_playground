@@ -18,7 +18,7 @@ contains
     integer, intent(in)  :: nx, dim
     real, intent(in)     :: sk, g, cv
     real, intent(in)     :: pspc1, pspc2, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2
-    real, intent(out)    :: pos(nx,3), vel(nx,3), acc(nx,3),&
+    real, intent(out)    :: pos(3,nx), vel(3,nx), acc(3,nx),&
                             mas(nx), den(nx), sln(nx), prs(nx), uie(nx), cf(nx), kcf(nx), dcf(nx)
     integer, intent(out) :: n
     real                 :: prs1, prs2, rho1, rho2, x, y, z, sp, eps
@@ -67,9 +67,9 @@ contains
       do while ((y >= brdy1).and.(y <= brdy2 + eps))
         z = brdz1
         do while ((z >= brdz1).and.(z <= brdz2 + eps))
-          pos(n,1) = x
-          pos(n,2) = y
-          pos(n,3) = z
+          pos(1,n) = x
+          pos(2,n) = y
+          pos(3,n) = z
           if (x.lt.(brdx1 + nb * sp)) then
             brdarrX1(nbnewX1) = n
             nbnewX1 = nbnewX1 + 1
@@ -98,8 +98,8 @@ contains
           !
           ! common values
           !
-          vel(n,:) = 0.
-          acc(n,:) = 0.
+          vel(:,n) = 0.
+          acc(:,n) = 0.
           dcf(n) = 0.
           sln(n) = sk * sp
           prs(n) = 0
@@ -118,19 +118,19 @@ contains
               uie(n) = prs2 / (g - 1) / rho2
             end if
           case ('infslb')
-            if (x<0-eps) then
+            if (x<0) then
               mas(n) = (sp**dim) * rho1
               den(n) = rho1
               ! cf(n)  = sin(pi * (x - brdx1) / abs(brdx2-brdx1))*sin(pi * (y - brdy1) / abs(brdy2-brdy1))
-              ! cf(n)  = sin(pi * (x + 1.) / abs(brdx2-brdx1))
+              ! cf(n)  = sin(2 * pi * (x + 1.) / abs(brdx2-brdx1))
               cf(n)  = 0.
-              kcf(n) = 10.
+              kcf(n) = 1.
             else if (x > 0+eps) then
               mas(n) = (sp**dim) * rho2
               den(n) = rho2
               prs(n) = 0
               ! cf(n)  = sin(pi * (x - brdx1) / abs(brdx2-brdx1))*sin(pi * (y - brdy1) / abs(brdy2-brdy1))
-              ! cf(n)  = sin(pi * (x + 1.) / abs(brdx2-brdx1))
+              ! cf(n)  = sin(2 * pi * (x + 1.) / abs(brdx2-brdx1))
               cf(n)  = 1.
               kcf(n) = 1.
             else

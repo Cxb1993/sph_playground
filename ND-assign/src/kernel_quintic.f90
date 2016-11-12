@@ -42,8 +42,10 @@ module quintic
       df = -5. * (3. - q)**4 / q
     else if (q >= 1.) then
       df = (-5. * (3. - q)**4 + 30. * (2. - q)**4) / q
-    else if (q >= 0.) then
+    else if (q > 0.) then
       df = (-5. * (3. - q)**4 + 30. * (2. - q)**4 - 75. * (1. - q)**4) / q
+    else if (q == 0.) then
+      df = 0.
     else
       print *, 'something went wrong, q =', q
       stop

@@ -61,24 +61,24 @@ contains
 
   subroutine set_periodic3(A, axe, dim)
     integer, intent(in) :: axe, dim
-    real, intent(out)   :: A(ns,3)
+    real, intent(out)   :: A(3,ns)
 
     select case(axe)
     case (10)
-      A(borderX1,:) = A(borderX2 - nbrd,:)
-      A(nbrd + borderX1,:) = A(borderX2,:)
+      A(:,borderX1) = A(:,borderX2 - nbrd)
+      A(:,nbrd + borderX1) = A(:,borderX2)
     case (1)
-      A(borderX1,dim) = A(borderX2 - nbrd,dim)
-      A(nbrd + borderX1,dim) = A(borderX2,dim)
+      A(dim,borderX1) = A(dim,borderX2 - nbrd)
+      A(dim,nbrd + borderX1) = A(dim,borderX2)
     case (20)
-      A(borderY1,:) = A(borderY2 - nbrd,:)
-      A(nbrd + borderY1,:) = A(borderY2,:)
+      A(:,borderY1) = A(:,borderY2 - nbrd)
+      A(:,nbrd + borderY1) = A(:,borderY2)
     case (2)
-      A(borderY1,dim) = A(borderY2 - nbrd,dim)
-      A(nbrd + borderY1,dim) = A(borderY2,dim)
+      A(dim,borderY1) = A(dim,borderY2 - nbrd)
+      A(dim,nbrd + borderY1) = A(dim,borderY2)
     case (3)
-      A(borderZ1,dim) = A(borderZ2 - nbrd,dim)
-      A(nbrd + borderZ1,dim) = A(borderZ2,dim)
+      A(dim,borderZ1) = A(dim,borderZ2 - nbrd)
+      A(dim,nbrd + borderZ1) = A(dim,borderZ2)
     end select
   end subroutine set_periodic3
 
@@ -113,29 +113,28 @@ contains
   subroutine set_fixed3(A, axeside, dim, k)
     integer, intent(in) :: axeside, dim
     real, intent(in)    :: k
-    real, intent(out)   :: A(ns,3)
+    real, intent(out)   :: A(3,ns)
 
     select case(axeside)
     case (00)
-      A(borderX1, dim) = k
-      A(borderX2, dim) = k
-      A(borderY1, dim) = k
-      A(borderY2, dim) = k
-      A(borderZ1, dim) = k
-      A(borderZ2, dim) = k
+      A(dim,borderX1) = k
+      A(dim,borderX2) = k
+      A(dim,borderY1) = k
+      A(dim,borderY2) = k
+      A(dim,borderZ1) = k
+      A(dim,borderZ2) = k
     case (11)
-      A(borderX1, dim) = k
+      A(dim,borderX1) = k
     case (12)
-      A(borderX2, dim) = k
+      A(dim,borderX2) = k
     case (21)
-      A(borderY1, dim) = k
+      A(dim,borderY1) = k
     case (22)
-      A(borderY2, dim) = k
+      A(dim,borderY2) = k
     case (31)
-      A(borderZ1, dim) = k
+      A(dim,borderZ1) = k
     case (32)
-      A(borderZ2, dim) = k
+      A(dim,borderZ2) = k
     end select
   end subroutine set_fixed3
-
 end module BC

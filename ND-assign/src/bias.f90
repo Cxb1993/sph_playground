@@ -10,7 +10,7 @@ module bias
 contains
   subroutine ex22(n, mas, den, pos, h, ex)
     integer, intent(in) :: n
-    real, intent(in)    :: mas(n), den(n), pos(n,3), h(n)
+    real, intent(in)    :: mas(n), den(n), pos(3,n), h(n)
     real, intent(out)   :: ex
     integer             :: i, j
     character(len=40)   :: kt
@@ -20,10 +20,15 @@ contains
     call get_krad(kr)
 
     ex = 0
+
+    !$omp parallel do default(none) &
+    !$omp private(n2w, r, r2, j, i) &
+    !$omp shared(pos, h, mas, den, kt, kr, n) &
+    !$omp reduction(+:ex)
     do i = 1,n
       do j = 1,n
         if (i /= j) then
-          r(:) = pos(j,:) - pos(i,:)
+          r(:) = pos(:,j) - pos(:,i)
           r2 = dot_product(r(:), r(:))
           if (r2 < kr * kr * h(i) * h(i)) then
             if (kt == 'n2w') then
@@ -39,6 +44,7 @@ contains
         end if
       end do
     end do
+    !$omp end parallel do
     ex = 1./2. * ex / n
   end subroutine ex22
 end module bias

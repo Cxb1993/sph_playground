@@ -27,9 +27,9 @@ program main
   real, allocatable, dimension(:)   :: den, prs, mas, ieu, diu, o, du, c, h, dh, tdh
   real, allocatable, dimension(:)   :: cf, tcf, dcf, kcf
 
-  allocate(position(nmax,3))
-  allocate(velocity(nmax,3))
-  allocate(acceleration(nmax,3))
+  allocate(position(3,nmax))
+  allocate(velocity(3,nmax))
+  allocate(acceleration(3,nmax))
 
   print *, '####################'
   print *, '#'
@@ -52,11 +52,11 @@ program main
   ltout = 0.
   finish = 3000.
 
-  pos = position(1:n,:)
+  pos = position(:,1:n)
   p   = pos(:,:)
-  vel = velocity(1:n,:)
+  vel = velocity(:,1:n)
   v   = vel(:,:)
-  acc = acceleration(1:n,:)
+  acc = acceleration(:,1:n)
   a   = acc(:,:)
   deallocate(position)
   deallocate(velocity)
@@ -122,6 +122,7 @@ program main
     end if
 
     if ((t-dt/2<tfinish*1/3).and.(tfinish*1/3<t+dt/2)) then
+      ! call err_sinxet(n, pos, cf, t, error(3))
       call err_infplate(n, pos, cf, t, error(3))
       call ex22(n, mas, den, pos, h, error(4))
       error(5) = t

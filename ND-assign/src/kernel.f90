@@ -1,6 +1,6 @@
 module kernel
-  use cubic
-  ! use quintic
+  ! use cubic
+  use quintic
   implicit none
 
   public :: set_dim, get_nw, get_dw_dh, get_w, get_dim, &
@@ -76,9 +76,7 @@ module kernel
 
     call kf(r, h, f)
     call kdf(r, h, df)
-    f  = knorm(dim) * f
-    df = knorm(dim) * df
-    dwdh = - (dim * f + r * df / h) / h ** (dim + 1)
+    dwdh = - knorm(dim) * (dim * f + r * df / h) / h ** (dim + 1)
   end subroutine get_dw_dh
 
   subroutine get_Fab(r, h, Fab)

@@ -11,28 +11,31 @@ contains
 
   subroutine c1(n, pos, mas, sk, sln, den, om)
     integer, intent(in) :: n
-    real, intent(in)    :: pos(n,3), mas(n), sk
+    real, intent(in)    :: pos(3,n), mas(n), sk
     real, intent(out)   :: sln(n), den(n), om(n)
-    real                :: w, dwdh, r(3), dr, dfdh, fh, hn
+    real                :: w, dwdh, r(3), dr, r2, dfdh, fh, hn, kr
     real                :: allowerror, slnint(n), resid(n)
     integer             :: i, j, dim, maxiter
 
     call get_dim(dim)
+    call get_krad(kr)
+
     allowerror = 1e-8
     slnint(:) = sln(:)
     resid(:)  = 1.
     do while (maxval(resid, mask=(resid>0)).gt.allowerror)
       !$omp parallel do default(none)&
-      !$omp private(r, dr, dwdh, w, dfdh, fh, hn, maxiter)&
-      !$omp shared(resid, allowerror, den, om, n, pos, slnint, mas, dim, sk, sln)
+      !$omp private(r, dr, dwdh, w, dfdh, fh, hn, maxiter, j, i, r2)&
+      !$omp shared(resid, allowerror, den, om, n, pos, slnint, mas, dim, sk, sln, kr)
       do i = 1, n
         if (resid(i) > allowerror) then
           den(i) = 0.
           om(i) = 0.
           do j = 1, n
-            r(:) = pos(i,:) - pos(j,:)
-            dr = sqrt(dot_product(r(:),r(:)))
-            if (dr <= 2. * slnint(i)) then
+            r(:) = pos(:,i) - pos(:,j)
+            r2 = dot_product(r(:),r(:))
+            if (r2 <= (kr * slnint(i))**2) then
+              dr = sqrt(r2)
               call get_dw_dh(dr, slnint(i), dwdh)
               call get_w(dr, slnint(i), w)
               den(i) = den(i) + mas(j) * w
@@ -56,7 +59,7 @@ contains
 ! Direct density summation
   subroutine c1a(n, pos, mas, sk, sln, den)
     integer, intent(in) :: n
-    real, intent(in)    :: pos(n, 3), mas(n), sk
+    real, intent(in)    :: pos(3,n), mas(n), sk
     real, intent(out)   :: den(n), sln(n)
     real                :: w, r(3), dr
     integer             :: i, j
@@ -64,7 +67,7 @@ contains
     do i = 1, n
       den(i) = 0.
       do j = 1, n
-        r(:) = pos(i,:) - pos(j,:)
+        r(:) = pos(:,i) - pos(:,j)
         dr = sqrt(dot_product(r(:),r(:)))
         if (dr <= 2. * sln(i)) then
           call get_w(dr, sln(i), w)
