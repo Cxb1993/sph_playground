@@ -118,7 +118,7 @@ contains
               uie(n) = prs2 / (g - 1) / rho2
             end if
           case ('infslb')
-            if (x<0) then
+            if (x < 0-eps) then
               mas(n) = (sp**dim) * rho1
               den(n) = rho1
               ! cf(n)  = sin(pi * (x - brdx1) / abs(brdx2-brdx1))*sin(pi * (y - brdy1) / abs(brdy2-brdy1))

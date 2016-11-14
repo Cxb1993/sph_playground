@@ -35,8 +35,13 @@ module args
 
       pspc2 = pspc1
       write(*, "(A, F7.5, A, F7.5)") " # p.spacing:   x1=", pspc1, "   x2=", pspc2
-      brdx1 = -10.
-      brdx2 = 10.
+      call get_command_argument(6, arg(:))
+      read(arg(:), *) brdx1
+      call get_command_argument(7, arg(:))
+      read(arg(:), *) brdx2
+      call get_command_argument(8, arg(:))
+      read(arg(:), *) tfinish
+
       if (dim.gt.1) then
         brdy1 = - pspc1 * 4.5
         brdy2 = pspc2 * 4.5
@@ -52,7 +57,6 @@ module args
         brdz2 = 0.
       end if
 
-      tfinish = 5.
       npic = 200.
       dtout = tfinish / npic
       write(*, "(A, F9.7)") " #  print dt:   ", dtout

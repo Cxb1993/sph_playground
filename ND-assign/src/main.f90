@@ -127,6 +127,7 @@ program main
       call ex22(n, mas, den, pos, h, error(4))
       error(5) = t
     else if ((t-dt/2<tfinish*2/3).and.(tfinish*2/3<t+dt/2)) then
+      ! call err_sinxet(n, pos, cf, t, error(6))
       call err_infplate(n, pos, cf, t, error(6))
       call ex22(n, mas, den, pos, h, error(7))
       error(8) = t
@@ -138,6 +139,7 @@ program main
 
   print *, iter, t
   call print_output(n, t, pos, vel, acc, mas, den, h, prs, ieu, cf)
+  ! call err_sinxet(n, pos, cf, t, error(9))
   call err_infplate(n, pos, cf, t, error(9))
   call ex22(n, mas, den, pos, h, error(10))
   error(11) = t
