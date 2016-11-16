@@ -1,5 +1,5 @@
 FC=gfortran
-FFLAGS=-fopenmp -O3 -Wall -fcheck=all -fdefault-real-8 -fdefault-double-8 -fstack-arrays #-g -fbacktrace -ffpe-trap=invalid
+FFLAGS=-fopenmp -O3 -Wall -fcheck=all -fdefault-real-8 -fdefault-double-8 #-g -fbacktrace -ffpe-trap=invalid
 
 SRC=\
 	args.f90\
@@ -14,7 +14,7 @@ SRC=\
 	circuit2.f90\
 	errcalc.f90\
 	bias.f90\
-	internal.f90\
+	iterator.f90\
 	main.f90
 OBJ=$(SRC:.f90=.o)
 SUBSRC=$(addprefix src/, $(SRC))
@@ -36,11 +36,14 @@ hydroshock3:
 	make && time ./execute 3 hydroshock 0.1 runresult.info fab
 
 infslb1:
-	make && time ./execute 1 infslb 0.1 runresult.info fab -1 1 .5
+	make && time ./execute 1 infslb 0.1 runresult.info fab -1 1 5
 infslb2:
 	make && time ./execute 2 infslb 0.1 runresult.info fab
 infslb3:
 	make && time ./execute 3 infslb 0.1 runresult.info fab
+
+hc-sinx1:
+	make && time ./execute 1 hc-sinx 0.01 runresult.info fab -1 1 1
 
 .PHONY: execute
 

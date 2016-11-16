@@ -1,4 +1,4 @@
-module internal
+module iterator
   use eos
   use circuit1
   use circuit2
@@ -7,12 +7,12 @@ module internal
 
  implicit none
 
- public :: derivs
+ public :: iterate
 
  private
 
 contains
-  subroutine derivs(n, sk, gamma, pos, vel, acc, &
+  subroutine iterate(n, sk, gamma, pos, vel, acc, &
                     mas, den, h, dh, om, prs, c, uei, due, cf, dcf, kcf)
     integer, intent(in) :: n
     real, intent(in)    :: sk, gamma
@@ -31,24 +31,22 @@ contains
       call eos_adiabatic(n, den, uei, prs, c, gamma)
       call c2(n, c, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
       if (dim.gt.0) then
-        call set_fixed3(acc, 11, 1, 0.)
-        call set_fixed3(acc, 12, 1, 0.)
+        call fixed3(acc, 11, 1, 0.)
+        call fixed3(acc, 12, 1, 0.)
         if (dim.gt.1) then
-          call set_fixed3(acc, 21, 2, 0.)
-          call set_fixed3(acc, 22, 2, 0.)
+          call fixed3(acc, 21, 2, 0.)
+          call fixed3(acc, 22, 2, 0.)
         end if
       end if
     case ('infslb')
       call c1(n, pos, mas, sk, h, den, om)
       call c2(n, c, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
-      ! if (dim.gt.0) then
-        ! call set_fixed1(due, 11, 0.)
-        ! call set_fixed1(due, 12, 0.)
-      !   if (dim.gt.1) then
-      !     call set_fixed1(due, 21, 0.)
-      !     call set_fixed1(due, 22, 0.)
-      !   end if
-      ! end if
+    case ('hc-sinx')
+      call c1(n, pos, mas, sk, h, den, om)
+      call periodic1(den, 1)
+      call periodic1(h, 1)
+      call c2(n, c, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
+      call periodic1(due, 1)
     end select
-  end subroutine derivs
-end module internal
+  end subroutine iterate
+end module iterator

@@ -1,7 +1,7 @@
 module BC
   implicit none
 
-  public :: set_periodic1, set_periodic3, set_fixed1, set_fixed3
+  public :: periodic1, periodic3, fixed1, fixed3
   public :: set_particles_numbers, set_border
 
   private
@@ -42,24 +42,27 @@ contains
     end if
   end subroutine set_border
 
-  subroutine set_periodic1(A, axe)
-    integer, intent(in) :: axe
+  subroutine periodic1(A, axis)
+    integer, intent(in) :: axis
     real, intent(out)   :: A(ns)
 
-    select case(axe)
+    select case(axis)
     case (1)
-      A(borderX1) = A(borderX2 - nbrd)
-      A(nbrd + borderX1) = A(borderX2)
+      ! print *, borderX1, borderX2 - nbrd - 1
+      ! print *, borderX2, nbrd + borderX1 + 1
+      ! read *
+      A(borderX1) = A(borderX2 - nbrd - 1)
+      A(borderX2) = A(nbrd + borderX1 + 1)
     case (2)
-      A(borderY1) = A(borderY2 - nbrd)
-      A(nbrd + borderY1) = A(borderY2)
+      A(borderY1) = A(borderY2 - nbrd - 1)
+      A(borderY2) = A(nbrd + borderY1 + 1)
     case (3)
-      A(borderZ1) = A(borderZ2 - nbrd)
-      A(nbrd + borderZ1) = A(borderZ2)
+      A(borderZ1) = A(borderZ2 - nbrd - 1)
+      A(borderZ2) = A(nbrd + borderZ1 + 1)
     end select
-  end subroutine set_periodic1
+  end subroutine periodic1
 
-  subroutine set_periodic3(A, axe, dim)
+  subroutine periodic3(A, axe, dim)
     integer, intent(in) :: axe, dim
     real, intent(out)   :: A(3,ns)
 
@@ -80,9 +83,9 @@ contains
       A(dim,borderZ1) = A(dim,borderZ2 - nbrd)
       A(dim,nbrd + borderZ1) = A(dim,borderZ2)
     end select
-  end subroutine set_periodic3
+  end subroutine periodic3
 
-  subroutine set_fixed1(A, axeside, k)
+  subroutine fixed1(A, axeside, k)
     integer, intent(in) :: axeside
     real, intent(in)    :: k
     real, intent(out)   :: A(ns)
@@ -108,9 +111,9 @@ contains
     case (32)
       A(borderZ2) = k
     end select
-  end subroutine set_fixed1
+  end subroutine fixed1
 
-  subroutine set_fixed3(A, axeside, dim, k)
+  subroutine fixed3(A, axeside, dim, k)
     integer, intent(in) :: axeside, dim
     real, intent(in)    :: k
     real, intent(out)   :: A(3,ns)
@@ -136,5 +139,5 @@ contains
     case (32)
       A(dim,borderZ2) = k
     end select
-  end subroutine set_fixed3
+  end subroutine fixed3
 end module BC

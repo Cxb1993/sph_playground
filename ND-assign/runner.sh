@@ -1,40 +1,46 @@
 #!/bin/bash
 
 dim=1
-tasktype='infslb'
-spacing='1 0.5 0.25 0.125 0.06 0.03 0.01'
+tasktype='hc-sinx'
+# spacing=`get_spacing -1. 1. 0.001 10 20`
+spacing='0.1 0.05 0.025 0.0125 0.006 0.003 0.001'
 ktype='n2w fab'
-storebase='/Users/sergeibiriukov/_MoCA/Data'
+kbase='c q'
+# storebase='/Users/sergeibiriukov/_MoCA/Data'
+storebase=`pwd`
 dtprefix=`date +%Y%m%d%H%M`
-taskdir="$2-infslb-1"
-brdx1='-10'
-brdx2='10'
-tfinish='5'
-execname=$1
 
-`mkdir -p output`
-for k in $ktype;
-do
-  errfname=$dtprefix'-'$k$taskdir'-'$dim'D-err'
-  header='ARG: lx3y3e3e. '$k'. '$tasktype'. Errors. k1=k2=1. t_max='$tfinish
-  header=$header$dim'D. {| dx | n | err(t/3) | bias(t/3) | t/3 | err(2t/3) | bias(2t/3) | 2t/3 | err(t) | bias(t) | t |}'
-  `echo $header > $errfname`
-done
-echo '' > runresult.info
+brdx1='-1'
+brdx2='1'
+tfinish='.5'
 
-it=0
-for i in $spacing; do
-  for k in $ktype; do
-    errfname=$dtprefix'-'$k$taskdir'-'$dim'D-err'
-    runcmd="time ./$execname $dim $tasktype $i $errfname $k $brdx1 $brdx2 $tfinish &>/dev/null"
-    echo $runcmd
-    runresult=`$runcmd`
-    echo "$runresult" >> runresult.info
-    runcmd="mkdir -p $storebase/$k$taskdir/$it-$i"
-    `$runcmd`
-    runcmd="mv output/* $storebase/$k$taskdir/$it-$i"
-    `$runcmd`
-    echo -e "\nDone $k$taskdir for $i\n"
+for kb in $kbase; do
+  execname='execute-'$kb
+  `mkdir -p output`
+  echo '' > runresult.info
+
+  it=0
+  for i in $spacing; do
+    for k in $ktype; do
+      fullkernel=$k$kb
+      errfname=$dtprefix'-'$tasktype'-'$fullkernel'-'$dim'D'
+
+      if [ "$it" = "0" ]; then
+        header='ARG: lx3y3e3e. '$fullkernel'. '$tasktype'. ['$brdx1';'$brdx2']. t_max='$tfinish'. '
+        header=$header$dim'D. {| dx | n | err(t/3) | bias(t/3) | t/3 | err(2t/3) | bias(2t/3) | 2t/3 | err(t) | bias(t) | t |}'
+        `echo $header > $errfname`
+      fi
+
+      runcmd="time ./$execname $dim $tasktype $i $errfname $k $brdx1 $brdx2 $tfinish &>/dev/null"
+      echo $runcmd
+      runresult=`$runcmd`
+      echo "$runresult" >> runresult.info
+      runcmd="mkdir -p $storebase/$fullkernel/$it-$i"
+      `$runcmd`
+      runcmd="mv output/* $storebase/$fullkernel/$it-$i"
+      `$runcmd`
+      echo -e "\nDone $tasktype $fullkernel $i\n"
+    done
+    it=$((it+1))
   done
-  it=$((it+1))
 done

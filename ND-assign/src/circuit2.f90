@@ -84,25 +84,22 @@ contains
               ! ! 2 * kcf(i) * kcf(j) /
               ! du(i) = du(i) - mas(j) / (den(i) * den(j)) *  (kcf(i) + kcf(j)) &
               !               * (cf(i) - cf(j)) * n2w
-            case ('infslb')
-              ! call get_n2w(dr, sln(i), n2w)
-              ! print *, n2w
-              ! call get_Fab(r, sln(i), n2w)
-              ! print *, n2w
-              ! print *, '------------'
-              ! read *
+            case ('infslb', 'hc-sinx')
               if (kt == 'n2w') then
                 call get_n2w(dr, sln(i), n2w)
               else if (kt == 'fab') then
                 call get_Fab(r, sln(i), n2w)
               else
-                print *, 'kernel type not chosen, arg #5'
+                print *, 'kernel type not chosen: ', kt
                 stop
               end if
               du(i) = du(i) - mas(j) / (den(i) * den(j)) * 2 * kcf(i) * kcf(j) &
                       / (kcf(i) + kcf(j)) * (cf(i) - cf(j)) * n2w
               ! du(i) = du(i) - mas(j) / (den(i) * den(j)) * (kcf(i) + kcf(j)) / 2. &
               !               * (cf(i) - cf(j)) * n2w
+              case default
+                print *, 'circuit2: There is no such task type: ', tt
+                stop
             end select
           end if
         end if

@@ -1,11 +1,11 @@
 program main
   use BC
   use IC
-  use internal
+  use iterator, only:iterate
   use printer
   use err_calc
-  use args, only:fillargs
-  use bias, only:ex22
+  use args,     only:fillargs
+  use bias,     only:ex22
   implicit none
 
   real                :: sk = 1.
@@ -84,8 +84,11 @@ program main
     select case(itype)
     case('hydroshock')
       dt = .3 * minval(h) / maxval(c)
-    case('infslb')
+    case('infslb', 'hc-sinx')
       dt = .144 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
+    case default
+      print *, 'DT not set: ', itype
+      stop
     end select
     ! print *, "dt: ", dt, minval(den), minval(c), minval(h), maxval(kcf)
     ! read *
@@ -107,7 +110,7 @@ program main
     h(:)     = h(:)   + dt *  dh(:)
     ! cf(:)    = cf(:)  + dt * dcf(:)
 
-    call derivs(n, sk, gamma, &
+    call iterate(n, sk, gamma, &
                 pos, vel, acc, &
                 mas, den, h, dh, o, prs, c, ieu, diu, &
                 cf, dcf, kcf)
@@ -115,32 +118,64 @@ program main
     vel(:,:) = vel(:,:) + 0.5 * dt * (acc(:,:) - a(:,:))
     ieu(:)   = ieu(:)   + 0.5 * dt * (diu(:) - du(:))
     h(:)     = h(:)     + 0.5 * dt * (dh(:) - tdh(:))
-    if (itype.eq.'infslb') then
-      cf(:) = ieu(:) / cv
-    else
-      cf(:) = cf(:)     + 0.5 * dt * (dcf(:) - tcf(:))
-    end if
 
-    if ((t-dt/2<tfinish*1/3).and.(tfinish*1/3<t+dt/2)) then
-      ! call err_sinxet(n, pos, cf, t, error(3))
-      call err_infplate(n, pos, cf, t, error(3))
-      call ex22(n, mas, den, pos, h, error(4))
-      error(5) = t
-    else if ((t-dt/2<tfinish*2/3).and.(tfinish*2/3<t+dt/2)) then
-      ! call err_sinxet(n, pos, cf, t, error(6))
-      call err_infplate(n, pos, cf, t, error(6))
-      call ex22(n, mas, den, pos, h, error(7))
-      error(8) = t
-    end if
+    select case(itype)
+    case('hydroshock')
+      cf(:) = cf(:)     + 0.5 * dt * (dcf(:) - tcf(:))
+    case('infslb', 'hc-sinx')
+      cf(:) = ieu(:) / cv
+    case default
+      print *, 'Coupled field integration not set: ', itype
+      stop
+    end select
 
     t = t + dt
     iter = iter + 1
+
+    if ((t-dt/2<tfinish*1/3).and.(tfinish*1/3<t+dt/2)) then
+      select case(itype)
+      case('hydroshock')
+        print *, 'Error function not set'
+      case('infslb')
+        call err_infplate(n, pos, cf, t, error(3))
+      case('hc-sinx')
+        call err_sinxet(n, pos, cf, t, error(3))
+      case default
+        print *, 'Unknown error function: ', itype
+        stop
+      end select
+      call ex22(n, mas, den, pos, h, error(4))
+      error(5) = t
+    else if ((t-dt/2<tfinish*2/3).and.(tfinish*2/3<t+dt/2)) then
+      select case(itype)
+      case('hydroshock')
+        print *, 'Error function not set'
+      case('infslb')
+        call err_infplate(n, pos, cf, t, error(6))
+      case('hc-sinx')
+        call err_sinxet(n, pos, cf, t, error(6))
+      case default
+        print *, 'Unknown error function: ', itype
+        stop
+      end select
+      call ex22(n, mas, den, pos, h, error(7))
+      error(8) = t
+    end if
   end do
 
   print *, iter, t
   call print_output(n, t, pos, vel, acc, mas, den, h, prs, ieu, cf)
-  ! call err_sinxet(n, pos, cf, t, error(9))
-  call err_infplate(n, pos, cf, t, error(9))
+  select case(itype)
+  case('hydroshock')
+    print *, 'Error function not set'
+  case('infslb')
+    call err_infplate(n, pos, cf, t, error(9))
+  case('hc-sinx')
+    call err_sinxet(n, pos, cf, t, error(9))
+  case default
+    print *, 'Unknown error function: ', itype
+    stop
+  end select
   call ex22(n, mas, den, pos, h, error(10))
   error(11) = t
   call plot_simple(11, error, errfname)

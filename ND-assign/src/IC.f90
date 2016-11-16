@@ -21,19 +21,20 @@ contains
     real, intent(out)    :: pos(3,nx), vel(3,nx), acc(3,nx),&
                             mas(nx), den(nx), sln(nx), prs(nx), uie(nx), cf(nx), kcf(nx), dcf(nx)
     integer, intent(out) :: n
-    real                 :: prs1, prs2, rho1, rho2, x, y, z, sp, eps
-    integer              :: nb, nbnewX1, nbnewY1, nbnewZ1, nbnewX2, nbnewY2, nbnewZ2, &
-                            brdarrX1(nx), brdarrY1(nx), brdarrZ1(nx), brdarrX2(nx), &
+    real                 :: prs1, prs2, rho1, rho2, k1, k2, x, y, z, sp
+    integer              :: i, j, k, nb, ix, iy, iz, bdx, bdy, bdz, nbnewX1, nbnewY1, nbnewZ1, nbnewX2,&
+                            nbnewY2, nbnewZ2, brdarrX1(nx), brdarrY1(nx), brdarrZ1(nx), brdarrX2(nx), &
                             brdarrY2(nx), brdarrZ2(nx)
 
     call set_dim(dim)
     call set_tasktype(tt)
     call set_kerntype(kt)
-    eps = 1e-8
 
     nb = 0
-    rho1 = 0.
-    rho2 = 0.
+    rho1 = 1.
+    rho2 = 1.
+    k1 = 1.
+    k2 = 1.
 
     select case (tt)
     case ('hydroshock')
@@ -44,10 +45,11 @@ contains
       rho2 = 0.125
     case ('infslb')
       nb = 1
-      rho1 = 1.
-      rho2 = 1.
+    case ('hc-sinx')
+      nb = 3
     end select
 
+    ! nbx = nb
     n = 1
     nbnewX1 = 1
     nbnewY1 = 1
@@ -56,100 +58,117 @@ contains
     nbnewY2 = 1
     nbnewZ2 = 1
 
-    x = brdx1
-    do while ((x >= brdx1).and.(x <= brdx2 + eps))
-      if (x.lt.0) then
-        sp = pspc1
-      else
-        sp = pspc2
-      end if
-      y = brdy1
-      do while ((y >= brdy1).and.(y <= brdy2 + eps))
-        z = brdz1
-        do while ((z >= brdz1).and.(z <= brdz2 + eps))
-          pos(1,n) = x
-          pos(2,n) = y
-          pos(3,n) = z
-          if (x.lt.(brdx1 + nb * sp)) then
-            brdarrX1(nbnewX1) = n
-            nbnewX1 = nbnewX1 + 1
-          else if (x.gt.(brdx2 + eps - nb * sp)) then
-            brdarrX2(nbnewX2) = n
-            nbnewX2 = nbnewX2 + 1
-          end if
-          if (dim.gt.1) then
-            if (y.lt.(brdy1 + nb * sp)) then
-              brdarrY1(nbnewY1) = n
-              nbnewY1 = nbnewY1 + 1
-            else if (y.gt.(brdy2 + eps - nb * sp)) then
-              brdarrY2(nbnewY2) = n
-              nbnewY2 = nbnewY2 + 1
+    if (pspc1 /= pspc2) then
+      ! if (dim > 1) then
+      !   nby = nb
+      !   if (dim == 3) then
+      !     nbz = nb
+      !   end if
+      ! end if
+      x = brdx1! - pspc1 * nbx
+      ! do while ((x >= brdx1 - pspc1 * nbx).and.(x <= brdx2 + pspc2 * nbx))
+      do while ((x >= brdx1).and.(x <= brdx2))
+        if (x < 0) then
+          sp = pspc1
+        else
+          sp = pspc2
+        end if
+        y = brdy1! - pspc1 * nby
+        ! do while ((y >= brdy1 - pspc1 * nby).and.(y <= brdy2 + pspc2 * nby))
+        do while ((y >= brdy1).and.(y <= brdy2))
+          z = brdz1! - pspc1 * nbz
+          ! do while ((z >= brdz1 - pspc1 * nbz).and.(z <= brdz2 + pspc2 * nbz))
+          do while ((z >= brdz1).and.(z <= brdz2))
+            pos(1,n) = x
+            pos(2,n) = y
+            pos(3,n) = z
+            if (x < brdx1 + nb * sp) then
+              brdarrX1(nbnewX1) = n
+              nbnewX1 = nbnewX1 + 1
+            else if (x > brdx2 - nb * sp) then
+              brdarrX2(nbnewX2) = n
+              nbnewX2 = nbnewX2 + 1
             end if
-            if (dim.eq.3) then
-              if (z.lt.(brdz1 + nb * sp)) then
-                brdarrZ1(nbnewZ1) = n
-                nbnewZ1 = nbnewZ1 + 1
-              else if (z.gt.(brdz2 + eps - nb * sp)) then
-                brdarrZ2(nbnewZ2) = n
-                nbnewZ2 = nbnewZ2 + 1
+            if (dim > 1) then
+              ! if (y < brdy1) then
+              if (y < brdy1 + nb * sp) then
+                brdarrY1(nbnewY1) = n
+                nbnewY1 = nbnewY1 + 1
+              ! else if (y > brdy2) then
+              else if (y > brdy2 - nb * sp) then
+                brdarrY2(nbnewY2) = n
+                nbnewY2 = nbnewY2 + 1
+              end if
+              if (dim == 3) then
+                if (z < brdz1 + nb * sp) then
+                  brdarrZ1(nbnewZ1) = n
+                  nbnewZ1 = nbnewZ1 + 1
+                else if (z > brdz2 - nb * sp) then
+                  brdarrZ2(nbnewZ2) = n
+                  nbnewZ2 = nbnewZ2 + 1
+                end if
               end if
             end if
-          end if
-          !
-          ! common values
-          !
-          vel(:,n) = 0.
-          acc(:,n) = 0.
-          dcf(n) = 0.
-          sln(n) = sk * sp
-          prs(n) = 0
-
-          select case (tt)
-          case ('hydroshock')
-            if (x<0) then
-              mas(n) = (sp**dim) * rho1
-              den(n) = rho1
-              prs(n) = prs1
-              uie(n) = prs1 / (g - 1) / rho1
-            else
-              mas(n) = (sp**dim) * rho2
-              den(n) = rho2
-              prs(n) = prs2
-              uie(n) = prs2 / (g - 1) / rho2
-            end if
-          case ('infslb')
-            if (x < 0-eps) then
-              mas(n) = (sp**dim) * rho1
-              den(n) = rho1
-              ! cf(n)  = sin(pi * (x - brdx1) / abs(brdx2-brdx1))*sin(pi * (y - brdy1) / abs(brdy2-brdy1))
-              ! cf(n)  = sin(2 * pi * (x + 1.) / abs(brdx2-brdx1))
-              cf(n)  = 0.
-              kcf(n) = 1.
-            else if (x > 0+eps) then
-              mas(n) = (sp**dim) * rho2
-              den(n) = rho2
-              prs(n) = 0
-              ! cf(n)  = sin(pi * (x - brdx1) / abs(brdx2-brdx1))*sin(pi * (y - brdy1) / abs(brdy2-brdy1))
-              ! cf(n)  = sin(2 * pi * (x + 1.) / abs(brdx2-brdx1))
-              cf(n)  = 1.
-              kcf(n) = 1.
-            else
-              mas(n) = (sp**dim) * rho2
-              den(n) = rho2
-              ! cf(n)  = sin(pi * (x - brdx1) / abs(brdx2-brdx1))*sin(pi * (y - brdy1) / abs(brdy2-brdy1))
-              ! cf(n)  = sin(pi * (x + 1.) / abs(brdx2-brdx1))
-              cf(n)  = .5
-              kcf(n) = 1.
-            end if
-            uie(n) = cf(n) / cv
-          end select
-          z = z + sp
-          n = n + 1
+            z = z + sp
+            n = n + 1
+          end do
+          y = y + sp
         end do
-        y = y + sp
+        x = x + sp
       end do
-      x = x + sp
-    end do
+    else
+      ix = int((brdx2-brdx1)/pspc1)
+      iy = int((brdy2-brdy1)/pspc1)
+      iz = int((brdz2-brdz1)/pspc1)
+      bdx = nb
+      bdy = 0
+      bdz = 0
+      if (dim > 1) then
+        bdy = nb
+        if (dim == 3) then
+          bdz = nb
+        end if
+      end if
+      do i = (0-bdx),(ix+bdx)
+        x = brdx1 + i * pspc1
+        do j = (0-bdy),(iy+bdy)
+          y = brdy1 + j * pspc1
+          do k = (0-bdz),(iz+bdz)
+            z = brdz1 + k * pspc1
+            if (i < 0) then
+              brdarrX1(nbnewX1) = n
+              nbnewX1 = nbnewX1 + 1
+            else if (i > ix) then
+              brdarrX2(nbnewX2) = n
+              nbnewX2 = nbnewX2 + 1
+            end if
+            if (dim > 1) then
+              if (j < 0) then
+                brdarrY1(nbnewY1) = n
+                nbnewY1 = nbnewY1 + 1
+              else if (j > iy) then
+                brdarrY2(nbnewY2) = n
+                nbnewY2 = nbnewY2 + 1
+              end if
+              if (dim == 3) then
+                if (k < 0) then
+                  brdarrZ1(nbnewZ1) = n
+                  nbnewZ1 = nbnewZ1 + 1
+                else if (k > iz) then
+                  brdarrZ2(nbnewZ2) = n
+                  nbnewZ2 = nbnewZ2 + 1
+                end if
+              end if
+            end if
+            pos(1,n) = x
+            pos(2,n) = y
+            pos(3,n) = z
+            n = n + 1
+          end do
+        end do
+      end do
+    end if
+
     nbnewX1 = nbnewX1 - 1
     nbnewY1 = nbnewY1 - 1
     nbnewZ1 = nbnewZ1 - 1
@@ -170,5 +189,52 @@ contains
     call set_border(22, nbnewY2, brdarrY2)
     call set_border(31, nbnewZ1, brdarrZ1)
     call set_border(32, nbnewZ2, brdarrZ2)
+    !
+    ! common values
+    !
+    do i=1,n
+      if (pos(1,i) < 0) then
+        sp = pspc1
+      else
+        sp = pspc2
+      end if
+
+      vel(:,i) = 0.
+      acc(:,i) = 0.
+      dcf(i) = 0.
+      sln(i) = sk * sp
+      prs(i) = 0
+
+      if (pos(1,i) < 0) then
+        mas(i) = (sp**dim) * rho1
+        den(i) = rho1
+        prs(i) = prs1
+        kcf(i) = k1
+      else
+        mas(i) = (sp**dim) * rho2
+        den(i) = rho2
+        prs(i) = prs2
+        kcf(i) = k2
+      end if
+
+      select case (tt)
+      case ('hydroshock')
+        if (pos(1,i) < 0) then
+          uie(i) = prs1 / (g - 1) / rho1
+        else
+          uie(i) = prs2 / (g - 1) / rho2
+        end if
+      case ('infslb')
+        if (pos(1,i) < 0) then
+          cf(i)  = 0.
+        else
+          cf(i)  = 1.
+        end if
+        uie(i) = cf(i) / cv
+      case ('hc-sinx')
+        cf(i)  = sin(2 * pi * (pos(1,i) + 1.) / abs(brdx2-brdx1))
+        uie(i) = cf(i) / cv
+      end select
+    end do
   end subroutine setup
 end module IC
