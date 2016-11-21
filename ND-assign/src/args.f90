@@ -34,7 +34,7 @@ module args
       print *, "#  ker.type:   ", ktype
 
       pspc2 = pspc1
-      write(*, "(A, F7.5, A, F7.5)") " # p.spacing:   x1=", pspc1, "   x2=", pspc2
+      write(*, "(A, F7.5, A, F7.5)") " #    set dx:   x1=", pspc1, "   x2=", pspc2
       call get_command_argument(6, arg(:))
       read(arg(:), *) brdx1
       call get_command_argument(7, arg(:))

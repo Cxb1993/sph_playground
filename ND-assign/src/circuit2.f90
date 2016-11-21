@@ -72,18 +72,6 @@ contains
                             0.5 * dot_product((nwi(:) + nwj(:)),urab(:))
 
               dh(i)   = dh(i) + mas(j) * dot_product(vab(:), nwi(:))
-
-              ! if (kt == 'n2w') then
-              !   call get_n2w(dr, sln(i), n2w)
-              ! else if (kt == 'fab') then
-              !   call get_Fab(r, sln(i), n2w)
-              ! else
-              !   print *, 'kernel type not chosen, arg #5'
-              !   stop
-              ! end if
-              ! ! 2 * kcf(i) * kcf(j) /
-              ! du(i) = du(i) - mas(j) / (den(i) * den(j)) *  (kcf(i) + kcf(j)) &
-              !               * (cf(i) - cf(j)) * n2w
             case ('infslb', 'hc-sinx')
               if (kt == 'n2w') then
                 call get_n2w(dr, sln(i), n2w)
@@ -97,9 +85,9 @@ contains
                       / (kcf(i) + kcf(j)) * (cf(i) - cf(j)) * n2w
               ! du(i) = du(i) - mas(j) / (den(i) * den(j)) * (kcf(i) + kcf(j)) / 2. &
               !               * (cf(i) - cf(j)) * n2w
-              case default
-                print *, 'circuit2: There is no such task type: ', tt
-                stop
+            case default
+              print *, 'circuit2: There is no such task type: ', tt
+              stop
             end select
           end if
         end if

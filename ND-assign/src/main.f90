@@ -8,7 +8,7 @@ program main
   use bias,     only:ex22
   implicit none
 
-  real                :: sk = 1.
+  real                :: sk = 1.2
   integer, parameter  :: nmax = 400000
   real                :: cv = 1.
   real                :: gamma = 1.4
@@ -25,14 +25,14 @@ program main
   real, allocatable, dimension(:,:) :: p, v, a
   real, allocatable, dimension(:,:) :: pos, vel, acc
   real, allocatable, dimension(:)   :: den, prs, mas, ieu, diu, o, du, c, h, dh, tdh
-  real, allocatable, dimension(:)   :: cf, tcf, dcf, kcf
+  real, allocatable, dimension(:)   :: cf, tcf, dcf, kcf, err
 
   allocate(position(3,nmax))
   allocate(velocity(3,nmax))
   allocate(acceleration(3,nmax))
 
-  print *, '####################'
-  print *, '#'
+  print *, '#######################'
+  print *, '##'
   call fillargs(dim, pspc1, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc2,&
                 itype, ktype, errfname, dtout, npic, tfinish)
 
@@ -40,9 +40,9 @@ program main
                 pspc1, pspc2, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, &
                 position, velocity, acceleration, &
                 mass, density, slength, pressure, ienergy, coupledfield, kcoupledfield, dcoupledfield)
-  print *, '#'
-  print *, '####################'
-  ! read *
+  print *, '##'
+  print *, '#######################'
+  read *
 
   error(1) = pspc1
   error(2) = n
@@ -79,13 +79,14 @@ program main
   allocate(dcf(1:n))
   dcf = dcoupledfield(1:n)
   kcf = kcoupledfield(1:n)
+  allocate(err(1:n))
 
   do while (t <= tfinish)
     select case(itype)
     case('hydroshock')
       dt = .3 * minval(h) / maxval(c)
     case('infslb', 'hc-sinx')
-      dt = .144 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
+      dt = .144 * minval(den) * minval(c) * minval(h) ** 3 / maxval(kcf)
     case default
       print *, 'DT not set: ', itype
       stop
@@ -94,7 +95,18 @@ program main
     ! read *
     if (t >= ltout) then
       print *, iter, t
-      call print_output(n, t, pos, vel, acc, mas, den, h, prs, ieu, cf)
+      select case(itype)
+      case('hydroshock')
+        call err_sinxet(n, pos, cf, t, err)
+      case('infslb')
+        call err_sinxet(n, pos, cf, t, err)
+      case('hc-sinx')
+        call err_sinxet(n, pos, cf, t, err)
+      case default
+        print *, 'Main: type not set ', itype
+        stop
+      end select
+      call print_output(n, t, pos, vel, acc, mas, den, h, prs, ieu, cf, sqrt(err))
       ltout = ltout + dtout
     end if
     p(:,:) = pos(:,:)
@@ -133,49 +145,17 @@ program main
     iter = iter + 1
 
     if ((t-dt/2<tfinish*1/3).and.(tfinish*1/3<t+dt/2)) then
-      select case(itype)
-      case('hydroshock')
-        print *, 'Error function not set'
-      case('infslb')
-        call err_infplate(n, pos, cf, t, error(3))
-      case('hc-sinx')
-        call err_sinxet(n, pos, cf, t, error(3))
-      case default
-        print *, 'Unknown error function: ', itype
-        stop
-      end select
+      error(3) = sqrt(sum(err)/n)
       call ex22(n, mas, den, pos, h, error(4))
       error(5) = t
     else if ((t-dt/2<tfinish*2/3).and.(tfinish*2/3<t+dt/2)) then
-      select case(itype)
-      case('hydroshock')
-        print *, 'Error function not set'
-      case('infslb')
-        call err_infplate(n, pos, cf, t, error(6))
-      case('hc-sinx')
-        call err_sinxet(n, pos, cf, t, error(6))
-      case default
-        print *, 'Unknown error function: ', itype
-        stop
-      end select
+      error(6) = sqrt(sum(err)/n)
       call ex22(n, mas, den, pos, h, error(7))
       error(8) = t
     end if
   end do
 
-  print *, iter, t
-  call print_output(n, t, pos, vel, acc, mas, den, h, prs, ieu, cf)
-  select case(itype)
-  case('hydroshock')
-    print *, 'Error function not set'
-  case('infslb')
-    call err_infplate(n, pos, cf, t, error(9))
-  case('hc-sinx')
-    call err_sinxet(n, pos, cf, t, error(9))
-  case default
-    print *, 'Unknown error function: ', itype
-    stop
-  end select
+  error(9) = sqrt(sum(err)/n)
   call ex22(n, mas, den, pos, h, error(10))
   error(11) = t
   call plot_simple(11, error, errfname)

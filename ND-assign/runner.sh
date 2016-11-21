@@ -3,7 +3,7 @@
 dim=1
 tasktype='hc-sinx'
 # spacing=`get_spacing -1. 1. 0.001 10 20`
-spacing='0.1 0.05 0.025 0.0125 0.006 0.003 0.001'
+spacing='0.1 0.05 0.025 0.0125 0.006 0.003'
 ktype='n2w fab'
 kbase='c q'
 # storebase='/Users/sergeibiriukov/_MoCA/Data'
@@ -31,9 +31,10 @@ for kb in $kbase; do
         `echo $header > $errfname`
       fi
 
+      errfname=$dtprefix'-'$tasktype'-'$fullkernel'-'$dim'D'
       runcmd="time ./$execname $dim $tasktype $i $errfname $k $brdx1 $brdx2 $tfinish &>/dev/null"
       echo $runcmd
-      runresult=`$runcmd`
+      runresult=`echo '\n' | $runcmd`
       echo "$runresult" >> runresult.info
       runcmd="mkdir -p $storebase/$fullkernel/$it-$i"
       `$runcmd`
@@ -44,3 +45,5 @@ for kb in $kbase; do
     it=$((it+1))
   done
 done
+
+`rm -rf output`

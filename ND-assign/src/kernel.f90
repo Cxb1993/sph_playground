@@ -1,6 +1,6 @@
 module kernel
-  ! use cubic
-  use quintic
+  use cubic
+  ! use quintic
   implicit none
 
   public :: set_dim, get_nw, get_dw_dh, get_w, get_dim, &

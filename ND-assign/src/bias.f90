@@ -46,5 +46,6 @@ contains
     end do
     !$omp end parallel do
     ex = 1./2. * ex / n
+    ! print*, ex
   end subroutine ex22
 end module bias

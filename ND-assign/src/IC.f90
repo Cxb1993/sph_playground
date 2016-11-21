@@ -17,12 +17,14 @@ contains
     character(len=*), intent(in) :: tt, kt
     integer, intent(in)  :: nx, dim
     real, intent(in)     :: sk, g, cv
-    real, intent(in)     :: pspc1, pspc2, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2
+    real, intent(in)     :: brdx1, brdx2, brdy1, brdy2, brdz1, brdz2
     real, intent(out)    :: pos(3,nx), vel(3,nx), acc(3,nx),&
                             mas(nx), den(nx), sln(nx), prs(nx), uie(nx), cf(nx), kcf(nx), dcf(nx)
+    real, intent(inout)  :: pspc1, pspc2
     integer, intent(out) :: n
-    real                 :: prs1, prs2, rho1, rho2, k1, k2, x, y, z, sp
-    integer              :: i, j, k, nb, ix, iy, iz, bdx, bdy, bdz, nbnewX1, nbnewY1, nbnewZ1, nbnewX2,&
+    real                 :: prs1, prs2, rho1, rho2, k1, k2, x, y, z, sp, spx, spy, spz
+    integer              :: i, j, k, nb, ix, iy, iz, bdx, bdy, bdz, ibx, iby, ibz, &
+                            nbnewX1, nbnewY1, nbnewZ1, nbnewX2,&
                             nbnewY2, nbnewZ2, brdarrX1(nx), brdarrY1(nx), brdarrZ1(nx), brdarrX2(nx), &
                             brdarrY2(nx), brdarrZ2(nx)
 
@@ -33,6 +35,8 @@ contains
     nb = 0
     rho1 = 1.
     rho2 = 1.
+    prs1 = 1.
+    prs2 = 1.
     k1 = 1.
     k2 = 1.
 
@@ -49,7 +53,6 @@ contains
       nb = 3
     end select
 
-    ! nbx = nb
     n = 1
     nbnewX1 = 1
     nbnewY1 = 1
@@ -118,43 +121,54 @@ contains
       end do
     else
       ix = int((brdx2-brdx1)/pspc1)
+      spx = merge(0.,(brdx2-brdx1)/ix, ix == 0)
+      pspc1 = spx
+      pspc2 = spx
       iy = int((brdy2-brdy1)/pspc1)
+      spy = merge(0.,(brdy2-brdy1)/iy, iy == 0)
       iz = int((brdz2-brdz1)/pspc1)
-      bdx = nb
-      bdy = 0
-      bdz = 0
-      if (dim > 1) then
-        bdy = nb
-        if (dim == 3) then
-          bdz = nb
-        end if
+      spz = merge(0.,(brdz2-brdz1)/iz, iz == 0)
+      if (nb > 0) then
+        bdx = nb
+        bdy = merge(nb, 0, dim > 1)
+        bdz = merge(nb, 0, dim == 3)
+        ibx = 0
+        iby = 0
+        ibz = 0
+      else
+        bdx = 0
+        bdy = 0
+        bdz = 0
+        ibx = abs(nb)
+        iby = abs(nb)
+        ibz = abs(nb)
       end if
       do i = (0-bdx),(ix+bdx)
-        x = brdx1 + i * pspc1
+        x = brdx1 + i * spx
         do j = (0-bdy),(iy+bdy)
-          y = brdy1 + j * pspc1
+          y = brdy1 + j * spy
           do k = (0-bdz),(iz+bdz)
-            z = brdz1 + k * pspc1
-            if (i < 0) then
+            z = brdz1 + k * spz
+            if (i < 0 + ibx) then
               brdarrX1(nbnewX1) = n
               nbnewX1 = nbnewX1 + 1
-            else if (i > ix) then
+            else if (i > ix - ibx) then
               brdarrX2(nbnewX2) = n
               nbnewX2 = nbnewX2 + 1
             end if
             if (dim > 1) then
-              if (j < 0) then
+              if (j < 0 + iby) then
                 brdarrY1(nbnewY1) = n
                 nbnewY1 = nbnewY1 + 1
-              else if (j > iy) then
+              else if (j > iy - iby) then
                 brdarrY2(nbnewY2) = n
                 nbnewY2 = nbnewY2 + 1
               end if
               if (dim == 3) then
-                if (k < 0) then
+                if (k < 0 + ibz) then
                   brdarrZ1(nbnewZ1) = n
                   nbnewZ1 = nbnewZ1 + 1
-                else if (k > iz) then
+                else if (k > iz - ibz) then
                   brdarrZ2(nbnewZ2) = n
                   nbnewZ2 = nbnewZ2 + 1
                 end if
@@ -177,12 +191,14 @@ contains
     nbnewZ2 = nbnewZ2 - 1
     n = n - 1
 
+    write(*, "(A, F7.5, A, F7.5)") " # actual dx:   x1=", pspc1, "   x2=", pspc2
     print *, '#    placed:', n
+    print *, '#      real:', n - nbnewX1 - nbnewX2 - nbnewY1 - nbnewY2 - nbnewZ1 - nbnewZ2
     print *, '#  border-x:', nbnewX1, nbnewX2
     print *, '#  border-y:', nbnewY1, nbnewY2
     print *, '#  border-z:', nbnewZ1, nbnewZ2
 
-    call set_particles_numbers(n, nb)
+    call set_particles_numbers(n, abs(nb))
     call set_border(11, nbnewX1, brdarrX1)
     call set_border(12, nbnewX2, brdarrX2)
     call set_border(21, nbnewY1, brdarrY1)
@@ -193,11 +209,7 @@ contains
     ! common values
     !
     do i=1,n
-      if (pos(1,i) < 0) then
-        sp = pspc1
-      else
-        sp = pspc2
-      end if
+      sp = merge(pspc1, pspc2, pos(1,i) < 0)
 
       vel(:,i) = 0.
       acc(:,i) = 0.
@@ -219,17 +231,9 @@ contains
 
       select case (tt)
       case ('hydroshock')
-        if (pos(1,i) < 0) then
-          uie(i) = prs1 / (g - 1) / rho1
-        else
-          uie(i) = prs2 / (g - 1) / rho2
-        end if
+        uie(i) = merge(prs1/(g-1)/rho1, prs2/(g-1)/rho2, pos(1,i) < 0)
       case ('infslb')
-        if (pos(1,i) < 0) then
-          cf(i)  = 0.
-        else
-          cf(i)  = 1.
-        end if
+        cf(i) = merge(0., 1., pos(1,i) < 0)
         uie(i) = cf(i) / cv
       case ('hc-sinx')
         cf(i)  = sin(2 * pi * (pos(1,i) + 1.) / abs(brdx2-brdx1))

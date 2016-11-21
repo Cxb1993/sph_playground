@@ -20,7 +20,7 @@ contains
     call get_dim(dim)
     call get_krad(kr)
 
-    allowerror = 1e-8
+    allowerror = 1e-15
     slnint(:) = sln(:)
     resid(:)  = 1.
     do while (maxval(resid, mask=(resid>0)).gt.allowerror)

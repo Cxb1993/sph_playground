@@ -26,32 +26,24 @@ contains
     end do
     !$OMP END DO
     !$OMP END PARALLEL
-    ! print *, ''
-    ! print *, ''
-    ! print *, maxval(err), sum(err)/size(err), sum(err)/size(err) * 100
-    ! print *, ''
-    ! read *
   end subroutine err_T0sxsyet
 
   subroutine err_sinxet(n, pos, num, t, err)
     integer, intent(in) :: n
     real, intent(in)    :: pos(3,n), num(n), t
-    real, intent(out)   :: err
+    real, intent(out)   :: err(n)
 
     integer             :: i
     real                :: exact
 
-    err = 0.
     !$omp parallel do default(none) &
-    !$omp shared(pos,n,num,t) &
-    !$omp private(exact, i) &
-    !$omp reduction(+:err)
+    !$omp shared(pos,n,num,err,t) &
+    !$omp private(exact, i)
     do i=1,n
       exact = sin(pi * (pos(1,i) + 1.)) * exp(-pi**2 * t)
-      err = err + (num(i) - exact)**2
+      err(i) = (exact - num(i))**2
     end do
     !$omp end parallel do
-    err = sqrt(err/n)
   end subroutine err_sinxet
 
   subroutine err_infplate(n, pos, num, t, err)
