@@ -2,17 +2,28 @@
 
 dim=1
 tasktype='hc-sinx'
-# spacing=`get_spacing -1. 1. 0.001 10 20`
 spacing='0.1 0.05 0.025 0.0125 0.006 0.003'
 ktype='n2w fab'
 kbase='c q'
-# storebase='/Users/sergeibiriukov/_MoCA/Data'
 storebase=`pwd`
 dtprefix=`date +%Y%m%d%H%M`
 
 brdx1='-1'
 brdx2='1'
 tfinish='.5'
+
+spstart=0.1
+spend=0.
+spstep=0.01
+tstep=$spstart
+flag=1
+spacing=""
+while [[ $flag -eq "1" ]]; do
+  spacing=$spacing" "$tstep
+  tstep=`echo "$tstep - $spstep" | bc`
+  flag=`echo "$tstep > $spend" | bc`
+done
+echo "Spacings: $spacing"
 
 for kb in $kbase; do
   execname='execute-'$kb
@@ -36,9 +47,18 @@ for kb in $kbase; do
       echo $runcmd
       runresult=`echo '\n' | $runcmd`
       echo "$runresult" >> runresult.info
-      runcmd="mkdir -p $storebase/$fullkernel/$it-$i"
+
+      itsize=${#it}
+      itspac=`tail -1 $errfname | awk '{print$1}'`
+      itspac=`printf %f $itspac`
+      if [ $itsize -eq '1' ]; then
+        iti="0"$it
+      else
+        iti=$it
+      fi
+      runcmd="mkdir -p $storebase/$fullkernel/$iti-$itspac"
       `$runcmd`
-      runcmd="mv output/* $storebase/$fullkernel/$it-$i"
+      runcmd="mv output/* $storebase/$fullkernel/$iti-$itspac"
       `$runcmd`
       echo -e "\nDone $tasktype $fullkernel $i\n"
     done

@@ -25,7 +25,7 @@ program main
   real, allocatable, dimension(:,:) :: p, v, a
   real, allocatable, dimension(:,:) :: pos, vel, acc
   real, allocatable, dimension(:)   :: den, prs, mas, ieu, diu, o, du, c, h, dh, tdh
-  real, allocatable, dimension(:)   :: cf, tcf, dcf, kcf, err
+  real, allocatable, dimension(:)   :: cf, tcf, dcf, kcf, err, ex
 
   allocate(position(3,nmax))
   allocate(velocity(3,nmax))
@@ -80,13 +80,15 @@ program main
   dcf = dcoupledfield(1:n)
   kcf = kcoupledfield(1:n)
   allocate(err(1:n))
+  allocate(ex(1:n))
+
 
   do while (t <= tfinish)
     select case(itype)
     case('hydroshock')
       dt = .3 * minval(h) / maxval(c)
     case('infslb', 'hc-sinx')
-      dt = .144 * minval(den) * minval(c) * minval(h) ** 3 / maxval(kcf)
+      dt = .144 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
     case default
       print *, 'DT not set: ', itype
       stop
@@ -146,17 +148,21 @@ program main
 
     if ((t-dt/2<tfinish*1/3).and.(tfinish*1/3<t+dt/2)) then
       error(3) = sqrt(sum(err)/n)
-      call ex22(n, mas, den, pos, h, error(4))
+      call ex22(n, mas, den, pos, h, ex)
+      call periodic1(ex, 1)
+      error(4) = sum(ex)/n
       error(5) = t
     else if ((t-dt/2<tfinish*2/3).and.(tfinish*2/3<t+dt/2)) then
       error(6) = sqrt(sum(err)/n)
-      call ex22(n, mas, den, pos, h, error(7))
+      call ex22(n, mas, den, pos, h, ex)
+      error(7) = sum(ex)/n
       error(8) = t
     end if
   end do
 
   error(9) = sqrt(sum(err)/n)
-  call ex22(n, mas, den, pos, h, error(10))
+  call ex22(n, mas, den, pos, h, ex)
+  error(10) = sum(ex)/n
   error(11) = t
   call plot_simple(11, error, errfname)
 end program main

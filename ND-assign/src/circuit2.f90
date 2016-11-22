@@ -19,16 +19,15 @@ contains
     real                :: dr, di, dj, qa, qb, qc, n2w, kr, r2
     real                :: nwi(3), nwj(3), r(3), vab(3), urab(3), Pi(3), Pj(3)
     integer             :: i, j, dim
-    character(len=40)   :: tt, kt
+    character(len=40)   :: tt!, kt
 
     call get_dim(dim)
     call get_tasktype(tt)
-    call get_kerntype(kt)
     call get_krad(kr)
 
     !$omp parallel do default(none)&
     !$omp private(r, dr, vab, urab, di, dj, nwi, nwj, qa, qb, qc, Pi, Pj, n2w, j, i, r2) &
-    !$omp shared(acc, du, dh, dcf, n, pos, sln, tt, kt, vel, den, c, p, om, mas, u, kcf, cf, dim, kr)
+    !$omp shared(acc, du, dh, dcf, n, pos, sln, tt, vel, den, c, p, om, mas, u, kcf, cf, dim, kr)
     do i = 1, n
       acc(:,i) = 0.
       du(i) = 0.
@@ -52,14 +51,8 @@ contains
 
               call get_nw(r, sln(i), nwi)
               call get_nw(r, sln(j), nwj)
-              if (kt == 'n2w') then
-                call get_n2w(dr, sln(i), n2w)
-              else if (kt == 'fab') then
-                call get_Fab(r, sln(i), n2w)
-              else
-                print *, 'kernel type not chosen, arg #5'
-                stop
-              end if
+              call get_n2w(r, sln(i), n2w)
+
               call art_viscosity(di, dj, vab, urab, c(i), c(j), qa, qb)
               call art_termcond(P(i), P(j), di, dj, qc)
               Pi(:) = (P(i) + qa) * nwi(:) / (di**2 * om(i))
@@ -73,20 +66,14 @@ contains
 
               dh(i)   = dh(i) + mas(j) * dot_product(vab(:), nwi(:))
             case ('infslb', 'hc-sinx')
-              if (kt == 'n2w') then
-                call get_n2w(dr, sln(i), n2w)
-              else if (kt == 'fab') then
-                call get_Fab(r, sln(i), n2w)
-              else
-                print *, 'kernel type not chosen: ', kt
-                stop
-              end if
+              call get_n2w(r, sln(i), n2w)
+
               du(i) = du(i) - mas(j) / (den(i) * den(j)) * 2 * kcf(i) * kcf(j) &
                       / (kcf(i) + kcf(j)) * (cf(i) - cf(j)) * n2w
               ! du(i) = du(i) - mas(j) / (den(i) * den(j)) * (kcf(i) + kcf(j)) / 2. &
               !               * (cf(i) - cf(j)) * n2w
             case default
-              print *, 'circuit2: There is no such task type: ', tt
+              print *, 'Circuit2: There is no such task type: ', tt
               stop
             end select
           end if

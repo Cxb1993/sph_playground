@@ -15,7 +15,7 @@ contains
     real, intent(out)   :: sln(n), den(n), om(n)
     real                :: w, dwdh, r(3), dr, r2, dfdh, fh, hn, kr
     real                :: allowerror, slnint(n), resid(n)
-    integer             :: i, j, dim, maxiter
+    integer             :: i, j, dim, iter
 
     call get_dim(dim)
     call get_krad(kr)
@@ -23,9 +23,14 @@ contains
     allowerror = 1e-15
     slnint(:) = sln(:)
     resid(:)  = 1.
-    do while (maxval(resid, mask=(resid>0)).gt.allowerror)
+    iter = 0
+    do while ((maxval(resid, mask=(resid>0)) > allowerror) .and. (iter < 100))
+      iter = iter + 1
+      ! print *, maxval(resid, mask=(resid>0)), iter
+      ! print *, resid
+      ! read *
       !$omp parallel do default(none)&
-      !$omp private(r, dr, dwdh, w, dfdh, fh, hn, maxiter, j, i, r2)&
+      !$omp private(r, dr, dwdh, w, dfdh, fh, hn, j, i, r2)&
       !$omp shared(resid, allowerror, den, om, n, pos, slnint, mas, dim, sk, sln, kr)
       do i = 1, n
         if (resid(i) > allowerror) then
