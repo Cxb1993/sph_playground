@@ -43,10 +43,27 @@ contains
       call c2(n, c, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
     case ('hc-sinx')
       call c1(n, pos, mas, sk, h, den, om)
+      ! print *, den
       call periodic1(den, 1)
       call periodic1(h, 1)
+      ! read*
+      if (dim > 1) then
+        call periodic1(den, 2)
+        call periodic1(h, 2)
+        if (dim == 3) then
+          call periodic1(den, 3)
+          call periodic1(h, 3)
+        end if
+      end if
+      ! print *, den
       call c2(n, c, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
       call periodic1(due, 1)
+      if (dim > 1) then
+        call periodic1(due, 2)
+        if (dim == 3) then
+          call periodic1(due, 3)
+        end if
+      end if
     end select
   end subroutine iterate
 end module iterator

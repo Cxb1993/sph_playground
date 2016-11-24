@@ -82,13 +82,15 @@ program main
   allocate(err(1:n))
   allocate(ex(1:n))
 
-
   do while (t <= tfinish)
     select case(itype)
     case('hydroshock')
       dt = .3 * minval(h) / maxval(c)
-    case('infslb', 'hc-sinx')
-      dt = .144 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
+    case('infslb')
+      dt = .144 * minval(den) * minval(c) * minval(h) ** 4 / maxval(kcf)
+    case('hc-sinx')
+      dt = .144 * minval(den) * minval(c) * minval(h) ** 4 / maxval(kcf)
+      call err_sinxet(n, pos, cf, t, err)
     case default
       print *, 'DT not set: ', itype
       stop
@@ -96,21 +98,11 @@ program main
     ! print *, "dt: ", dt, minval(den), minval(c), minval(h), maxval(kcf)
     ! read *
     if (t >= ltout) then
-      print *, iter, t
-      select case(itype)
-      case('hydroshock')
-        call err_sinxet(n, pos, cf, t, err)
-      case('infslb')
-        call err_sinxet(n, pos, cf, t, err)
-      case('hc-sinx')
-        call err_sinxet(n, pos, cf, t, err)
-      case default
-        print *, 'Main: type not set ', itype
-        stop
-      end select
+      print *, iter, t, sqrt(sum(err)/n)
       call print_output(n, t, pos, vel, acc, mas, den, h, prs, ieu, cf, sqrt(err))
       ltout = ltout + dtout
     end if
+
     p(:,:) = pos(:,:)
     v(:,:) = vel(:,:)
     a(:,:) = acc(:,:)

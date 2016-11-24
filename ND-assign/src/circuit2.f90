@@ -38,6 +38,7 @@ contains
           r(:) = pos(:,i) - pos(:,j)
           r2 = dot_product(r(:),r(:))
           if ((r2 < (kr * sln(i))**2).or.(r2 < (kr * sln(j))**2)) then
+          ! if (r2 < (kr * sln(i))**2) then
             dr = sqrt(r2)
             select case (tt)
             case ('hydroshock')
@@ -68,7 +69,7 @@ contains
             case ('infslb', 'hc-sinx')
               call get_n2w(r, sln(i), n2w)
 
-              du(i) = du(i) - mas(j) / (den(i) * den(j)) * 2 * kcf(i) * kcf(j) &
+              du(i) = du(i) - mas(j) / (den(i) * den(j)) * 2. * kcf(i) * kcf(j) &
                       / (kcf(i) + kcf(j)) * (cf(i) - cf(j)) * n2w
               ! du(i) = du(i) - mas(j) / (den(i) * den(j)) * (kcf(i) + kcf(j)) / 2. &
               !               * (cf(i) - cf(j)) * n2w

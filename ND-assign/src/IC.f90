@@ -24,8 +24,8 @@ contains
     integer, intent(out) :: n
     real                 :: prs1, prs2, rho1, rho2, k1, k2, x, y, z, sp, spx, spy, spz
     integer              :: i, j, k, nb, ix, iy, iz, bdx, bdy, bdz, ibx, iby, ibz, &
-                            nbnewX1, nbnewY1, nbnewZ1, nbnewX2,&
-                            nbnewY2, nbnewZ2, brdarrX1(nx), brdarrY1(nx), brdarrZ1(nx), brdarrX2(nx), &
+                            nbnewX1, nbnewY1, nbnewZ1, nbnewX2, nbnewY2, nbnewZ2, freeflag, freenumber, &
+                            brdarrX1(nx), brdarrY1(nx), brdarrZ1(nx), brdarrX2(nx), &
                             brdarrY2(nx), brdarrZ2(nx)
 
     call set_dim(dim)
@@ -50,7 +50,7 @@ contains
     case ('infslb')
       nb = 1
     case ('hc-sinx')
-      nb = 3
+      nb = 2
     end select
 
     n = 1
@@ -122,12 +122,12 @@ contains
     else
       ix = int((brdx2-brdx1)/pspc1)
       spx = merge(0.,(brdx2-brdx1)/ix, ix == 0)
-      pspc1 = spx
-      pspc2 = spx
       iy = int((brdy2-brdy1)/pspc1)
       spy = merge(0.,(brdy2-brdy1)/iy, iy == 0)
       iz = int((brdz2-brdz1)/pspc1)
       spz = merge(0.,(brdz2-brdz1)/iz, iz == 0)
+      pspc1 = spx
+      pspc2 = spx
       if (nb > 0) then
         bdx = nb
         bdy = merge(nb, 0, dim > 1)
@@ -143,32 +143,41 @@ contains
         iby = abs(nb)
         ibz = abs(nb)
       end if
+      call set_sqare_box_sides(ix+1+2*bdx, iy+1+2*bdy, iz+1+2*bdz)
+      freenumber = 0
       do i = (0-bdx),(ix+bdx)
         x = brdx1 + i * spx
         do j = (0-bdy),(iy+bdy)
           y = brdy1 + j * spy
           do k = (0-bdz),(iz+bdz)
+            freeflag = 0
             z = brdz1 + k * spz
-            if (i < 0 + ibx) then
+            if (x < brdx1 + ibx * spx) then
+              freeflag = 1.
               brdarrX1(nbnewX1) = n
               nbnewX1 = nbnewX1 + 1
-            else if (i > ix - ibx) then
+            else if (x > brdx2 - ibx * spx) then
+              freeflag = 1.
               brdarrX2(nbnewX2) = n
               nbnewX2 = nbnewX2 + 1
             end if
             if (dim > 1) then
-              if (j < 0 + iby) then
+              if (y < brdy1 + iby * spy) then
+                freeflag = 1.
                 brdarrY1(nbnewY1) = n
                 nbnewY1 = nbnewY1 + 1
-              else if (j > iy - iby) then
+              else if (y > brdy2 - iby * spy) then
+                freeflag = 1.
                 brdarrY2(nbnewY2) = n
                 nbnewY2 = nbnewY2 + 1
               end if
               if (dim == 3) then
-                if (k < 0 + ibz) then
+                if (z < brdz1 + ibz * spz) then
+                  freeflag = 1.
                   brdarrZ1(nbnewZ1) = n
                   nbnewZ1 = nbnewZ1 + 1
-                else if (k > iz - ibz) then
+                else if (z > brdz2 - ibz * spz) then
+                  freeflag = 1.
                   brdarrZ2(nbnewZ2) = n
                   nbnewZ2 = nbnewZ2 + 1
                 end if
@@ -178,6 +187,7 @@ contains
             pos(2,n) = y
             pos(3,n) = z
             n = n + 1
+            freenumber = merge(freenumber + 1, freenumber, freeflag == 0)
           end do
         end do
       end do
@@ -191,12 +201,12 @@ contains
     nbnewZ2 = nbnewZ2 - 1
     n = n - 1
 
-    write(*, "(A, F7.5, A, F7.5)") " # actual dx:   x1=", pspc1, "   x2=", pspc2
-    print *, '#    placed:', n
-    print *, '#      real:', n - nbnewX1 - nbnewX2 - nbnewY1 - nbnewY2 - nbnewZ1 - nbnewZ2
-    print *, '#  border-x:', nbnewX1, nbnewX2
-    print *, '#  border-y:', nbnewY1, nbnewY2
-    print *, '#  border-z:', nbnewZ1, nbnewZ2
+    write(*, "(A, F7.5, A, F7.5)") " #   actual dx:   x1=", pspc1, "   x2=", pspc2
+    print *, '#      placed:', n
+    print *, '#  freenumber:', freenumber
+    print *, '#    border-x:', nbnewX1, nbnewX2
+    print *, '#    border-y:', nbnewY1, nbnewY2
+    print *, '#    border-z:', nbnewZ1, nbnewZ2
 
     call set_particles_numbers(n, abs(nb))
     call set_border(11, nbnewX1, brdarrX1)

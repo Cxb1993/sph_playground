@@ -16,10 +16,10 @@ module args
 
       call get_command_argument(1, arg)
       read(arg(:), fmt="(i5)") dim
-      print *, "#       dim:", dim
+      print *, "#         dim:", dim
 
       call get_command_argument(2, itype)
-      print *, "# task type:   ", itype
+      print *, "#   task type:   ", itype
 
       pspc1 = 1.
       call get_command_argument(3, arg(:))
@@ -27,14 +27,14 @@ module args
 
       errfname = 'err'
       call get_command_argument(4, errfname)
-      print *, "#  errfname:   ", errfname
+      print *, "#    errfname:   ", errfname
 
       ktype = 'fab'
       call get_command_argument(5, ktype)
-      print *, "#  ker.type:   ", ktype
+      print *, "#    ker.type:   ", ktype
 
       pspc2 = pspc1
-      write(*, "(A, F7.5, A, F7.5)") " #    set dx:   x1=", pspc1, "   x2=", pspc2
+      write(*, "(A, F7.5, A, F7.5)") " #      set dx:   x1=", pspc1, "   x2=", pspc2
       call get_command_argument(6, arg(:))
       read(arg(:), *) brdx1
       call get_command_argument(7, arg(:))
@@ -43,15 +43,15 @@ module args
       read(arg(:), *) tfinish
 
       if (dim.gt.1) then
-        brdy1 = - pspc1 * 4.5
-        brdy2 = pspc2 * 4.5
+        brdy1 = - pspc1 * 3
+        brdy2 = pspc2 * 3
       else
         brdy1 = 0.
         brdy2 = 0.
       end if
       if (dim.eq.3) then
-        brdz1 = - pspc1 * 4.5
-        brdz2 = pspc2 * 4.5
+        brdz1 = - pspc1 * 3
+        brdz2 = pspc2 * 3
       else
         brdz1 = 0.
         brdz2 = 0.
@@ -59,6 +59,6 @@ module args
 
       npic = 200.
       dtout = tfinish / npic
-      write(*, "(A, F9.7)") " #  print dt:   ", dtout
+      write(*, "(A, F9.7)") " #    print dt:   ", dtout
     end subroutine fillargs
 end module args

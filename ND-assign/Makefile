@@ -43,7 +43,7 @@ infslb3:
 	make && time ./execute 3 infslb 0.1 runresult.info fab
 
 hc-sinx1:
-	make && time ./execute 1 hc-sinx 0.2 runresult.info fab -1 1 .5
+	make && time ./execute 3 hc-sinx 0.1 runresult.info fab -1 1 .5
 
 .PHONY: execute
 

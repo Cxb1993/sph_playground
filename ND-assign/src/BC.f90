@@ -2,10 +2,10 @@ module BC
   implicit none
 
   public :: periodic1, periodic3, fixed1, fixed3
-  public :: set_particles_numbers, set_border
+  public :: set_particles_numbers, set_border, set_sqare_box_sides
 
   private
-    integer, save              :: ns, nbrd
+    integer, save              :: ns, nbrd, nx, ny, nz
     integer, allocatable, save :: borderX1(:), borderY1(:), borderZ1(:), borderX2(:), borderY2(:), borderZ2(:)
 
 contains
@@ -14,6 +14,13 @@ contains
     ns = ins
     nbrd = inbrd
   end subroutine set_particles_numbers
+
+  subroutine set_sqare_box_sides(inx, iny, inz)
+    integer, intent(in) :: inx, iny, inz
+    nx = inx
+    ny = iny
+    nz = inz
+  end subroutine set_sqare_box_sides
 
   subroutine set_border(itb, inp, A)
     integer, intent(in) :: itb, inp, A(inp)
@@ -48,17 +55,14 @@ contains
 
     select case(axis)
     case (1)
-      ! print *, borderX1, borderX2 - nbrd - 1
-      ! print *, borderX2, nbrd + borderX1 + 1
-      ! read *
-      A(borderX1) = A(borderX2 - nbrd - 1)
-      A(borderX2) = A(nbrd + borderX1 + 1)
+      A(borderX1) = A(borderX2 - (nbrd + 1) * nz * ny)
+      A(borderX2) = A(borderX1 + (nbrd + 1) * nz * ny)
     case (2)
-      A(borderY1) = A(borderY2 - nbrd - 1)
-      A(borderY2) = A(nbrd + borderY1 + 1)
+      A(borderY1) = A(borderY2 - (nbrd + 1) * nz)
+      A(borderY2) = A(borderY1 + (nbrd + 1) * nz)
     case (3)
-      A(borderZ1) = A(borderZ2 - nbrd - 1)
-      A(borderZ2) = A(nbrd + borderZ1 + 1)
+      A(borderZ1) = A(borderZ2 - (nbrd + 1))
+      A(borderZ2) = A(borderZ1 + (nbrd + 1))
     end select
   end subroutine periodic1
 
