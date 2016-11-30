@@ -49,20 +49,36 @@ contains
     end if
   end subroutine set_border
 
+  !
+  !-- See page 19
+  !
   subroutine periodic1(A, axis)
     integer, intent(in) :: axis
     real, intent(out)   :: A(ns)
+    integer             :: i
 
     select case(axis)
     case (1)
-      A(borderX1) = A(borderX2 - (nbrd + 1) * nz * ny)
-      A(borderX2) = A(borderX1 + (nbrd + 1) * nz * ny)
+      ! A(borderX1) = A(borderX2 - (nbrd + 1) * ny * nz)
+      ! A(borderX2) = A(borderX1 + (nbrd + 1) * ny * nz)
+      do i = 1, size(borderX1)
+        A(borderX1(i)) = A(borderX2(i) - (nbrd + 1) * ny * nz)
+        A(borderX2(i)) = A(borderX1(i) + (nbrd + 1) * ny * nz)
+      end do
     case (2)
-      A(borderY1) = A(borderY2 - (nbrd + 1) * nz)
-      A(borderY2) = A(borderY1 + (nbrd + 1) * nz)
+      ! A(borderY1) = A(borderY2 - (nbrd + 1) * nz)
+      ! A(borderY2) = A(borderY1 + (nbrd + 1) * nz)
+      do i = 1, size(borderY1)
+        A(borderY1(i)) = A(borderY2(i) - (nbrd + 1) * nz)
+        A(borderY2(i)) = A(borderY1(i) + (nbrd + 1) * nz)
+      end do
     case (3)
-      A(borderZ1) = A(borderZ2 - (nbrd + 1))
-      A(borderZ2) = A(borderZ1 + (nbrd + 1))
+      ! A(borderZ1) = A(borderZ2 - (nbrd + 1))
+      ! A(borderZ2) = A(borderZ1 + (nbrd + 1))
+      do i = 1, size(borderZ1)
+        A(borderZ1(i)) = A(borderZ2(i) - (nbrd + 1))
+        A(borderZ2(i)) = A(borderZ1(i) + (nbrd + 1))
+      end do
     end select
   end subroutine periodic1
 

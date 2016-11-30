@@ -7,10 +7,8 @@ module args
     character (len=10) :: arg
 
   contains
-    subroutine fillargs(dim, pspc1, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc2,&
-                        itype, ktype, errfname, dtout, npic, tfinish)
-      real, intent(inout)               :: pspc1, pspc2, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2,&
-                                           dtout, npic, tfinish
+    subroutine fillargs(dim, pspc1, pspc2, itype, ktype, errfname, dtout, npic, tfinish)
+      real, intent(inout)               :: pspc1, pspc2, dtout, npic, tfinish
       integer, intent(inout)            :: dim
       character (len=40), intent(inout) :: itype, ktype, errfname
 
@@ -36,26 +34,7 @@ module args
       pspc2 = pspc1
       write(*, "(A, F7.5, A, F7.5)") " #      set dx:   x1=", pspc1, "   x2=", pspc2
       call get_command_argument(6, arg(:))
-      read(arg(:), *) brdx1
-      call get_command_argument(7, arg(:))
-      read(arg(:), *) brdx2
-      call get_command_argument(8, arg(:))
       read(arg(:), *) tfinish
-
-      if (dim.gt.1) then
-        brdy1 = - pspc1 * 3
-        brdy2 = pspc2 * 3
-      else
-        brdy1 = 0.
-        brdy2 = 0.
-      end if
-      if (dim.eq.3) then
-        brdz1 = - pspc1 * 3
-        brdz2 = pspc2 * 3
-      else
-        brdz1 = 0.
-        brdz2 = 0.
-      end if
 
       npic = 200.
       dtout = tfinish / npic

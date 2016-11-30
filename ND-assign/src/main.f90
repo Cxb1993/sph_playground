@@ -1,11 +1,14 @@
 program main
   use BC
   use IC
+  use kernel,   only:get_tasktype
   use iterator, only:iterate
   use printer
   use err_calc
   use args,     only:fillargs
   use bias,     only:ex22
+  use circuit1, only:c1_init
+
   implicit none
 
   real                :: sk = 1.2
@@ -19,9 +22,8 @@ program main
   real :: density(nmax), slength(nmax), pressure(nmax), mass(nmax), ienergy(nmax), dienergy(nmax), omega(nmax)
   real :: coupledfield(nmax), kcoupledfield(nmax), dcoupledfield(nmax)
 
-  real                              :: dt, t, dtout, ltout, tfinish, error(11), npic, &
-                                       pspc1, pspc2, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2
-  integer                           :: finish, iter
+  real                              :: dt, t, dtout, ltout, tfinish, error(11), npic, pspc1, pspc2
+  integer                           :: iter, tt
   real, allocatable, dimension(:,:) :: p, v, a
   real, allocatable, dimension(:,:) :: pos, vel, acc
   real, allocatable, dimension(:)   :: den, prs, mas, ieu, diu, o, du, c, h, dh, tdh
@@ -33,16 +35,17 @@ program main
 
   print *, '#######################'
   print *, '##'
-  call fillargs(dim, pspc1, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc2,&
+  call fillargs(dim, pspc1, pspc2,&
                 itype, ktype, errfname, dtout, npic, tfinish)
 
   call setup(itype, ktype, dim, nmax, n, sk, gamma, cv, &
-                pspc1, pspc2, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, &
-                position, velocity, acceleration, &
+                pspc1, pspc2, position, velocity, acceleration, &
                 mass, density, slength, pressure, ienergy, coupledfield, kcoupledfield, dcoupledfield)
   print *, '##'
   print *, '#######################'
   read *
+
+  call get_tasktype(tt)
 
   error(1) = pspc1
   error(2) = n
@@ -50,7 +53,6 @@ program main
   t = 0.
   dt = 0.
   ltout = 0.
-  finish = 3000.
 
   pos = position(:,1:n)
   p   = pos(:,:)
@@ -82,21 +84,27 @@ program main
   allocate(err(1:n))
   allocate(ex(1:n))
 
+  call err_init(n, pos)
+  call c1_init(n)
+
   do while (t <= tfinish)
-    select case(itype)
-    case('hydroshock')
+    select case(tt)
+    case(1)
+      ! 'hydroshock'
       dt = .3 * minval(h) / maxval(c)
-    case('infslb')
+    case(2)
+      ! 'infslb'
+      dt = .144 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
+    case(3)
+      ! 'hc-sinx'
       dt = .144 * minval(den) * minval(c) * minval(h) ** 4 / maxval(kcf)
-    case('hc-sinx')
-      dt = .144 * minval(den) * minval(c) * minval(h) ** 4 / maxval(kcf)
-      call err_sinxet(n, pos, cf, t, err)
-    case default
-      print *, 'DT not set: ', itype
-      stop
+      call err_sinxet(n, cf, t, err)
     end select
-    ! print *, "dt: ", dt, minval(den), minval(c), minval(h), maxval(kcf)
-    ! read *
+
+    ! if (t > 2.5e-2) then
+    !  print *, "dt: ", dt, minval(den), minval(c), minval(h)**6, maxval(kcf)
+    ! end if
+
     if (t >= ltout) then
       print *, iter, t, sqrt(sum(err)/n)
       call print_output(n, t, pos, vel, acc, mas, den, h, prs, ieu, cf, sqrt(err))
@@ -125,14 +133,13 @@ program main
     ieu(:)   = ieu(:)   + 0.5 * dt * (diu(:) - du(:))
     h(:)     = h(:)     + 0.5 * dt * (dh(:) - tdh(:))
 
-    select case(itype)
-    case('hydroshock')
+    select case(tt)
+    case(1)
+      ! 'hydroshock'
       cf(:) = cf(:)     + 0.5 * dt * (dcf(:) - tcf(:))
-    case('infslb', 'hc-sinx')
+    case(2, 3)
+      ! 'infslb', 'hc-sinx'
       cf(:) = ieu(:) / cv
-    case default
-      print *, 'Coupled field integration not set: ', itype
-      stop
     end select
 
     t = t + dt

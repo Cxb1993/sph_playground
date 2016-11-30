@@ -4,17 +4,24 @@ module circuit1
 
   implicit none
 
-  public :: c1, c1a
+  public :: c1_init, c1, c1a
 
   private
+    real, save, allocatable :: slnint(:), resid(:)
 contains
+  subroutine c1_init(n)
+    integer, intent(in) :: n
+
+    allocate(slnint(n))
+    allocate(resid(n))
+  end subroutine c1_init
 
   subroutine c1(n, pos, mas, sk, sln, den, om)
     integer, intent(in) :: n
     real, intent(in)    :: pos(3,n), mas(n), sk
     real, intent(out)   :: sln(n), den(n), om(n)
     real                :: w, dwdh, r(3), dr, r2, dfdh, fh, hn, kr
-    real                :: allowerror, slnint(n), resid(n)
+    real                :: allowerror!, slnint(n), resid(n)
     integer             :: i, j, dim, iter
 
     call get_dim(dim)

@@ -11,18 +11,17 @@ module IC
 
 contains
 
-  subroutine setup(tt, kt, dim, nx, n, sk, g, cv, &
-    pspc1, pspc2, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, &
+  subroutine setup(tt, kt, dim, nx, n, sk, g, cv, pspc1, pspc2, &
     pos, vel, acc, mas, den, sln, prs, uie, cf, kcf, dcf)
     character(len=*), intent(in) :: tt, kt
     integer, intent(in)  :: nx, dim
     real, intent(in)     :: sk, g, cv
-    real, intent(in)     :: brdx1, brdx2, brdy1, brdy2, brdz1, brdz2
     real, intent(out)    :: pos(3,nx), vel(3,nx), acc(3,nx),&
                             mas(nx), den(nx), sln(nx), prs(nx), uie(nx), cf(nx), kcf(nx), dcf(nx)
     real, intent(inout)  :: pspc1, pspc2
     integer, intent(out) :: n
-    real                 :: prs1, prs2, rho1, rho2, k1, k2, x, y, z, sp, spx, spy, spz
+    real                 :: prs1, prs2, rho1, rho2, k1, k2, x, y, z, sp, spx, spy, spz, &
+                            brdx1, brdx2, brdy1, brdy2, brdz1, brdz2
     integer              :: i, j, k, nb, ix, iy, iz, bdx, bdy, bdz, ibx, iby, ibz, &
                             nbnewX1, nbnewY1, nbnewZ1, nbnewX2, nbnewY2, nbnewZ2, freeflag, freenumber, &
                             brdarrX1(nx), brdarrY1(nx), brdarrZ1(nx), brdarrX2(nx), &
@@ -33,6 +32,12 @@ contains
     call set_kerntype(kt)
 
     nb = 0
+    brdx1 = 0
+    brdx2 = 0
+    brdy1 = 0
+    brdy2 = 0
+    brdz1 = 0
+    brdz2 = 0
     rho1 = 1.
     rho2 = 1.
     prs1 = 1.
@@ -50,7 +55,23 @@ contains
     case ('infslb')
       nb = 1
     case ('hc-sinx')
-      nb = 2
+      nb = 3
+      brdx1 = -1.
+      brdx2 = 1.
+      if (dim > 1) then
+        brdy1 = -0.25
+        brdy2 = 0.25
+      else
+        brdy1 = 0.
+        brdy2 = 0.
+      end if
+      if (dim == 3) then
+        brdz1 = -0.25
+        brdz2 = 0.25
+      else
+        brdz1 = 0.
+        brdz2 = 0.
+      end if
     end select
 
     n = 1
@@ -122,12 +143,27 @@ contains
     else
       ix = int((brdx2-brdx1)/pspc1)
       spx = merge(0.,(brdx2-brdx1)/ix, ix == 0)
+      if (dim > 1) then
+        brdy1 = - spx * 5
+        brdy2 = spx * 5
+      else
+        brdy1 = 0.
+        brdy2 = 0.
+      end if
+      if (dim == 3) then
+        brdz1 = - spx * 5
+        brdz2 = spx * 5
+      else
+        brdz1 = 0.
+        brdz2 = 0.
+      end if
       iy = int((brdy2-brdy1)/pspc1)
       spy = merge(0.,(brdy2-brdy1)/iy, iy == 0)
       iz = int((brdz2-brdz1)/pspc1)
       spz = merge(0.,(brdz2-brdz1)/iz, iz == 0)
       pspc1 = spx
       pspc2 = spx
+
       if (nb > 0) then
         bdx = nb
         bdy = merge(nb, 0, dim > 1)

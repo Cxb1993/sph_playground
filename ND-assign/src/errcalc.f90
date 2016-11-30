@@ -1,15 +1,42 @@
 module err_calc
   use omp_lib
   use BC
+  use kernel
 
   implicit none
 
-  public :: err_T0sxsyet, err_infplate, err_sinxet
+  public :: err_init, err_T0sxsyet, err_infplate, err_sinxet
 
   private
-  real, parameter     :: pi = 4.*atan(1.)
+  save
+  real, parameter   :: pi = 4.*atan(1.)
+  real, allocatable :: tsin(:)
 
 contains
+  subroutine err_init(n, pos)
+    integer, intent(in) :: n
+    real, intent(in)    :: pos(3,n)
+    integer             :: tt, i
+
+    allocate(tsin(n))
+
+    call get_tasktype(tt)
+
+    select case(tt)
+    case(1)
+      ! 'hydroshock'
+    case(2)
+      ! 'infslb'
+    case(3)
+      ! 'hc-sinx'
+      do i=1,n
+        tsin(i) = sin(pi * (pos(1,i) + 1.))
+      end do
+    end select
+
+
+  end subroutine err_init
+
   subroutine err_T0sxsyet(n, pos, num, t, err)
     integer, intent(in) :: n
     real, intent(in)    :: pos(3,n), num(n), t
@@ -28,19 +55,20 @@ contains
     !$OMP END PARALLEL
   end subroutine err_T0sxsyet
 
-  subroutine err_sinxet(n, pos, num, t, err)
+  subroutine err_sinxet(n, num, t, err)
     integer, intent(in) :: n
-    real, intent(in)    :: pos(3,n), num(n), t
+    real, intent(in)    :: num(n), t
     real, intent(out)   :: err(n)
 
     integer             :: i
     real                :: exact
 
     !$omp parallel do default(none) &
-    !$omp shared(pos,n,num,err,t) &
+    !$omp shared(n,pos,num,err,t) &
     !$omp private(exact, i)
     do i=1,n
-      exact = sin(pi * (pos(1,i) + 1.)) * exp(-pi**2 * t)
+      exact = tsin(i) * exp(-pi**2 * t)
+      ! exact = sin(pi * (pos(1,i) + 1.)) * exp(-pi**2 * t)
       err(i) = (exact - num(i))**2
     end do
     !$omp end parallel do

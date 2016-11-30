@@ -19,7 +19,7 @@ contains
     real                :: dr, di, dj, qa, qb, qc, n2w, kr, r2
     real                :: nwi(3), nwj(3), r(3), vab(3), urab(3), Pi(3), Pj(3)
     integer             :: i, j, dim
-    character(len=40)   :: tt!, kt
+    integer             :: tt!, kt
 
     call get_dim(dim)
     call get_tasktype(tt)
@@ -41,7 +41,7 @@ contains
           ! if (r2 < (kr * sln(i))**2) then
             dr = sqrt(r2)
             select case (tt)
-            case ('hydroshock')
+            case (1)
               qa = 0.
               qb = 0.
               qc = 0.
@@ -66,16 +66,13 @@ contains
                             0.5 * dot_product((nwi(:) + nwj(:)),urab(:))
 
               dh(i)   = dh(i) + mas(j) * dot_product(vab(:), nwi(:))
-            case ('infslb', 'hc-sinx')
+            case (2, 3)
               call get_n2w(r, sln(i), n2w)
 
               du(i) = du(i) - mas(j) / (den(i) * den(j)) * 2. * kcf(i) * kcf(j) &
                       / (kcf(i) + kcf(j)) * (cf(i) - cf(j)) * n2w
               ! du(i) = du(i) - mas(j) / (den(i) * den(j)) * (kcf(i) + kcf(j)) / 2. &
               !               * (cf(i) - cf(j)) * n2w
-            case default
-              print *, 'Circuit2: There is no such task type: ', tt
-              stop
             end select
           end if
         end if

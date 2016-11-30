@@ -1,5 +1,5 @@
 FC=gfortran
-FFLAGS=-fopenmp -O3 -Wall -fcheck=all -fdefault-real-8 -fdefault-double-8 #-g -fbacktrace -ffpe-trap=invalid
+FFLAGS= -O3 -Wall -fcheck=all -fdefault-real-8 -fdefault-double-8 #-g -fbacktrace -ffpe-trap=invalid
 
 SRC=\
 	args.f90\
@@ -43,7 +43,7 @@ infslb3:
 	make && time ./execute 3 infslb 0.1 runresult.info fab
 
 hc-sinx1:
-	make && time ./execute 3 hc-sinx 0.1 runresult.info fab -1 1 .5
+	make && time ./execute 1 hc-sinx 0.1 runresult.info fab -1 1 .5
 
 .PHONY: execute
 

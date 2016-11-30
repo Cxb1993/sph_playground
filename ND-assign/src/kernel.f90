@@ -8,12 +8,14 @@ module kernel
             get_n2w, get_krad !get_n2y, get_dphi_dh,
 
   private
-    integer, save            :: dim = 1
-    real, parameter          :: pi = 4.*atan(1.)
-    character (len=40), save :: ttype, ktype
+    integer, save   :: dim = 1
+    real, parameter :: pi = 4.*atan(1.)
+    integer, save   :: ttype, ktype
 
  contains
-  !  GetterSetter accecc methods
+   !
+   !-- GetterSetter access
+   !
    subroutine set_dim(d)
      integer, intent(in) :: d
      dim = d
@@ -26,21 +28,39 @@ module kernel
 
    subroutine set_tasktype(itt)
      character (len=*), intent(in) :: itt
-     ttype = itt
+     select case(itt)
+     case('hydroshock')
+       ttype = 1
+     case('infslb')
+       ttype = 2
+     case('hc-sinx')
+       ttype = 3
+     case default
+       print *, 'Task type not set: ', itt
+       stop
+     end select
    end subroutine set_tasktype
 
    subroutine get_tasktype(ott)
-     character (len=*), intent(out) :: ott
+     integer, intent(out) :: ott
      ott = ttype
    end subroutine get_tasktype
 
    subroutine set_kerntype(itt)
      character (len=*), intent(in) :: itt
-     ktype = itt
+     select case(itt)
+     case('n2w')
+       ktype = 1
+     case('fab')
+       ktype = 2
+     case default
+       print *, 'Kernel type not set: ', itt
+       stop
+     end select
    end subroutine set_kerntype
 
    subroutine get_kerntype(ott)
-     character (len=*), intent(out) :: ott
+     integer, intent(out) :: ott
      ott = ktype
    end subroutine get_kerntype
 
@@ -102,13 +122,10 @@ subroutine get_n2w(r, h, n2w)
   real, intent(in)  :: r(3), h
   real, intent(out) :: n2w
 
-  if (ktype == 'n2w') then
+  if (ktype == 1) then
     call get_on2w(sqrt(dot_product(r,r)), h, n2w)
-  else if (ktype == 'fab') then
+  else if (ktype == 2) then
     call get_Fab(r, h, n2w)
-  else
-    print *, 'Kernel: type not chosen'
-    stop
   end if
 end subroutine get_n2w
 
