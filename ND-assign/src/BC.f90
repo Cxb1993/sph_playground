@@ -82,26 +82,46 @@ contains
     end select
   end subroutine periodic1
 
-  subroutine periodic3(A, axe, dim)
-    integer, intent(in) :: axe, dim
+  subroutine periodic3(A, axis, dim)
+    integer, intent(in) :: axis, dim
     real, intent(out)   :: A(3,ns)
+    integer             :: i
 
-    select case(axe)
+    select case(axis)
+    case (00)
+      if (size(borderX1) /= 1) then
+        do i = 1, size(borderX1)
+          A(:,borderX1(i)) = A(:,borderX2(i) - (nbrd + 1) * ny * nz)
+          A(:,borderX2(i)) = A(:,borderX1(i) + (nbrd + 1) * ny * nz)
+        end do
+      end if
+      if (size(borderY1) /= 1) then
+        do i = 1, size(borderY1)
+          A(:,borderY1(i)) = A(:,borderY2(i) - (nbrd + 1) * nz)
+          A(:,borderY2(i)) = A(:,borderY1(i) + (nbrd + 1) * nz)
+        end do
+      end if
+      if (size(borderZ1) /= 1) then
+        do i = 1, size(borderZ1)
+          A(:,borderZ1(i)) = A(:,borderZ2(i) - (nbrd + 1))
+          A(:,borderZ2(i)) = A(:,borderZ1(i) + (nbrd + 1))
+        end do
+      end if
     case (10)
-      A(:,borderX1) = A(:,borderX2 - nbrd)
-      A(:,nbrd + borderX1) = A(:,borderX2)
-    case (1)
-      A(dim,borderX1) = A(dim,borderX2 - nbrd)
-      A(dim,nbrd + borderX1) = A(dim,borderX2)
+      do i = 1, size(borderX1)
+        A(:,borderX1(i)) = A(:,borderX2(i) - (nbrd + 1) * ny * nz)
+        A(:,borderX2(i)) = A(:,borderX1(i) + (nbrd + 1) * ny * nz)
+      end do
     case (20)
-      A(:,borderY1) = A(:,borderY2 - nbrd)
-      A(:,nbrd + borderY1) = A(:,borderY2)
-    case (2)
-      A(dim,borderY1) = A(dim,borderY2 - nbrd)
-      A(dim,nbrd + borderY1) = A(dim,borderY2)
-    case (3)
-      A(dim,borderZ1) = A(dim,borderZ2 - nbrd)
-      A(dim,nbrd + borderZ1) = A(dim,borderZ2)
+      do i = 1, size(borderY1)
+        A(:,borderY1(i)) = A(:,borderY2(i) - (nbrd + 1) * nz)
+        A(:,borderY2(i)) = A(:,borderY1(i) + (nbrd + 1) * nz)
+      end do
+    case (30)
+      do i = 1, size(borderZ1)
+        A(:,borderZ1(i)) = A(:,borderZ2(i) - (nbrd + 1))
+        A(:,borderZ2(i)) = A(:,borderZ1(i) + (nbrd + 1))
+      end do
     end select
   end subroutine periodic3
 

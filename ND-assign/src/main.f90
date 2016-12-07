@@ -6,44 +6,39 @@ program main
   use printer
   use err_calc
   use args,     only:fillargs
-  use bias,     only:ex22
+  use bias,     only:get_chi
   use circuit1, only:c1_init
 
   implicit none
 
   real                :: sk = 1.2
-  integer, parameter  :: nmax = 400000
   real                :: cv = 1.
   real                :: gamma = 1.4
   integer             :: n, dim
   character (len=40)  :: itype, errfname, ktype
 
-  real, allocatable, dimension(:,:) :: position, velocity, acceleration
-  real :: density(nmax), slength(nmax), pressure(nmax), mass(nmax), ienergy(nmax), dienergy(nmax), omega(nmax)
-  real :: coupledfield(nmax), kcoupledfield(nmax), dcoupledfield(nmax)
-
   real                              :: dt, t, dtout, ltout, tfinish, error(11), npic, pspc1, pspc2
   integer                           :: iter, tt
   real, allocatable, dimension(:,:) :: p, v, a
-  real, allocatable, dimension(:,:) :: pos, vel, acc
-  real, allocatable, dimension(:)   :: den, prs, mas, ieu, diu, o, du, c, h, dh, tdh
-  real, allocatable, dimension(:)   :: cf, tcf, dcf, kcf, err, ex
-
-  allocate(position(3,nmax))
-  allocate(velocity(3,nmax))
-  allocate(acceleration(3,nmax))
+  real, allocatable, dimension(:,:) :: pos, vel, acc, chi
+  real, allocatable, dimension(:)   :: den, prs, mas, iu, du, o, c, h, dh, &
+                                       cf, dcf, kcf, tdu, tdh, tcf, err
 
   print *, '#######################'
-  print *, '##'
+  print *, '#####'
+
   call fillargs(dim, pspc1, pspc2,&
                 itype, ktype, errfname, dtout, npic, tfinish)
 
-  call setup(itype, ktype, dim, nmax, n, sk, gamma, cv, &
-                pspc1, pspc2, position, velocity, acceleration, &
-                mass, density, slength, pressure, ienergy, coupledfield, kcoupledfield, dcoupledfield)
-  print *, '##'
+  sk = merge(1.2, -tfinish, tfinish > 0)
+  tfinish = merge(tfinish, -1., tfinish > 0)
+
+  call setup(itype, ktype, dim, n, sk, gamma, cv, &
+                pspc1, pspc2, pos, vel, acc, &
+                mas, den, h, prs, iu, du, cf, kcf, dcf)
+
+  print *, '#####'
   print *, '#######################'
-  read *
 
   call get_tasktype(tt)
 
@@ -53,41 +48,27 @@ program main
   t = 0.
   dt = 0.
   ltout = 0.
+  p = pos
+  v = vel
+  a = acc
 
-  pos = position(:,1:n)
-  p   = pos(:,:)
-  vel = velocity(:,1:n)
-  v   = vel(:,:)
-  acc = acceleration(:,1:n)
-  a   = acc(:,:)
-  deallocate(position)
-  deallocate(velocity)
-  deallocate(acceleration)
-  den = density(1:n)
-  h   = slength(1:n)
-  prs = pressure(1:n)
-  mas = mass(1:n)
-  ieu = ienergy(1:n)
-  diu = dienergy(1:n)
-  du  = diu(:)
-  o   = omega(1:n)
-  allocate(c(1:n))
-  c(:)= cv
-  allocate(dh(1:n))
-  dh  = 0
-  tdh = dh
-  cf  = coupledfield(1:n)
-  tcf = coupledfield(1:n)
-  allocate(dcf(1:n))
-  dcf = dcoupledfield(1:n)
-  kcf = kcoupledfield(1:n)
   allocate(err(1:n))
-  allocate(ex(1:n))
+  allocate(chi(3,n))
+  allocate(c(n))
+  c(:) = cv
+  allocate(tdu(n))
+  allocate(dh(n))
+  dh(:) = 0
+  allocate(tdh(n))
+  allocate(tcf(n))
+
+  read *
 
   call err_init(n, pos)
   call c1_init(n)
 
   do while (t <= tfinish)
+    print *, t
     select case(tt)
     case(1)
       ! 'hydroshock'
@@ -97,40 +78,36 @@ program main
       dt = .144 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
     case(3)
       ! 'hc-sinx'
-      dt = .144 * minval(den) * minval(c) * minval(h) ** 4 / maxval(kcf)
+      dt = .144 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
       call err_sinxet(n, cf, t, err)
     end select
 
-    ! if (t > 2.5e-2) then
-    !  print *, "dt: ", dt, minval(den), minval(c), minval(h)**6, maxval(kcf)
-    ! end if
-
     if (t >= ltout) then
       print *, iter, t, sqrt(sum(err)/n)
-      call print_output(n, t, pos, vel, acc, mas, den, h, prs, ieu, cf, sqrt(err))
+      call print_output(n, t, pos, vel, acc, mas, den, h, prs, iu, cf, sqrt(err))
       ltout = ltout + dtout
     end if
 
     p(:,:) = pos(:,:)
     v(:,:) = vel(:,:)
     a(:,:) = acc(:,:)
-    du(:)  = diu(:)
+    tdu(:) = du(:)
     tdh(:) = dh(:)
     tcf(:) = dcf(:)
 
     pos(:,:) = p(:,:) + dt * v(:,:) + 0.5 * dt * dt * a(:,:)
     vel(:,:) = v(:,:) + dt * a(:,:)
-    ieu(:)   = ieu(:) + dt * diu(:)
+    iu(:)   = iu(:) + dt * du(:)
     h(:)     = h(:)   + dt *  dh(:)
     ! cf(:)    = cf(:)  + dt * dcf(:)
 
     call iterate(n, sk, gamma, &
                 pos, vel, acc, &
-                mas, den, h, dh, o, prs, c, ieu, diu, &
+                mas, den, h, dh, o, prs, c, iu, du, &
                 cf, dcf, kcf)
 
     vel(:,:) = vel(:,:) + 0.5 * dt * (acc(:,:) - a(:,:))
-    ieu(:)   = ieu(:)   + 0.5 * dt * (diu(:) - du(:))
+    iu(:)   = iu(:)   + 0.5 * dt * (du(:) - tdu(:))
     h(:)     = h(:)     + 0.5 * dt * (dh(:) - tdh(:))
 
     select case(tt)
@@ -139,7 +116,7 @@ program main
       cf(:) = cf(:)     + 0.5 * dt * (dcf(:) - tcf(:))
     case(2, 3)
       ! 'infslb', 'hc-sinx'
-      cf(:) = ieu(:) / cv
+      cf(:) = iu(:) / cv
     end select
 
     t = t + dt
@@ -147,21 +124,41 @@ program main
 
     if ((t-dt/2<tfinish*1/3).and.(tfinish*1/3<t+dt/2)) then
       error(3) = sqrt(sum(err)/n)
-      call ex22(n, mas, den, pos, h, ex)
-      call periodic1(ex, 1)
-      error(4) = sum(ex)/n
+      call get_chi(n, mas, den, pos, h, chi)
+      call periodic1(chi, 1)
+      error(4) = sum(chi)/n/dim
       error(5) = t
     else if ((t-dt/2<tfinish*2/3).and.(tfinish*2/3<t+dt/2)) then
       error(6) = sqrt(sum(err)/n)
-      call ex22(n, mas, den, pos, h, ex)
-      error(7) = sum(ex)/n
+      call get_chi(n, mas, den, pos, h, chi)
+      error(7) = sum(chi)/n/dim
       error(8) = t
     end if
   end do
 
-  error(9) = sqrt(sum(err)/n)
-  call ex22(n, mas, den, pos, h, ex)
-  error(10) = sum(ex)/n
-  error(11) = t
-  call plot_simple(11, error, errfname)
+  if (t == .0) then
+    select case(tt)
+    case(1)
+      ! 'hydroshock'
+    case(2)
+      ! 'infslb'
+    case(3)
+      ! 'hc-sinx'
+      call err_sinxet(n, cf, t, err)
+    end select
+    call get_chi(n, mas, den, pos, h, chi)
+    call periodic3(chi, 00, 0)
+    call print_output(n, t, pos, chi, acc, mas, den, h, prs, iu, cf, sqrt(err))
+    error(3) = sqrt(sum(err)/n)
+    error(4) = sum(chi)/n/dim
+    error(5) = sk
+
+    call print_appendline(5, error, errfname)
+  else
+    error(9) = sqrt(sum(err)/n)
+    call get_chi(n, mas, den, pos, h, chi)
+    error(10) = sum(chi)/n/dim
+    error(11) = t
+    call print_appendline(11, error, errfname)
+  end if
 end program main

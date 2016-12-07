@@ -1,7 +1,7 @@
 module printer
   implicit none
 
-  public :: print_output, plot_simple
+  public :: print_output, print_appendline
 
   private
 
@@ -27,7 +27,7 @@ contains
     ifile = ifile + 1
   end subroutine print_output
 
-  subroutine plot_simple(n, A, fname)
+  subroutine print_appendline(n, A, fname)
     integer           :: n
     real, intent(in)  :: A(n)
     character (len=*), intent(in) :: fname
@@ -36,5 +36,5 @@ contains
     open(newunit=iu, file=fname, status='old', form='formatted', access='append')
     write(iu, *) A
     close(iu)
-  end subroutine plot_simple
+  end subroutine print_appendline
 end module printer

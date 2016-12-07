@@ -64,7 +64,7 @@ contains
     real                :: exact
 
     !$omp parallel do default(none) &
-    !$omp shared(n,pos,num,err,t) &
+    !$omp shared(n,tsin,num,err,t) &
     !$omp private(exact, i)
     do i=1,n
       exact = tsin(i) * exp(-pi**2 * t)

@@ -1,21 +1,20 @@
 #!/bin/bash
 
-dim='2'
+dim='1'
 tasktype='hc-sinx'
-# spacing='0.2 0.19 0.2 0.19'
 ktype='n2w fab'
-kbase='q c'
+kbase='c q'
 storebase=`pwd`
 dtprefix=`date +%Y%m%d%H%M`
 
-tfinish='.5'
+tfinish='.0'
 
-spstart=0.2
-spend=0.02
-spstep=0.01
+spstart='0.2'
+spend='0.00'
+spstep='0.01'
+flag='1'
+spacing=$spstart
 tstep=$spstart
-flag=1
-spacing=""
 while [[ $flag -eq "1" ]]; do
   spacing=$spacing" "$tstep
   tstep=`echo "$tstep - $spstep" | bc`

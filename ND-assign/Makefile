@@ -1,5 +1,5 @@
 FC=gfortran
-FFLAGS= -O3 -Wall -fcheck=all -fdefault-real-8 -fdefault-double-8 #-g -fbacktrace -ffpe-trap=invalid
+FFLAGS=-fdefault-real-8 -fdefault-double-8 -Ofast -Wall -fcheck=all -fopenmp #-g -fbacktrace -ffpe-trap=invalid
 
 SRC=\
 	args.f90\
@@ -36,14 +36,17 @@ hydroshock3:
 	make && time ./execute 3 hydroshock 0.1 runresult.info fab
 
 infslb1:
-	make && time ./execute 1 infslb 0.1 runresult.info fab -1 1 5
+	make && time ./execute 1 infslb 0.1 runresult.info fab 5
 infslb2:
 	make && time ./execute 2 infslb 0.1 runresult.info fab
 infslb3:
 	make && time ./execute 3 infslb 0.1 runresult.info fab
 
 hc-sinx1:
-	make && time ./execute 1 hc-sinx 0.1 runresult.info fab -1 1 .5
+	make && time ./execute 1 hc-sinx 0.1 runresult.info fab .5
+
+chi-only:
+	make && time ./execute 1 hc-sinx 0.002 runresult.info fab -1.5
 
 .PHONY: execute
 

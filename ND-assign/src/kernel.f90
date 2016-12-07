@@ -5,7 +5,7 @@ module kernel
 
   public :: set_dim, get_nw, get_dw_dh, get_w, get_dim, &
             set_tasktype, get_tasktype, set_kerntype, get_kerntype, &
-            get_n2w, get_krad !get_n2y, get_dphi_dh,
+            get_n2w, get_n2iw, get_krad !get_n2y, get_dphi_dh,
 
   private
     integer, save   :: dim = 1
@@ -118,30 +118,53 @@ module kernel
     n2w = knorm(dim)*(ddf + (dim - 1) * df)/h**(dim+2)
   end subroutine get_on2w
 
-subroutine get_n2w(r, h, n2w)
-  real, intent(in)  :: r(3), h
-  real, intent(out) :: n2w
+  subroutine get_on2iw(r, h, n2w, i)
+    real, intent(in)    :: r(3), h
+    integer, intent(in) :: i
+    real, intent(out)   :: n2w
+    real                :: r2, dr, km, df, ddf
 
-  if (ktype == 1) then
-    call get_on2w(sqrt(dot_product(r,r)), h, n2w)
-  else if (ktype == 2) then
-    call get_Fab(r, h, n2w)
-  end if
-end subroutine get_n2w
+    r2 = dot_product(r,r)
+    dr = sqrt(r2)
+    km = r(i)*r(i)/r2
+    call kddf(dr, h, ddf)
+    call kdf(dr, h, df)
+    n2w = knorm(dim)*(ddf*km + (1 - km) * df)/h**(dim+2)
+  end subroutine get_on2iw
 
-  ! subroutine get_kernel_phi(r, h, phi)
-  !   real, intent(in)  :: r, h
-  !   real, intent(out) :: phi
-  !
-  !   phi = 1./h * (1. + (r/h)**2)**(1./2.)
-  ! end subroutine get_kernel_phi
-  !
-  ! subroutine get_dphi_dh(r, h, dphidh)
-  !   real, intent(in)  :: r, h
-  !   real, intent(out) :: dphidh
-  !   real              :: phi
-  !
-  !   call get_kernel_phi(r, h, phi)
-  !   dphidh = - 1./h * phi - r**2/(h**5 * phi)
-  ! end subroutine get_dphi_dh
+  subroutine get_Fabi(r, h, Fab, i)
+    real, intent(in)    :: r(3), h
+    integer, intent(in) :: i
+    real, intent(out)   :: Fab
+    real                :: nw(3)
+
+    call get_nw(r, h, nw)
+    Fab = nw(i)
+    nw(:) = 0.
+    nw(i) = Fab
+    Fab = -2. * dot_product(r,nw)/dot_product(r,r)
+  end subroutine get_Fabi
+
+  subroutine get_n2w(r, h, n2w)
+    real, intent(in)  :: r(3), h
+    real, intent(out) :: n2w
+
+    if (ktype == 1) then
+      call get_on2w(sqrt(dot_product(r,r)), h, n2w)
+    else if (ktype == 2) then
+      call get_Fab(r, h, n2w)
+    end if
+  end subroutine get_n2w
+
+  subroutine get_n2iw(r, h, n2w, i)
+    real, intent(in)    :: r(3), h
+    integer, intent(in) :: i
+    real, intent(out)   :: n2w
+
+    if (ktype == 1) then
+      call get_on2iw(r, h, n2w, i)
+    else if (ktype == 2) then
+      call get_Fabi(r, h, n2w, i)
+    end if
+  end subroutine get_n2iw
 end module kernel
