@@ -17,13 +17,14 @@ contains
   end subroutine c1_init
 
   subroutine c1(n, pos, mas, sk, sln, den, om)
+    real, allocatable, intent(in)    :: pos(:,:), mas(:)
+    real, allocatable, intent(inout) :: sln(:), den(:), om(:)
+    real, intent(in)    :: sk
     integer, intent(in) :: n
-    real, intent(in)    :: pos(3,n), mas(n), sk
-    real, intent(out)   :: sln(n), den(n), om(n)
     real                :: w, dwdh, r(3), dr, r2, dfdh, fh, hn, kr
     real                :: allowerror!, slnint(n), resid(n)
     integer             :: i, j, dim, iter
-
+    ! print *, '--------0 c1'
     call get_dim(dim)
     call get_krad(kr)
 
@@ -33,14 +34,12 @@ contains
     iter = 0
     do while ((maxval(resid, mask=(resid>0)) > allowerror) .and. (iter < 100))
       iter = iter + 1
-      ! print *, maxval(resid, mask=(resid>0)), iter
-      ! print *, resid
-      ! read *
       !$omp parallel do default(none)&
       !$omp private(r, dr, dwdh, w, dfdh, fh, hn, j, i, r2)&
       !$omp shared(resid, allowerror, den, om, n, pos, slnint, mas, dim, sk, sln, kr)
       do i = 1, n
         if (resid(i) > allowerror) then
+          ! print *,'BEFORE', i, den(i)
           den(i) = 0.
           om(i) = 0.
           do j = 1, n
@@ -51,10 +50,10 @@ contains
               call get_dw_dh(dr, slnint(i), dwdh)
               call get_w(dr, slnint(i), w)
               den(i) = den(i) + mas(j) * w
-              ! print *, 'in sum: ', mas(j) * w, 'mas: ', mas(j), 'kernel: ', w
               om(i) = om(i) + mas(j) * dwdh
             end if
           end do
+          ! print *, 'AFTER', i, den(i)
           om(i) = 1. - om(i) * (- slnint(i) / (dim * den(i)))
           dfdh = - dim * den(i) * om(i) / slnint(i)
           fh  = mas(i) * (sk / slnint(i)) ** dim - den(i)

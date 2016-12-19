@@ -13,15 +13,15 @@ program main
 
   real                :: sk = 1.2
   real                :: cv = 1.
-  real                :: gamma = 1.4
   integer             :: n, dim
   character (len=40)  :: itype, errfname, ktype
 
-  real                              :: dt, t, dtout, ltout, tfinish, error(11), npic, pspc1, pspc2
+  real                              :: dt, t, dtout, ltout, tfinish, error(11), npic,&
+                                       pspc1, pspc2, gamma
   integer                           :: iter, tt
   real, allocatable, dimension(:,:) :: p, v, a
-  real, allocatable, dimension(:,:) :: pos, vel, acc, chi
-  real, allocatable, dimension(:)   :: den, prs, mas, iu, du, o, c, h, dh, &
+  real, allocatable, dimension(:,:) :: pos, vel, dv, chi
+  real, allocatable, dimension(:)   :: den, prs, mas, iu, du, om, c, h, dh, &
                                        cf, dcf, kcf, tdu, tdh, tcf, err
 
   print *, '#######################'
@@ -34,7 +34,7 @@ program main
   tfinish = merge(tfinish, -1., tfinish > 0)
 
   call setup(itype, ktype, dim, n, sk, gamma, cv, &
-                pspc1, pspc2, pos, vel, acc, &
+                pspc1, pspc2, pos, vel, dv, &
                 mas, den, h, prs, iu, du, cf, kcf, dcf)
 
   print *, '#####'
@@ -48,10 +48,11 @@ program main
   t = 0.
   dt = 0.
   ltout = 0.
+  iter = 0.
+
   p = pos
   v = vel
-  a = acc
-
+  a = dv
   allocate(err(1:n))
   allocate(chi(3,n))
   allocate(c(n))
@@ -61,6 +62,7 @@ program main
   dh(:) = 0
   allocate(tdh(n))
   allocate(tcf(n))
+  allocate(om(n))
 
   read *
 
@@ -68,7 +70,8 @@ program main
   call c1_init(n)
 
   do while (t <= tfinish)
-    print *, t
+    ! print *, '--0'
+    ! print *, t
     select case(tt)
     case(1)
       ! 'hydroshock'
@@ -80,43 +83,54 @@ program main
       ! 'hc-sinx'
       dt = .144 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
       call err_sinxet(n, cf, t, err)
+    case(4)
+      ! 'photoevaporation' 'pheva'
+      dt = .3e-3 * minval(h)**2 / maxval(c)**2 / maxval(kcf) / maxval(cf)
+    case default
+      print *, 'Task type time increment was not defined'
+      stop
     end select
 
     if (t >= ltout) then
-      print *, iter, t, sqrt(sum(err)/n)
-      call print_output(n, t, pos, vel, acc, mas, den, h, prs, iu, cf, sqrt(err))
+      print *, iter, t, dt
+      call print_output(n, t, pos, vel, dv, mas, den, h, prs, iu, cf, sqrt(err))
       ltout = ltout + dtout
     end if
 
     p(:,:) = pos(:,:)
     v(:,:) = vel(:,:)
-    a(:,:) = acc(:,:)
+    a(:,:) = dv(:,:)
     tdu(:) = du(:)
     tdh(:) = dh(:)
     tcf(:) = dcf(:)
 
     pos(:,:) = p(:,:) + dt * v(:,:) + 0.5 * dt * dt * a(:,:)
     vel(:,:) = v(:,:) + dt * a(:,:)
-    iu(:)   = iu(:) + dt * du(:)
+    iu(:)    = iu(:) + dt * du(:)
     h(:)     = h(:)   + dt *  dh(:)
-    ! cf(:)    = cf(:)  + dt * dcf(:)
+    if (tt == 4) then
+      cf(:)    = cf(:)  + dt * dcf(:)
+    end if
 
     call iterate(n, sk, gamma, &
-                pos, vel, acc, &
-                mas, den, h, dh, o, prs, c, iu, du, &
+                pos, vel, dv, &
+                mas, den, h, dh, om, prs, c, iu, du, &
                 cf, dcf, kcf)
 
-    vel(:,:) = vel(:,:) + 0.5 * dt * (acc(:,:) - a(:,:))
+    vel(:,:) = vel(:,:) + 0.5 * dt * (dv(:,:) - a(:,:))
     iu(:)   = iu(:)   + 0.5 * dt * (du(:) - tdu(:))
     h(:)     = h(:)     + 0.5 * dt * (dh(:) - tdh(:))
 
     select case(tt)
-    case(1)
+    case(1, 4)
       ! 'hydroshock'
       cf(:) = cf(:)     + 0.5 * dt * (dcf(:) - tcf(:))
     case(2, 3)
       ! 'infslb', 'hc-sinx'
       cf(:) = iu(:) / cv
+    case default
+      print *, 'Task type was not sen in couples field integration'
+      stop
     end select
 
     t = t + dt
@@ -134,6 +148,7 @@ program main
       error(7) = sum(chi)/n/dim
       error(8) = t
     end if
+    ! print *, '--1'
   end do
 
   if (t == .0) then
@@ -148,7 +163,7 @@ program main
     end select
     call get_chi(n, mas, den, pos, h, chi)
     call periodic3(chi, 00, 0)
-    call print_output(n, t, pos, chi, acc, mas, den, h, prs, iu, cf, sqrt(err))
+    call print_output(n, t, pos, chi, dv, mas, den, h, prs, iu, cf, sqrt(err))
     error(3) = sqrt(sum(err)/n)
     error(4) = sum(chi)/n/dim
     error(5) = sk

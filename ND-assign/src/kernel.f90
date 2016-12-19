@@ -1,6 +1,7 @@
 module kernel
-  use cubic
+  ! use cubic
   ! use quintic
+  use kernel_external
   implicit none
 
   public :: set_dim, get_nw, get_dw_dh, get_w, get_dim, &
@@ -35,6 +36,8 @@ module kernel
        ttype = 2
      case('hc-sinx')
        ttype = 3
+     case('pheva')
+       ttype = 4
      case default
        print *, 'Task type not set: ', itt
        stop
@@ -75,7 +78,7 @@ module kernel
     real              :: f
 
     call kf(r, h, f)
-    f = knorm(dim)* f
+    f = knorm(dim) * f
     w = f / h ** dim
   end subroutine get_w
 
