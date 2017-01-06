@@ -7,10 +7,11 @@ FFLAGS=-fdefault-real-8 -fdefault-double-8\
 
 SRC=\
 	args.f90\
-	kernel_cubic.f90\
-	kernel_quintic.f90\
-	kernel_external.f90\
-	kernel.f90\
+	kernel/base_cubic.f90\
+	kernel/base_quintic.f90\
+	kernel/base_external.f90\
+	kernel/base_gaus.f90\
+	kernel/kernel.f90\
 	printer.f90\
 	eos.f90\
 	BC.f90\
@@ -31,10 +32,12 @@ SUBOBJ=$(addprefix obj/, $(OBJ))
 %.o : src/%.f90
 	@mkdir -p obj
 	$(FC) $(FFLAGS) -J mod/ -o obj/$@ -c $<
-
 IC/%.o : src/IC/%.f90
 	@mkdir -p obj/IC
 	@mkdir -p mod
+	$(FC) $(FFLAGS) -J mod/ -o obj/$@ -c $<
+kernel/%.o : src/kernel/%.f90
+	@mkdir -p obj/kernel
 	$(FC) $(FFLAGS) -J mod/ -o obj/$@ -c $<
 
 execute: $(OBJ)

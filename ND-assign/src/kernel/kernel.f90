@@ -1,7 +1,8 @@
 module kernel
   ! use cubic
   ! use quintic
-  use kernel_external
+  use gaus
+  ! use external
   implicit none
 
   public :: set_dim, get_nw, get_dw_dh, get_w, get_dim, &
@@ -60,6 +61,7 @@ module kernel
        print *, 'Kernel type not set: ', itt
        stop
      end select
+     call calc_params()
    end subroutine set_kerntype
 
    subroutine get_kerntype(ott)
