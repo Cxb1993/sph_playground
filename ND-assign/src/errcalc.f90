@@ -63,12 +63,14 @@ contains
     integer             :: i
     real                :: exact
 
+    ! print *, maxval(num)
     !$omp parallel do default(none) &
     !$omp shared(n,tsin,num,err,t) &
     !$omp private(exact, i)
     do i=1,n
       exact = tsin(i) * exp(-pi**2 * t)
       ! exact = sin(pi * (pos(1,i) + 1.)) * exp(-pi**2 * t)
+      ! print *, maxval(num), minval(num), num(i), n
       err(i) = (exact - num(i))**2
     end do
     !$omp end parallel do

@@ -11,6 +11,7 @@ SRC=\
 	kernel/base_quintic.f90\
 	kernel/base_external.f90\
 	kernel/base_gaus.f90\
+	kernel/n2movedgaus.f90\
 	kernel/kernel.f90\
 	printer.f90\
 	eos.f90\
@@ -18,13 +19,14 @@ SRC=\
 	utils.f90\
 	IC/uniform.f90\
 	IC/semiuniform.f90\
-	IC.f90\
+	IC/IC.f90\
 	circuit1.f90\
 	circuit2.f90\
 	errcalc.f90\
 	bias.f90\
 	iterator.f90\
 	main.f90
+
 OBJ=$(SRC:.f90=.o)
 SUBSRC=$(addprefix src/, $(SRC))
 SUBOBJ=$(addprefix obj/, $(OBJ))

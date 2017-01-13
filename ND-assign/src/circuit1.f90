@@ -55,6 +55,7 @@ contains
           end do
           ! print *, 'AFTER', i, den(i)
           om(i) = 1. - om(i) * (- slnint(i) / (dim * den(i)))
+          ! print *, den(i), om(i),slnint(i)
           dfdh = - dim * den(i) * om(i) / slnint(i)
           fh  = mas(i) * (sk / slnint(i)) ** dim - den(i)
           hn = slnint(i) - fh / dfdh

@@ -11,7 +11,7 @@ program main
 
   implicit none
 
-  real                :: sk = 1.2
+  real                :: sk = 1.4
   real                :: cv = 1.
   integer             :: n, dim
   character (len=40)  :: itype, errfname, ktype
@@ -30,12 +30,15 @@ program main
   call fillargs(dim, pspc1, pspc2,&
                 itype, ktype, errfname, dtout, npic, tfinish)
 
-  sk = merge(1.2, -tfinish, tfinish > 0)
+  sk = merge(sk, -tfinish, tfinish > 0)
   tfinish = merge(tfinish, -1., tfinish > 0)
 
   call setup(itype, ktype, dim, n, sk, gamma, cv, &
                 pspc1, pspc2, pos, vel, dv, &
                 mas, den, h, prs, iu, du, cf, kcf, dcf)
+  ! print *, 0, -2
+  ! print *, maxval(abs(du))
+
 
   print *, '#####'
   print *, '#######################'
@@ -70,6 +73,7 @@ program main
   call c1_init(n)
 
   do while (t <= tfinish)
+    ! print *, 0, -1
     ! print *, '--0'
     ! print *, t
     select case(tt)
@@ -91,6 +95,8 @@ program main
       stop
     end select
 
+    ! print *, 0, 0
+
     if (t >= ltout) then
       print *, iter, t, dt
       call print_output(n, t, pos, vel, dv, mas, den, h, prs, iu, cf, sqrt(err))
@@ -111,11 +117,15 @@ program main
     if (tt == 4) then
       cf(:)    = cf(:)  + dt * dcf(:)
     end if
-
+    ! print *, 0, 1
+    ! print *, maxval(abs(du))
     call iterate(n, sk, gamma, &
                 pos, vel, dv, &
                 mas, den, h, dh, om, prs, c, iu, du, &
                 cf, dcf, kcf)
+    ! print *, maxval(abs(du))
+    ! print *, 0, 2
+    ! print *, maxval(cf)
 
     vel(:,:) = vel(:,:) + 0.5 * dt * (dv(:,:) - a(:,:))
     iu(:)   = iu(:)   + 0.5 * dt * (du(:) - tdu(:))
@@ -132,6 +142,8 @@ program main
       print *, 'Task type was not sen in couples field integration'
       stop
     end select
+    ! print *, maxval(cf), cv, maxval(iu)
+    ! print *, 0, 3
 
     t = t + dt
     iter = iter + 1
@@ -149,6 +161,7 @@ program main
       error(8) = t
     end if
     ! print *, '--1'
+    ! print *, 0, 4
   end do
 
   if (t == .0) then

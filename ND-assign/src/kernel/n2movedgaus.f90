@@ -1,11 +1,11 @@
-module gaus
+module n2movedgaus
   implicit none
 
-  public :: kf, kdf, kddf, knorm, krad, calc_params
+  public :: n2f, n2df, n2ddf, n2C, n2R!, calc_params
 
   private
     real, parameter :: pi = 4.*atan(1.)
-    real, parameter :: krad = 2.
+    real, parameter :: n2R = 2.
     ! double Q
     ! real :: knorm(3) = (/ 8./sqrt(pi),  &
     !                       16./pi,        &
@@ -23,8 +23,8 @@ module gaus
     ! real :: knorm(3) = (/ 1./(sqrt(pi) - 0.835), &
     !                       1./(pi - 0.115),     &
     !                       1./(pi**(3./2) - .29) /)
-    ! WOOOW
-    real :: knorm(3,2) = reshape( &
+
+    real :: n2C(3,2) = reshape(                       &
                        (/ 3/(sqrt(pi)) - 0.075,       &
                           30./(7.*pi) + 0.01,         &
                           50./(7.*pi**(3./2)) - 0.02, &
@@ -33,39 +33,38 @@ module gaus
                           50./(7.*pi**(3./2)) + 0.1   &
                           /), (/3,2/))
 
-    real, save :: f_err, df_err, ddf_err
-
+ !    real, save :: f_err, df_err, ddf_err
+ !
  contains
-  subroutine calc_params
-    real fa, fr, q
-    ! Where we want to truncate
-    q = krad
-    ! What we have at the truncation point
-    fr = exp(-q**2) * (4 * q**2 - 2)
-    ! What we have to have at the real truncation point ie 'inf'
-    fa = 0
-    ! Make it the same
-    ddf_err = fr - fa
-    ! But with this we change the undercurv volume, so we need to change it back
-    ! Page 26 + something strange
-    fr = (-2*exp(-q**2) - ddf_err/2/krad*q)*q
-    fa = 0
-    df_err  = fr - fa
-
-    fr = exp(-q**2) - (q**2*(ddf_err - 3*df_err))/(6*krad)
-    fa = 0
-    f_err = fr - fa
-
-    ! print *, ddf_err, df_err, f_err
-  end subroutine calc_params
-
-  subroutine kf(r, h, f)
+ !  subroutine calc_params
+ !    real fa, fr, q
+ !    ! Where we want to truncate
+ !    q = krad
+ !    ! What we have at the truncation point
+ !    fr = exp(-q**2) * (4 * q**2 - 2)
+ !    ! What we have to have at the real truncation point ie 'inf'
+ !    fa = 0
+ !    ! Make it the same
+ !    ddf_err = fr - fa
+ !    ! But with this we change the undercurv volume, so we need to change it back
+ !    ! Page 26 + something strange
+ !    fr = (-2*exp(-q**2) - ddf_err/2/krad*q)*q
+ !    fa = 0
+ !    df_err  = fr - fa
+ !
+ !    fr = exp(-q**2) - (q**2*(ddf_err - 3*df_err))/(6*krad)
+ !    fa = 0
+ !    f_err = fr - fa
+ !
+ !    ! print *, ddf_err, df_err, f_err
+ !  end subroutine calc_params
+  subroutine n2f(r, h, f)
     real, intent(in)  :: r, h
     real, intent(out) :: f
     real              :: q
 
     q = r / h
-    if (q >= krad) then
+    if (q >= n2R) then
       f  = 0.
     else if (q >= 0.) then
       ! f  = exp(-q**2)
@@ -78,15 +77,15 @@ module gaus
       print *, 'something went wrong, q =', q
       stop
     end if
-  end subroutine kf
+  end subroutine n2f
 
-  subroutine kdf(r, h, df)
+  subroutine n2df(r, h, df)
     real, intent(in)  :: r, h
     real, intent(out) :: df
     real              :: q
 
     q = r / h
-    if (q >= krad) then
+    if (q >= n2R) then
       df = 0.
     else if (q >= 0.) then
       ! all this also multiplied on 'q'
@@ -104,15 +103,15 @@ module gaus
       print *, 'something went wrong, q =', q
       stop
     end if
-  end subroutine kdf
+  end subroutine n2df
 
-  subroutine kddf(r, h, ddf)
+  subroutine n2ddf(r, h, ddf)
     real, intent(in)  :: r, h
     real, intent(out) :: ddf
     real              :: q, fr, fa
 
     q = r / h
-    if (q >= krad) then
+    if (q >= n2R) then
       ddf = 0.
     else if (q >= 0.) then
       ! ddf = exp(-q**2) * (4 * q**2 - 2)
@@ -127,5 +126,5 @@ module gaus
       print *, 'something went wrong, q =', q
       stop
     end if
-  end subroutine kddf
-end module gaus
+  end subroutine n2ddf
+end module n2movedgaus

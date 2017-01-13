@@ -79,14 +79,23 @@ contains
     allocate(acc(3,n))
     acc(:,:) = 0.
     allocate(mas(n))
+    mas(:) = 0.
     allocate(den(n))
+    den(:) = 0.
     allocate(sln(n))
+    sln(:) = 0.
     allocate(prs(n))
+    prs(:) = 0.
     allocate(iu(n))
+    iu(:) = 0.
     allocate(du(n))
+    du(:) = 0.
     allocate(cf(n))
+    cf(:) = 0.
     allocate(kcf(n))
+    kcf(:) = 0.
     allocate(dcf(n))
+    dcf(:) = 0.
     !
     ! common values
     !

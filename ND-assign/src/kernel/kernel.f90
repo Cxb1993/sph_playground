@@ -1,13 +1,15 @@
 module kernel
-  ! use cubic
+  use cubic
+  use n2movedgaus
   ! use quintic
-  use gaus
+  ! use gaus
   ! use external
+
   implicit none
 
-  public :: set_dim, get_nw, get_dw_dh, get_w, get_dim, &
+  public :: set_dim, get_nw, get_dw_dh, get_w, get_dim,             &
             set_tasktype, get_tasktype, set_kerntype, get_kerntype, &
-            get_n2w, get_n2iw, get_krad !get_n2y, get_dphi_dh,
+            get_n2w, get_n2iw, get_krad!, get_n2y !, get_dphi_dh,
 
   private
     integer, save   :: dim = 1
@@ -61,7 +63,7 @@ module kernel
        print *, 'Kernel type not set: ', itt
        stop
      end select
-     call calc_params()
+    !  call calc_params()
    end subroutine set_kerntype
 
    subroutine get_kerntype(ott)
@@ -172,4 +174,87 @@ module kernel
       call get_Fabi(r, h, n2w, i)
     end if
   end subroutine get_n2iw
+
+! ---------!
+! Y kernel !
+!----------!
+  subroutine get_nY(rab, h, ny)
+    real, intent(in)  :: rab(3), h
+    real, intent(out) :: ny(3)
+    real              :: df
+
+    call n2df(sqrt(dot_product(rab(:),rab(:))), h, df)
+
+    ny(:) = n2C(dim,ktype) * df * rab(:) / h**(dim+2)
+  end subroutine get_nY
+
+  subroutine get_FabY(r, h, FabY)
+    real, intent(in)  :: r(3), h
+    real, intent(out) :: FabY
+    real              :: nY(3)
+
+    call get_nY(r, h, nY)
+    FabY = -2. * dot_product(r,nY)/dot_product(r,r)
+  end subroutine get_FabY
+
+  subroutine get_on2Y(r, h, n2Y)
+    real, intent(in)  :: r, h
+    real, intent(out) :: n2Y
+    real              :: df, ddf
+
+    call n2ddf(r, h, ddf)
+    call n2df(r, h, df)
+    n2Y = n2C(dim,ktype)*(ddf + (dim - 1) * df)/h**(dim+2)
+  end subroutine get_on2Y
+
+  subroutine get_on2iY(r, h, n2Y, i)
+    real, intent(in)    :: r(3), h
+    integer, intent(in) :: i
+    real, intent(out)   :: n2Y
+    real                :: r2, dr, km, df, ddf
+
+    r2 = dot_product(r,r)
+    dr = sqrt(r2)
+    km = r(i)*r(i)/r2
+    call n2ddf(dr, h, ddf)
+    call n2df(dr, h, df)
+    n2Y = n2C(dim,ktype)*(ddf*km + (1 - km) * df)/h**(dim+2)
+  end subroutine get_on2iY
+
+  subroutine get_FabiY(r, h, FabY, i)
+    real, intent(in)    :: r(3), h
+    integer, intent(in) :: i
+    real, intent(out)   :: FabY
+    real                :: nY(3)
+
+    call get_nY(r, h, nY)
+    FabY = nY(i)
+    nY(:) = 0.
+    nY(i) = FabY
+    FabY = -2. * dot_product(r,nY)/dot_product(r,r)
+  end subroutine get_FabiY
+
+  ! subroutine get_n2w(r, h, n2Y)
+  !   real, intent(in)  :: r(3), h
+  !   real, intent(out) :: n2Y
+  !
+  !   if (ktype == 1) then
+  !     call get_on2Y(sqrt(dot_product(r,r)), h, n2Y)
+  !   else if (ktype == 2) then
+  !     call get_FabY(r, h, n2Y)
+  !   end if
+  ! end subroutine get_n2w
+  !
+  ! subroutine get_n2iw(r, h, n2Y, i)
+  !   real, intent(in)    :: r(3), h
+  !   integer, intent(in) :: i
+  !   real, intent(out)   :: n2Y
+  !
+  !   if (ktype == 1) then
+  !     call get_on2iY(r, h, n2Y, i)
+  !   else if (ktype == 2) then
+  !     call get_FabiY(r, h, n2Y, i)
+  !   end if
+  ! end subroutine get_n2iw
+
 end module kernel
