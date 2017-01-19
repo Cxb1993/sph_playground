@@ -5,7 +5,7 @@ module err_calc
 
   implicit none
 
-  public :: err_init, err_T0sxsyet, err_infplate, err_sinxet
+  public :: err_init, err_T0sxsyet, err_infplate, err_sinxet, err_diff_laplace
 
   private
   save
@@ -30,10 +30,15 @@ contains
     case(3)
       ! 'hc-sinx'
       do i=1,n
+        ! print *, pos(:,i)
         tsin(i) = sin(pi * (pos(1,i) + 1.))
       end do
+    case(5)
+      ! 'diff-laplace'
+    case default
+      print *, 'Task type was not sen in error init errcalc.f90'
+      stop
     end select
-
 
   end subroutine err_init
 
@@ -75,6 +80,32 @@ contains
     end do
     !$omp end parallel do
   end subroutine err_sinxet
+
+  subroutine err_diff_laplace(n, x, num, dim, err)
+    integer, intent(in) :: n, dim
+    real, intent(in)    :: x(3,n), num(3,n)
+    real, intent(out)   :: err(n)
+
+    integer             :: i
+    real                :: exact
+
+    !$omp parallel do default(none) &
+    !$omp shared(n,x,num,err,dim) &
+    !$omp private(exact, i)
+    do i=1,n
+      exact = sin(pi*x(1,i))
+      if (dim > 1) then
+        exact = exact * sin(pi*x(2,i))
+      end if
+      if (dim == 3) then
+        exact = exact * sin(pi*x(3,i))
+      end if
+      exact = -dim*pi**2*exact
+      err(i) = (exact - num(1,i))**2
+      ! print *, i, exact, num(1,i), err(i)
+    end do
+    !$omp end parallel do
+  end subroutine err_diff_laplace
 
   subroutine err_infplate(n, pos, num, t, err)
     integer, intent(in) :: n

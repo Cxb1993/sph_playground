@@ -11,10 +11,10 @@ module uniform
 
 contains
 
-  subroutine make_uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, pos)
+  subroutine make_uniform(kr, sk, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, pos)
     real, allocatable, intent(inout) :: pos(:,:)
-    real, intent(in)     :: brdx1, brdx2, brdy1, brdy2, brdz1, brdz2
-    real, intent(inout)  :: pspc1, pspc2
+    real, intent(inout)  :: pspc1, pspc2, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2
+    real, intent(in)     :: kr, sk
     integer, allocatable :: bX1(:), bY1(:), bZ1(:), bX2(:), bY2(:), bZ2(:)
     integer              :: dim, nb, bdx, bdy, bdz, ibx, iby, ibz, freeflag, freenumber, &
                             i, j, k, ix, iy, iz, n, nbnewX1, nbnewY1, nbnewZ1, nbnewX2, nbnewY2, nbnewZ2

@@ -11,9 +11,9 @@ module circuit2
 
 contains
 
-  subroutine c2(n, c, pos, vel, dv, mas, den, h, om, P, u, du, dh, cf, dcf, kcf)
+  subroutine c2(n, c, pos, v, dv, mas, den, h, om, P, u, du, dh, cf, dcf, kcf)
     integer, intent(in) :: n
-    real, allocatable, intent(in) :: pos(:,:), vel(:,:), mas(:), h(:), den(:), P(:), c(:), om(:),&
+    real, allocatable, intent(in) :: pos(:,:), v(:,:), mas(:), h(:), den(:), P(:), c(:), om(:),&
                                      u(:), cf(:), kcf(:)
     real, allocatable, intent(inout) :: dv(:,:), du(:), dh(:), dcf(:)
     real                :: dr, rhoa, rhob, qa, qb, qc, n2w, kr, r2
@@ -26,12 +26,12 @@ contains
     call get_krad(kr)
 
     if (tt == 4) then
-      call diff_force(mas, den, pos, vel, h, c, P, om, dfgrhs)
+      call diff_force(mas, den, pos, v, h, c, P, om, dfgrhs)
     end if
 
     !$omp parallel do default(none)&
     !$omp private(r, dr, vab, urab, rhoa, rhob, nwa, nwb, qa, qb, qc, Pa, Pb, n2w, j, i, r2) &
-    !$omp shared(dv, du, dh, dcf, n, pos, h, tt, vel, den, c, p, om, mas, u, kcf, cf)&
+    !$omp shared(dv, du, dh, dcf, n, pos, h, tt, v, den, c, p, om, mas, u, kcf, cf)&
     !$omp shared(dfgrhs, dim, kr)
     do i = 1, n
       dv(:,i) = 0.
@@ -50,7 +50,7 @@ contains
               qa = 0.
               qb = 0.
               qc = 0.
-              vab(:) = vel(:,i) - vel(:,j)
+              vab(:) = v(:,i) - v(:,j)
               urab(:) = r(:) / dr
               rhoa = den(i)
               rhob = den(j)
@@ -85,7 +85,7 @@ contains
               qa = 0.
               qb = 0.
               qc = 0.
-              vab(:) = vel(:,i) - vel(:,j)
+              vab(:) = v(:,i) - v(:,j)
               urab(:) = r(:) / dr
               rhoa = den(i)
               rhob = den(j)
@@ -120,6 +120,10 @@ contains
                       )
 
               dh(i)   = dh(i) + mas(j) * dot_product(vab(:), nwa(:))
+            case(5)
+              ! 'diff-laplace'
+              call get_n2w(r, h(i), n2w)
+              dv(1,i)  = dv(1,i) + mas(j)/den(j) * (v(1,j) - v(1,i)) * n2w
             case default
               print *, 'Task type was not defined in circuit2'
               stop
@@ -127,7 +131,9 @@ contains
           end if
         end if
       end do
-      dh(i) =  (- h(i) / (dim * den(i))) * dh(i) / om(i)
+      if (tt /= 5) then
+        dh(i) =  (- h(i) / (dim * den(i))) * dh(i) / om(i)
+      end if
     end do
     !$omp end parallel do
   end subroutine c2
@@ -155,8 +161,8 @@ contains
     end if
   end subroutine art_viscosity
 
-  subroutine diff_force(mas, den, pos, vel, h, c, P, om, dfgrhs)
-    real, intent(in)    :: mas(:), den(:), pos(:,:), vel(:,:), h(:), c(:), P(:), om(:)
+  subroutine diff_force(mas, den, pos, v, h, c, P, om, dfgrhs)
+    real, intent(in)    :: mas(:), den(:), pos(:,:), v(:,:), h(:), c(:), P(:), om(:)
     real, intent(inout) :: dfgrhs(:,:)
     real                :: r(3), vab(3), urab(3), nwa(3), nwb(3), Pa(3), Pb(3),&
                            r2, dr, qa, qb, qc, rhoa, rhob, kr
@@ -169,7 +175,7 @@ contains
 
     !$omp parallel do default(none)&
     !$omp private(i, j, r, r2, dr, qa, qb, qc, vab, urab, rhoa, rhob, nwa, nwb, Pa, Pb)&
-    !$omp shared(kr, mas, den, pos, vel, h, c, P, om, dfgrhs, szd2)
+    !$omp shared(kr, mas, den, pos, v, h, c, P, om, dfgrhs, szd2)
     do i=1,szd2
       dfgrhs(:,i) = 0.
       do j=1,szd2
@@ -181,7 +187,7 @@ contains
             qa = 0.
             qb = 0.
             qc = 0.
-            vab(:) = vel(:,i) - vel(:,j)
+            vab(:) = v(:,i) - v(:,j)
             urab(:) = r(:) / dr
             rhoa = den(i)
             rhob = den(j)

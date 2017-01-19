@@ -1,4 +1,6 @@
 module args
+  use kernel, only:set_tasktype, set_kerntype, set_dim
+
   implicit none
 
   public :: fillargs
@@ -15,9 +17,11 @@ module args
       call get_command_argument(1, arg)
       read(arg(:), fmt="(i5)") dim
       print *, "# #         dim:", dim
+      call set_dim(dim)
 
       call get_command_argument(2, itype)
       print *, "# #   task type:   ", itype
+      call set_tasktype(itype)
 
       pspc1 = 1.
       call get_command_argument(3, arg(:))
@@ -30,6 +34,7 @@ module args
       ktype = 'fab'
       call get_command_argument(5, ktype)
       print *, "# #    ker.type:   ", ktype
+      call set_kerntype(ktype)
 
       pspc2 = pspc1
       write(*, "(A, F7.5, A, F7.5)") " # #      set dx:   x1=", pspc1, "   x2=", pspc2

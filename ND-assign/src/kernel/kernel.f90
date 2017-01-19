@@ -41,6 +41,8 @@ module kernel
        ttype = 3
      case('pheva')
        ttype = 4
+     case('diff-laplace')
+       ttype = 5
      case default
        print *, 'Task type not set: ', itt
        stop
@@ -152,28 +154,28 @@ module kernel
     Fab = -2. * dot_product(r,nw)/dot_product(r,r)
   end subroutine get_Fabi
 
-  subroutine get_n2w(r, h, n2w)
-    real, intent(in)  :: r(3), h
-    real, intent(out) :: n2w
-
-    if (ktype == 1) then
-      call get_on2w(sqrt(dot_product(r,r)), h, n2w)
-    else if (ktype == 2) then
-      call get_Fab(r, h, n2w)
-    end if
-  end subroutine get_n2w
-
-  subroutine get_n2iw(r, h, n2w, i)
-    real, intent(in)    :: r(3), h
-    integer, intent(in) :: i
-    real, intent(out)   :: n2w
-
-    if (ktype == 1) then
-      call get_on2iw(r, h, n2w, i)
-    else if (ktype == 2) then
-      call get_Fabi(r, h, n2w, i)
-    end if
-  end subroutine get_n2iw
+  ! subroutine get_n2w(r, h, n2w)
+  !   real, intent(in)  :: r(3), h
+  !   real, intent(out) :: n2w
+  !
+  !   if (ktype == 1) then
+  !     call get_on2w(sqrt(dot_product(r,r)), h, n2w)
+  !   else if (ktype == 2) then
+  !     call get_Fab(r, h, n2w)
+  !   end if
+  ! end subroutine get_n2w
+  !
+  ! subroutine get_n2iw(r, h, n2w, i)
+  !   real, intent(in)    :: r(3), h
+  !   integer, intent(in) :: i
+  !   real, intent(out)   :: n2w
+  !
+  !   if (ktype == 1) then
+  !     call get_on2iw(r, h, n2w, i)
+  !   else if (ktype == 2) then
+  !     call get_Fabi(r, h, n2w, i)
+  !   end if
+  ! end subroutine get_n2iw
 
 ! ---------!
 ! Y kernel !
@@ -234,27 +236,27 @@ module kernel
     FabY = -2. * dot_product(r,nY)/dot_product(r,r)
   end subroutine get_FabiY
 
-  ! subroutine get_n2w(r, h, n2Y)
-  !   real, intent(in)  :: r(3), h
-  !   real, intent(out) :: n2Y
-  !
-  !   if (ktype == 1) then
-  !     call get_on2Y(sqrt(dot_product(r,r)), h, n2Y)
-  !   else if (ktype == 2) then
-  !     call get_FabY(r, h, n2Y)
-  !   end if
-  ! end subroutine get_n2w
-  !
-  ! subroutine get_n2iw(r, h, n2Y, i)
-  !   real, intent(in)    :: r(3), h
-  !   integer, intent(in) :: i
-  !   real, intent(out)   :: n2Y
-  !
-  !   if (ktype == 1) then
-  !     call get_on2iY(r, h, n2Y, i)
-  !   else if (ktype == 2) then
-  !     call get_FabiY(r, h, n2Y, i)
-  !   end if
-  ! end subroutine get_n2iw
+  subroutine get_n2w(r, h, n2Y)
+    real, intent(in)  :: r(3), h
+    real, intent(out) :: n2Y
+
+    if (ktype == 1) then
+      call get_on2Y(sqrt(dot_product(r,r)), h, n2Y)
+    else if (ktype == 2) then
+      call get_FabY(r, h, n2Y)
+    end if
+  end subroutine get_n2w
+
+  subroutine get_n2iw(r, h, n2Y, i)
+    real, intent(in)    :: r(3), h
+    integer, intent(in) :: i
+    real, intent(out)   :: n2Y
+
+    if (ktype == 1) then
+      call get_on2iY(r, h, n2Y, i)
+    else if (ktype == 2) then
+      call get_FabiY(r, h, n2Y, i)
+    end if
+  end subroutine get_n2iw
 
 end module kernel

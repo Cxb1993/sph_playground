@@ -1,10 +1,12 @@
 program main
   use BC
-  use IC
+  use IC,       only:setupIC
   use kernel,   only:get_tasktype
   use iterator, only:iterate
   use printer
-  use err_calc
+  use err_calc, only:err_init,&
+                     err_diff_laplace,&
+                     err_sinxet
   use args,     only:fillargs
   use bias,     only:get_chi
   use circuit1, only:c1_init
@@ -13,14 +15,14 @@ program main
 
   real                :: sk = 1.4
   real                :: cv = 1.
-  integer             :: n, dim
+  integer             :: n, dim, i
   character (len=40)  :: itype, errfname, ktype
 
   real                              :: dt, t, dtout, ltout, tfinish, error(11), npic,&
                                        pspc1, pspc2, gamma
   integer                           :: iter, tt
   real, allocatable, dimension(:,:) :: p, v, a
-  real, allocatable, dimension(:,:) :: pos, vel, dv, chi
+  real, allocatable, dimension(:,:) :: pos, vel, acc, chi
   real, allocatable, dimension(:)   :: den, prs, mas, iu, du, om, c, h, dh, &
                                        cf, dcf, kcf, tdu, tdh, tcf, err
 
@@ -33,12 +35,10 @@ program main
   sk = merge(sk, -tfinish, tfinish > 0)
   tfinish = merge(tfinish, -1., tfinish > 0)
 
-  call setup(itype, ktype, dim, n, sk, gamma, cv, &
-                pspc1, pspc2, pos, vel, dv, &
+  call setupIC(n, sk, gamma, cv, pspc1, pspc2, pos, vel, acc, &
                 mas, den, h, prs, iu, du, cf, kcf, dcf)
   ! print *, 0, -2
   ! print *, maxval(abs(du))
-
 
   print *, '#####'
   print *, '#######################'
@@ -55,7 +55,7 @@ program main
 
   p = pos
   v = vel
-  a = dv
+  a = acc
   allocate(err(1:n))
   allocate(chi(3,n))
   allocate(c(n))
@@ -72,6 +72,7 @@ program main
   call err_init(n, pos)
   call c1_init(n)
 
+ print *, tfinish
   do while (t <= tfinish)
     ! print *, 0, -1
     ! print *, '--0'
@@ -90,22 +91,24 @@ program main
     case(4)
       ! 'photoevaporation' 'pheva'
       dt = .3e-3 * minval(h)**2 / maxval(c)**2 / maxval(kcf) / maxval(cf)
+    case (5)
+      ! 'diff-laplass'
+      dt = 0.
+      tfinish = -1.
     case default
       print *, 'Task type time increment was not defined'
       stop
     end select
-
     ! print *, 0, 0
-
     if (t >= ltout) then
       print *, iter, t, dt
-      call print_output(n, t, pos, vel, dv, mas, den, h, prs, iu, cf, sqrt(err))
+      call print_output(n, t, pos, vel, acc, mas, den, h, prs, iu, cf, sqrt(err))
       ltout = ltout + dtout
     end if
 
     p(:,:) = pos(:,:)
     v(:,:) = vel(:,:)
-    a(:,:) = dv(:,:)
+    a(:,:) = acc(:,:)
     tdu(:) = du(:)
     tdh(:) = dh(:)
     tcf(:) = dcf(:)
@@ -120,19 +123,19 @@ program main
     ! print *, 0, 1
     ! print *, maxval(abs(du))
     call iterate(n, sk, gamma, &
-                pos, vel, dv, &
+                pos, vel, acc, &
                 mas, den, h, dh, om, prs, c, iu, du, &
                 cf, dcf, kcf)
     ! print *, maxval(abs(du))
     ! print *, 0, 2
     ! print *, maxval(cf)
 
-    vel(:,:) = vel(:,:) + 0.5 * dt * (dv(:,:) - a(:,:))
+    vel(:,:) = vel(:,:) + 0.5 * dt * (acc(:,:) - a(:,:))
     iu(:)   = iu(:)   + 0.5 * dt * (du(:) - tdu(:))
     h(:)     = h(:)     + 0.5 * dt * (dh(:) - tdh(:))
 
     select case(tt)
-    case(1, 4)
+    case(1, 4, 5)
       ! 'hydroshock'
       cf(:) = cf(:)     + 0.5 * dt * (dcf(:) - tcf(:))
     case(2, 3)
@@ -173,10 +176,16 @@ program main
     case(3)
       ! 'hc-sinx'
       call err_sinxet(n, cf, t, err)
+    case(5)
+      ! 'diff-laplace'
+      call err_diff_laplace(n, pos, acc, dim, err)
+    case default
+      print *, 'Task type was not sen in error evaluation main.f90'
+      stop
     end select
     call get_chi(n, mas, den, pos, h, chi)
-    call periodic3(chi, 00, 0)
-    call print_output(n, t, pos, chi, dv, mas, den, h, prs, iu, cf, sqrt(err))
+    call periodic3(chi, 00, dim)
+    call print_output(n, t, pos, chi, acc, mas, den, h, prs, iu, cf, sqrt(err))
     error(3) = sqrt(sum(err)/n)
     error(4) = sum(chi)/n/dim
     error(5) = sk

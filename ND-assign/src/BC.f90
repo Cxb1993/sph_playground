@@ -95,17 +95,21 @@ contains
           A(:,borderX2(i)) = A(:,borderX1(i) + (nbrd + 1) * ny * nz)
         end do
       end if
-      if (size(borderY1) /= 1) then
-        do i = 1, size(borderY1)
-          A(:,borderY1(i)) = A(:,borderY2(i) - (nbrd + 1) * nz)
-          A(:,borderY2(i)) = A(:,borderY1(i) + (nbrd + 1) * nz)
-        end do
+      if (dim > 1) then
+        if (size(borderY1) /= 1) then
+          do i = 1, size(borderY1)
+            A(:,borderY1(i)) = A(:,borderY2(i) - (nbrd + 1) * nz)
+            A(:,borderY2(i)) = A(:,borderY1(i) + (nbrd + 1) * nz)
+          end do
+        end if
       end if
-      if (size(borderZ1) /= 1) then
-        do i = 1, size(borderZ1)
-          A(:,borderZ1(i)) = A(:,borderZ2(i) - (nbrd + 1))
-          A(:,borderZ2(i)) = A(:,borderZ1(i) + (nbrd + 1))
-        end do
+      if (dim == 3) then
+        if (size(borderZ1) /= 1) then
+          do i = 1, size(borderZ1)
+            A(:,borderZ1(i)) = A(:,borderZ2(i) - (nbrd + 1))
+            A(:,borderZ2(i)) = A(:,borderZ1(i) + (nbrd + 1))
+          end do
+        end if
       end if
     case (10)
       do i = 1, size(borderX1)

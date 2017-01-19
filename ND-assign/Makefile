@@ -6,13 +6,13 @@ FFLAGS=-fdefault-real-8 -fdefault-double-8\
 				-fopenmp
 
 SRC=\
-	args.f90\
 	kernel/base_cubic.f90\
 	kernel/base_quintic.f90\
 	kernel/base_external.f90\
 	kernel/base_gaus.f90\
 	kernel/n2movedgaus.f90\
 	kernel/kernel.f90\
+	args.f90\
 	printer.f90\
 	eos.f90\
 	BC.f90\
@@ -31,6 +31,11 @@ OBJ=$(SRC:.f90=.o)
 SUBSRC=$(addprefix src/, $(SRC))
 SUBOBJ=$(addprefix obj/, $(OBJ))
 
+ifndef dim
+$(warning dimention is not set, `dim=1` will be used)
+dim=1
+endif
+
 %.o : src/%.f90
 	@mkdir -p obj
 	$(FC) $(FFLAGS) -J mod/ -o obj/$@ -c $<
@@ -47,27 +52,22 @@ execute: $(OBJ)
 	$(FC) $(FFLAGS) -I mod/ -o $@ $(SUBOBJ)
 
 hydroshock1:
-	make && time ./execute 1 hydroshock 0.1 runresult.info fab
-hydroshock2:
-	make && time ./execute 2 hydroshock 0.1 runresult.info fab
-hydroshock3:
-	make && time ./execute 3 hydroshock 0.1 runresult.info fab
+	make && time ./execute $(dim) hydroshock 0.1 runresult.info fab
 
-infslb1:
-	make && time ./execute 1 infslb 0.1 runresult.info fab 5
-infslb2:
-	make && time ./execute 2 infslb 0.1 runresult.info fab
-infslb3:
-	make && time ./execute 3 infslb 0.1 runresult.info fab
+infslb:
+	make && time ./execute $(dim) infslb 0.1 runresult.info fab 5
 
-hc-sinx1:
-	make && time ./execute 1 hc-sinx 0.1 runresult.info fab .5
+hc-sinx:
+	make && time ./execute $(dim) hc-sinx 0.1 runresult.info fab .5
 
 chi-only:
-	make && time ./execute 1 hc-sinx 0.002 runresult.info fab -1.5
+	make && time ./execute $(dim) hc-sinx 0.002 runresult.info fab -1.5
 
-pheva1:
-	make && time ./execute 1 pheva 0.002 runresult.info fab -1.5
+pheva:
+	make && time ./execute $(dim) pheva 0.002 runresult.info fab -1.5
+
+difflaplace:
+	make && time ./execute $(dim) diff-laplace .14 runresult.info fab 0.1
 
 .PHONY: execute
 

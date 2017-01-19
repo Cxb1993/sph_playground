@@ -1,16 +1,16 @@
 #!/bin/bash
 
 dimlist='1 2 3'
-tasktype='hc-sinx'
+tasktype='diff-laplace'
 ktype='n2w fab'
 execnamelist='execute'
 storebase=`pwd`
 dtprefix=`date +%Y%m%d%H%M`
 kernelPrefix='quintic'
 
-tfinish='.5'
+tfinish='100'
 spstart='.2'
-spend='.01'
+spend='.00'
 spstep='.01'
 tstep=$spstart
 flag='1'
@@ -31,11 +31,11 @@ for dim in $dimlist; do
     for execname in $execnamelist; do
       for k in $ktype; do
         fullkernel=$kernelPrefix' '$k
-        errfname=$dtprefix'-'$tasktype'-'$k'-'$dim'D'
+        errfname=$dtprefix'-'$tasktype'-'$dim'D-'$k
 
         if [ "$it" = "0" ]; then
-          header='ARG: lx3y3e3e. '$fullkernel'. '$tasktype'. t_max='$tfinish'. '
-          header=$header$dim'D. {| dx | n | err(t/3) | bias(t/3) | t/3 | err(2t/3) | bias(2t/3) | 2t/3 | err(t) | bias(t) | t |}'
+          header='ARG: xey. '$fullkernel'. '$tasktype'. '
+          header=$header$dim'D. {| dx | partN | err l2 | 2nd err term | hfac |}'
           `echo $header > $errfname`
         fi
 
@@ -52,7 +52,7 @@ for dim in $dimlist; do
         else
           iti=$it
         fi
-        moveto="$storebase/$dim'D-'$k/$iti-$itspac"
+        moveto="$storebase/$dim"."D-"."$k/$iti-$itspac"
         runcmd="mkdir -p $moveto"
         `$runcmd`
         runcmd="mv output/* $moveto"

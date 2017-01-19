@@ -20,9 +20,14 @@ contains
     real, intent(in)    :: sk, gamma
     integer             :: t
     integer             :: dim
+    integer :: i
+
 
     call get_dim(dim)
     call get_tasktype(t)
+
+    print*, 1
+
 
     select case (t)
     case (1)
@@ -83,6 +88,10 @@ contains
       !     call fixed3(acc, 22, 2, 0.)
       !   end if
       ! end if
+    case(5)
+      ! 'diff-laplace'
+      call c2(n, c, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
+      call periodic3(acc, 00, dim)
     case default
       print *, 'Task type was not defined in iterator'
       stop
