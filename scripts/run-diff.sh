@@ -52,7 +52,7 @@ for dim in $dimlist; do
         else
           iti=$it
         fi
-        moveto="$storebase/$dim"."D-"."$k/$iti-$itspac"
+        moveto="$storebase/$dim""D-""$k/$iti-$itspac"
         runcmd="mkdir -p $moveto"
         `$runcmd`
         runcmd="mv output/* $moveto"

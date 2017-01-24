@@ -1,12 +1,15 @@
 module cubic
+  use const
+
   implicit none
 
-  public :: kf, kdf, kddf, knorm, krad
+  public :: kf, kdf, kddf, knorm, krad, kernelname
 
   private
 
-    real :: knorm(3) = (/ 2./3., 10./(7. * 4.*atan(1.)), 1./(4.*atan(1.)) /)
+    real :: knorm(3) = (/ 2./3., 10./(7. * pi), 1./(pi) /)
     real :: krad = 2.
+    character (len=10) :: kernelname='cubic'
 
  contains
 

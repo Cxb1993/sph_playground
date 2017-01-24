@@ -1,5 +1,6 @@
 module IC
   use utils
+  use const
   use kernel, only :get_tasktype,&
                     get_kerntype,&
                     get_krad,&
@@ -13,8 +14,6 @@ module IC
   public :: setupIC
 
   private
-  real, parameter     :: pi = 4.*atan(1.)
-
 contains
 
   subroutine setupIC(n, sk, g, cv, pspc1, pspc2, &
@@ -25,7 +24,7 @@ contains
     real, intent(inout)  :: pspc1, pspc2, g
     integer, intent(out) :: n
     real                 :: kr, prs1, prs2, rho1, rho2, kcf1, kcf2, cf1, cf2, sp, v0, &
-                            brdx1, brdx2, brdy1, brdy2, brdz1, brdz2
+                            brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, period
     integer              :: i, nb, tt, kt, dim, nptcs
 
     call get_kerntype(kt)
@@ -74,18 +73,41 @@ contains
       call make_uniform(kr, sk, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x)
     case (5)
       ! diff-laplace
-      brdx1 = -1.
-      brdx2 = 1.
+      period = pi
+      ! period  = 1.
+      brdx1 = -1.*period
+      brdx2 = 1.*period
       if (dim > 1) then
-        brdy1 = -1.
-        brdy2 =  1.
+        brdy1 = -1.*period
+        brdy2 =  1.*period
       else
         brdy1 = 0.
         brdy2 = 0.
       end if
       if (dim == 3) then
-        brdz1 = -1.
-        brdz2 =  1.
+        brdz1 = -1.*period
+        brdz2 =  1.*period
+      else
+        brdz1 = 0.
+        brdz2 = 0.
+      end if
+      nb = int(kr * sk) + 1
+      call make_uniform(kr, sk, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x)
+    case(6)
+      ! diff-graddiv
+      period = pi
+      brdx1 = -1.*period
+      brdx2 = 1.*period
+      if (dim > 1) then
+        brdy1 = -1.*period
+        brdy2 =  1.*period
+      else
+        brdy1 = 0.
+        brdy2 = 0.
+      end if
+      if (dim == 3) then
+        brdz1 = -1.*period
+        brdz2 =  1.*period
       else
         brdz1 = 0.
         brdz2 = 0.
@@ -166,6 +188,11 @@ contains
     case (5)
       ! diff-laplace
       rho1 = 1.
+      period = 1.
+    case(6)
+      ! diff-graddiv
+      rho1 = 1.
+      period = 1.
     case default
       print *, 'Task type was not defined in IC state stage'
       stop
@@ -224,13 +251,18 @@ contains
         ! diff-laplace
         den(i) = rho1
         mas(i) = (sp**dim) * rho1
-        v(1,i)  = sin(pi*x(1,i))
+        v(1,i)  = sin(period*x(1,i))
         if (dim > 1) then
-          v(1,i) = v(1,i) * sin(pi*x(2,i))
+          v(1,i) = v(1,i) * sin(period*x(2,i))
         end if
         if (dim == 3) then
-          v(1,i) = v(1,i) * sin(pi*x(3,i))
+          v(1,i) = v(1,i) * sin(period*x(3,i))
         end if
+      case(6)
+        ! diff-graddiv
+        den(i) = rho1
+        mas(i) = (sp**dim) * rho1
+        v(:,i)  = sin(period*x(:,i))
       case default
         print *, 'Task type was not defined in IC state stage'
         stop

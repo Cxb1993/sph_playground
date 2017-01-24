@@ -1,10 +1,10 @@
 module n2movedgaus
+  use const
   implicit none
 
-  public :: n2f, n2df, n2ddf, n2C, n2R!, calc_params
+  public :: n2f, n2df, n2ddf, n2C, n2R, n2kernelname!, calc_params
 
   private
-    real, parameter :: pi = 4.*atan(1.)
     real, parameter :: n2R = 2.
     ! double Q
     ! real :: knorm(3) = (/ 8./sqrt(pi),  &
@@ -32,7 +32,7 @@ module n2movedgaus
                           75./(14.*pi) + 0.052,       &
                           50./(7.*pi**(3./2)) + 0.1   &
                           /), (/3,2/))
-
+    character (len=10) :: n2kernelname='mgauss'
  !    real, save :: f_err, df_err, ddf_err
  !
  contains

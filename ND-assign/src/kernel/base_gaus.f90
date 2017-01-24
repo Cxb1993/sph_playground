@@ -1,10 +1,10 @@
 module gaus
+  use const
   implicit none
 
-  public :: kf, kdf, kddf, knorm, krad, calc_params
+  public :: kf, kdf, kddf, knorm, krad, kernelname, calc_params
 
   private
-    real, parameter :: pi = 4.*atan(1.)
     real, parameter :: krad = 2.
     ! double Q
     ! real :: knorm(3) = (/ 8./sqrt(pi),  &
@@ -32,6 +32,7 @@ module gaus
                           75./(14.*pi) + 0.05,        &
                           50./(7.*pi**(3./2)) + 0.1   &
                           /), (/3,2/))
+    character (len=10) :: kernelname='mgauss'
 
     real, save :: f_err, df_err, ddf_err
 

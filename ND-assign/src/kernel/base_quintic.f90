@@ -1,12 +1,14 @@
 module quintic
+  use const
   implicit none
 
-  public :: kf, kdf, kddf, knorm, krad
+  public :: kf, kdf, kddf, knorm, krad, kernelname
 
   private
 
-    real :: knorm(3) = (/ 1./120., 7./(478. * 4.*atan(1.)), 1./(120. * 4.*atan(1.)) /)
+    real :: knorm(3) = (/ 1./120., 7./(478. * pi), 1./(120. * pi) /)
     real :: krad = 3.
+    character (len=10) :: kernelname='quintic'
 
  contains
 

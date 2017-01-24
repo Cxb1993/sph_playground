@@ -1,16 +1,17 @@
 module err_calc
+  use const
   use omp_lib
   use BC
   use kernel
 
   implicit none
 
-  public :: err_init, err_T0sxsyet, err_infplate, err_sinxet, err_diff_laplace
+  public :: err_init, err_T0sxsyet, err_infplate, err_sinxet, err_diff_laplace, err_diff_graddiv
 
   private
   save
-  real, parameter   :: pi = 4.*atan(1.)
   real, allocatable :: tsin(:)
+  real :: period
 
 contains
   subroutine err_init(n, pos)
@@ -35,6 +36,10 @@ contains
       end do
     case(5)
       ! 'diff-laplace'
+      period = 1.
+    case(6)
+      ! 'diff-graddiv
+      period = 1.
     case default
       print *, 'Task type was not sen in error init errcalc.f90'
       stop
@@ -90,22 +95,48 @@ contains
     real                :: exact
 
     !$omp parallel do default(none) &
-    !$omp shared(n,x,num,err,dim) &
+    !$omp shared(n,x,num,err,dim,period) &
     !$omp private(exact, i)
     do i=1,n
-      exact = sin(pi*x(1,i))
+      exact = sin(period*x(1,i))
       if (dim > 1) then
-        exact = exact * sin(pi*x(2,i))
+        exact = exact * sin(period*x(2,i))
+        if (dim == 3) then
+          exact = exact * sin(period*x(3,i))
+        end if
       end if
-      if (dim == 3) then
-        exact = exact * sin(pi*x(3,i))
-      end if
-      exact = -dim*pi**2*exact
+      exact = -dim*period**2*exact
       err(i) = (exact - num(1,i))**2
       ! print *, i, exact, num(1,i), err(i)
     end do
     !$omp end parallel do
   end subroutine err_diff_laplace
+
+  subroutine err_diff_graddiv(n, x, num, dim, err)
+    integer, intent(in) :: n, dim
+    real, intent(in)    :: x(3,n), num(3,n)
+    real, intent(out)   :: err(n)
+
+    integer             :: i
+    real                :: exact(3)
+
+    !$omp parallel do default(none) &
+    !$omp shared(n,x,num,err,dim,period) &
+    !$omp private(exact, i)
+    do i=1,n
+      exact(:) = sin(period*x(:,i))
+      ! if (dim > 1) then
+      !   exact = exact * sin(period*x(2,i))
+      !   if (dim == 3) then
+      !     exact = exact * sin(period*x(3,i))
+      !   end if
+      ! end if
+      exact(:) = -exact(:)
+      err(i) = dot_product(exact(:)-num(:,i),exact(:)-num(:,i))
+      ! print *, i, exact, num(1,i), err(i)
+    end do
+    !$omp end parallel do
+  end subroutine err_diff_graddiv
 
   subroutine err_infplate(n, pos, num, t, err)
     integer, intent(in) :: n

@@ -6,6 +6,7 @@ program main
   use printer
   use err_calc, only:err_init,&
                      err_diff_laplace,&
+                     err_diff_graddiv,&
                      err_sinxet
   use args,     only:fillargs
   use bias,     only:get_chi
@@ -13,7 +14,7 @@ program main
 
   implicit none
 
-  real                :: sk = 1.4
+  real                :: sk = 1.2
   real                :: cv = 1.
   integer             :: n, dim, i
   character (len=40)  :: itype, errfname, ktype
@@ -91,8 +92,8 @@ program main
     case(4)
       ! 'photoevaporation' 'pheva'
       dt = .3e-3 * minval(h)**2 / maxval(c)**2 / maxval(kcf) / maxval(cf)
-    case (5)
-      ! 'diff-laplass'
+    case (5,6)
+      ! 'diff-laplass'      ! 'diff-graddiv'
       dt = 0.
       tfinish = -1.
     case default
@@ -135,8 +136,8 @@ program main
     h(:)     = h(:)     + 0.5 * dt * (dh(:) - tdh(:))
 
     select case(tt)
-    case(1, 4, 5)
-      ! 'hydroshock'
+    case(1, 4, 5, 6)
+      ! 'hydroshock' ! 'diff-graddiv'
       cf(:) = cf(:)     + 0.5 * dt * (dcf(:) - tcf(:))
     case(2, 3)
       ! 'infslb', 'hc-sinx'
@@ -145,8 +146,6 @@ program main
       print *, 'Task type was not sen in couples field integration'
       stop
     end select
-    ! print *, maxval(cf), cv, maxval(iu)
-    ! print *, 0, 3
 
     t = t + dt
     iter = iter + 1
@@ -176,18 +175,29 @@ program main
     case(3)
       ! 'hc-sinx'
       call err_sinxet(n, cf, t, err)
+      call get_chi(n, mas, den, pos, h, chi)
+      call periodic3(chi, 00, dim)
+      call print_output(n, t, pos, chi, acc, mas, den, h, prs, iu, cf, sqrt(err))
+      error(4) = sum(chi)/n/dim
     case(5)
       ! 'diff-laplace'
       call err_diff_laplace(n, pos, acc, dim, err)
+      call get_chi(n, mas, den, pos, h, chi)
+      call periodic3(chi, 00, dim)
+      call print_output(n, t, pos, chi, acc, mas, den, h, prs, iu, cf, sqrt(err))
+      error(4) = sum(chi)/n/dim
+    case(6)
+      ! 'diff-graddiv'
+      call err_diff_graddiv(n, pos, acc, dim, err)
+      call get_chi(n, mas, den, pos, h, chi)
+      call periodic3(chi, 00, dim)
+      call print_output(n, t, pos, chi, acc, mas, den, h, prs, iu, cf, sqrt(err))
+      error(4) = sum(chi)/n/dim
     case default
       print *, 'Task type was not sen in error evaluation main.f90'
       stop
     end select
-    call get_chi(n, mas, den, pos, h, chi)
-    call periodic3(chi, 00, dim)
-    call print_output(n, t, pos, chi, acc, mas, den, h, prs, iu, cf, sqrt(err))
     error(3) = sqrt(sum(err)/n)
-    error(4) = sum(chi)/n/dim
     error(5) = sk
 
     call print_appendline(5, error, errfname)

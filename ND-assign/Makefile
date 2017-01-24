@@ -6,6 +6,7 @@ FFLAGS=-fdefault-real-8 -fdefault-double-8\
 				-fopenmp
 
 SRC=\
+	const.f90\
 	kernel/base_cubic.f90\
 	kernel/base_quintic.f90\
 	kernel/base_external.f90\

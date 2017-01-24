@@ -42,9 +42,9 @@ contains
         if (i /= j) then
           r(:) = pos(:,i) - pos(:,j)
           r2 = dot_product(r(:),r(:))
+          call GradDivW(r, h(i), nwa)
           if ((r2 < (kr * h(i))**2).or.(r2 < (kr * h(j))**2)) then
             dr = sqrt(r2)
-
             select case (tt)
             case (1)
               qa = 0.
@@ -124,16 +124,25 @@ contains
               ! 'diff-laplace'
               call get_n2w(r, h(i), n2w)
               dv(1,i)  = dv(1,i) + mas(j)/den(j) * (v(1,j) - v(1,i)) * n2w
+            case(6)
+              ! diff-graddiv
+              call GradDivW(r, h(i), nwa)
+              dv(:,i)  = dv(:,i) + mas(j)/den(j) * (v(:,j) - v(:,i)) * nwa(:)
             case default
-              print *, 'Task type was not defined in circuit2'
+              print *, 'Task type was not defined in circuit2 inside circle'
               stop
             end select
           end if
         end if
       end do
-      if (tt /= 5) then
+      select case (tt)
+      case(1,2,3,4)
         dh(i) =  (- h(i) / (dim * den(i))) * dh(i) / om(i)
-      end if
+      case(5,6)
+      case default
+        print *, 'Task type was not set in circuit2 outside circle'
+        stop
+      end select
     end do
     !$omp end parallel do
   end subroutine c2

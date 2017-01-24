@@ -18,8 +18,9 @@ contains
     integer, allocatable :: bX1(:), bY1(:), bZ1(:), bX2(:), bY2(:), bZ2(:)
     integer              :: dim, nb, bdx, bdy, bdz, ibx, iby, ibz, freeflag, freenumber, &
                             i, j, k, ix, iy, iz, n, nbnewX1, nbnewY1, nbnewZ1, nbnewX2, nbnewY2, nbnewZ2
-    real                 :: spx, spy, spz, x, y, z
+    real                 :: spx, spy, spz, x, y, z, eps
 
+    eps = 1e-10
     call get_dim(dim)
 
     allocate(bX1(1))
@@ -63,6 +64,7 @@ contains
       iby = abs(nb)
       ibz = abs(nb)
     end if
+    ! print *, bdx, ix, brdx1, brdx2, ibx
     call set_sqare_box_sides(ix+1+2*bdx, iy+1+2*bdy, iz+1+2*bdz)
     freenumber = 0
     do i = (0-bdx),(ix+bdx)
@@ -72,14 +74,14 @@ contains
         do k = (0-bdz),(iz+bdz)
           freeflag = 0
           z = brdz1 + k * spz
-          if (x < brdx1 + ibx * spx) then
+          if (x < brdx1 + ibx * spx - eps) then
             freeflag = 1.
             if (size(bX1) < nbnewX1) then
               call resize(bX1,size(bX1),size(bX1)*2)
             end if
             bX1(nbnewX1) = n
             nbnewX1 = nbnewX1 + 1
-          else if (x > brdx2 - ibx * spx) then
+          else if (x > brdx2 - ibx * spx + eps) then
             freeflag = 1.
             if (size(bX2) < nbnewX2) then
               call resize(bX2,size(bX2),size(bX2)*2)
@@ -88,14 +90,14 @@ contains
             nbnewX2 = nbnewX2 + 1
           end if
           if (dim > 1) then
-            if (y < brdy1 + iby * spy) then
+            if (y < brdy1 + iby * spy - eps) then
               freeflag = 1.
               if (size(bY1) < nbnewY1) then
                 call resize(bY1,size(bY1),size(bY1)*2)
               end if
               bY1(nbnewY1) = n
               nbnewY1 = nbnewY1 + 1
-            else if (y > brdy2 - iby * spy) then
+            else if (y > brdy2 - iby * spy + eps) then
               freeflag = 1.
               if (size(bY2) < nbnewY2) then
                 call resize(bY2,size(bY2),size(bY2)*2)
@@ -104,14 +106,14 @@ contains
               nbnewY2 = nbnewY2 + 1
             end if
             if (dim == 3) then
-              if (z < brdz1 + ibz * spz) then
+              if (z < brdz1 + ibz * spz - eps) then
                 freeflag = 1.
                 if (size(bZ1) < nbnewZ1) then
                   call resize(bZ1,size(bZ1),size(bZ1)*2)
                 end if
                 bZ1(nbnewZ1) = n
                 nbnewZ1 = nbnewZ1 + 1
-              else if (z > brdz2 - ibz * spz) then
+              else if (z > brdz2 - ibz * spz + eps) then
                 freeflag = 1.
                 if (size(bZ2) < nbnewZ2) then
                   call resize(bZ2,size(bZ2),size(bZ2)*2)
