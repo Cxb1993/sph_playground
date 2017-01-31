@@ -1,12 +1,13 @@
 module IC
   use utils
   use const
-  use kernel, only :get_tasktype,&
+  use kernel, only: get_tasktype,&
                     get_kerntype,&
                     get_krad,&
                     get_dim
   use BC
-  use uniform
+  use initpositions,  only: place_uniform,&
+                            place_close_packed_fcc
   use semiuniform
 
   implicit none
@@ -44,7 +45,7 @@ contains
     case (2)
       ! infslb
       nb = 1
-      call make_uniform(kr, sk, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x)
+      call place_uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x)
     case (3)
       ! hc-sinx
       brdx1 = -1.
@@ -66,11 +67,11 @@ contains
         brdz2 = 0.
       end if
       nb = int(kr * sk) + 1
-      call make_uniform(kr, sk, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x)
+      call place_uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x)
     case (4)
       ! pheva
       nb = int(kr * sk) + 1
-      call make_uniform(kr, sk, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x)
+      call place_uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x)
     case (5)
       ! diff-laplace
       period = pi
@@ -92,7 +93,7 @@ contains
         brdz2 = 0.
       end if
       nb = int(kr * sk) + 1
-      call make_uniform(kr, sk, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x)
+      call place_uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x)
     case(6)
       ! diff-graddiv
       period = pi
@@ -113,7 +114,8 @@ contains
         brdz2 = 0.
       end if
       nb = int(kr * sk) + 1
-      call make_uniform(kr, sk, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x)
+      call place_uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x)
+      ! call place_close_packed_fcc(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, nb, x)
     case default
       print *, 'Task type was not defined in IC border stage'
       stop
@@ -251,13 +253,13 @@ contains
         ! diff-laplace
         den(i) = rho1
         mas(i) = (sp**dim) * rho1
-        v(1,i)  = sin(period*x(1,i))
-        if (dim > 1) then
-          v(1,i) = v(1,i) * sin(period*x(2,i))
-        end if
-        if (dim == 3) then
-          v(1,i) = v(1,i) * sin(period*x(3,i))
-        end if
+        v(:,i)  = sin(period*x(:,i))
+        ! if (dim > 1) then
+        !   v(1,i) = v(1,i) * sin(period*x(2,i))
+        ! end if
+        ! if (dim == 3) then
+        !   v(1,i) = v(1,i) * sin(period*x(3,i))
+        ! end if
       case(6)
         ! diff-graddiv
         den(i) = rho1

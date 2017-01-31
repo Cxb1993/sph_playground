@@ -5,7 +5,7 @@ module BC
   public :: set_particles_numbers, set_border, set_sqare_box_sides
 
   private
-    integer, save              :: ns, nbrd, nx, ny, nz
+    integer, save              :: ns, nbrd, nx, ny, nz, bctype
     integer, allocatable, save :: borderX1(:), borderY1(:), borderZ1(:), borderX2(:), borderY2(:), borderZ2(:)
 
 contains
@@ -48,7 +48,6 @@ contains
       end select
     end if
   end subroutine set_border
-
   !
   !-- See page 19
   !

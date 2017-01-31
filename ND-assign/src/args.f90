@@ -9,8 +9,8 @@ module args
     character (len=10) :: arg
 
   contains
-    subroutine fillargs(dim, pspc1, pspc2, itype, ktype, errfname, dtout, npic, tfinish)
-      real, intent(inout)               :: pspc1, pspc2, dtout, npic, tfinish
+    subroutine fillargs(dim, pspc1, pspc2, itype, ktype, errfname, dtout, npic, tfinish, sk)
+      real, intent(inout)               :: pspc1, pspc2, dtout, npic, tfinish, sk
       integer, intent(inout)            :: dim
       character (len=40), intent(inout) :: itype, ktype, errfname
 
@@ -40,9 +40,12 @@ module args
       write(*, "(A, F7.5, A, F7.5)") " # #      set dx:   x1=", pspc1, "   x2=", pspc2
       call get_command_argument(6, arg(:))
       read(arg(:), *) tfinish
-
       npic = 200.
       dtout = tfinish / npic
       write(*, "(A, F9.7)") " # #    print dt:   ", dtout
+
+      call get_command_argument(7, arg(:))
+      read(arg(:), *) sk
+      write(*, "(A, F7.5)") " # #           h:   ", sk
     end subroutine fillargs
 end module args

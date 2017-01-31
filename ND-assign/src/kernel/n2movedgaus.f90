@@ -111,7 +111,7 @@ module n2movedgaus
   subroutine n2ddf(r, h, ddf)
     real, intent(in)  :: r, h
     real, intent(out) :: ddf
-    real              :: q, fr, fa
+    real              :: q!, fr, fa
 
     q = r / h
     if (q >= n2R) then

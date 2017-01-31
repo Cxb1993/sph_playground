@@ -14,27 +14,24 @@ program main
 
   implicit none
 
-  real                :: sk = 1.2
   real                :: cv = 1.
-  integer             :: n, dim, i
+  integer             :: n, dim!, i
   character (len=40)  :: itype, errfname, ktype
 
   real                              :: dt, t, dtout, ltout, tfinish, error(11), npic,&
-                                       pspc1, pspc2, gamma
+                                       pspc1, pspc2, gamma,&
+                                       sk
   integer                           :: iter, tt
   real, allocatable, dimension(:,:) :: p, v, a
   real, allocatable, dimension(:,:) :: pos, vel, acc, chi
   real, allocatable, dimension(:)   :: den, prs, mas, iu, du, om, c, h, dh, &
-                                       cf, dcf, kcf, tdu, tdh, tcf, err
+                                       cf, dcf, kcf, tdu, tdh, tcf, err, sqerr
 
-  print *, '#######################'
+  print *, '##############################################'
   print *, '#####'
 
   call fillargs(dim, pspc1, pspc2,&
-                itype, ktype, errfname, dtout, npic, tfinish)
-
-  sk = merge(sk, -tfinish, tfinish > 0)
-  tfinish = merge(tfinish, -1., tfinish > 0)
+                itype, ktype, errfname, dtout, npic, tfinish, sk)
 
   call setupIC(n, sk, gamma, cv, pspc1, pspc2, pos, vel, acc, &
                 mas, den, h, prs, iu, du, cf, kcf, dcf)
@@ -42,8 +39,8 @@ program main
   ! print *, maxval(abs(du))
 
   print *, '#####'
-  print *, '#######################'
-
+  print *, '##############################################'
+  
   call get_tasktype(tt)
 
   error(1) = pspc1
@@ -58,6 +55,7 @@ program main
   v = vel
   a = acc
   allocate(err(1:n))
+  allocate(sqerr(1:n))
   allocate(chi(3,n))
   allocate(c(n))
   c(:) = cv
@@ -103,7 +101,7 @@ program main
     ! print *, 0, 0
     if (t >= ltout) then
       print *, iter, t, dt
-      call print_output(n, t, pos, vel, acc, mas, den, h, prs, iu, cf, sqrt(err))
+      call print_output(n, t, pos, vel, acc, mas, den, h, prs, iu, cf, err)
       ltout = ltout + dtout
     end if
 
@@ -149,24 +147,9 @@ program main
 
     t = t + dt
     iter = iter + 1
-
-    if ((t-dt/2<tfinish*1/3).and.(tfinish*1/3<t+dt/2)) then
-      error(3) = sqrt(sum(err)/n)
-      call get_chi(n, mas, den, pos, h, chi)
-      call periodic1(chi, 1)
-      error(4) = sum(chi)/n/dim
-      error(5) = t
-    else if ((t-dt/2<tfinish*2/3).and.(tfinish*2/3<t+dt/2)) then
-      error(6) = sqrt(sum(err)/n)
-      call get_chi(n, mas, den, pos, h, chi)
-      error(7) = sum(chi)/n/dim
-      error(8) = t
-    end if
-    ! print *, '--1'
-    ! print *, 0, 4
   end do
 
-  if (t == .0) then
+  if (t <= .0) then
     select case(tt)
     case(1)
       ! 'hydroshock'
@@ -177,21 +160,24 @@ program main
       call err_sinxet(n, cf, t, err)
       call get_chi(n, mas, den, pos, h, chi)
       call periodic3(chi, 00, dim)
-      call print_output(n, t, pos, chi, acc, mas, den, h, prs, iu, cf, sqrt(err))
+      sqerr(:) = sqrt(err(:))
+      call print_output(n, t, pos, chi, acc, mas, den, h, prs, iu, cf, sqerr)
       error(4) = sum(chi)/n/dim
     case(5)
       ! 'diff-laplace'
       call err_diff_laplace(n, pos, acc, dim, err)
       call get_chi(n, mas, den, pos, h, chi)
       call periodic3(chi, 00, dim)
-      call print_output(n, t, pos, chi, acc, mas, den, h, prs, iu, cf, sqrt(err))
+      sqerr(:) = sqrt(err(:))
+      call print_output(n, t, pos, chi, acc, mas, den, h, prs, iu, cf, sqerr)
       error(4) = sum(chi)/n/dim
     case(6)
       ! 'diff-graddiv'
       call err_diff_graddiv(n, pos, acc, dim, err)
       call get_chi(n, mas, den, pos, h, chi)
       call periodic3(chi, 00, dim)
-      call print_output(n, t, pos, chi, acc, mas, den, h, prs, iu, cf, sqrt(err))
+      sqerr(:) = sqrt(err(:))
+      call print_output(n, t, pos, chi, acc, mas, den, h, prs, iu, cf, sqerr)
       error(4) = sum(chi)/n/dim
     case default
       print *, 'Task type was not sen in error evaluation main.f90'

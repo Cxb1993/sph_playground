@@ -2,7 +2,7 @@ module gaus
   use const
   implicit none
 
-  public :: kf, kdf, kddf, knorm, krad, kernelname, calc_params
+  public :: kf, kdf, kddf, knorm, krad, kernelname!, calc_params
 
   private
     real, parameter :: krad = 2.
@@ -34,31 +34,30 @@ module gaus
                           /), (/3,2/))
     character (len=10) :: kernelname='mgauss'
 
-    real, save :: f_err, df_err, ddf_err
-
+    !real, save :: f_err, df_err, ddf_err
  contains
-  subroutine calc_params
-    real fa, fr, q
-    ! Where we want to truncate
-    q = krad
-    ! What we have at the truncation point
-    fr = exp(-q**2) * (4 * q**2 - 2)
-    ! What we have to have at the real truncation point ie 'inf'
-    fa = 0
-    ! Make it the same
-    ddf_err = fr - fa
-    ! But with this we change the undercurv volume, so we need to change it back
-    ! Page 26 + something strange
-    fr = (-2*exp(-q**2) - ddf_err/2/krad*q)*q
-    fa = 0
-    df_err  = fr - fa
-
-    fr = exp(-q**2) - (q**2*(ddf_err - 3*df_err))/(6*krad)
-    fa = 0
-    f_err = fr - fa
-
-    ! print *, ddf_err, df_err, f_err
-  end subroutine calc_params
+  ! subroutine calc_params
+  !   real fa, fr, q
+  !   ! Where we want to truncate
+  !   q = krad
+  !   ! What we have at the truncation point
+  !   fr = exp(-q**2) * (4 * q**2 - 2)
+  !   ! What we have to have at the real truncation point ie 'inf'
+  !   fa = 0
+  !   ! Make it the same
+  !   ddf_err = fr - fa
+  !   ! But with this we change the undercurv volume, so we need to change it back
+  !   ! Page 26 + something strange
+  !   fr = (-2*exp(-q**2) - ddf_err/2/krad*q)*q
+  !   fa = 0
+  !   df_err  = fr - fa
+  !
+  !   fr = exp(-q**2) - (q**2*(ddf_err - 3*df_err))/(6*krad)
+  !   fa = 0
+  !   f_err = fr - fa
+  !
+  !   ! print *, ddf_err, df_err, f_err
+  ! end subroutine calc_params
 
   subroutine kf(r, h, f)
     real, intent(in)  :: r, h
@@ -110,7 +109,7 @@ module gaus
   subroutine kddf(r, h, ddf)
     real, intent(in)  :: r, h
     real, intent(out) :: ddf
-    real              :: q, fr, fa
+    real              :: q!, fr, fa
 
     q = r / h
     if (q >= krad) then

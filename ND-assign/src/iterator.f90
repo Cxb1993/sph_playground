@@ -4,6 +4,7 @@ module iterator
   use circuit2
   use BC
   use kernel
+  use neighboursearch, only: findneighbours
 
  implicit none
 
@@ -20,7 +21,7 @@ contains
     real, intent(in)    :: sk, gamma
     integer             :: t
     integer             :: dim
-    integer :: i
+    ! integer :: i
 
 
     call get_dim(dim)
@@ -91,7 +92,7 @@ contains
       call periodic3(acc, 00, dim)
     case(6)
       ! 'diff-graddiv'
-      print *, 0
+      call findneighbours(pos, h)
       call c2(n, c, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
       call periodic3(acc, 00, dim)
     case default

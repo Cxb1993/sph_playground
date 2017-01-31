@@ -1,6 +1,7 @@
 module neighboursearch
-  use kernel
-  use utils
+  use kernel, only: get_krad
+  use utils,  only: resize
+  use omp_lib
 
   implicit none
 
@@ -11,29 +12,33 @@ private
   type neighbourlisttype
     integer, allocatable :: list(:)
   end type
-  type(neighbourlisttype), allocatable :: neighbour(:)
+  type(neighbourlisttype), allocatable :: neighbours(:)
 
 contains
 
+  ! simple list
   subroutine findneighbours(pos, h)
-    integer, allocatable, intent(in) :: pos(:,:), h(:)
+    real, allocatable, intent(in) :: pos(:,:), h(:)
     integer                          :: sn, i, j, tsz, tix
     real                             :: r2, r(3), kr
 
     sn = size(pos, dim=2)
     call get_krad(kr)
 
-    if(allocated(neighbour)) then
+    if(allocated(neighbours)) then
       do i=1,sn
-        deallocate(neighbour(i)%list)
+        deallocate(neighbours(i)%list)
       end do
-      deallocate(neighbour)
+      deallocate(neighbours)
     end if
-    allocate(neighbour(sn))
+    allocate(neighbours(sn))
     do i=1,sn
-      allocate(neighbour(i)%list(1))
+      allocate(neighbours(i)%list(10))
     end do
 
+    !$omp parallel do default(none) &
+    !$omp shared(pos, h, sn, kr, neighbours) &
+    !$omp private(i, j, tix, r, r2, tsz)
     do i=1,sn
       tix = 0
       do j=1,sn
@@ -42,25 +47,27 @@ contains
           r2 = dot_product(r(:),r(:))
           if (r2 < (kr * h(i))**2) then
             tix = tix + 1
-            tsz = size(neighbour(i)%list)
+            tsz = size(neighbours(i)%list)
             if (tsz < tix) then
-              call resize(neighbour(i)%list, tix, tix *2)
+              call resize(neighbours(i)%list, tsz, tsz * 2)
             end if
-            neighbour(i)%list(tix) = j
+            neighbours(i)%list(tix) = j
           end if
         end if
       end do
-      tsz = size(neighbour(i)%list)
+      tsz = size(neighbours(i)%list)
       if (tsz /= tix) then
-        call resize(neighbour(i)%list, tix, tixs)
+        call resize(neighbours(i)%list, tix, tix)
       end if
     end do
+    !$omp end parallel do
   end subroutine findneighbours
 
   subroutine getneighbours(i, list)
-    integer, allocatable, intent(out) :: list(:)
-    integer, allocatable, intent(in)  :: i
+    integer, allocatable, intent(out)   :: list(:)
+    integer, intent(in)                 :: i
 
-    list = neighbour(i)%list
+    allocate(list(size(neighbours(i)%list(:))))
+    list(:) = neighbours(i)%list(:)
   end subroutine getneighbours
 end module neighboursearch

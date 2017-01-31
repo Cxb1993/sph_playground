@@ -2,6 +2,7 @@ module circuit2
   use omp_lib
   use kernel
   use BC
+  use neighboursearch, only:getneighbours
 
   implicit none
 
@@ -16,10 +17,12 @@ contains
     real, allocatable, intent(in) :: pos(:,:), v(:,:), mas(:), h(:), den(:), P(:), c(:), om(:),&
                                      u(:), cf(:), kcf(:)
     real, allocatable, intent(inout) :: dv(:,:), du(:), dh(:), dcf(:)
-    real                :: dr, rhoa, rhob, qa, qb, qc, n2w, kr, r2
-    real                :: nwa(3), nwb(3), r(3), vab(3), urab(3), Pa(3), Pb(3), dfgrhs(3,n)
-    integer             :: i, j, dim
-    integer             :: tt!, kt
+    real                 :: dr, rhoa, rhob, qa, qb, qc, n2wa, n2wb, kr, r2
+    real                 :: nwa(3), nwb(3), r(3), vab(3), urab(3), Pa(3), Pb(3), dfgrhs(3,n),&
+                            projv, df, ddf
+    integer, allocatable :: nlist(:)
+    integer              :: i, j, dim
+    integer              :: tt, kt
 
     call get_dim(dim)
     call get_tasktype(tt)
@@ -30,19 +33,22 @@ contains
     end if
 
     !$omp parallel do default(none)&
-    !$omp private(r, dr, vab, urab, rhoa, rhob, nwa, nwb, qa, qb, qc, Pa, Pb, n2w, j, i, r2) &
+    !$omp private(r, dr, vab, urab, rhoa, rhob, nwa, nwb, qa, qb, qc, Pa, Pb, n2wa, n2wb, j, i, r2) &
+    !$omp private(projv, df, ddf, nlist) &
     !$omp shared(dv, du, dh, dcf, n, pos, h, tt, v, den, c, p, om, mas, u, kcf, cf)&
-    !$omp shared(dfgrhs, dim, kr)
+    !$omp shared(dfgrhs, dim, kr, kt)
     do i = 1, n
       dv(:,i) = 0.
       du(i) = 0.
       dh(i) = 0.
       dcf(i) = 0.
+      call getneighbours(i, nlist)
+      print *, nlist
+      read *
       do j = 1, n
         if (i /= j) then
           r(:) = pos(:,i) - pos(:,j)
           r2 = dot_product(r(:),r(:))
-          call GradDivW(r, h(i), nwa)
           if ((r2 < (kr * h(i))**2).or.(r2 < (kr * h(j))**2)) then
             dr = sqrt(r2)
             select case (tt)
@@ -57,7 +63,7 @@ contains
 
               call get_nw(r, h(i), nwa)
               call get_nw(r, h(j), nwb)
-              call get_n2w(r, h(i), n2w)
+              ! call get_n2w(r, h(i), n2w)
 
               call art_viscosity(rhoa, rhob, vab, urab, c(i), c(j), qa, qb)
               call art_termcond(P(i), P(j), rhoa, rhob, qc)
@@ -72,10 +78,10 @@ contains
 
               dh(i)   = dh(i) + mas(j) * dot_product(vab(:), nwa(:))
             case (2, 3)
-              call get_n2w(r, h(i), n2w)
+              call get_n2w(r, h(i), n2wa)
 
               du(i) = du(i) - mas(j) / (den(i) * den(j)) * 2. * kcf(i) * kcf(j) &
-                      / (kcf(i) + kcf(j)) * (cf(i) - cf(j)) * n2w
+                      / (kcf(i) + kcf(j)) * (cf(i) - cf(j)) * n2wa
               ! du(i) = du(i) - mas(j) / (den(i) * den(j)) * (kcf(i) + kcf(j)) / 2. &
               !               * (cf(i) - cf(j)) * n2w
             case(4)
@@ -122,12 +128,34 @@ contains
               dh(i)   = dh(i) + mas(j) * dot_product(vab(:), nwa(:))
             case(5)
               ! 'diff-laplace'
-              call get_n2w(r, h(i), n2w)
-              dv(1,i)  = dv(1,i) + mas(j)/den(j) * (v(1,j) - v(1,i)) * n2w
+              call get_n2w(r, h(i), n2wa)
+              ! call get_n2w(r, h(j), n2wb)
+              dv(:,i)  = dv(:,i) + mas(j)/den(j) * (v(:,j) - v(:,i)) * n2wa
+              ! dv(:,j)  = dv(:,j) - mas(i)/den(i) * (v(:,i) - v(:,j)) * n2wb
             case(6)
               ! diff-graddiv
-              call GradDivW(r, h(i), nwa)
-              dv(:,i)  = dv(:,i) + mas(j)/den(j) * (v(:,j) - v(:,i)) * nwa(:)
+              call get_kerntype(kt)
+              if (kt == 1) then
+                call GradDivW(r, h(i), nwa)
+                dv(:,i)  = dv(:,i) + mas(j)/den(j) * (v(:,j) - v(:,i)) * nwa(:)
+              !   ! n2W case
+              !   urab(:) = r(:) / dr
+              !   vab(:) = v(:,i) - v(:,j)
+              !   projv = dot_product(vab(:),urab(:))
+              !   call PureKernel(dr, h(i), df, ddf)
+              !   call get_n2w(r, h(i), n2wa)
+              !   df  = df / h(i)**(dim+2)
+              !   ddf = ddf / h(i)**(dim+2)
+              !   dv(:,i)  = dv(:,i) - mas(j)/den(j) * (urab(:)*projv*ddf + (vab(:) - projv*urab(:)) * df)
+              !   ! dv(:,i)  = dv(:,i) - 0.5 * mas(j)/den(j) * ((dim + 2)*projv*urab(:) - vab(:)) * n2wa
+              else
+                ! Fab case
+                urab(:) = r(:) / dr
+                vab(:) = v(:,i) - v(:,j)
+                projv = dot_product(vab(:),urab(:))
+                call get_n2w(r, h(i), n2wa)
+                dv(:,i)  = dv(:,i) - 0.5 * mas(j)/den(j) * ((dim + 2)*projv*urab(:) - vab(:)) * n2wa
+              end if
             case default
               print *, 'Task type was not defined in circuit2 inside circle'
               stop

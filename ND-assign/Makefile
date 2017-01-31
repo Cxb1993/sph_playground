@@ -11,6 +11,7 @@ SRC=\
 	kernel/base_quintic.f90\
 	kernel/base_external.f90\
 	kernel/base_gaus.f90\
+	kernel/base_sinq.f90\
 	kernel/n2movedgaus.f90\
 	kernel/kernel.f90\
 	args.f90\
@@ -18,9 +19,10 @@ SRC=\
 	eos.f90\
 	BC.f90\
 	utils.f90\
-	IC/uniform.f90\
+	IC/initpositions.f90\
 	IC/semiuniform.f90\
 	IC/IC.f90\
+	neighbour_search.f90\
 	circuit1.f90\
 	circuit2.f90\
 	errcalc.f90\
@@ -68,7 +70,10 @@ pheva:
 	make && time ./execute $(dim) pheva 0.002 runresult.info fab -1.5
 
 difflaplace:
-	make && time ./execute $(dim) diff-laplace .14 runresult.info fab 0.1
+	make && time ./execute $(dim) diff-laplace .4 runresult.info fab 0.1 1.2
+
+diffgraddiv:
+	make && time ./execute $(dim) diff-graddiv .4 runresult.info fab 0.1 1.2
 
 .PHONY: execute
 

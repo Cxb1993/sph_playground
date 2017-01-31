@@ -92,21 +92,22 @@ contains
     real, intent(out)   :: err(n)
 
     integer             :: i
-    real                :: exact
+    real                :: exact(3)
 
     !$omp parallel do default(none) &
     !$omp shared(n,x,num,err,dim,period) &
     !$omp private(exact, i)
     do i=1,n
-      exact = sin(period*x(1,i))
-      if (dim > 1) then
-        exact = exact * sin(period*x(2,i))
-        if (dim == 3) then
-          exact = exact * sin(period*x(3,i))
-        end if
-      end if
-      exact = -dim*period**2*exact
-      err(i) = (exact - num(1,i))**2
+      exact(:) = sin(period*x(:,i))
+      ! if (dim > 1) then
+      !   exact = exact * sin(period*x(2,i))
+      !   if (dim == 3) then
+      !     exact = exact * sin(period*x(3,i))
+      !   end if
+      ! end if
+      ! exact(:) = -dim*period**2*exact(:)
+      exact(:) = -period**2*exact(:)
+      err(i) =dot_product(exact - num(:,i),exact - num(:,i))
       ! print *, i, exact, num(1,i), err(i)
     end do
     !$omp end parallel do
@@ -133,7 +134,11 @@ contains
       ! end if
       exact(:) = -exact(:)
       err(i) = dot_product(exact(:)-num(:,i),exact(:)-num(:,i))
-      ! print *, i, exact, num(1,i), err(i)
+      ! print *, i
+      ! print *, exact(:)
+      ! print *, num(:,i)
+      ! print *, err(i)
+      ! read *
     end do
     !$omp end parallel do
   end subroutine err_diff_graddiv
