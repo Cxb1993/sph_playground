@@ -1,16 +1,16 @@
 program main
   use BC
-  use IC,       only:setupIC
-  use kernel,   only:get_tasktype
-  use iterator, only:iterate
+  use IC,       only: setupIC
+  use kernel,   only: get_tasktype
+  use iterator, only: iterate
   use printer
-  use err_calc, only:err_init,&
-                     err_diff_laplace,&
-                     err_diff_graddiv,&
-                     err_sinxet
-  use args,     only:fillargs
+  use err_calc, only: err_init,&
+                      err_diff_laplace,&
+                      err_diff_graddiv,&
+                      err_sinxet
+  use args,     only: fillargs
   use bias,     only: calcDaigonal2ndErrTerms
-  use circuit1, only:c1_init
+  use circuit1, only: c1_init
 
   implicit none
 
@@ -25,9 +25,7 @@ program main
                                         sk
   real                :: cv = 1.
   character (len=40)  :: itype, errfname, ktype
-  integer             :: n, dim, iter, tt, nused
-
-
+  integer             :: n, dim, iter, tt, nused,i
 
   print *, '##############################################'
   print *, '#####'
@@ -71,7 +69,7 @@ program main
   call err_init(n, pos)
   call c1_init(n)
 
- print *, tfinish
+ print *, "Finish time = ", tfinish
   do while (t <= tfinish)
     ! print *, 0, -1
     ! print *, '--0'
@@ -86,7 +84,7 @@ program main
     case(3)
       ! 'hc-sinx'
       dt = .144 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
-      call err_sinxet(n, cf, t, err)
+      call err_sinxet(ptype, cf, t, err, nused)
     case(4)
       ! 'photoevaporation' 'pheva'
       dt = .3e-3 * minval(h)**2 / maxval(c)**2 / maxval(kcf) / maxval(cf)
@@ -158,7 +156,7 @@ program main
       ! 'infslb'
     case(3)
       ! 'hc-sinx'
-      call err_sinxet(n, cf, t, err)
+      call err_sinxet(ptype, cf, t, err, nused)
     case(5)
       ! 'diff-laplace'
       call err_diff_laplace(n, pos, acc, dim, err)
@@ -169,11 +167,11 @@ program main
       print *, 'Task type was not sen in error evaluation main.f90'
       stop
     end select
+
     call calcDaigonal2ndErrTerms(ptype, pos, mas, den, h, chi)
-    call periodic3(chi, 00, dim)
     sqerr(:) = sqrt(err(:))
     call print_output(t, ptype, pos, chi, acc, mas, den, h, prs, iu, cf, sqerr)
-    error(4) = merge(sum(chi)/nused, 0., nused>0)
+    error(4) = merge(sum(chi)/nused/dim, 0., nused>0)
     error(3) = merge(sqrt(sum(err)/nused), 0., nused>0)
     error(5) = sk
     call print_appendline(5, error, errfname)

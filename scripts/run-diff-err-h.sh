@@ -1,19 +1,21 @@
 #!/bin/bash
 
 dimlist='1 2 3'
-tasktype='diff-laplace'
+# dimlist='1'
+tasktype='diff-graddiv'
 ktype='n2w fab'
 execnamelist='execute'
 storebase=`pwd`
 dtprefix=`date +%Y%m%d%H%M`
 # kernelPrefix='quintic'
-# kernelPrefix='cubic'
-kernelPrefix='mgauss'
+kernelPrefix='cubic'
+# kernelPrefix='mgauss'
 
 tfinish='100'
 spstart='1.'
-spend='3.'
-spstep='.1'
+spend='1.'
+# spend='3.'
+spstep='.01'
 tstep=$spstart
 flag='1'
 spacing=""
@@ -25,7 +27,7 @@ done
 # spacing='0.2 0.19 0.2 0.19'
 echo "Spacings: $spacing"
 
-echo '' > runresult.info
+echo '' > result.info
 `mkdir -p output`
 for dim in $dimlist; do
   it=0
@@ -44,7 +46,7 @@ for dim in $dimlist; do
         runcmd="time ./$execname $dim $tasktype 0.06 $errfname $k $tfinish $psp &>/dev/null"
         echo $runcmd
         runresult=`echo '\n' | $runcmd`
-        echo "$runresult" >> runresult.info
+        echo "$runresult" >> result.info
 
         itsize=${#it}
         # itspac=`tail -1 $errfname | awk '{print$1}'`
@@ -54,11 +56,12 @@ for dim in $dimlist; do
         else
           iti=$it
         fi
-        moveto="$storebase/$dim""D-""$k/$iti-$itspac"
-        runcmd="mkdir -p $moveto"
-        `$runcmd`
-        runcmd="mv output/* $moveto"
-        `$runcmd`
+        `mkdir -p $storebase/$dim""D-""$k/`
+        moveto="$storebase/$dim""D-""$k/$iti-$itspac.zip"
+        runcmd="zip -9 $moveto ./output/*"
+        runresult=`$runcmd`
+        echo "$runresult" >> result.info
+        `rm -rf output/*`
         echo -e "\nDone $tasktype $fullkernel $psp\n"
       done
     done

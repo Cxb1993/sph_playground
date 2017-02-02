@@ -1,17 +1,22 @@
 #!/bin/bash
 
-dimlist='1 2 3'
+# dimlist='1 2 3'
+dimlist='1 2'
+# dimlist='2'
 # dimlist='3'
 tasktype='hc-sinx'
-# ktype='n2w fab'
-ktype='n2w'
+ktype='n2w fab'
+# ktype='n2w'
+# ktype='fab'
 # kbase='q c'
-kbase='x'
+kbase='new'
 storebase=`pwd`
 dtprefix=`date +%Y%m%d%H%M`
+kernelprefix='new'
 
 # This is spacing now
-tfinish='.02'
+tfinish='0'
+realspacing='.06'
 spstart='1'
 spend='3'
 spstep='.01'
@@ -20,24 +25,22 @@ flag='1'
 # in this case it is "sk" multiplier of number of neighbours
 spacing=""
 while [[ $flag -eq "1" ]]; do
-  spacing=$spacing" -"$tstep
+  spacing=$spacing" "$tstep
   tstep=`echo "$tstep + $spstep" | bc`
   flag=`echo "$tstep < $spend" | bc`
 done
-# spacing='0.2 0.19 0.2 0.19'
 echo "Spacings: $spacing"
 
-echo '' > runresult.info
+echo '' > result.info
 `mkdir -p output`
 
 for dim in $dimlist; do
   it=0
   for psp in $spacing; do
     for kb in $kbase; do
-      execname='execute-'$kb
+      execname='execute'
       for k in $ktype; do
-        # fullkernel=$k$kb
-        fullkernel='Brookshaw_M4'
+        fullkernel=$kernelprefix'-'$k
         errfname=$dtprefix'-'$tasktype'-'$fullkernel'-'$dim'D'
 
         if [ "$it" = "0" ]; then
@@ -46,10 +49,10 @@ for dim in $dimlist; do
           `echo $header > $errfname`
         fi
 
-        runcmd="time ./$execname $dim $tasktype $tfinish $errfname $k $psp &>/dev/null"
+        runcmd="time ./$execname $dim $tasktype $realspacing $errfname $k $tfinish $psp &>/dev/null"
         echo $runcmd
         runresult=`echo '\n' | $runcmd`
-        echo "$runresult" >> runresult.info
+        echo "$runresult" >> result.info
 
         itsize=${#it}
         itspac=`tail -1 $errfname | awk '{print$NF}'`
@@ -61,11 +64,13 @@ for dim in $dimlist; do
         else
           iti=$it
         fi
-        runcmd="mkdir -p $storebase/$fullkernel-$dim"D"/$iti-$itspac"
-        `$runcmd`
-        runcmd="mv output/* $storebase/$fullkernel-$dim"D"/$iti-$itspac"
-        `$runcmd`
-        echo -e "\nDone $tasktype $fullkernel $dim'D' $psp\n"
+        `mkdir -p $storebase/$dim""D-""$k/`
+        moveto="$storebase/$dim""D-""$k/$iti-$itspac.zip"
+        runcmd="zip -9 $moveto ./output/*"
+        runresult=`$runcmd`
+        echo "$runresult" >> result.info
+        `rm -rf output/*`
+        echo -e "\nDone $tasktype $fullkernel $psp\n"
       done
     done
     it=$((it+1))

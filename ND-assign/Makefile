@@ -13,6 +13,7 @@ SRC=\
 	kernel/base_gaus.f90\
 	kernel/base_sinq.f90\
 	kernel/n2movedgaus.f90\
+	kernel/n2mrunge.f90\
 	kernel/kernel.f90\
 	args.f90\
 	printer.f90\

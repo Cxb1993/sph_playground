@@ -36,8 +36,6 @@ module args
       print *, "# #    ker.type:   ", ktype
       call set_kerntype(ktype)
 
-      pspc2 = pspc1
-      write(*, "(A, F7.5, A, F7.5)") " # #      set dx:   x1=", pspc1, "   x2=", pspc2
       call get_command_argument(6, arg(:))
       read(arg(:), *) tfinish
       npic = 200.
@@ -47,5 +45,8 @@ module args
       call get_command_argument(7, arg(:))
       read(arg(:), *) sk
       write(*, "(A, F7.5)") " # #           h:   ", sk
+
+      pspc2 = pspc1
+      write(*, "(A, F7.5, A, F7.5)") " # #      set dx:   x1=", pspc1, "   x2=", pspc2
     end subroutine fillargs
 end module args

@@ -6,7 +6,7 @@ module neighboursearch
 
   implicit none
 
-public findneighbours, getneighbours, setStepsize
+public findneighbours, getneighbours, setStepsize, isInitialized
 
 private
 
@@ -14,15 +14,23 @@ private
     integer, allocatable :: list(:)
   end type
   type(neighbourlisttype), allocatable :: neighbours(:)
-  integer, save :: stepsize = 1
+
+  save
+  integer :: stepsize = 1
+  integer :: initialized = 0
 contains
 
   subroutine setStepsize(i)
     integer, intent(in) :: i
     stepsize = i
   end subroutine setStepsize
+
+  subroutine isInitialized(o)
+    integer, intent(out) :: o
+    o = initialized
+  end subroutine isInitialized
   ! simple list
-  subroutine findneighbours(pos, ptype, h)
+  subroutine findneighbours(ptype, pos, h)
     real, allocatable, intent(in)    :: pos(:,:), h(:)
     integer, allocatable, intent(in) :: ptype(:)
     integer                          :: sn, i, j, tsz, tix, dim
@@ -74,6 +82,7 @@ contains
       end if
     end do
     !$omp end parallel do
+    initialized = 1.
   end subroutine findneighbours
 
   subroutine getneighbours(i, list)

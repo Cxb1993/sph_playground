@@ -23,10 +23,11 @@ contains
     real, intent(in)    :: sk, gamma
     integer             :: t
     integer             :: dim
-    real                :: start, finish
 
     call get_dim(dim)
     call get_tasktype(t)
+
+    call findneighbours(ptype, pos, h)
 
     select case (t)
     case (1)
@@ -93,17 +94,8 @@ contains
       call periodic3(acc, 00, dim)
     case(6)
       ! 'diff-graddiv'
-      call cpu_time(start)
-      call findneighbours(pos, ptype, h)
-      call cpu_time(finish)
-      print '("Time in NS = ",f9.4," seconds.")',finish-start
-      call cpu_time(start)
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
-      call cpu_time(finish)
-      print '("Time in C2 = ",f9.4," seconds.")',finish-start
-      call cpu_time(start)
       call periodic3(acc, 00, dim)
-      print '("Time in BC = ",f9.4," seconds.")',finish-start
     case default
       print *, 'Task type was not defined in iterator'
       stop

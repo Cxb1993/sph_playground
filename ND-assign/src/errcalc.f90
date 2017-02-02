@@ -73,23 +73,29 @@ contains
     !$OMP END PARALLEL
   end subroutine err_T0sxsyet
 
-  subroutine err_sinxet(n, num, t, err)
-    integer, intent(in) :: n
-    real, intent(in)    :: num(n), t
-    real, intent(out)   :: err(n)
+  subroutine err_sinxet(ptype, num, t, err, count)
+    integer, allocatable, intent(in) :: ptype(:)
+    real, allocatable, intent(in)    :: num(:)
+    real, allocatable, intent(inout) :: err(:)
+    integer, intent(inout)           :: count
+    real, intent(in)                 :: t
 
-    integer             :: i
+    integer             :: i, n
     real                :: exact
 
-    ! print *, maxval(num)
+    n = size(ptype)
+    count = 0
+    err(1:n) = 0.
     !$omp parallel do default(none) &
-    !$omp shared(n,tsin,num,err,t) &
-    !$omp private(exact, i)
-    do i=1,n
-      exact = tsin(i) * exp(-pi**2 * t)
-      ! exact = sin(pi * (pos(1,i) + 1.)) * exp(-pi**2 * t)
-      ! print *, maxval(num), minval(num), num(i), n
-      err(i) = (exact - num(i))**2
+    !$omp shared(n,tsin,num,err,t,ptype) &
+    !$omp private(exact, i)&
+    !$omp reduction(+:count)
+    do i=1,n, stepsize
+      if (ptype(i) /= 0) then
+        exact = tsin(i) * exp(-pi**2 * t)
+        err(i) = (exact - num(i))**2
+        count = count + 1
+      end if
     end do
     !$omp end parallel do
   end subroutine err_sinxet
@@ -101,7 +107,7 @@ contains
 
     integer             :: i
     real                :: exact(3)
-
+    print *, 'Not ready for neigbour search, will divide at some random nuber'
     !$omp parallel do default(none) &
     !$omp shared(n,x,num,err,dim,period) &
     !$omp private(exact, i)
