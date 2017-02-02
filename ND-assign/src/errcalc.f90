@@ -2,18 +2,26 @@ module err_calc
   use const
   use omp_lib
   use BC
-  use kernel
+  use kernel, only: get_dim,&
+                    get_tasktype
 
   implicit none
 
-  public :: err_init, err_T0sxsyet, err_infplate, err_sinxet, err_diff_laplace, err_diff_graddiv
+  public :: err_init, err_T0sxsyet, err_infplate, err_sinxet,&
+            err_diff_laplace, err_diff_graddiv, setStepsize
 
   private
   save
   real, allocatable :: tsin(:)
-  real :: period
+  real    :: period
+  integer :: stepsize = 1
 
 contains
+  subroutine setStepsize(i)
+    integer, intent(in) :: i
+    stepsize = i
+  end subroutine setStepsize
+
   subroutine err_init(n, pos)
     integer, intent(in) :: n
     real, intent(in)    :: pos(3,n)
@@ -113,32 +121,31 @@ contains
     !$omp end parallel do
   end subroutine err_diff_laplace
 
-  subroutine err_diff_graddiv(n, x, num, dim, err)
-    integer, intent(in) :: n, dim
-    real, intent(in)    :: x(3,n), num(3,n)
-    real, intent(out)   :: err(n)
+  subroutine err_diff_graddiv(ptype, x, num, err, count)
+    integer, allocatable, intent(in) :: ptype(:)
+    real, allocatable, intent(in)    :: x(:,:), num(:,:)
+    real, allocatable, intent(inout) :: err(:)
+    integer, intent(out)             :: count
 
-    integer             :: i
+    integer             :: n, i, dim
     real                :: exact(3)
 
+    call get_dim(dim)
+    n = size(ptype)
+    count = 0
+    err(1:n) = 0.
     !$omp parallel do default(none) &
-    !$omp shared(n,x,num,err,dim,period) &
-    !$omp private(exact, i)
-    do i=1,n
-      exact(:) = sin(period*x(:,i))
-      ! if (dim > 1) then
-      !   exact = exact * sin(period*x(2,i))
-      !   if (dim == 3) then
-      !     exact = exact * sin(period*x(3,i))
-      !   end if
-      ! end if
-      exact(:) = -exact(:)
-      err(i) = dot_product(exact(:)-num(:,i),exact(:)-num(:,i))
-      ! print *, i
-      ! print *, exact(:)
-      ! print *, num(:,i)
-      ! print *, err(i)
-      ! read *
+    !$omp shared(n,ptype, x,num,err,dim,period) &
+    !$omp private(exact, i) &
+    !$omp reduction(+:count)
+    do i=1,n,stepsize
+      ! print*,i, size(exact), size(x,dim=2),size(x,dim=1),size(num,dim=2), size(err), size(ptype)
+      if (ptype(i) /= 0) then
+        exact(:) = sin(period*x(:,i))
+        exact(:) = -exact(:)
+        err(i) = dot_product(exact(:)-num(:,i),exact(:)-num(:,i))
+        count = count + 1
+      end if
     end do
     !$omp end parallel do
   end subroutine err_diff_graddiv

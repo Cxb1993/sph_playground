@@ -1,8 +1,8 @@
 module kernel
   use const
-  ! use cubic
+  use cubic
   use n2movedgaus
-  use quintic
+  ! use quintic
   ! use gaus
   ! use sinq
   ! use external

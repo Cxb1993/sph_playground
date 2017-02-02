@@ -18,12 +18,14 @@ module IC
 contains
 
   subroutine setupIC(n, sk, g, cv, pspc1, pspc2, &
-    x, v, dv, mas, den, sln, prs, iu, du, cf, kcf, dcf)
+    x, v, dv, mas, den, sln, prs, iu, du, cf, kcf, dcf, ptype)
+    integer, allocatable, intent(inout) :: ptype(:)
     real, allocatable, intent(inout) :: x(:,:), v(:,:), dv(:,:), mas(:), den(:), sln(:), &
                                         prs(:), iu(:), du(:), cf(:), kcf(:), dcf(:)
     real, intent(in)     :: sk, cv
     real, intent(inout)  :: pspc1, pspc2, g
     integer, intent(out) :: n
+
     real                 :: kr, prs1, prs2, rho1, rho2, kcf1, kcf2, cf1, cf2, sp, v0, &
                             brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, period
     integer              :: i, nb, tt, kt, dim, nptcs
@@ -45,7 +47,7 @@ contains
     case (2)
       ! infslb
       nb = 1
-      call place_uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x)
+      call place_uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
     case (3)
       ! hc-sinx
       brdx1 = -1.
@@ -67,11 +69,11 @@ contains
         brdz2 = 0.
       end if
       nb = int(kr * sk) + 1
-      call place_uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x)
+      call place_uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
     case (4)
       ! pheva
       nb = int(kr * sk) + 1
-      call place_uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x)
+      call place_uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
     case (5)
       ! diff-laplace
       period = pi
@@ -93,7 +95,7 @@ contains
         brdz2 = 0.
       end if
       nb = int(kr * sk) + 1
-      call place_uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x)
+      call place_uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
     case(6)
       ! diff-graddiv
       period = pi
@@ -114,7 +116,7 @@ contains
         brdz2 = 0.
       end if
       nb = int(kr * sk) + 1
-      call place_uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x)
+      call place_uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
       ! call place_close_packed_fcc(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, nb, x)
     case default
       print *, 'Task type was not defined in IC border stage'
