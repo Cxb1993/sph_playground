@@ -60,6 +60,5 @@ contains
     ! ? ! Second derivatives term is for particle 'a', but ex is sum of all particle
     ! ? ! Need to divide on number of particles to get an average term
     !
-    print *, '======================='
   end subroutine calcDaigonal2ndErrTerms
 end module bias

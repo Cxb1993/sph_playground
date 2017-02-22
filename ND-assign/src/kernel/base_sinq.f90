@@ -1,4 +1,4 @@
-module sinq
+module sinc
   use const
 
   implicit none
@@ -9,7 +9,7 @@ module sinq
 
     real :: knorm(3) = (/ 0.123558082, 0.2994570731/pi, 0.236804709/pi /)
     real :: krad = 2.
-    character (len=10) :: kernelname='sinq'
+    character (len=10) :: kernelname='sinc'
 
  contains
 
@@ -65,4 +65,4 @@ module sinq
       stop
     end if
   end subroutine kddf
-end module sinq
+end module sinc

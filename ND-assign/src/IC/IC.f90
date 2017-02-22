@@ -74,29 +74,7 @@ contains
       ! pheva
       nb = int(kr * sk) + 1
       call place_uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
-    case (5)
-      ! diff-laplace
-      period = pi
-      ! period  = 1.
-      brdx1 = -1.*period
-      brdx2 = 1.*period
-      if (dim > 1) then
-        brdy1 = -1.*period
-        brdy2 =  1.*period
-      else
-        brdy1 = 0.
-        brdy2 = 0.
-      end if
-      if (dim == 3) then
-        brdz1 = -1.*period
-        brdz2 =  1.*period
-      else
-        brdz1 = 0.
-        brdz2 = 0.
-      end if
-      nb = int(kr * sk) + 1
-      call place_uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
-    case(6)
+    case(5, 6)
       ! diff-graddiv
       period = pi
       brdx1 = -1.*period
@@ -189,11 +167,7 @@ contains
       kcf1 = 1e-1
       v0   = 1e-4
       prs1 = 1.
-    case (5)
-      ! diff-laplace
-      rho1 = 1.
-      period = 1.
-    case(6)
+    case(5, 6)
       ! diff-graddiv
       rho1 = 1.
       period = 1.
@@ -255,7 +229,14 @@ contains
         ! diff-laplace
         den(i) = rho1
         mas(i) = (sp**dim) * rho1
-        v(:,i)  = sin(period*x(:,i))
+        v(1,i)  = cos(period*x(1,i))
+        if (dim > 1) then
+          v(2,i) = cos(period*x(2,i))
+        end if
+        if (dim == 3) then
+          v(3,i) = cos(period*x(3,i))
+        end if
+        ! v(1,i)  = cos(period*x(:,i))
         ! if (dim > 1) then
         !   v(1,i) = v(1,i) * sin(period*x(2,i))
         ! end if
@@ -266,7 +247,22 @@ contains
         ! diff-graddiv
         den(i) = rho1
         mas(i) = (sp**dim) * rho1
-        v(:,i)  = sin(period*x(:,i))
+        ! v(:,i)  = sin(period*x(:,i))*cos(period*x(:,i)**2)
+        if (dim == 1) then
+          v(1,i) = cos(period*x(1,i)) * x(1,i)
+          v(2,i) = 0
+          v(3,i) = 0
+        end if
+        if (dim == 2) then
+          v(1,i) = cos(period*x(1,i))* x(2,i)
+          v(2,i) = cos(period*x(2,i))* x(1,i)
+          v(3,i) = 0
+        end if
+        if (dim == 3) then
+          v(1,i) = cos(period*x(1,i))* x(3,i)
+          v(2,i) = cos(period*x(2,i))* x(2,i)
+          v(3,i) = cos(period*x(3,i))* x(1,i)
+        end if
       case default
         print *, 'Task type was not defined in IC state stage'
         stop

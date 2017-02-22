@@ -137,33 +137,33 @@ contains
             dh(i)   = dh(i) + mas(j) * dot_product(vab(:), nwa(:))
           case(5)
             ! 'diff-laplace'
+
+            ! iderivtype = 1 (default): Brookshaw/Espanol-Revenga style derivatives
+            !    del2v = \sum m_j/rho_j (v_i - v_j) * 2.0*abs(\nabla W_ij)/rij (h_i)
+            ! iderivtype = 2: "standard" second derivatives with kernel
+            !    del2v = \sum m_j/rho_j (v_j - v_i) nabla^2 W_ij (hi)
+
             call get_n2w(r, h(i), n2wa)
-            ! call get_n2w(r, h(j), n2wb)
             dv(:,i)  = dv(:,i) + mas(j)/den(j) * (v(:,j) - v(:,i)) * n2wa
-            ! dv(:,j)  = dv(:,j) - mas(i)/den(i) * (v(:,i) - v(:,j)) * n2wb
           case(6)
             ! diff-graddiv
+
+            ! iderivtype = 1 (default): Brookshaw/Espanol-Revenga style derivatives
+            !    graddivv = \sum m_j/rho_j (5 vij.rij - vij) abs(\nabla W_ij)/rij (h_i)
+            ! iderivtype = 2: "standard" second derivatives with kernel
+            !    graddivv = \sum m_j/rho_j ((v_j - v_i).\nabla) \nabla W_ij
+
             call get_kerntype(kt)
             if (kt == 1) then
               call GradDivW(r, h(i), nwa)
               dv(:,i)  = dv(:,i) + mas(j)/den(j) * (v(:,j) - v(:,i)) * nwa(:)
-            !   ! n2W case
-            !   urab(:) = r(:) / dr
-            !   vab(:) = v(:,i) - v(:,j)
-            !   projv = dot_product(vab(:),urab(:))
-            !   call PureKernel(dr, h(i), df, ddf)
-            !   call get_n2w(r, h(i), n2wa)
-            !   df  = df / h(i)**(dim+2)
-            !   ddf = ddf / h(i)**(dim+2)
-            !   dv(:,i)  = dv(:,i) - mas(j)/den(j) * (urab(:)*projv*ddf + (vab(:) - projv*urab(:)) * df)
-            !   ! dv(:,i)  = dv(:,i) - 0.5 * mas(j)/den(j) * ((dim + 2)*projv*urab(:) - vab(:)) * n2wa
             else
               ! Fab case
               urab(:) = r(:) / dr
               vab(:) = v(:,i) - v(:,j)
               projv = dot_product(vab(:),urab(:))
               call get_n2w(r, h(i), n2wa)
-              dv(:,i)  = dv(:,i) - 0.5 * mas(j)/den(j) * ((dim + 2)*projv*urab(:) - vab(:)) * n2wa
+              dv(:,i)  = dv(:,i) - 0.5*mas(j)/den(j) * ((dim + 2)*projv*urab(:) - vab(:)) * n2wa
             end if
           case default
             print *, 'Task type was not defined in circuit2 inside circle'

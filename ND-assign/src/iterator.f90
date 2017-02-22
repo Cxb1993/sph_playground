@@ -91,11 +91,11 @@ contains
     case(5)
       ! 'diff-laplace'
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
-      call periodic3(acc, 00, dim)
+      ! call periodic3(acc, 00, dim)
     case(6)
       ! 'diff-graddiv'
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
-      call periodic3(acc, 00, dim)
+      ! call periodic3(acc, 00, dim)
     case default
       print *, 'Task type was not defined in iterator'
       stop

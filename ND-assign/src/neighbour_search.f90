@@ -79,6 +79,8 @@ contains
         if (tsz /= tix) then
           call resize(neighbours(i)%list, tix, tix)
         end if
+        ! print*, tix
+        ! read *
       end if
     end do
     !$omp end parallel do

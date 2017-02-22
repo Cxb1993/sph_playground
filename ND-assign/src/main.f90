@@ -35,7 +35,11 @@ program main
   call setupIC(n, sk, gamma, cv, pspc1, pspc2, pos, vel, acc, &
                 mas, den, h, prs, iu, du, cf, kcf, dcf, ptype)
 
-  call set_stepping(10**dim)
+  ! if (dim /= 1) then
+    call set_stepping(10**dim)
+  ! else
+    ! call set_stepping(1)
+  ! end if
   print *, '#####'
   print *, '##############################################'
 
@@ -159,7 +163,7 @@ program main
       call err_sinxet(ptype, cf, t, err, nused)
     case(5)
       ! 'diff-laplace'
-      call err_diff_laplace(n, pos, acc, dim, err)
+      call err_diff_laplace(ptype, pos, acc, err, nused)
     case(6)
       ! 'diff-graddiv'
       call err_diff_graddiv(ptype, pos, acc, err, nused)

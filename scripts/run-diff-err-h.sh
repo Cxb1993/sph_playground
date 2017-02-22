@@ -10,6 +10,7 @@ dtprefix=`date +%Y%m%d%H%M`
 # kernelPrefix='quintic'
 kernelPrefix='cubic'
 # kernelPrefix='mgauss'
+# kernelPrefix='sinc'
 
 tfinish='100'
 spstart='1.'
@@ -52,9 +53,13 @@ for dim in $dimlist; do
         # itspac=`tail -1 $errfname | awk '{print$1}'`
         itspac=`printf %f $psp`
         if [ $itsize -eq '1' ]; then
-          iti="0"$it
+          iti="00"$it
         else
-          iti=$it
+          if [ $itsize -eq '2' ]; then
+            iti="0"$it
+          else
+            iti=$it
+          fi
         fi
         `mkdir -p $storebase/$dim""D-""$k/`
         moveto="$storebase/$dim""D-""$k/$iti-$itspac.zip"
