@@ -1,9 +1,12 @@
 #!/bin/bash
 
-dimlist='1 2 3'
-# dimlist='1'
-tasktype='diff-graddiv'
-ktype='n2w fab'
+env | grep OMP_NUM_THREADS
+# dimlist='1 2 3'
+dimlist=$1
+# tasktype='diff-graddiv'
+tasktype=$2
+# ktype='n2w fab'
+ktype='n2w'
 execnamelist='execute'
 storebase=`pwd`
 dtprefix=`date +%Y%m%d%H%M`
@@ -14,9 +17,9 @@ kernelPrefix='cubic'
 
 tfinish='100'
 spstart='1.'
-spend='1.'
+spend='2.'
 # spend='3.'
-spstep='.01'
+spstep='.02'
 tstep=$spstart
 flag='1'
 spacing=""
@@ -61,16 +64,19 @@ for dim in $dimlist; do
             iti=$it
           fi
         fi
-        `mkdir -p $storebase/$dim""D-""$k/`
-        moveto="$storebase/$dim""D-""$k/$iti-$itspac.zip"
-        runcmd="zip -9 $moveto ./output/*"
-        runresult=`$runcmd`
-        echo "$runresult" >> result.info
-        `rm -rf output/*`
-        echo -e "\nDone $tasktype $fullkernel $psp\n"
+        # `mkdir -p $storebase/$dim""D-""$k/`
+        # moveto="$storebase/$dim""D-""$k/$iti-$itspac.zip"
+        # runcmd="zip -9 $moveto ./output/*"
+        # runresult=`$runcmd`
+        # echo "$runresult" >> result.info
+        # `rm -rf output/*`
+        # echo -e "\nDone $tasktype $fullkernel $psp\n"
       done
     done
     it=$((it+1))
   done
 done
+runcmd="zip -9 output.zip ./output/*"
+cmdres = `$runcmd`
 `rm -rf output`
+echo "$errfname"

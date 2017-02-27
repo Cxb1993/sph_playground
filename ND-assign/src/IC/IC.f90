@@ -229,12 +229,12 @@ contains
         ! diff-laplace
         den(i) = rho1
         mas(i) = (sp**dim) * rho1
-        v(1,i)  = cos(period*x(1,i))
+        v(1,i)  = sin(period*x(1,i))
         if (dim > 1) then
-          v(2,i) = cos(period*x(2,i))
+          v(2,i) = sin(period*x(2,i))
         end if
         if (dim == 3) then
-          v(3,i) = cos(period*x(3,i))
+          v(3,i) = sin(period*x(3,i))
         end if
         ! v(1,i)  = cos(period*x(:,i))
         ! if (dim > 1) then

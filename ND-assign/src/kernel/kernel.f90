@@ -1,9 +1,9 @@
 module kernel
   use const
-  ! use cubic
+  use cubic
   ! use n2movedgaus
   use n2ext
-  use quintic
+  ! use quintic
   ! use gaus
   ! use sinc
   ! use external
@@ -161,27 +161,27 @@ module kernel
     Fabw(:) = -2. * r(:) * nw(:)/dot_product(r,r)
   end subroutine get_Fabiw
 
-  subroutine get_n2w(r, h, n2w)
-    real, intent(in)  :: r(3), h
-    real, intent(out) :: n2w
-
-    if (ktype == 1) then
-      call get_on2w(sqrt(dot_product(r,r)), h, n2w)
-    else if (ktype == 2) then
-      call get_Fab(r, h, n2w)
-    end if
-  end subroutine get_n2w
-
-  subroutine GradDivW(r, h, n2w)
-    real, intent(in)    :: r(3), h
-    real, intent(out)   :: n2w(3)
-
-    if (ktype == 1) then
-      call get_on2iw(r, h, n2w)
-    else if (ktype == 2) then
-      call get_Fabiw(r, h, n2w)
-    end if
-  end subroutine GradDivW
+  ! subroutine get_n2w(r, h, n2w)
+  !   real, intent(in)  :: r(3), h
+  !   real, intent(out) :: n2w
+  !
+  !   if (ktype == 1) then
+  !     call get_on2w(sqrt(dot_product(r,r)), h, n2w)
+  !   else if (ktype == 2) then
+  !     call get_Fab(r, h, n2w)
+  !   end if
+  ! end subroutine get_n2w
+  !
+  ! subroutine GradDivW(r, h, n2w)
+  !   real, intent(in)    :: r(3), h
+  !   real, intent(out)   :: n2w(3)
+  !
+  !   if (ktype == 1) then
+  !     call get_on2iw(r, h, n2w)
+  !   else if (ktype == 2) then
+  !     call get_Fabiw(r, h, n2w)
+  !   end if
+  ! end subroutine GradDivW
 
 ! ---------!
 ! Y kernel !--------------------------------------------------------------------
@@ -238,26 +238,26 @@ module kernel
     FabY(:) = -2. * r(:) * nY(:)/dot_product(r,r)
   end subroutine get_FabiY
 
-  ! subroutine get_n2w(r, h, n2Y)
-  !   real, intent(in)  :: r(3), h
-  !   real, intent(out) :: n2Y
-  !
-  !   if (ktype == 1) then
-  !     call get_on2Y(sqrt(dot_product(r,r)), h, n2Y)
-  !   else if (ktype == 2) then
-  !     call get_FabY(r, h, n2Y)
-  !   end if
-  ! end subroutine get_n2w
-  !
-  ! subroutine GradDivW(r, h, n2Y)
-  !   real, intent(in)    :: r(3), h
-  !   real, intent(out)   :: n2Y(3)
-  !
-  !   if (ktype == 1) then
-  !     call get_on2iY(r, h, n2Y)
-  !   else if (ktype == 2) then
-  !     call get_FabiY(r, h, n2Y)
-  !   end if
-  ! end subroutine GradDivW
+  subroutine get_n2w(r, h, n2Y)
+    real, intent(in)  :: r(3), h
+    real, intent(out) :: n2Y
+
+    if (ktype == 1) then
+      call get_on2Y(sqrt(dot_product(r,r)), h, n2Y)
+    else if (ktype == 2) then
+      call get_FabY(r, h, n2Y)
+    end if
+  end subroutine get_n2w
+
+  subroutine GradDivW(r, h, n2Y)
+    real, intent(in)    :: r(3), h
+    real, intent(out)   :: n2Y(3)
+
+    if (ktype == 1) then
+      call get_on2iY(r, h, n2Y)
+    else if (ktype == 2) then
+      call get_FabiY(r, h, n2Y)
+    end if
+  end subroutine GradDivW
 
 end module kernel

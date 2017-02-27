@@ -111,7 +111,7 @@ contains
     integer, intent(inout)           :: count
 
     integer             :: i, n, dim
-    real                :: exact(3)
+    real                :: exact(1:3)
 
     call get_dim(dim)
     n =size(ptype)
@@ -123,13 +123,14 @@ contains
     !$omp private(exact, i) &
     !$omp reduction(+:count)
     do i=1,n,stepsize
+      exact(:) = 0.
       if (ptype(i) /= 0) then
-        exact(1)  = -cos(period*x(1,i))
+        exact(1)  = -sin(period*x(1,i))
         if (dim > 1) then
-          exact(2) = -cos(period*x(2,i))
+          exact(2) = -sin(period*x(2,i))
         end if
         if (dim == 3) then
-          exact(3) = -cos(period*x(3,i))
+          exact(3) = -sin(period*x(3,i))
         end if
         err(i) = dot_product(exact(:) - num(:,i),exact(:) - num(:,i))
         count = count + 1
@@ -145,13 +146,12 @@ contains
     integer, intent(out)             :: count
 
     integer             :: n, i, dim
-    real                :: exact(3), xk(3)
+    real                :: exact(1:3), xk(3)
 
     call get_dim(dim)
     n = size(ptype)
     count = 0
     err(:) = 0.
-    exact(:) = 0.
     !$omp parallel do default(none) &
     !$omp shared(n,ptype, x,num,err,dim,period) &
     !$omp private(exact, i,xk) &
@@ -159,6 +159,7 @@ contains
     do i=1,n,stepsize
       ! print*,i, size(exact), size(x,dim=2),size(x,dim=1),size(num,dim=2), size(err), size(ptype)
       if (ptype(i) /= 0) then
+        exact(:) = 0.
         if (dim == 1) then
           exact(1) = -(x(1,i))*Cos(x(1,i)) - 2*Sin(x(1,i))
         end if
