@@ -1,4 +1,4 @@
-module err_calc
+module errcalc
   use const
   use omp_lib
   use BC
@@ -32,8 +32,8 @@ contains
     call get_tasktype(tt)
 
     select case(tt)
-    case(1)
-      ! 'hydroshock'
+    case(1, 7)
+      ! 'hydroshock' ! chi-laplace
     case(2)
       ! 'infslb'
     case(3)
@@ -161,16 +161,28 @@ contains
       if (ptype(i) /= 0) then
         exact(:) = 0.
         if (dim == 1) then
-          exact(1) = -(x(1,i))*Cos(x(1,i)) - 2*Sin(x(1,i))
+          ! exact(1) = -(x(1,i))*Cos(x(1,i)) - 2*Sin(x(1,i))
+          ! exact(1) = -sin(x(1,i))
+          exact(1) = 0
         end if
         if (dim == 2) then
-          exact(1) = -x(2,i)*Cos(x(1,i)) - Sin(x(2,i))
-          exact(2) = -x(1,i)*Cos(x(2,i)) - Sin(x(1,i))
+          exact(1) = 1
+          exact(2) = 1
+          ! exact(1) = -x(2,i)*Cos(x(1,i)) - Sin(x(2,i))
+          ! exact(2) = -x(1,i)*Cos(x(2,i)) - Sin(x(1,i))
+          ! exact(1) = -sin(x(1,i))
+          ! exact(2) = -sin(x(2,i))
         end if
         if (dim == 3) then
-          exact(1) = -(x(3,i)*Cos(x(1,i))) - Sin(x(2,i))
-          exact(2) = -(x(1,i)*Cos(x(2,i))) - Sin(x(3,i))
-          exact(3) = -(x(2,i)*Cos(x(3,i))) - Sin(x(1,i))
+          exact(1) = x(2,i) + x(3,i)
+          exact(2) = x(1,i) + x(3,i)
+          exact(3) = x(1,i) + x(2,i)
+          ! exact(1) = -(x(3,i)*Cos(x(1,i))) - Sin(x(2,i))
+          ! exact(2) = -(x(1,i)*Cos(x(2,i))) - Sin(x(3,i))
+          ! exact(3) = -(x(2,i)*Cos(x(3,i))) - Sin(x(1,i))
+          ! exact(1) = -sin(x(1,i))
+          ! exact(2) = -sin(x(2,i))
+          ! exact(3) = -sin(x(3,i))
         end if
         err(i) = dot_product(exact(:)-num(:,i),exact(:)-num(:,i))
         count = count + 1
@@ -222,4 +234,4 @@ contains
     err = sqrt(err/n)
     return
   end subroutine err_infplate
-end module err_calc
+end module errcalc

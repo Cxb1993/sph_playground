@@ -23,8 +23,8 @@ contains
     integer, allocatable, intent(in) :: ptype(:)
     real, allocatable, intent(inout) :: dv(:,:), du(:), dh(:), dcf(:)
     real                 :: dr, rhoa, rhob, qa, qb, qc, n2wa, n2wb, kr, r2, &
-                            nwa(3), nwb(3), r(3), vab(3), urab(3), Pa(3), Pb(3), &
-                            projv, df, ddf!, dfgrhs(3,n)
+                            nwa(3), nwb(3), r(3), vab(3), vba(3), urab(3), Pa(3), Pb(3), &
+                            projv, df, ddf, Jac(3,3)!, dfgrhs(3,n)
     integer, allocatable :: nlist(:)
     integer              :: i, j, l, n, dim
     integer              :: tt, kt
@@ -41,7 +41,7 @@ contains
 
     !$omp parallel do default(none)&
     !$omp private(r, dr, vab, urab, rhoa, rhob, nwa, nwb, qa, qb, qc, Pa, Pb, n2wa, n2wb, j, i, r2) &
-    !$omp private(projv, df, ddf, nlist) &
+    !$omp private(projv, df, ddf, nlist, Jac, vba) &
     !$omp shared(dv, du, dh, dcf, n, pos, h, tt, v, den, c, p, om, mas, u, kcf, cf)&
     !$omp shared(dim, kr, kt, ptype, stepsize)
     do i = 1, n, stepsize
@@ -66,7 +66,6 @@ contains
             qb = 0.
             qc = 0.
             vab(:) = v(:,i) - v(:,j)
-            urab(:) = r(:) / dr
             rhoa = den(i)
             rhob = den(j)
 
@@ -142,21 +141,79 @@ contains
             !    del2v = \sum m_j/rho_j (v_i - v_j) * 2.0*abs(\nabla W_ij)/rij (h_i)
             ! iderivtype = 2: "standard" second derivatives with kernel
             !    del2v = \sum m_j/rho_j (v_j - v_i) nabla^2 W_ij (hi)
-
-            call get_n2w(r, h(i), n2wa)
-            dv(:,i)  = dv(:,i) + mas(j)/den(j) * (v(:,j) - v(:,i)) * n2wa
+            vba(:) = v(:,j) - v(:,i)
+            call get_kerntype(kt)
+            if (kt == 1) then
+              ! call get_jacobian(r, h(i), Jac)
+              call get_n2w(r, h(i), n2wa)
+              dv(:,i)  = dv(:,i) + mas(j)/den(j) * vba(:) * n2wa
+              ! print*, vba(:)*n2wa
+              ! dv(:,i)  = dv(:,i) + mas(j)/den(j) * vba(:)*(Jac(1,1) + Jac(2,2) + Jac(3,3))
+              ! print*, vba(:)*(Jac(1,1) + Jac(2,2) + Jac(3,3))
+              ! read*
+            else
+              call get_n2w(r, h(i), n2wa)
+              dv(:,i)  = dv(:,i) + mas(j)/den(j) * vba(:) * n2wa
+            end if
           case(6)
             ! diff-graddiv
-
+            urab(:) = r(:) / dr
             ! iderivtype = 1 (default): Brookshaw/Espanol-Revenga style derivatives
             !    graddivv = \sum m_j/rho_j (5 vij.rij - vij) abs(\nabla W_ij)/rij (h_i)
             ! iderivtype = 2: "standard" second derivatives with kernel
             !    graddivv = \sum m_j/rho_j ((v_j - v_i).\nabla) \nabla W_ij
-
+            ! dv(:,i) = 0
             call get_kerntype(kt)
             if (kt == 1) then
-              call GradDivW(r, h(i), nwa)
-              dv(:,i)  = dv(:,i) + mas(j)/den(j) * (v(:,j) - v(:,i)) * nwa(:)
+              ! call GradDivW(r, h(i), nwa)
+              vba(:) = v(:,j) - v(:,i)
+              vab(:) = v(:,i) - v(:,j)
+              projv = dot_product(vab(:),urab(:))
+              call get_jacobian(r, h(i), Jac)
+              call PureKernel(dr, h(i), df, ddf)
+              dv(1,i) = dv(1,i) + mas(j)/den(j) * (vba(1)*Jac(1,1) + vba(2)*Jac(1,2) + vba(3)*Jac(1,3))
+              dv(2,i) = dv(2,i) + mas(j)/den(j) * (vba(1)*Jac(2,1) + vba(2)*Jac(2,2) + vba(3)*Jac(2,3))
+              dv(3,i) = dv(3,i) + mas(j)/den(j) * (vba(1)*Jac(3,1) + vba(2)*Jac(3,2) + vba(3)*Jac(3,3))
+              ! ! dv(1,i)  = dv(1,i) + mas(j)/den(j) * vba(1)*Hes(1,1)
+              ! ! dv(2,i)  = dv(2,i) + mas(j)/den(j) * vba(2)*Hes(2,2)
+              ! ! dv(3,i)  = dv(3,i) + mas(j)/den(j) * vba(3)*Hes(3,3)
+              ! print*, (vab(1)*Jac(2,1) + vab(2)*Jac(2,2) + vab(3)*Jac(2,3))
+              !
+              ! print*, vab(1)*(ddf*r(1)*r(2) - df*r(1)*r(2))/r2+&
+              !         vab(2)*(ddf*r(2)*r(2)/r2 + df*(1*dr-r(2)*r(2))/r2)+ &
+              !         vab(3)*(ddf*r(3)*r(2) - df*r(3)*r(2))/r2
+              !
+              ! print*, (ddf*r(2)*dot_product(vab(:),r(:)) + df*(vab(2)*dr - dot_product(vab(:),r(:))*r(2)))/r2
+              !
+              ! print*, "Diff: dvm - dvp: ", (vba(1)*Jac(2,1) + vba(2)*Jac(2,2) + vba(3)*Jac(2,3)) -&
+              !                              (ddf*r(2)*projv/dr + df*(vab(2) - projv*r(2))/dr)
+              !
+              ! print*, "Diff: dvmx - dvp: ", vab(1)*(ddf*r(1)*r(2)-df*r(1)*r(2))/r2+&
+              !         vab(2)*(ddf*r(2)*r(2)+df*(1*dr-r(2)*r(2)))/r2+ &
+              !         vab(3)*(ddf*r(3)*r(2)-df*r(3)*r(2))/r2 -&
+              !         (ddf*r(2)*dot_product(vab(:),r(:)) + df*(vab(2)*dr - dot_product(vab(:),r(:))*r(2)))/r2
+              !
+              ! print*, '---------'
+
+              ! read*
+              ! print*, dv(:,i)
+              ! dv(:,i) = 0
+              ! dv(:,i) = dv(:,i) - mas(j)/den(j)*(ddf*r(:)*projv/dr + df*(vab(:) - projv*r(:))/dr)
+              ! print*, dv(:,i)
+              ! dv(:,i) = 0
+              !                                   ! dot_product(vab(:),r(:))
+                                                ! (dr*vab(1) - dot_product(vab(:),r(:))
+
+                                                !  ddf*r(3)*r(1)/r2
+                                                ! - df*r(3)*r(1)/r2)
+              ! dv(1,i) = dv(1,i) - mas(j)/den(j)*()
+              ! print*, dv(:,i)
+              ! dv(:,i) = 0
+              ! call get_n2w(r, h(i), n2wa)
+              ! dv(:,i) = dv(:,i) - 0.5*mas(j)/den(j) * ((dim + 2)*projv*urab(:) - vab(:)) * n2wa
+              ! print*, dv(:,i)
+              ! dv(:,i) = 0
+              ! read*
             else
               ! Fab case
               urab(:) = r(:) / dr

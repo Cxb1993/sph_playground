@@ -1,9 +1,9 @@
 module kernel
   use const
-  use cubic
-  ! use n2movedgaus
-  use n2ext
-  ! use quintic
+  ! use cubic
+  use n2movedgaus
+  ! use n2ext
+  use quintic
   ! use gaus
   ! use sinc
   ! use external
@@ -12,7 +12,7 @@ module kernel
 
   public :: set_dim, get_nw, get_dw_dh, get_w, get_dim,             &
             set_tasktype, get_tasktype, set_kerntype, get_kerntype, &
-            get_n2w, get_krad, GradDivW!, PureKernel!, get_n2y !, get_dphi_dh,
+            get_n2w, get_krad, get_jacobian, GradDivW, PureKernel!, get_n2y !, get_dphi_dh,
 
   private
   save
@@ -48,6 +48,8 @@ module kernel
        ttype = 5
      case('diff-graddiv')
        ttype = 6
+     case('chi-laplace')
+       ttype = 7
      case default
        print *, 'Task type not set: ', itt
        stop
@@ -130,10 +132,11 @@ module kernel
   subroutine get_on2w(r, h, n2w)
     real, intent(in)  :: r, h
     real, intent(out) :: n2w
-    real              :: df, ddf
+    real              :: df, ddf, r2, dr
 
     call kddf(r, h, ddf)
     call kdf(r, h, df)
+    ! n2w = knorm(dim)*(ddf + (dim/r - 1) * df)/h**(dim+2)
     n2w = knorm(dim)*(ddf + (dim - 1) * df)/h**(dim+2)
   end subroutine get_on2w
 
@@ -147,6 +150,7 @@ module kernel
     km(:) = r(:)*r(:)/r2
     call kddf(dr, h, ddf)
     call kdf(dr, h, df)
+
     n2w(1:dim) = knorm(dim)*(ddf*km(1:dim) + (1 - km(1:dim)) * df)/h**(dim+2)
     ! print *, n2w, ddf*km(1:dim) + (1 - km(1:dim))
     ! read *
@@ -161,27 +165,60 @@ module kernel
     Fabw(:) = -2. * r(:) * nw(:)/dot_product(r,r)
   end subroutine get_Fabiw
 
-  ! subroutine get_n2w(r, h, n2w)
-  !   real, intent(in)  :: r(3), h
-  !   real, intent(out) :: n2w
-  !
-  !   if (ktype == 1) then
-  !     call get_on2w(sqrt(dot_product(r,r)), h, n2w)
-  !   else if (ktype == 2) then
-  !     call get_Fab(r, h, n2w)
-  !   end if
-  ! end subroutine get_n2w
-  !
-  ! subroutine GradDivW(r, h, n2w)
-  !   real, intent(in)    :: r(3), h
-  !   real, intent(out)   :: n2w(3)
-  !
-  !   if (ktype == 1) then
-  !     call get_on2iw(r, h, n2w)
-  !   else if (ktype == 2) then
-  !     call get_Fabiw(r, h, n2w)
-  !   end if
-  ! end subroutine GradDivW
+  subroutine get_n2w(r, h, n2w)
+    real, intent(in)  :: r(3), h
+    real, intent(out) :: n2w
+
+    if (ktype == 1) then
+      call get_on2w(sqrt(dot_product(r,r)), h, n2w)
+    else if (ktype == 2) then
+      call get_Fab(r, h, n2w)
+    end if
+  end subroutine get_n2w
+
+  subroutine get_jacobian(r, h, J)
+    real, intent(in)  :: r(3), h
+    real, intent(out) :: J(3,3)
+    real              :: r2, dr, df, ddf
+
+    r2 = dot_product(r,r)
+    dr = sqrt(r2)
+
+    call kddf(dr, h, ddf)
+    call kdf(dr, h, df)
+    J(1,1) = knorm(dim)*(ddf*r(1)*r(1)/r2 + df*(1/dr - r(1)*r(1)/r2))/h**(dim+2) ! d2/dx2   ! Wxx
+    J(1,2) = knorm(dim)*(ddf*r(2)*r(1)/r2 - df*r(2)*r(1)/r2)/h**(dim+2)          ! d2/dydx  ! Wxy
+    J(1,3) = knorm(dim)*(ddf*r(3)*r(1)/r2 - df*r(3)*r(1)/r2)/h**(dim+2)          ! d2/dzdx  ! Wxz
+
+    J(2,1) = knorm(dim)*(ddf*r(1)*r(2)/r2 - df*r(1)*r(2)/r2)/h**(dim+2)          ! d2/dxdy  ! Wyx
+    J(2,2) = knorm(dim)*(ddf*r(2)*r(2)/r2 + df*(1/dr - r(2)*r(2)/r2))/h**(dim+2) ! d2/dy2   ! Wyy
+    J(2,3) = knorm(dim)*(ddf*r(3)*r(2)/r2 - df*r(3)*r(2)/r2)/h**(dim+2)          ! d2/dxdz  ! Wyz
+
+    J(3,1) = knorm(dim)*(ddf*r(1)*r(3)/r2 - df*r(1)*r(3)/r2)/h**(dim+2)          ! d2/dxdz  ! Wzx
+    J(3,2) = knorm(dim)*(ddf*r(2)*r(3)/r2 - df*r(2)*r(3)/r2)/h**(dim+2)          ! d2/dydz  ! Wzy
+    J(3,3) = knorm(dim)*(ddf*r(3)*r(3)/r2 + df*(1/dr - r(3)*r(3)/r2))/h**(dim+2) ! d2/dz2   ! Wzz
+  end subroutine get_jacobian
+
+  subroutine GradDivW(r, h, n2w)
+    real, intent(in)    :: r(3), h
+    real, intent(out)   :: n2w(3)
+
+    if (ktype == 1) then
+      call get_on2iw(r, h, n2w)
+    else if (ktype == 2) then
+      call get_Fabiw(r, h, n2w)
+    end if
+  end subroutine GradDivW
+
+  subroutine PureKernel(dr ,h, df, ddf)
+    real, intent(in)  :: dr, h
+    real, intent(out) :: df, ddf
+
+    call kdf(dr, h, df)
+    call kddf(dr, h, ddf)
+    ddf = knorm(dim)*ddf/h**(dim+2)
+    df  = knorm(dim)* df/h**(dim+2)
+  end subroutine PureKernel
 
 ! ---------!
 ! Y kernel !--------------------------------------------------------------------
@@ -238,26 +275,26 @@ module kernel
     FabY(:) = -2. * r(:) * nY(:)/dot_product(r,r)
   end subroutine get_FabiY
 
-  subroutine get_n2w(r, h, n2Y)
-    real, intent(in)  :: r(3), h
-    real, intent(out) :: n2Y
-
-    if (ktype == 1) then
-      call get_on2Y(sqrt(dot_product(r,r)), h, n2Y)
-    else if (ktype == 2) then
-      call get_FabY(r, h, n2Y)
-    end if
-  end subroutine get_n2w
-
-  subroutine GradDivW(r, h, n2Y)
-    real, intent(in)    :: r(3), h
-    real, intent(out)   :: n2Y(3)
-
-    if (ktype == 1) then
-      call get_on2iY(r, h, n2Y)
-    else if (ktype == 2) then
-      call get_FabiY(r, h, n2Y)
-    end if
-  end subroutine GradDivW
+  ! subroutine get_n2w(r, h, n2Y)
+  !   real, intent(in)  :: r(3), h
+  !   real, intent(out) :: n2Y
+  !
+  !   if (ktype == 1) then
+  !     call get_on2Y(sqrt(dot_product(r,r)), h, n2Y)
+  !   else if (ktype == 2) then
+  !     call get_FabY(r, h, n2Y)
+  !   end if
+  ! end subroutine get_n2w
+  !
+  ! subroutine GradDivW(r, h, n2Y)
+  !   real, intent(in)    :: r(3), h
+  !   real, intent(out)   :: n2Y(3)
+  !
+  !   if (ktype == 1) then
+  !     call get_on2iY(r, h, n2Y)
+  !   else if (ktype == 2) then
+  !     call get_FabiY(r, h, n2Y)
+  !   end if
+  ! end subroutine GradDivW
 
 end module kernel

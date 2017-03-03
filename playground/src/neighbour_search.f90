@@ -6,7 +6,7 @@ module neighboursearch
 
   implicit none
 
-public findneighbours, getneighbours, setStepsize, isInitialized
+public findneighbours, getneighbours, setStepsize, isInitialized, findneighboursonce
 
 private
 
@@ -94,4 +94,43 @@ contains
     allocate(list(size(neighbours(i)%list(:))))
     list(:) = neighbours(i)%list(:)
   end subroutine getneighbours
+
+  subroutine findneighboursonce(idx, pos, h, nlist)
+    real, allocatable, intent(in)       :: pos(:,:), h(:)
+    integer, allocatable, intent(inout) :: nlist(:)
+    integer, intent(in)                 :: idx
+    integer                             :: sn, i, j, tsz, tix, dim
+    real                                :: r2, r(3), kr
+
+    sn = size(pos, dim=2)
+    call get_krad(kr)
+    call get_dim(dim)
+
+    if (dim == 1) then
+      allocate(nlist(10))
+    else if (dim == 2) then
+      allocate(nlist(50))
+    else
+      allocate(nlist(100))
+    end if
+    tix = 0
+    do j=1,sn
+      if (idx /= j) then
+        r(:) = pos(:,idx) - pos(:,j)
+        r2 = dot_product(r(:),r(:))
+        if (r2 < (kr * h(idx))**2) then
+          tix = tix + 1
+          tsz = size(nlist)
+          if (tsz < tix) then
+            call resize(nlist, tsz, tsz * 2)
+          end if
+          nlist(tix) = j
+        end if
+      end if
+    end do
+    tsz = size(nlist)
+    if (tsz /= tix) then
+      call resize(nlist, tix, tix)
+    end if
+  end subroutine findneighboursonce
 end module neighboursearch

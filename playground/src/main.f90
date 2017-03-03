@@ -1,28 +1,28 @@
 program main
   use BC
-  use IC,       only: setupIC
-  use kernel,   only: get_tasktype
-  use iterator, only: iterate
+  use IC,        only: setupIC
+  use kernel,    only: get_tasktype
+  use iterator,  only: iterate
   use printer
-  use err_calc, only: err_init,&
-                      err_diff_laplace,&
-                      err_diff_graddiv,&
-                      err_sinxet
-  use args,     only: fillargs
-  use bias,     only: calcDaigonal2ndErrTerms
-  use circuit1, only: c1_init
+  use errcalc,   only: err_init,&
+                       err_diff_laplace,&
+                       err_diff_graddiv,&
+                       err_sinxet
+  use args,      only: fillargs
+  use errteylor, only: etlaplace => laplace
+  use circuit1,  only: c1_init
 
   implicit none
 
   real, allocatable, dimension(:,:)  :: p, v, a
-  real, allocatable, dimension(:,:)  :: pos, vel, acc, chi
+  real, allocatable, dimension(:,:)  :: pos, vel, acc
   real, allocatable, dimension(:)    :: den, prs, mas, iu, du, om, c, h, dh, &
-                                        cf, dcf, kcf, tdu, tdh, tcf, err, sqerr
+                                        cf, dcf, kcf, tdu, tdh, tcf, err, sqerr, result
   integer, allocatable, dimension(:) :: ptype
 
-  real                               :: dt, t, dtout, ltout, tfinish, error(11), npic,&
+  real                               :: dt, t, dtout, ltout, tfinish, npic,&
                                         pspc1, pspc2, gamma,&
-                                        sk
+                                        sk, chi(9)
   real                :: cv = 1.
   character (len=40)  :: itype, errfname, ktype
   integer             :: n, dim, iter, tt, nused,i
@@ -35,30 +35,25 @@ program main
   call setupIC(n, sk, gamma, cv, pspc1, pspc2, pos, vel, acc, &
                 mas, den, h, prs, iu, du, cf, kcf, dcf, ptype)
 
-  ! if (dim /= 1) then
-    call set_stepping(10**dim)
-  ! else
-    ! call set_stepping(1)
-  ! end if
+  call set_stepping(10**dim)
   print *, '#####'
   print *, '##############################################'
 
   call get_tasktype(tt)
-
-  error(1) = pspc1
-  error(2) = n
+  allocate(result(19))
+  result(1) = pspc1
+  result(2) = n
 
   t = 0.
   dt = 0.
   ltout = 0.
   iter = 0.
-
+  nused = 0
   p = pos
   v = vel
   a = acc
   allocate(err(1:n))
   allocate(sqerr(1:n))
-  allocate(chi(3,n))
   allocate(c(n))
   c(:) = cv
   allocate(tdu(n))
@@ -132,7 +127,7 @@ program main
     ! print *, 0, 2
     ! print *, maxval(cf)
     vel(:,:) = vel(:,:) + 0.5 * dt * (acc(:,:) - a(:,:))
-    iu(:)   = iu(:)   + 0.5 * dt * (du(:) - tdu(:))
+    iu(:)    = iu(:)    + 0.5 * dt * (du(:) - tdu(:))
     h(:)     = h(:)     + 0.5 * dt * (dh(:) - tdh(:))
 
     select case(tt)
@@ -153,11 +148,9 @@ program main
   ! print *, 999
 
   if (t <= .0) then
-    select case(tt)
-    case(1)
-      ! 'hydroshock'
-    case(2)
-      ! 'infslb'
+    select case(tt) ! l2 error calc evaluatopn
+    case(1, 2, 7)
+      ! 'hydroshock' ! chi-laplace ! 'infslb'
     case(3)
       ! 'hc-sinx'
       call err_sinxet(ptype, cf, t, err, nused)
@@ -172,34 +165,46 @@ program main
       stop
     end select
 
-    call calcDaigonal2ndErrTerms(ptype, pos, mas, den, h, chi)
-    sqerr(:) = sqrt(err(:))
-    call print_output(t, ptype, pos, chi, acc, mas, den, h, prs, iu, cf, sqerr)
-    error(4) = merge(sum(chi)/nused/dim, 0., nused>0)
-    error(3) = merge(sqrt(sum(err)/nused), 0., nused>0)
-    error(5) = sk
-    call print_appendline(5, error, errfname)
+    select case(tt) ! teylor error evaluation
+    case(7)
+      ! 'hydroshock' ! chi-laplace ! 'infslb'
+      call etlaplace(int(n/2), pos, mas, den, h, chi)
+    case(1, 2, 3, 5, 6)
+      ! 'hc-sinx' ! 'diff-laplace' ! 'diff-graddiv'
+    case default
+      print *, 'Task type was not sen in error evaluation main.f90'
+      stop
+    end select
+    if (nused /= 0) then
+      ! call calcDaigonal2ndErrTerms(ptype, pos, mas, den, h, chi)
+      sqerr(:) = sqrt(err(:))
+      call print_output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, sqerr)
+    end if
+    result(3) = merge(sqrt(sum(err)/nused), 0., nused>0)
+    result(4) = 0. ! result(4) = merge(sum(chi)/nused/dim, 0., nused>0)
+    result(5) = sk
+    result(6:14) = chi(1:9)
+    call print_appendline(14, result, errfname)
   else
-    error(9) = sqrt(sum(err)/nused)
-    call calcDaigonal2ndErrTerms(ptype, pos, mas, den, h, chi)
-    error(10) = sum(chi)/n/dim
-    error(11) = t
-    call print_appendline(11, error, errfname)
+    result(9) = sqrt(sum(err)/nused)
+    ! call calcDaigonal2ndErrTerms(ptype, pos, mas, den, h, chi)
+    ! result(10) = sum(chi)/n/dim
+    result(10) = 0.
+    result(11) = t
+    call print_appendline(11, result, errfname)
   end if
 end program main
 
 subroutine set_stepping(i)
-  use err_calc,        only: sterr => setStepsize
+  use errcalc,         only: sterr => setStepsize
   use circuit2,        only: stc2  => setStepsize
   use neighboursearch, only: stnb  => setStepsize
-  use bias,            only: st2nd => setStepsize
 
   integer, intent(in) :: i
 
   call sterr(i)
   call stc2(i)
   call stnb(i)
-  call st2nd(i)
 
   print *, '# #   step.size:', i
 end subroutine set_stepping

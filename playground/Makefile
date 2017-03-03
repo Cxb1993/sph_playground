@@ -27,7 +27,7 @@ SRC=\
 	circuit1.f90\
 	circuit2.f90\
 	errcalc.f90\
-	bias.f90\
+	errteylor.f90\
 	iterator.f90\
 	main.f90
 
@@ -38,6 +38,10 @@ SUBOBJ=$(addprefix obj/, $(OBJ))
 ifndef dim
 $(warning dimention is not set, `dim=1` will be used)
 dim=1
+endif
+ifndef kt
+$(warning kernel type is not set, `kt=n2w` will be used)
+kt=n2w
 endif
 
 %.o : src/%.f90
@@ -56,25 +60,25 @@ execute: $(OBJ)
 	$(FC) $(FFLAGS) -I mod/ -o $@ $(SUBOBJ)
 
 hydroshock1:
-	make && time ./execute $(dim) hydroshock 0.1 runresult.info fab
+	make && time ./execute $(dim) hydroshock 0.1 runresult.info $(kt)
 
 infslb:
-	make && time ./execute $(dim) infslb 0.1 runresult.info fab 5
+	make && time ./execute $(dim) infslb 0.1 runresult.info $(kt) 5
 
 hc-sinx:
-	make && time ./execute $(dim) hc-sinx 0.1 runresult.info fab .5
+	make && time ./execute $(dim) hc-sinx 0.1 runresult.info $(kt) .5
 
-chi-only:
-	make && time ./execute $(dim) hc-sinx 0.002 runresult.info fab -1.5
+chi-laplace:
+	make && time ./execute $(dim) chi-laplace 0.002 runresult.info $(kt) -1 1.7
 
 pheva:
-	make && time ./execute $(dim) pheva 0.002 runresult.info fab -1.5
+	make && time ./execute $(dim) pheva 0.002 runresult.info $(kt) -1.5
 
-difflaplace:
-	make && time ./execute $(dim) diff-laplace .4 runresult.info fab 0.1 1.2
+diff-laplace:
+	make && time ./execute $(dim) diff-laplace .4 runresult.info $(kt) 0.1 1.2
 
-diffgraddiv:
-	make && time ./execute $(dim) diff-graddiv .4 runresult.info fab 0.1 1.2
+diff-graddiv:
+	make && time ./execute $(dim) diff-graddiv .4 runresult.info $(kt) 100 1.
 
 .PHONY: execute
 

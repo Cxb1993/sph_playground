@@ -9,6 +9,7 @@ module args
     character (len=10) :: arg
 
   contains
+    ! ARGS Dim, TaskType, Spacing, ErrFileName, KernelType, tFinish, hfac
     subroutine fillargs(dim, pspc1, pspc2, itype, ktype, errfname, dtout, npic, tfinish, sk)
       real, intent(inout)               :: pspc1, pspc2, dtout, npic, tfinish, sk
       integer, intent(inout)            :: dim
