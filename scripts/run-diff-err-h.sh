@@ -77,6 +77,6 @@ for dim in $dimlist; do
   done
 done
 runcmd="zip -9 output.zip ./output/*"
-cmdres = `$runcmd`
+cmdres=`$runcmd`
 `rm -rf output`
 echo "$errfname"
