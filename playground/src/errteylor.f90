@@ -4,9 +4,10 @@ module errteylor
                               isInitialized,&
                               findneighbours,&
                               findneighboursonce
+  use BC,              only: getSqaureBoxSides
   implicit none
 
-  public :: laplace, setStepsize
+  public :: laplace, graddiv, setStepsize
 
   private
   integer, save :: stepsize = 1
@@ -17,78 +18,115 @@ contains
     stepsize = i
   end subroutine setStepsize
 
-  subroutine laplace(idx, pos, mas, den, h, chi)
+  subroutine laplace(pos, mas, den, h, chi)
     real, allocatable, intent(in)    :: mas(:), den(:), pos(:,:), h(:)
-    integer, intent(in)              :: idx
     real, intent(inout) :: chi(9)
 
     integer, allocatable :: nlist(:)
-    integer              :: i, j, l, kd, ininb!, n
-    real                 :: n2w, r(3), r11, r22, r33, r12, r13, r23, kr
+    integer              :: i, j, l, kd, nx, ny, nz, idx
+    real                 :: n2w, r(3), r11, r22, r33, r12, r13, r23, kr, t(3)!, n2wa(3)!, Jac(3,3)
 
     call get_krad(kr)
     call get_dim(kd)
-    call isInitialized(ininb)
-    ! n = size(ptype)
     chi(1:9) = 0.
-    if (ininb == 0) then
-      call findneighboursonce(idx, pos, h, nlist)
-    end if
-    !<$omp parallel do default(none) &
-    !<$omp private(n2w,r,r11,r22,r33,r12,r23,r13,j,i,nlist) &
-    !<$omp shared(pos,h,mas,den,kr,kd,n,chi,stepsize,ptype)
-    ! do i = 1,n,stepsize
-    !   if (ptype(i) /= 0) then
-        ! call getneighbours(idx, nlist)
-        i = idx
-        do l = 1,size(nlist)
-          j = nlist(l)
-          r(:) = pos(:,j) - pos(:,i)
-          r11 = r(1)*r(1)
-          r22 = r(2)*r(2)
-          r33 = r(3)*r(3)
-          r12 = r(1)*r(2)
-          r13 = r(1)*r(3)
-          r23 = r(2)*r(3)
-          call get_n2w(r, h(i), n2w)
+    t(:) = 0.
 
-          chi(1) = chi(1) + 0.5 * mas(j)/den(j) * r11 * n2w
-          if (kd > 1) then
-            chi(2) = chi(2) + 0.5 * mas(j)/den(j) * r12 * n2w
-            chi(5) = chi(5) + 0.5 * mas(j)/den(j) * r22 * n2w
-            chi(4) = chi(4) + 0.5 * mas(j)/den(j) * r12 * n2w
-            if (kd == 3) then
-              chi(3) = chi(3) + 0.5 * mas(j)/den(j) * r13 * n2w
-              chi(6) = chi(6) + 0.5 * mas(j)/den(j) * r23 * n2w
-              chi(9) = chi(9) + 0.5 * mas(j)/den(j) * r33 * n2w
-              chi(8) = chi(8) + 0.5 * mas(j)/den(j) * r23 * n2w
-              chi(7) = chi(7) + 0.5 * mas(j)/den(j) * r13 * n2w
-            end if
-          end if
-          ! chi(1,i) = chi(1,i) + 0.5 * mas(j)/den(j) * r11 * n2w
-          ! if (kd > 1) then
-          !   chi(2,i) = chi(2,i) + 0.5 * mas(j)/den(j) * r12 * n2w
-          !   chi(5,i) = chi(5,i) + 0.5 * mas(j)/den(j) * r22 * n2w
-          !   chi(4,i) = chi(4,i) + 0.5 * mas(j)/den(j) * r12 * n2w
-          !   if (kd == 3) then
-          !     chi(3,i) = chi(3,i) + 0.5 * mas(j)/den(j) * r13 * n2w
-          !     chi(6,i) = chi(6,i) + 0.5 * mas(j)/den(j) * r23 * n2w
-          !     chi(9,i) = chi(9,i) + 0.5 * mas(j)/den(j) * r33 * n2w
-          !     chi(8,i) = chi(8,i) + 0.5 * mas(j)/den(j) * r23 * n2w
-          !     chi(7,i) = chi(7,i) + 0.5 * mas(j)/den(j) * r13 * n2w
-          !   end if
-          ! end if
-        end do
-        ! print *, chi(1:3)
-        ! print *, chi(4:6)
-        ! print *, chi(7:9)
-        ! read *
-    !   end if
-    ! end do
-    !<$omp end parallel do
-    !
-    ! ? ! Second derivatives term is for particle 'a', but ex is sum of all particle
-    ! ? ! Need to divide on number of particles to get an average term
-    !
+    call getSqaureBoxSides(nx, ny, nz)
+    if (kd == 1) then
+      idx = int(nx/2)
+    else if (kd == 2) then
+      idx = int(ny/2*(nx+1))
+    else if (kd == 3) then
+      idx = int(nz/2*(ny*(nx+1)+1))
+    end if
+    call findneighboursonce(idx, pos, h, nlist)
+    i = idx
+    do l = 1,size(nlist)
+      j = nlist(l)
+      r(:) = pos(:,j) - pos(:,i)
+      r11 = r(1)*r(1)
+      r22 = r(2)*r(2)
+      r33 = r(3)*r(3)
+      r12 = r(1)*r(2)
+      r13 = r(1)*r(3)
+      r23 = r(2)*r(3)
+      call get_n2w(r, h(i), n2w)
+      ! call GradDivW(r, h(i), n2wa)
+      ! call get_jacobian(r, h(i), Jac)
+      t(:) = t(:) + mas(j)/den(j) * r(:) * n2w
+
+      chi(1) = chi(1) + 0.5 * mas(j)/den(j) * r11 * n2w ! Jac(1,1)
+      if (kd > 1) then
+        chi(2) = chi(2) + 0.5 * mas(j)/den(j) * r12 * n2w ! Jac(1,2)
+        chi(5) = chi(5) + 0.5 * mas(j)/den(j) * r22 * n2w ! Jac(2,2)
+        chi(4) = chi(4) + 0.5 * mas(j)/den(j) * r12 * n2w ! Jac(1,2)
+        if (kd == 3) then
+          chi(3) = chi(3) + 0.5 * mas(j)/den(j) * r13 * n2w ! Jac(1,3)
+          chi(6) = chi(6) + 0.5 * mas(j)/den(j) * r23 * n2w ! Jac(2,3)
+          chi(9) = chi(9) + 0.5 * mas(j)/den(j) * r33 * n2w ! Jac(3,3)
+          chi(8) = chi(8) + 0.5 * mas(j)/den(j) * r23 * n2w ! Jac(2,3)
+          chi(7) = chi(7) + 0.5 * mas(j)/den(j) * r13 * n2w ! Jac(1,3)
+        end if
+      end if
+    end do
+    ! print*, ' t: ', t
   end subroutine laplace
+
+  subroutine graddiv(pos, mas, den, h, chi)
+    real, allocatable, intent(in)    :: mas(:), den(:), pos(:,:), h(:)
+    real, intent(inout)              :: chi(81)
+
+    integer, allocatable :: nlist(:)
+    integer              :: i, j, l, kd, nx, ny, nz, idx, a, b, g, d, ci
+    real                 :: r(3), kr, t(3), dr, Jac(3,3), m
+
+    call get_krad(kr)
+    call get_dim(kd)
+    chi(1:81) = 0.
+    t(:) = 0.
+
+    call getSqaureBoxSides(nx, ny, nz)
+    if (kd == 1) then
+      idx = int(nx/2)
+    else if (kd == 2) then
+      idx = int(ny/2*(nx+1))
+    else if (kd == 3) then
+      idx = int(nz/2*(ny*(nx+1)+1))
+    end if
+    call findneighboursonce(idx, pos, h, nlist)
+    i = idx
+    do l = 1,size(nlist)
+      j = nlist(l)
+      r(:) = pos(:,j) - pos(:,i)
+      call get_jacobian(r, h(i), Jac)
+      ci = 1
+      do a = 1,3
+        do b = 1,3
+          dr = r(a)*r(b)
+          if (a == b) then
+            m = .5
+          else
+            m = 1.
+          end if
+          do g = 1,3
+            do d = 1,3
+              chi(ci) = chi(ci) + m * mas(j) / den(j) * dr * Jac(g,d)
+              ci = ci + 1
+            end do
+          end do
+        end do
+      end do
+    end do
+    ! ci = 1
+    ! do a = 1,3
+    !   do b = 1,3
+    !     do g = 1,3
+    !       do d = 1,3
+    !         write(*, "(A, I1, A, I1, A, I1, I1, A, F10.7)") " # 1/2(dr", a,"*dr", b, ")*W", g, d, "=", chi(ci)
+    !         ci = ci + 1
+    !       end do
+    !     end do
+    !   end do
+    ! end do
+  end subroutine graddiv
 end module errteylor

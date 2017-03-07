@@ -75,10 +75,10 @@ pheva:
 	make && time ./execute $(dim) pheva 0.002 runresult.info $(kt) -1.5
 
 diff-laplace:
-	make && time ./execute $(dim) diff-laplace .4 runresult.info $(kt) 0.1 1.2
+	make && time ./execute $(dim) diff-laplace .04 runresult.info $(kt) 0.1 1.8
 
 diff-graddiv:
-	make && time ./execute $(dim) diff-graddiv .4 runresult.info $(kt) 100 1.
+	make && time ./execute $(dim) diff-graddiv .12 runresult.info $(kt) 100 1.
 
 .PHONY: execute
 

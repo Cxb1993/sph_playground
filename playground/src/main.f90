@@ -9,7 +9,8 @@ program main
                        err_diff_graddiv,&
                        err_sinxet
   use args,      only: fillargs
-  use errteylor, only: etlaplace => laplace
+  use errteylor, only: etlaplace => laplace,&
+                       etgraddiv => graddiv
   use circuit1,  only: c1_init
 
   implicit none
@@ -22,10 +23,10 @@ program main
 
   real                               :: dt, t, dtout, ltout, tfinish, npic,&
                                         pspc1, pspc2, gamma,&
-                                        sk, chi(9)
+                                        sk, chi(81)
   real                :: cv = 1.
   character (len=40)  :: itype, errfname, ktype
-  integer             :: n, dim, iter, tt, nused,i
+  integer             :: n, dim, iter, tt, nused, i, printlen
 
   print *, '##############################################'
   print *, '#####'
@@ -40,7 +41,7 @@ program main
   print *, '##############################################'
 
   call get_tasktype(tt)
-  allocate(result(19))
+  allocate(result(100))
   result(1) = pspc1
   result(2) = n
 
@@ -164,35 +165,53 @@ program main
       print *, 'Task type was not sen in error evaluation main.f90'
       stop
     end select
+    result(3) = merge(sqrt(sum(err)/nused), 0., nused>0)
 
     select case(tt) ! teylor error evaluation
+    case(5)
+      ! 'diff-laplace'
+      call etlaplace(pos, mas, den, h, chi)
+      result(4) = merge(sum(chi)/dim, 0., nused>0)
+      result(6:14) = chi(1:9)
+      printlen = 14
+    case(6)
+      ! 'diff-graddiv'
+      call etgraddiv(pos, mas, den, h, chi)
+      if ( dim == 1) then
+        result(4) = sum(chi)
+      elseif ( dim == 2 ) then
+        result(4) = merge(sum(chi)/dim/3, 0., nused>0)
+      elseif ( dim == 3 ) then
+        result(4) = merge(sum(chi)/dim/5, 0., nused>0)
+      end if
+      result(6:86) = chi(1:81)
+      printlen = 86
     case(7)
       ! 'hydroshock' ! chi-laplace ! 'infslb'
-      call etlaplace(int(n/2), pos, mas, den, h, chi)
-    case(1, 2, 3, 5, 6)
-      ! 'hc-sinx' ! 'diff-laplace' ! 'diff-graddiv'
+      call etlaplace(pos, mas, den, h, chi)
+      result(4) = merge(sum(chi)/dim, 0., nused>0)
+      result(6:14) = chi(1:9)
+      printlen = 14
+    case(1, 2, 3)
+      ! 'hc-sinx' ! 'diff-graddiv'
     case default
       print *, 'Task type was not sen in error evaluation main.f90'
       stop
     end select
     if (nused /= 0) then
-      ! call calcDaigonal2ndErrTerms(ptype, pos, mas, den, h, chi)
       sqerr(:) = sqrt(err(:))
       call print_output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, sqerr)
     end if
-    result(3) = merge(sqrt(sum(err)/nused), 0., nused>0)
-    result(4) = 0. ! result(4) = merge(sum(chi)/nused/dim, 0., nused>0)
     result(5) = sk
-    result(6:14) = chi(1:9)
-    call print_appendline(14, result, errfname)
+    call print_appendline(printlen, result, errfname)
   else
     result(9) = sqrt(sum(err)/nused)
-    ! call calcDaigonal2ndErrTerms(ptype, pos, mas, den, h, chi)
-    ! result(10) = sum(chi)/n/dim
     result(10) = 0.
     result(11) = t
     call print_appendline(11, result, errfname)
   end if
+  ! print*, "Avrg 2nd: ", result(4)
+  ! print*, "Avrg l2e: ", result(3)
 end program main
 
 subroutine set_stepping(i)

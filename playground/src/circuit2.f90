@@ -66,6 +66,7 @@ contains
             qb = 0.
             qc = 0.
             vab(:) = v(:,i) - v(:,j)
+            urab(:) = r(:) / dr
             rhoa = den(i)
             rhob = den(j)
 
@@ -142,35 +143,30 @@ contains
             ! iderivtype = 2: "standard" second derivatives with kernel
             !    del2v = \sum m_j/rho_j (v_j - v_i) nabla^2 W_ij (hi)
             vba(:) = v(:,j) - v(:,i)
-            call get_kerntype(kt)
-            if (kt == 1) then
+            ! call get_kerntype(kt)
+            ! if (kt == 1) then
               ! call get_jacobian(r, h(i), Jac)
-              call get_n2w(r, h(i), n2wa)
-              dv(:,i)  = dv(:,i) + mas(j)/den(j) * vba(:) * n2wa
+              ! call get_n2w(r, h(i), n2wa)
+              ! dv(:,i)  = dv(:,i) + mas(j)/den(j) * vba(:) * n2wa
               ! print*, vba(:)*n2wa
               ! dv(:,i)  = dv(:,i) + mas(j)/den(j) * vba(:)*(Jac(1,1) + Jac(2,2) + Jac(3,3))
               ! print*, vba(:)*(Jac(1,1) + Jac(2,2) + Jac(3,3))
               ! read*
-            else
+            ! else
               call get_n2w(r, h(i), n2wa)
               dv(:,i)  = dv(:,i) + mas(j)/den(j) * vba(:) * n2wa
-            end if
+            ! end if
           case(6)
             ! diff-graddiv
-            urab(:) = r(:) / dr
             ! iderivtype = 1 (default): Brookshaw/Espanol-Revenga style derivatives
             !    graddivv = \sum m_j/rho_j (5 vij.rij - vij) abs(\nabla W_ij)/rij (h_i)
             ! iderivtype = 2: "standard" second derivatives with kernel
             !    graddivv = \sum m_j/rho_j ((v_j - v_i).\nabla) \nabla W_ij
-            ! dv(:,i) = 0
             call get_kerntype(kt)
             if (kt == 1) then
               ! call GradDivW(r, h(i), nwa)
               vba(:) = v(:,j) - v(:,i)
-              vab(:) = v(:,i) - v(:,j)
-              projv = dot_product(vab(:),urab(:))
               call get_jacobian(r, h(i), Jac)
-              call PureKernel(dr, h(i), df, ddf)
               dv(1,i) = dv(1,i) + mas(j)/den(j) * (vba(1)*Jac(1,1) + vba(2)*Jac(1,2) + vba(3)*Jac(1,3))
               dv(2,i) = dv(2,i) + mas(j)/den(j) * (vba(1)*Jac(2,1) + vba(2)*Jac(2,2) + vba(3)*Jac(2,3))
               dv(3,i) = dv(3,i) + mas(j)/den(j) * (vba(1)*Jac(3,1) + vba(2)*Jac(3,2) + vba(3)*Jac(3,3))
@@ -193,34 +189,35 @@ contains
               !         vab(3)*(ddf*r(3)*r(2)-df*r(3)*r(2))/r2 -&
               !         (ddf*r(2)*dot_product(vab(:),r(:)) + df*(vab(2)*dr - dot_product(vab(:),r(:))*r(2)))/r2
               !
-              ! print*, '---------'
 
               ! read*
               ! print*, dv(:,i)
-              ! dv(:,i) = 0
-              ! dv(:,i) = dv(:,i) - mas(j)/den(j)*(ddf*r(:)*projv/dr + df*(vab(:) - projv*r(:))/dr)
+              ! dv(:,i) = 0.
+              ! vab(:) = v(:,i) - v(:,j)
+              ! projv = dot_product(vab(:),urab(:))
+              ! call PureKernel(dr, h(i), df, ddf)
+              ! ! graddivvi(:) = graddivvi(:) - pmass(j)*rho1j*(dr(:)*projv*grgrkerni + (dv(:) - projv*dr(:))*grkerni*rij1)
+              ! dv(:,i) = dv(:,i) - mas(j)/den(j)*(r(:)/dr*projv*ddf + (vab(:) - projv*r(:)/dr)*df/dr)
               ! print*, dv(:,i)
-              ! dv(:,i) = 0
-              !                                   ! dot_product(vab(:),r(:))
-                                                ! (dr*vab(1) - dot_product(vab(:),r(:))
-
-                                                !  ddf*r(3)*r(1)/r2
-                                                ! - df*r(3)*r(1)/r2)
-              ! dv(1,i) = dv(1,i) - mas(j)/den(j)*()
+              ! dv(:,i) = 0.
+              ! dv(:,i) = dv(:,i) - mas(j)/den(j)*(r(:)/dr/dr*dot_product(vab(:),r(:))*ddf + (vab(:) - dot_product(vab(:),r(:))*r(:)/dr/dr)*df/h(i))
               ! print*, dv(:,i)
-              ! dv(:,i) = 0
-              ! call get_n2w(r, h(i), n2wa)
-              ! dv(:,i) = dv(:,i) - 0.5*mas(j)/den(j) * ((dim + 2)*projv*urab(:) - vab(:)) * n2wa
-              ! print*, dv(:,i)
-              ! dv(:,i) = 0
+              ! dv(:,i) = 0.
+              ! print*, '---------'
               ! read*
             else
               ! Fab case
-              urab(:) = r(:) / dr
-              vab(:) = v(:,i) - v(:,j)
-              projv = dot_product(vab(:),urab(:))
-              call get_n2w(r, h(i), n2wa)
-              dv(:,i)  = dv(:,i) - 0.5*mas(j)/den(j) * ((dim + 2)*projv*urab(:) - vab(:)) * n2wa
+              ! urab(:) = r(:) / dr
+              vba(:) = v(:,j) - v(:,i)
+              ! projv = dot_product(vab(:),urab(:))
+              ! call get_n2w(r, h(i), n2wa)
+              call get_jacobian(r,h(i),Jac)
+              ! dv(:,i) = dv(:,i) - 0.5*mas(j)/den(j) * ((dim + 2)*projv*urab(:) - vab(:)) * n2wa
+              ! print*, dv(:,i)
+              ! dv(:,i) = 0.
+              dv(1,i) = dv(1,i) + mas(j)/den(j) * (vba(1)*Jac(1,1) + vba(2)*Jac(1,2) + vba(3)*Jac(1,3))
+              dv(2,i) = dv(2,i) + mas(j)/den(j) * (vba(1)*Jac(2,1) + vba(2)*Jac(2,2) + vba(3)*Jac(2,3))
+              dv(3,i) = dv(3,i) + mas(j)/den(j) * (vba(1)*Jac(3,1) + vba(2)*Jac(3,2) + vba(3)*Jac(3,3))
             end if
           case default
             print *, 'Task type was not defined in circuit2 inside circle'
@@ -262,51 +259,4 @@ contains
       qb = -0.5 * db * (alpha*cb - betta*dvr) * dvr
     end if
   end subroutine art_viscosity
-
-  subroutine diff_force(mas, den, pos, v, h, c, P, om, dfgrhs)
-    real, intent(in)    :: mas(:), den(:), pos(:,:), v(:,:), h(:), c(:), P(:), om(:)
-    real, intent(inout) :: dfgrhs(:,:)
-    real                :: r(3), vab(3), urab(3), nwa(3), nwb(3), Pa(3), Pb(3),&
-                           r2, dr, qa, qb, qc, rhoa, rhob, kr
-    integer             :: i, j, szd1, szd2
-
-    szd1 = 3
-    szd2 = size(dfgrhs, dim=2)
-
-    call get_krad(kr)
-
-    !$omp parallel do default(none)&
-    !$omp private(i, j, r, r2, dr, qa, qb, qc, vab, urab, rhoa, rhob, nwa, nwb, Pa, Pb)&
-    !$omp shared(kr, mas, den, pos, v, h, c, P, om, dfgrhs, szd2)
-    do i=1,szd2
-      dfgrhs(:,i) = 0.
-      do j=1,szd2
-        if (i /= j) then
-          r(:) = pos(:,i) - pos(:,j)
-          r2 = dot_product(r(:),r(:))
-          if ((r2 < (kr * h(i))**2).or.(r2 < (kr * h(j))**2)) then
-            dr = sqrt(r2)
-            qa = 0.
-            qb = 0.
-            qc = 0.
-            vab(:) = v(:,i) - v(:,j)
-            urab(:) = r(:) / dr
-            rhoa = den(i)
-            rhob = den(j)
-
-            call get_nw(r, h(i), nwa)
-            call get_nw(r, h(j), nwb)
-
-            call art_viscosity(rhoa, rhob, vab, urab, c(i), c(j), qa, qb)
-            call art_termcond(P(i), P(j), rhoa, rhob, qc)
-            Pa(:) = (P(i) + qa) * nwa(:) / (rhoa**2 * om(i))
-            Pb(:) = (P(j) + qb) * nwb(:) / (rhob**2 * om(j))
-
-            dfgrhs(:,i) = dfgrhs(:,i) - mas(j) * (Pa(:) + Pb(:))
-          end if
-        end if
-      end do
-    end do
-    !$omp end parallel do
-  end subroutine diff_force
 end module circuit2

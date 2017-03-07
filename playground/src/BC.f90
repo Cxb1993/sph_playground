@@ -2,7 +2,7 @@ module BC
   implicit none
 
   public :: periodic1, periodic3, fixed1, fixed3
-  public :: set_particles_numbers, set_border, set_sqare_box_sides
+  public :: set_particles_numbers, set_border, set_sqare_box_sides, getSqaureBoxSides
 
   private
     integer, save              :: ns, nbrd, nx, ny, nz
@@ -21,6 +21,13 @@ contains
     ny = iny
     nz = inz
   end subroutine set_sqare_box_sides
+
+  subroutine getSqaureBoxSides(onx, ony, onz)
+    integer, intent(out) :: onx, ony, onz
+    onx = nx
+    ony = ny
+    onz = nz
+  end subroutine getSqaureBoxSides
 
   subroutine set_border(itb, inp, A)
     integer, intent(in) :: itb, inp, A(inp)

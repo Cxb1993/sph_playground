@@ -32,21 +32,16 @@ contains
     call get_tasktype(tt)
 
     select case(tt)
-    case(1, 7)
-      ! 'hydroshock' ! chi-laplace
-    case(2)
-      ! 'infslb'
+    case(1, 2, 7)
+      ! 'hydroshock' ! 'infslb' ! chi-laplace
     case(3)
       ! 'hc-sinx'
       do i=1,n
         ! print *, pos(:,i)
         tsin(i) = sin(pi * (pos(1,i) + 1.))
       end do
-    case(5)
-      ! 'diff-laplace'
-      period = 1.
-    case(6)
-      ! 'diff-graddiv
+    case(5, 6)
+      ! 'diff-laplace' ! 'diff-graddiv
       period = 1.
     case default
       print *, 'Task type was not sen in error init errcalc.f90'
@@ -125,13 +120,22 @@ contains
     do i=1,n,stepsize
       exact(:) = 0.
       if (ptype(i) /= 0) then
-        exact(1)  = -sin(period*x(1,i))
-        if (dim > 1) then
-          exact(2) = -sin(period*x(2,i))
-        end if
-        if (dim == 3) then
-          exact(3) = -sin(period*x(3,i))
-        end if
+        ! sin
+        ! exact(1)  = -sin(period*x(1,i))
+        ! picexsinscox
+        ! exact(1) = merge(2*cos(period*x(1,i))-x(1,i)*sin(period*x(1,i)),&
+        !                  -x(1,i)*cos(period*x(1,i)) - 2*sin(period*x(1,i)),&
+        !                  x(1,i) < 0)
+        ! sinsinsin
+        exact(1) = -sin(period*x(1,i))
+        exact(2) = -sin(period*x(2,i))
+        exact(3) = -sin(period*x(3,i))
+        ! if (dim > 1) then
+        !   exact(2) = -sin(period*x(2,i))
+        ! end if
+        ! if (dim == 3) then
+        !   exact(3) = -sin(period*x(3,i))
+        ! end if
         err(i) = dot_product(exact(:) - num(:,i),exact(:) - num(:,i))
         count = count + 1
       end if
@@ -161,29 +165,36 @@ contains
       if (ptype(i) /= 0) then
         exact(:) = 0.
         if (dim == 1) then
+          ! exact(1) = 0
           ! exact(1) = -(x(1,i))*Cos(x(1,i)) - 2*Sin(x(1,i))
-          ! exact(1) = -sin(x(1,i))
-          exact(1) = 0
+          ! sin
+          exact(1) = -sin(x(1,i))
         end if
         if (dim == 2) then
-          exact(1) = 1
-          exact(2) = 1
+          ! exact(1) = 1
+          ! exact(2) = 1
           ! exact(1) = -x(2,i)*Cos(x(1,i)) - Sin(x(2,i))
           ! exact(2) = -x(1,i)*Cos(x(2,i)) - Sin(x(1,i))
-          ! exact(1) = -sin(x(1,i))
-          ! exact(2) = -sin(x(2,i))
+          ! sin
+          exact(1) = -sin(x(1,i))
+          exact(2) = -sin(x(2,i))
         end if
         if (dim == 3) then
-          exact(1) = x(2,i) + x(3,i)
-          exact(2) = x(1,i) + x(3,i)
-          exact(3) = x(1,i) + x(2,i)
+          ! exact(1) = x(2,i) + x(3,i)
+          ! exact(2) = x(1,i) + x(3,i)
+          ! exact(3) = x(1,i) + x(2,i)
           ! exact(1) = -(x(3,i)*Cos(x(1,i))) - Sin(x(2,i))
           ! exact(2) = -(x(1,i)*Cos(x(2,i))) - Sin(x(3,i))
           ! exact(3) = -(x(2,i)*Cos(x(3,i))) - Sin(x(1,i))
-          ! exact(1) = -sin(x(1,i))
-          ! exact(2) = -sin(x(2,i))
-          ! exact(3) = -sin(x(3,i))
+          ! sin
+          exact(1) = -sin(x(1,i))
+          exact(2) = -sin(x(2,i))
+          exact(3) = -sin(x(3,i))
         end if
+        ! print*, exact
+        ! print*, num(:,i)
+        ! print*, '----------'
+        ! read*
         err(i) = dot_product(exact(:)-num(:,i),exact(:)-num(:,i))
         count = count + 1
       end if
