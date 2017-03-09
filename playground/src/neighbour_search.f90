@@ -1,6 +1,7 @@
 module neighboursearch
   use kernel, only: get_krad,&
-                    get_dim
+                    get_dim,&
+                    get_kerntype
   use utils,  only: resize
   use omp_lib
 
@@ -33,12 +34,13 @@ contains
   subroutine findneighbours(ptype, pos, h)
     real, allocatable, intent(in)    :: pos(:,:), h(:)
     integer, allocatable, intent(in) :: ptype(:)
-    integer                          :: sn, i, j, tsz, tix, dim
+    integer                          :: sn, i, j, tsz, tix, dim, kt
     real                             :: r2, r(3), kr
 
     sn = size(pos, dim=2)
     call get_krad(kr)
     call get_dim(dim)
+    call get_kerntype(kt)
 
     if(allocated(neighbours)) then
       do i=1,sn,stepsize
@@ -49,10 +51,10 @@ contains
     allocate(neighbours(sn))
 
     !$omp parallel do default(none)&
-    !$omp shared(pos, ptype, h, sn, kr, neighbours, dim, stepsize)&
+    !$omp shared(pos, ptype, h, sn, kr, neighbours, dim, stepsize, kt)&
     !$omp private(i, j, tix, r, r2, tsz)
     do i=1,sn,stepsize
-      if (ptype(i) /= 0) then
+      if ((ptype(i) /= 0) .or. (kt == 3)) then
         if (dim == 1) then
           allocate(neighbours(i)%list(10))
         else if (dim == 2) then

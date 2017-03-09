@@ -68,6 +68,8 @@ module kernel
        ktype = 1
      case('fab')
        ktype = 2
+     case('2nw')
+       ktype = 3
      case default
        print *, 'Kernel type not set: ', itt
        stop

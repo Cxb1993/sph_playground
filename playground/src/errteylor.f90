@@ -122,7 +122,7 @@ contains
     !   do b = 1,3
     !     do g = 1,3
     !       do d = 1,3
-    !         write(*, "(A, I1, A, I1, A, I1, I1, A, F10.7)") " # 1/2(dr", a,"*dr", b, ")*W", g, d, "=", chi(ci)
+    !         write(*, "(I2, A, I1, A, I1, A, I1, I1, A, F10.7)") ci, " # 1/2(dr", a,"*dr", b, ")*W", g, d, "=", chi(ci)
     !         ci = ci + 1
     !       end do
     !     end do

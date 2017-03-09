@@ -36,7 +36,7 @@ program main
   call setupIC(n, sk, gamma, cv, pspc1, pspc2, pos, vel, acc, &
                 mas, den, h, prs, iu, du, cf, kcf, dcf, ptype)
 
-  call set_stepping(10**dim)
+  call set_stepping(10**dim, ktype)
   print *, '#####'
   print *, '##############################################'
 
@@ -214,16 +214,18 @@ program main
   ! print*, "Avrg l2e: ", result(3)
 end program main
 
-subroutine set_stepping(i)
+subroutine set_stepping(i, kt)
   use errcalc,         only: sterr => setStepsize
   use circuit2,        only: stc2  => setStepsize
   use neighboursearch, only: stnb  => setStepsize
 
   integer, intent(in) :: i
+  character (len=40)  :: kt
 
   call sterr(i)
   call stc2(i)
-  call stnb(i)
-
+  if ( kt /= '2nw') then
+    call stnb(i)
+  end if
   print *, '# #   step.size:', i
 end subroutine set_stepping
