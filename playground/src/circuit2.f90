@@ -49,12 +49,12 @@ contains
     do i = 1, n, stepsize
       ! print *, i, stepsize, ptype(i)
       ! read *
-      if (ptype(i) /= 0) then
+      if ( ptype(i) /= 0 ) then
         dv(:,i) = 0.
         du(i) = 0.
         dh(i) = 0.
         dcf(i) = 0.
-        call getneighbours(i, nlist)
+        call getneighbours(i, pos, h, nlist)
         do l = 1, size(nlist)
           ! print *, i, nlist
           ! read *
@@ -218,6 +218,16 @@ contains
               dv(2,i) = dv(2,i) + mas(j)/den(j) * (vba(1)*Jac(2,1) + vba(2)*Jac(2,2) + vba(3)*Jac(2,3))
               dv(3,i) = dv(3,i) + mas(j)/den(j) * (vba(1)*Jac(3,1) + vba(2)*Jac(3,2) + vba(3)*Jac(3,3))
             elseif ( kt == 3 ) then
+              ! two first derivatives
+              ! print*, i
+              ! print*, gradv(:,1,i)
+              ! print*, gradv(:,2,i)
+              ! print*, gradv(:,3,i)
+              ! print*, j
+              ! print*, gradv(:,1,j)
+              ! print*, gradv(:,2,j)
+              ! print*, gradv(:,3,j)
+              ! read*
               call get_nw(rab, h(i), nwa)
               dv(1,i) = dv(1,i) + mas(j)/den(j) * 0.5*((2*gradv(1,1,j)-2*gradv(1,1,i))*nwa(1) + &
                             (gradv(1,2,j) + gradv(2,1,j) - gradv(1,2,i) - gradv(2,1,i))*nwa(2) + &
@@ -233,10 +243,10 @@ contains
             print *, 'Task type was not defined in circuit2 inside circle'
             stop
           end select
-          if ( i == 88001) then
+          ! if ( i == 88001) then
             ! print*, i, j, dv(:,i)
             ! read*
-          end if
+          ! end if
         end do
         select case (tt)
         case(1,2,3,4)
@@ -282,30 +292,45 @@ contains
     real, allocatable, intent(out) :: nv(:,:,:)
     integer, intent(in)            :: dim
 
-    integer, allocatable :: nlist(:)
-    integer :: n, i, j, l, ni, nj, li
+    integer, allocatable :: nlista(:), nlistb(:)
+    integer :: n, i, j, la, lb, ni, nj, li
     real    :: vba(3), nw(3), rab(3)
 
     n = size(m)
     allocate(nv(3,3,n))
-
+    nv(:,:,:) = 0.
     !$omp parallel do default(none)&
-    !$omp private(rab, vba, nw, i, j, l, ni, nj, li, nlist) &
+    !$omp private(rab, vba, nw, i, j, la, lb, ni, nj, li, nlista, nlistb) &
     !$omp shared(dim, t, m, d, x, v, h, nv, n, stepsize)
-    do i = 1,n
-      nv(:,:,i) = 0.
-        call getneighbours(i, nlist)
-        do l = 1, size(nlist)
-        j = nlist(l)
-        vba(:) = v(:,j) - v(:,i)
-        rab(:) = x(:,i) - x(:,j)
-        call get_nw(rab, h(i), nw)
-        do ni = 1,dim
-          do nj = 1,dim
-            nv(ni,nj,i) = nv(ni,nj,i) + m(j)/d(j)*vba(ni)*nw(nj)
+    do i = 1,n,stepsize                      ! a
+      if ( nv(1,1,i) == 0 ) then             !
+        call getneighbours(i, x, h, nlista)    !
+        do la = 1, size(nlista)                !
+          j = nlista(la)                       ! b a
+          if ( nv(1,1,j) == 0 ) then           !
+            call getneighbours(j, x, h, nlistb)!
+            do lb = 1, size(nlistb)            !
+              li = nlistb(lb)                  !   b
+              vba(:) = v(:,li) - v(:,j)
+              rab(:) = x(:,j) - x(:,li)
+              call get_nw(rab, h(j), nw)
+              do ni = 1,dim
+                do nj = 1,dim
+                  nv(ni,nj,j) = nv(ni,nj,j) + m(li)/d(li)*vba(ni)*nw(nj)
+                end do
+              end do
+            end do
+          end if
+          vba(:) = v(:,j) - v(:,i)
+          rab(:) = x(:,i) - x(:,j)
+          call get_nw(rab, h(i), nw)
+          do ni = 1,dim
+            do nj = 1,dim
+              nv(ni,nj,i) = nv(ni,nj,i) + m(j)/d(j)*vba(ni)*nw(nj)
+            end do
           end do
         end do
-      end do
+      end if
     end do
     !$omp end parallel do
   end subroutine fungradient

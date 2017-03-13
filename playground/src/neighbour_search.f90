@@ -7,7 +7,7 @@ module neighboursearch
 
   implicit none
 
-public findneighbours, getneighbours, setStepsize, isInitialized, findneighboursonce
+public findneighbours, getneighbours, setStepsize, isInitialized
 
 private
 
@@ -34,6 +34,7 @@ contains
   subroutine findneighbours(ptype, pos, h)
     real, allocatable, intent(in)    :: pos(:,:), h(:)
     integer, allocatable, intent(in) :: ptype(:)
+    integer, allocatable             :: tmp(:)
     integer                          :: sn, i, j, tsz, tix, dim, kt
     real                             :: r2, r(3), kr
 
@@ -52,8 +53,9 @@ contains
 
     !$omp parallel do default(none)&
     !$omp shared(pos, ptype, h, sn, kr, neighbours, dim, stepsize, kt)&
-    !$omp private(i, j, tix, r, r2, tsz)
+    !$omp private(i, j, tix, r, r2, tsz, tmp)
     do i=1,sn,stepsize
+      ! print*, i
       if ((ptype(i) /= 0) .or. (kt == 3)) then
         if (dim == 1) then
           allocate(neighbours(i)%list(10))
@@ -89,12 +91,22 @@ contains
     initialized = 1.
   end subroutine findneighbours
 
-  subroutine getneighbours(i, list)
-    integer, allocatable, intent(out)   :: list(:)
-    integer, intent(in)                 :: i
+  subroutine getneighbours(idx, pos, h, list)
+    real, allocatable, intent(in)       :: pos(:,:), h(:)
+    integer, allocatable, intent(out) :: list(:)
+    integer, intent(in)               :: idx
 
-    allocate(list(size(neighbours(i)%list(:))))
-    list(:) = neighbours(i)%list(:)
+    if (allocated(neighbours(idx)%list)) then
+      ! print*, 'Try to used old list', idx
+      allocate(list(size(neighbours(idx)%list(:))))
+      list(:) = neighbours(idx)%list(:)
+      ! print*, 'Used old list', idx
+    else
+      ! print*, 'Try to added new list', idx
+      call findneighboursonce(idx, pos, h, list)
+      ! print*, 'Added new list', idx
+    end if
+    ! read*
   end subroutine getneighbours
 
   subroutine findneighboursonce(idx, pos, h, nlist)
@@ -116,8 +128,9 @@ contains
       allocate(nlist(100))
     end if
     tix = 0
-    do j=1,sn
-      if (idx /= j) then
+
+    do j = 1,sn
+      if ( j /= idx ) then
         r(:) = pos(:,idx) - pos(:,j)
         r2 = dot_product(r(:),r(:))
         if (r2 < (kr * h(idx))**2) then
@@ -134,5 +147,13 @@ contains
     if (tsz /= tix) then
       call resize(nlist, tix, tix)
     end if
+
+    if (.not.allocated(neighbours)) then
+      allocate(neighbours(sn))
+    end if
+    if (.not. allocated(neighbours(idx)%list)) then
+      allocate(neighbours(idx)%list(size(nlist)))
+    end if
+    neighbours(idx)%list(:) = nlist(:)
   end subroutine findneighboursonce
 end module neighboursearch

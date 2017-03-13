@@ -3,7 +3,7 @@ module errteylor
   use neighboursearch, only:  getneighbours,&
                               isInitialized,&
                               findneighbours,&
-                              findneighboursonce
+                              getneighbours
   use BC,              only: getSqaureBoxSides
   implicit none
 
@@ -39,7 +39,7 @@ contains
     else if (kd == 3) then
       idx = int(nz/2*(ny*(nx+1)+1))
     end if
-    call findneighboursonce(idx, pos, h, nlist)
+    call getneighbours(idx, pos, h, nlist)
     i = idx
     do l = 1,size(nlist)
       j = nlist(l)
@@ -93,7 +93,7 @@ contains
     else if (kd == 3) then
       idx = int(nz/2*(ny*(nx+1)+1))
     end if
-    call findneighboursonce(idx, pos, h, nlist)
+    call getneighbours(idx, pos, h, nlist)
     i = idx
     do l = 1,size(nlist)
       j = nlist(l)

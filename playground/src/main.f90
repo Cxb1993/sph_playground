@@ -37,6 +37,7 @@ program main
                 mas, den, h, prs, iu, du, cf, kcf, dcf, ptype)
 
   call set_stepping(10**dim, ktype)
+  ! call set_stepping(100, ktype)
   print *, '#####'
   print *, '##############################################'
 
@@ -224,8 +225,6 @@ subroutine set_stepping(i, kt)
 
   call sterr(i)
   call stc2(i)
-  if ( kt /= '2nw') then
-    call stnb(i)
-  end if
+  call stnb(i)
   print *, '# #   step.size:', i
 end subroutine set_stepping
