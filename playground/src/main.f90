@@ -15,29 +15,30 @@ program main
 
   implicit none
 
-  real, allocatable, dimension(:,:)  :: p, v, a
-  real, allocatable, dimension(:,:)  :: pos, vel, acc
-  real, allocatable, dimension(:)    :: den, prs, mas, iu, du, om, c, h, dh, &
-                                        cf, dcf, kcf, tdu, tdh, tcf, err, sqerr, result
-  integer, allocatable, dimension(:) :: ptype
+  real, allocatable, dimension(:,:,:) :: dfdx
+  real, allocatable, dimension(:,:)   :: p, v, a, pos, vel, acc
+  real, allocatable, dimension(:)     :: den, prs, mas, iu, du, om, c, h, dh, &
+                                         cf, dcf, kcf, tdu, tdh, tcf, err, sqerr,&
+                                         result
+  integer, allocatable, dimension(:)  :: ptype
 
-  real                               :: dt, t, dtout, ltout, tfinish, npic,&
-                                        pspc1, pspc2, gamma,&
-                                        sk, chi(81)
+  real                                :: dt, t, dtout, ltout, tfinish, npic,&
+                                         pspc1, pspc2, gamma,&
+                                         sk, chi(81)
   real                :: cv = 1.
-  character (len=40)  :: itype, errfname, ktype
-  integer             :: n, dim, iter, tt, nused, i, printlen
+  character (len=40)  :: itype, errfname, ktype, dtype
+  integer             :: n, dim, iter, tt, nused, printlen!, i
 
   print *, '##############################################'
   print *, '#####'
   call fillargs(dim, pspc1, pspc2,&
-                itype, ktype, errfname, dtout, npic, tfinish, sk)
+                itype, ktype, dtype, errfname, dtout, npic, tfinish, sk)
 
   call setupIC(n, sk, gamma, cv, pspc1, pspc2, pos, vel, acc, &
                 mas, den, h, prs, iu, du, cf, kcf, dcf, ptype)
 
-  call set_stepping(10**dim, ktype)
-  ! call set_stepping(100, ktype)
+  call set_stepping(10**dim)
+  ! call set_stepping(2)
   print *, '#####'
   print *, '##############################################'
 
@@ -64,6 +65,7 @@ program main
   allocate(tdh(n))
   allocate(tcf(n))
   allocate(om(n))
+  allocate(dfdx(3,3,n))
 
   read *
 
@@ -124,7 +126,7 @@ program main
     call iterate(n, sk, gamma, &
                 ptype, pos, vel, acc, &
                 mas, den, h, dh, om, prs, c, iu, du, &
-                cf, dcf, kcf)
+                cf, dcf, kcf, dfdx)
     ! print *, maxval(abs(du))
     ! print *, 0, 2
     ! print *, maxval(cf)
@@ -167,12 +169,14 @@ program main
       stop
     end select
     result(3) = merge(sqrt(sum(err)/nused), 0., nused>0)
-
-    select case(tt) ! teylor error evaluation
+    !----------------------------------------!
+    !          teylor error evaluation       !
+    !----------------------------------------!
+    select case(tt)
     case(5)
       ! 'diff-laplace'
       call etlaplace(pos, mas, den, h, chi)
-      result(4) = merge(sum(chi)/dim, 0., nused>0)
+      result(4) = merge(sum(chi(1:9))/dim, 0., nused>0)
       result(6:14) = chi(1:9)
       printlen = 14
     case(6)
@@ -211,20 +215,40 @@ program main
     result(11) = t
     call print_appendline(11, result, errfname)
   end if
-  ! print*, "Avrg 2nd: ", result(4)
-  ! print*, "Avrg l2e: ", result(3)
+  call getTime()
 end program main
 
-subroutine set_stepping(i, kt)
+subroutine set_stepping(i)
+  use kernel,          only: get_kerntype
   use errcalc,         only: sterr => setStepsize
+  use circuit1,        only: stc1  => setStepsize
   use circuit2,        only: stc2  => setStepsize
   use neighboursearch, only: stnb  => setStepsize
 
   integer, intent(in) :: i
-  character (len=40)  :: kt
+  integer :: ktp
 
+  call get_kerntype(ktp)
   call sterr(i)
+  call stc1(i)
   call stc2(i)
   call stnb(i)
   print *, '# #   step.size:', i
 end subroutine set_stepping
+
+subroutine getTime()
+  use circuit1,        only: c1time => getTime
+  use circuit2,        only: c2time => getTime
+  use neighboursearch, only: nbtime => getTime
+
+  real :: elapsed
+
+  call c1time(elapsed)
+  print*, " Time:"
+  write(*, "(A, F10.5)") " # #        c1: ", elapsed
+  call c2time(elapsed)
+  write(*, "(A, F10.5)") " # #        c2: ", elapsed
+  call nbtime(elapsed)
+  write(*, "(A, F10.5)") " # #     neibs: ", elapsed
+
+end subroutine getTime

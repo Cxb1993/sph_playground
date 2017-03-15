@@ -47,6 +47,10 @@ ifndef hf
 $(warning hfac is not set, `hf=1.` will be used)
 hf=1.
 endif
+ifndef dtype
+$(warning dtype is not set, `dtype=diff` will be used)
+dtype=diff
+endif
 
 %.o : src/%.f90
 	@mkdir -p obj
@@ -64,25 +68,25 @@ execute: $(OBJ)
 	$(FC) $(FFLAGS) -I mod/ -o $@ $(SUBOBJ)
 
 hydroshock1:
-	make && time ./execute $(dim) hydroshock 0.1 runresult.info $(kt)
+	make && time ./execute $(dim) hydroshock 0.1 runresult.info $(kt) 1. $(dtype)
 
 infslb:
-	make && time ./execute $(dim) infslb 0.1 runresult.info $(kt) 5
+	make && time ./execute $(dim) infslb 0.1 runresult.info $(kt) 5 $(dtype)
 
 hc-sinx:
-	make && time ./execute $(dim) hc-sinx 0.1 runresult.info $(kt) .5
+	make && time ./execute $(dim) hc-sinx 0.1 runresult.info $(kt) .5 $(dtype)
 
 chi-laplace:
-	make && time ./execute $(dim) chi-laplace 0.002 runresult.info $(kt) -1 $(hf)
+	make && time ./execute $(dim) chi-laplace 0.002 runresult.info $(kt) -1 $(hf) $(dtype)
 
 pheva:
-	make && time ./execute $(dim) pheva 0.002 runresult.info $(kt) -1.5
+	make && time ./execute $(dim) pheva 0.002 runresult.info $(kt) -1.5 $(hf) $(dtype)
 
 diff-laplace:
-	make && time ./execute $(dim) diff-laplace .04 runresult.info $(kt) 0.1 $(hf)
+	make && time ./execute $(dim) diff-laplace .04 runresult.info $(kt) 0.1 $(hf) $(dtype)
 
 diff-graddiv:
-	make && time ./execute $(dim) diff-graddiv .12 runresult.info $(kt) 100 $(hf)
+	make && time ./execute $(dim) diff-graddiv .12 runresult.info $(kt) 100 $(hf) $(dtype)
 
 .PHONY: execute
 

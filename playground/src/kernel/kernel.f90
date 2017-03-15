@@ -12,13 +12,12 @@ module kernel
 
   public :: set_dim, get_nw, get_dw_dh, get_w, get_dim,             &
             set_tasktype, get_tasktype, set_kerntype, get_kerntype, &
-            get_n2w, get_krad, get_jacobian, PureKernel!, GradDivW!, get_n2y !, get_dphi_dh,
+            get_n2w, get_krad, get_hessian, set_difftype, get_difftype!, PureKernel!, GradDivW!, get_n2y !, get_dphi_dh,
 
   private
   save
     integer :: dim = 1
-    integer :: ttype, ktype
-
+    integer :: ttype, ktype, dtype
  contains
    !
    !-- GetterSetter access
@@ -82,16 +81,33 @@ module kernel
      ott = ktype
    end subroutine get_kerntype
 
-   subroutine get_kernelname(kname)
-     character (len=*), intent(out) :: kname
-     kname = kernelname
-   end subroutine get_kernelname
+  subroutine set_difftype(idt)
+    character (len=*), intent(in) :: idt
+    select case(idt)
+    case('diff')
+      dtype = 1
+    case('symm')
+      dtype = 2
+    case default
+      print *, 'Differentiation type is not set: ', idt
+      stop
+    end select
+  end subroutine set_difftype
 
+  subroutine get_difftype(odt)
+    integer, intent(out) :: odt
+    odt = dtype
+  end subroutine get_difftype
 
-   subroutine get_krad(kr)
-     real, intent(out) :: kr
-     kr = krad
-   end subroutine get_krad
+  subroutine get_kernelname(kname)
+    character (len=*), intent(out) :: kname
+    kname = kernelname
+  end subroutine get_kernelname
+
+  subroutine get_krad(kr)
+    real, intent(out) :: kr
+    kr = krad
+  end subroutine get_krad
 
   subroutine get_w(r, h, w)
     real, intent(in)  :: r, h
@@ -153,9 +169,9 @@ module kernel
     end if
   end subroutine get_n2w
 
-  subroutine get_jacobian(r, h, J)
+  subroutine get_hessian(r, h, Hes)
     real, intent(in)  :: r(3), h
-    real, intent(out) :: J(3,3)
+    real, intent(out) :: Hes(3,3)
     real              :: r2, dr, df, ddf, fab
 
     if (ktype == 1) then
@@ -164,63 +180,52 @@ module kernel
 
       call kddf(dr, h, ddf)
       call kdf(dr, h, df)
-      J(1,1) = knorm(dim)*(ddf*r(1)*r(1)/r2 + df*(1 - r(1)*r(1)/r2))/h**(dim+2)    ! d2/dx2   ! Wxx
-      J(1,2) = knorm(dim)*(ddf*r(2)*r(1)/r2 - df*r(2)*r(1)/r2)/h**(dim+2)          ! d2/dydx  ! Wxy
-      J(1,3) = knorm(dim)*(ddf*r(3)*r(1)/r2 - df*r(3)*r(1)/r2)/h**(dim+2)          ! d2/dzdx  ! Wxz
+      Hes(1,1) = knorm(dim)*(ddf*r(1)*r(1)/r2 + df*(1 - r(1)*r(1)/r2))/h**(dim+2)    ! d2/dx2   ! Wxx
+      Hes(1,2) = knorm(dim)*(ddf*r(2)*r(1)/r2 - df*r(2)*r(1)/r2)/h**(dim+2)          ! d2/dydx  ! Wxy
+      Hes(1,3) = knorm(dim)*(ddf*r(3)*r(1)/r2 - df*r(3)*r(1)/r2)/h**(dim+2)          ! d2/dzdx  ! Wxz
 
-      J(2,1) = knorm(dim)*(ddf*r(1)*r(2)/r2 - df*r(1)*r(2)/r2)/h**(dim+2)          ! d2/dxdy  ! Wyx
-      J(2,2) = knorm(dim)*(ddf*r(2)*r(2)/r2 + df*(1 - r(2)*r(2)/r2))/h**(dim+2)    ! d2/dy2   ! Wyy
-      J(2,3) = knorm(dim)*(ddf*r(3)*r(2)/r2 - df*r(3)*r(2)/r2)/h**(dim+2)          ! d2/dxdz  ! Wyz
+      Hes(2,1) = knorm(dim)*(ddf*r(1)*r(2)/r2 - df*r(1)*r(2)/r2)/h**(dim+2)          ! d2/dxdy  ! Wyx
+      Hes(2,2) = knorm(dim)*(ddf*r(2)*r(2)/r2 + df*(1 - r(2)*r(2)/r2))/h**(dim+2)    ! d2/dy2   ! Wyy
+      Hes(2,3) = knorm(dim)*(ddf*r(3)*r(2)/r2 - df*r(3)*r(2)/r2)/h**(dim+2)          ! d2/dxdz  ! Wyz
 
-      J(3,1) = knorm(dim)*(ddf*r(1)*r(3)/r2 - df*r(1)*r(3)/r2)/h**(dim+2)          ! d2/dxdz  ! Wzx
-      J(3,2) = knorm(dim)*(ddf*r(2)*r(3)/r2 - df*r(2)*r(3)/r2)/h**(dim+2)          ! d2/dydz  ! Wzy
-      J(3,3) = knorm(dim)*(ddf*r(3)*r(3)/r2 + df*(1 - r(3)*r(3)/r2))/h**(dim+2)    ! d2/dz2   ! Wzz
+      Hes(3,1) = knorm(dim)*(ddf*r(1)*r(3)/r2 - df*r(1)*r(3)/r2)/h**(dim+2)          ! d2/dxdz  ! Wzx
+      Hes(3,2) = knorm(dim)*(ddf*r(2)*r(3)/r2 - df*r(2)*r(3)/r2)/h**(dim+2)          ! d2/dydz  ! Wzy
+      Hes(3,3) = knorm(dim)*(ddf*r(3)*r(3)/r2 + df*(1 - r(3)*r(3)/r2))/h**(dim+2)    ! d2/dz2   ! Wzz
       if ( dim == 1 ) then
-        J(1,2:3) = 0.
-        J(2,:) = 0.
-        J(3,:) = 0.
+        Hes(1,2:3) = 0.
+        Hes(2,:) = 0.
+        Hes(3,:) = 0.
       elseif ( dim == 2 ) then
-        J(3,:) = 0.
-        J(:,3) = 0.
+        Hes(3,:) = 0.
+        Hes(:,3) = 0.
       end if
     elseif ( ktype == 2 ) then
       r2 = dot_product(r,r)
       dr = sqrt(r2)
 
       call get_Fab(r, h, fab)
-      J(1,1) = ((dim+2)*r(1)*r(1)/r2-1)*0.5*fab
-      J(1,2) = (dim+2)*r(1)*r(2)/r2*0.5*fab
-      J(1,3) = (dim+2)*r(1)*r(3)/r2*0.5*fab
+      Hes(1,1) = ((dim+2)*r(1)*r(1)/r2-1)*0.5*fab
+      Hes(1,2) = (dim+2)*r(1)*r(2)/r2*0.5*fab
+      Hes(1,3) = (dim+2)*r(1)*r(3)/r2*0.5*fab
 
-      J(2,1) = (dim+2)*r(2)*r(1)/r2*0.5*fab
-      J(2,2) = ((dim+2)*r(2)*r(2)/r2-1)*0.5*fab
-      J(2,3) = (dim+2)*r(2)*r(3)/r2*0.5*fab
+      Hes(2,1) = (dim+2)*r(2)*r(1)/r2*0.5*fab
+      Hes(2,2) = ((dim+2)*r(2)*r(2)/r2-1)*0.5*fab
+      Hes(2,3) = (dim+2)*r(2)*r(3)/r2*0.5*fab
 
-      J(3,1) = (dim+2)*r(3)*r(1)/r2*0.5*fab
-      J(3,2) = (dim+2)*r(3)*r(2)/r2*0.5*fab
-      J(3,3) = ((dim+2)*r(3)*r(3)/r2-1)*0.5*fab
-      ! J = 2./3. * J
+      Hes(3,1) = (dim+2)*r(3)*r(1)/r2*0.5*fab
+      Hes(3,2) = (dim+2)*r(3)*r(2)/r2*0.5*fab
+      Hes(3,3) = ((dim+2)*r(3)*r(3)/r2-1)*0.5*fab
+      ! H = 2./3. * H
       if ( dim == 1 ) then
-        J(1,2:3) = 0.
-        J(2,:) = 0.
-        J(3,:) = 0.
+        Hes(1,2:3) = 0.
+        Hes(2,:) = 0.
+        Hes(3,:) = 0.
       elseif ( dim == 2 ) then
-        J(3,:) = 0.
-        J(:,3) = 0.
+        Hes(3,:) = 0.
+        Hes(:,3) = 0.
       end if
     end if
-  end subroutine get_jacobian
-
-  subroutine PureKernel(dr ,h, df, ddf)
-    real, intent(in)  :: dr, h
-    real, intent(out) :: df, ddf
-
-    call kdf(dr, h, df)
-    call kddf(dr, h, ddf)
-    ddf = knorm(dim)*ddf/h**(dim+2)
-    ! df  = knorm(dim)* df/h**(dim+2)
-    df  = knorm(dim)* df/h**(dim+1)
-  end subroutine PureKernel
+  end subroutine get_hessian
 
 ! ---------!
 ! Y kernel !--------------------------------------------------------------------
@@ -288,15 +293,61 @@ module kernel
   !   end if
   ! end subroutine get_n2w
   !
-  ! subroutine GradDivW(r, h, n2Y)
-  !   real, intent(in)    :: r(3), h
-  !   real, intent(out)   :: n2Y(3)
+  ! subroutine get_hessian(r, h, Hes)
+  !   real, intent(in)  :: r(3), h
+  !   real, intent(out) :: Hes(3,3)
+  !   real              :: r2, dr, df, ddf, fab
   !
   !   if (ktype == 1) then
-  !     call get_on2iY(r, h, n2Y)
-  !   else if (ktype == 2) then
-  !     call get_FabiY(r, h, n2Y)
+  !     r2 = dot_product(r,r)
+  !     dr = sqrt(r2)
+  !
+  !     call n2ddf(dr, h, ddf)
+  !     call n2df(dr, h, df)
+  !     Hes(1,1) = knorm(dim)*(ddf*r(1)*r(1)/r2 + df*(1 - r(1)*r(1)/r2))/h**(dim+2)    ! d2/dx2   ! Wxx
+  !     Hes(1,2) = knorm(dim)*(ddf*r(2)*r(1)/r2 - df*r(2)*r(1)/r2)/h**(dim+2)          ! d2/dydx  ! Wxy
+  !     Hes(1,3) = knorm(dim)*(ddf*r(3)*r(1)/r2 - df*r(3)*r(1)/r2)/h**(dim+2)          ! d2/dzdx  ! Wxz
+  !
+  !     Hes(2,1) = knorm(dim)*(ddf*r(1)*r(2)/r2 - df*r(1)*r(2)/r2)/h**(dim+2)          ! d2/dxdy  ! Wyx
+  !     Hes(2,2) = knorm(dim)*(ddf*r(2)*r(2)/r2 + df*(1 - r(2)*r(2)/r2))/h**(dim+2)    ! d2/dy2   ! Wyy
+  !     Hes(2,3) = knorm(dim)*(ddf*r(3)*r(2)/r2 - df*r(3)*r(2)/r2)/h**(dim+2)          ! d2/dxdz  ! Wyz
+  !
+  !     Hes(3,1) = knorm(dim)*(ddf*r(1)*r(3)/r2 - df*r(1)*r(3)/r2)/h**(dim+2)          ! d2/dxdz  ! Wzx
+  !     Hes(3,2) = knorm(dim)*(ddf*r(2)*r(3)/r2 - df*r(2)*r(3)/r2)/h**(dim+2)          ! d2/dydz  ! Wzy
+  !     Hes(3,3) = knorm(dim)*(ddf*r(3)*r(3)/r2 + df*(1 - r(3)*r(3)/r2))/h**(dim+2)    ! d2/dz2   ! Wzz
+  !     if ( dim == 1 ) then
+  !       Hes(1,2:3) = 0.
+  !       Hes(2,:) = 0.
+  !       Hes(3,:) = 0.
+  !     elseif ( dim == 2 ) then
+  !       Hes(3,:) = 0.
+  !       Hes(:,3) = 0.
+  !     end if
+  !   elseif ( ktype == 2 ) then
+  !     r2 = dot_product(r,r)
+  !     dr = sqrt(r2)
+  !
+  !     call get_FabY(r, h, fab)
+  !     Hes(1,1) = ((dim+2)*r(1)*r(1)/r2-1)*0.5*fab
+  !     Hes(1,2) = (dim+2)*r(1)*r(2)/r2*0.5*fab
+  !     Hes(1,3) = (dim+2)*r(1)*r(3)/r2*0.5*fab
+  !
+  !     Hes(2,1) = (dim+2)*r(2)*r(1)/r2*0.5*fab
+  !     Hes(2,2) = ((dim+2)*r(2)*r(2)/r2-1)*0.5*fab
+  !     Hes(2,3) = (dim+2)*r(2)*r(3)/r2*0.5*fab
+  !
+  !     Hes(3,1) = (dim+2)*r(3)*r(1)/r2*0.5*fab
+  !     Hes(3,2) = (dim+2)*r(3)*r(2)/r2*0.5*fab
+  !     Hes(3,3) = ((dim+2)*r(3)*r(3)/r2-1)*0.5*fab
+  !     ! H = 2./3. * H
+  !     if ( dim == 1 ) then
+  !       Hes(1,2:3) = 0.
+  !       Hes(2,:) = 0.
+  !       Hes(3,:) = 0.
+  !     elseif ( dim == 2 ) then
+  !       Hes(3,:) = 0.
+  !       Hes(:,3) = 0.
+  !     end if
   !   end if
-  ! end subroutine GradDivW
-
+  ! end subroutine get_hessian
 end module kernel

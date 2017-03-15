@@ -35,6 +35,10 @@ contains
     call get_krad(kr)
     call get_dim(dim)
 
+    if ( kt == 3 ) then
+      kr = kr * 2
+    end if
+
     select case (tt)
     case (1)
       ! hydroshock

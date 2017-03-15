@@ -2,14 +2,16 @@ module circuit2
   use omp_lib
   use kernel
   use BC
-  use neighboursearch, only:getneighbours
+  use neighboursearch, only: getneighbours,&
+                             getNeibListL2
 
   implicit none
 
-  public :: c2, setStepsize
+  public :: c2, setStepsize, getTime
 
   private
-  integer, save :: stepsize = 1
+    integer, save :: stepsize = 1
+    real :: start=0., finish=0., elapsed=0.
 
 contains
   subroutine setStepsize(i)
@@ -17,35 +19,43 @@ contains
     stepsize = i
   end subroutine setStepsize
 
-  subroutine c2(c, ptype, pos, v, dv, mas, den, h, om, P, u, du, dh, cf, dcf, kcf)
-    real, allocatable, intent(in)    :: pos(:,:), v(:,:), mas(:), h(:), den(:), P(:), c(:), om(:),&
-                                        u(:), cf(:), kcf(:)
+  subroutine getTime(ot)
+    real, intent(out) :: ot
+    ot = elapsed
+  end subroutine getTime
+
+  subroutine c2(c, ptype, pos, v, dv, mas, den, h, om, P, u, du, dh, cf, dcf, kcf, dfdx)
+    real, allocatable, intent(in)    :: pos(:,:), v(:,:), mas(:), h(:), den(:), P(:), c(:),&
+                                        u(:), cf(:), kcf(:), om(:)
     integer, allocatable, intent(in) :: ptype(:)
-    real, allocatable, intent(inout) :: dv(:,:), du(:), dh(:), dcf(:)
+    real, allocatable, intent(inout) :: dv(:,:), du(:), dh(:), dcf(:), dfdx(:,:,:)
     real                 :: dr, rhoa, rhob, qa, qb, qc, n2wa, n2wb, kr, r2, &
                             nwa(3), nwb(3), rab(3), vab(3), vba(3), urab(3), Pa(3), Pb(3), &
-                            projv, df, ddf, Jac(3,3), sij
+                            projv, df, ddf, Hes(3,3), t0, tneib
     integer, allocatable :: nlist(:)
-    real, allocatable    :: gradv(:,:,:)
-    integer              :: i, j, l, n, dim
-    integer              :: tt, kt
+    integer              :: i, j, l, n, dim, ttp, ktp, dtp
 
+    call cpu_time(start)
     n = size(ptype)
+    tneib = 0.
 
     call get_dim(dim)
-    call get_tasktype(tt)
     call get_krad(kr)
-    call get_kerntype(kt)
+    call get_tasktype(ttp)
+    call get_kerntype(ktp)
+    call get_difftype(dtp)
 
-    if (kt == 3) then
-      call fungradient(dim, ptype, mas, den, pos, v, h, gradv)
+    if (( ktp == 3 ).and.( dtp == 1 )) then
+      call gradf(dim, ptype, mas, den, pos, v, h, dfdx)
     end if
 
     !$omp parallel do default(none)&
-    !$omp private(rab, dr, vab, urab, rhoa, rhob, nwa, nwb, qa, qb, qc, Pa, Pb, n2wa, n2wb, j, i, r2) &
-    !$omp private(projv, df, ddf, nlist, Jac, vba) &
-    !$omp shared(dv, du, dh, dcf, n, pos, h, tt, v, den, c, p, om, mas, u, kcf, cf)&
-    !$omp shared(dim, kr, kt, ptype, stepsize, gradv)
+    !$omp private(rab, dr, vab, urab, rhoa, rhob, nwa, nwb, qa, qb, qc, Pa, Pb)&
+    !$omp private(n2wa, n2wb, j, i, r2)&
+    !$omp private(projv, df, ddf, nlist, Hes, vba, t0) &
+    !$omp shared(dv, du, dh, dcf, n, pos, h, v, den, c, p, om, mas, u, kcf, cf)&
+    !$omp shared(dim, kr, ktp, dtp, ttp, ptype, stepsize, dfdx)&
+    !$omp reduction(+:tneib)
     do i = 1, n, stepsize
       ! print *, i, stepsize, ptype(i)
       ! read *
@@ -54,7 +64,8 @@ contains
         du(i) = 0.
         dh(i) = 0.
         dcf(i) = 0.
-        call getneighbours(i, pos, h, nlist)
+        call getneighbours(i, pos, h, nlist, t0)
+        tneib = tneib + t0
         do l = 1, size(nlist)
           ! print *, i, nlist
           ! read *
@@ -65,7 +76,7 @@ contains
           vab(:) = v(:,i) - v(:,j)
           vba(:) = v(:,j) - v(:,i)
           urab(:) = rab(:) / dr
-          select case (tt)
+          select case (ttp)
           case (1)
             qa = 0.
             qb = 0.
@@ -138,117 +149,60 @@ contains
             dh(i)   = dh(i) + mas(j) * dot_product(vab(:), nwa(:))
           case(5)
             ! 'diff-laplace'
-
-            ! iderivtype = 1 (default): Brookshaw/Espanol-Revenga style derivatives
-            !    del2v = \sum m_j/rho_j (v_i - v_j) * 2.0*abs(\nabla W_ij)/rij (h_i)
-            ! iderivtype = 2: "standard" second derivatives with kernel
-            !    del2v = \sum m_j/rho_j (v_j - v_i) nabla^2 W_ij (hi)
-            vba(:) = v(:,j) - v(:,i)
-            ! call get_kerntype(kt)
-            ! if (kt == 1) then
-              ! call get_jacobian(r, h(i), Jac)
-              ! call get_n2w(r, h(i), n2wa)
-              ! dv(:,i)  = dv(:,i) + mas(j)/den(j) * vba(:) * n2wa
-              ! print*, vba(:)*n2wa
-              ! dv(:,i)  = dv(:,i) + mas(j)/den(j) * vba(:)*(Jac(1,1) + Jac(2,2) + Jac(3,3))
-              ! print*, vba(:)*(Jac(1,1) + Jac(2,2) + Jac(3,3))
-              ! read*
-            ! else
-              call get_n2w(rab, h(i), n2wa)
-              dv(:,i)  = dv(:,i) + mas(j)/den(j) * vba(:) * n2wa
-            ! end if
+            if (dtp == 1) then
+              if ( ktp /= 3 ) then
+                call get_n2w(rab, h(i), n2wa)
+                dv(:,i)  = dv(:,i) + mas(j)/den(j) * vba(:) * n2wa
+              else
+                call get_nw(rab, h(i), nwa)
+                dv(1,i) = dv(1,i) + mas(j)/den(j) * 0.5*((2*dfdx(1,1,j)-2*dfdx(1,1,i))*nwa(1) + &
+                              (dfdx(1,2,j) + dfdx(2,1,j) - dfdx(1,2,i) - dfdx(2,1,i))*nwa(2) + &
+                              (dfdx(1,3,j) + dfdx(3,1,j) - dfdx(1,3,i) - dfdx(3,1,i))*nwa(3))
+                dv(2,i) = dv(2,i) + mas(j)/den(j) * 0.5*((dfdx(2,1,j) + dfdx(1,2,j) - dfdx(2,1,i) - dfdx(1,2,i))*nwa(1) + &
+                              (2*dfdx(2,2,j) - 2*dfdx(2,2,i))*nwa(2) + &
+                              (dfdx(2,3,j) + dfdx(3,2,j) - dfdx(2,3,i) - dfdx(3,2,i))*nwa(3))
+                dv(3,i) = dv(3,i) + mas(j)/den(j) * 0.5*((dfdx(3,1,j) + dfdx(1,3,j) - dfdx(3,1,i) - dfdx(1,3,i))*nwa(1) + &
+                              (dfdx(3,2,j) + dfdx(2,3,j) - dfdx(3,2,i) - dfdx(2,3,i))*nwa(2) + &
+                              (2*dfdx(3,3,j) - 2*dfdx(3,3,i))*nwa(3))
+              end if
+            elseif (dtp == 2) then
+              print*, 'symm'
+            else
+              print *, 'Diff type is not set in circuit2'
+              stop
+            end if
           case(6)
             ! diff-graddiv
-            ! iderivtype = 1 (default): Brookshaw/Espanol-Revenga style derivatives
-            !    graddivv = \sum m_j/rho_j (5 vij.rij - vij) abs(\nabla W_ij)/rij (h_i)
-            ! iderivtype = 2: "standard" second derivatives with kernel
-            !    graddivv = \sum m_j/rho_j ((v_j - v_i).\nabla) \nabla W_ij
-            call get_kerntype(kt)
-            if (kt == 1) then
-              ! call GradDivW(r, h(i), nwa)
-              call get_jacobian(rab, h(i), Jac)
-              dv(1,i) = dv(1,i) + mas(j)/den(j) * (vba(1)*Jac(1,1) + vba(2)*Jac(1,2) + vba(3)*Jac(1,3))
-              dv(2,i) = dv(2,i) + mas(j)/den(j) * (vba(1)*Jac(2,1) + vba(2)*Jac(2,2) + vba(3)*Jac(2,3))
-              dv(3,i) = dv(3,i) + mas(j)/den(j) * (vba(1)*Jac(3,1) + vba(2)*Jac(3,2) + vba(3)*Jac(3,3))
-              ! ! dv(1,i)  = dv(1,i) + mas(j)/den(j) * vba(1)*Hes(1,1)
-              ! ! dv(2,i)  = dv(2,i) + mas(j)/den(j) * vba(2)*Hes(2,2)
-              ! ! dv(3,i)  = dv(3,i) + mas(j)/den(j) * vba(3)*Hes(3,3)
-              ! print*, (vab(1)*Jac(2,1) + vab(2)*Jac(2,2) + vab(3)*Jac(2,3))
-              !
-              ! print*, vab(1)*(ddf*r(1)*r(2) - df*r(1)*r(2))/r2+&
-              !         vab(2)*(ddf*r(2)*r(2)/r2 + df*(1*dr-r(2)*r(2))/r2)+ &
-              !         vab(3)*(ddf*r(3)*r(2) - df*r(3)*r(2))/r2
-              !
-              ! print*, (ddf*r(2)*dot_product(vab(:),r(:)) + df*(vab(2)*dr - dot_product(vab(:),r(:))*r(2)))/r2
-              !
-              ! print*, "Diff: dvm - dvp: ", (vba(1)*Jac(2,1) + vba(2)*Jac(2,2) + vba(3)*Jac(2,3)) -&
-              !                              (ddf*r(2)*projv/dr + df*(vab(2) - projv*r(2))/dr)
-              !
-              ! print*, "Diff: dvmx - dvp: ", vab(1)*(ddf*r(1)*r(2)-df*r(1)*r(2))/r2+&
-              !         vab(2)*(ddf*r(2)*r(2)+df*(1*dr-r(2)*r(2)))/r2+ &
-              !         vab(3)*(ddf*r(3)*r(2)-df*r(3)*r(2))/r2 -&
-              !         (ddf*r(2)*dot_product(vab(:),r(:)) + df*(vab(2)*dr - dot_product(vab(:),r(:))*r(2)))/r2
-              !
-
-              ! read*
-              ! print*, dv(:,i)
-              ! dv(:,i) = 0.
-              ! vab(:) = v(:,i) - v(:,j)
-              ! projv = dot_product(vab(:),urab(:))
-              ! call PureKernel(dr, h(i), df, ddf)
-              ! ! graddivvi(:) = graddivvi(:) - pmass(j)*rho1j*(dr(:)*projv*grgrkerni + (dv(:) - projv*dr(:))*grkerni*rij1)
-              ! dv(:,i) = dv(:,i) - mas(j)/den(j)*(r(:)/dr*projv*ddf + (vab(:) - projv*r(:)/dr)*df/dr)
-              ! print*, dv(:,i)
-              ! dv(:,i) = 0.
-              ! dv(:,i) = dv(:,i) - mas(j)/den(j)*(r(:)/dr/dr*dot_product(vab(:),r(:))*ddf + (vab(:) - dot_product(vab(:),r(:))*r(:)/dr/dr)*df/h(i))
-              ! print*, dv(:,i)
-              ! dv(:,i) = 0.
-              ! print*, '---------'
-              ! read*
-            elseif ( kt == 2 ) then
-              ! Fab case
-              ! urab(:) = r(:) / dr
-              ! projv = dot_product(vab(:),urab(:))
-              ! call get_n2w(r, h(i), n2wa)
-              call get_jacobian(rab,h(i),Jac)
-              ! dv(:,i) = dv(:,i) - 0.5*mas(j)/den(j) * ((dim + 2)*projv*urab(:) - vab(:)) * n2wa
-              ! print*, dv(:,i)
-              ! dv(:,i) = 0.
-              dv(1,i) = dv(1,i) + mas(j)/den(j) * (vba(1)*Jac(1,1) + vba(2)*Jac(1,2) + vba(3)*Jac(1,3))
-              dv(2,i) = dv(2,i) + mas(j)/den(j) * (vba(1)*Jac(2,1) + vba(2)*Jac(2,2) + vba(3)*Jac(2,3))
-              dv(3,i) = dv(3,i) + mas(j)/den(j) * (vba(1)*Jac(3,1) + vba(2)*Jac(3,2) + vba(3)*Jac(3,3))
-            elseif ( kt == 3 ) then
-              ! two first derivatives
-              ! print*, i
-              ! print*, gradv(:,1,i)
-              ! print*, gradv(:,2,i)
-              ! print*, gradv(:,3,i)
-              ! print*, j
-              ! print*, gradv(:,1,j)
-              ! print*, gradv(:,2,j)
-              ! print*, gradv(:,3,j)
-              ! read*
-              call get_nw(rab, h(i), nwa)
-              dv(1,i) = dv(1,i) + mas(j)/den(j) * 0.5*((2*gradv(1,1,j)-2*gradv(1,1,i))*nwa(1) + &
-                            (gradv(1,2,j) + gradv(2,1,j) - gradv(1,2,i) - gradv(2,1,i))*nwa(2) + &
-                            (gradv(1,3,j) + gradv(3,1,j) - gradv(1,3,i) - gradv(3,1,i))*nwa(3))
-              dv(2,i) = dv(2,i) + mas(j)/den(j) * 0.5*((gradv(2,1,j) + gradv(1,2,j) - gradv(2,1,i) - gradv(1,2,i))*nwa(1) + &
-                            (2*gradv(2,2,j) - 2*gradv(2,2,i))*nwa(2) + &
-                            (gradv(2,3,j) + gradv(3,2,j) - gradv(2,3,i) - gradv(3,2,i))*nwa(3))
-              dv(3,i) = dv(3,i) + mas(j)/den(j) * 0.5*((gradv(3,1,j) + gradv(1,3,j) - gradv(3,1,i) - gradv(1,3,i))*nwa(1) + &
-                            (gradv(3,2,j) + gradv(2,3,j) - gradv(3,2,i) - gradv(2,3,i))*nwa(2) + &
-                            (2*gradv(3,3,j) - 2*gradv(3,3,i))*nwa(3))
+            if (dtp == 1) then
+              if (ktp /= 3) then
+                call get_hessian(rab, h(i), Hes)
+                dv(1,i) = dv(1,i) + mas(j)/den(j) * (vba(1)*Hes(1,1) + vba(2)*Hes(1,2) + vba(3)*Hes(1,3))
+                dv(2,i) = dv(2,i) + mas(j)/den(j) * (vba(1)*Hes(2,1) + vba(2)*Hes(2,2) + vba(3)*Hes(2,3))
+                dv(3,i) = dv(3,i) + mas(j)/den(j) * (vba(1)*Hes(3,1) + vba(2)*Hes(3,2) + vba(3)*Hes(3,3))
+              else
+                call get_nw(rab, h(i), nwa)
+                dv(1,i) = dv(1,i) + mas(j)/den(j) * 0.5*((2*dfdx(1,1,j)-2*dfdx(1,1,i))*nwa(1) + &
+                              (dfdx(1,2,j) + dfdx(2,1,j) - dfdx(1,2,i) - dfdx(2,1,i))*nwa(2) + &
+                              (dfdx(1,3,j) + dfdx(3,1,j) - dfdx(1,3,i) - dfdx(3,1,i))*nwa(3))
+                dv(2,i) = dv(2,i) + mas(j)/den(j) * 0.5*((dfdx(2,1,j) + dfdx(1,2,j) - dfdx(2,1,i) - dfdx(1,2,i))*nwa(1) + &
+                              (2*dfdx(2,2,j) - 2*dfdx(2,2,i))*nwa(2) + &
+                              (dfdx(2,3,j) + dfdx(3,2,j) - dfdx(2,3,i) - dfdx(3,2,i))*nwa(3))
+                dv(3,i) = dv(3,i) + mas(j)/den(j) * 0.5*((dfdx(3,1,j) + dfdx(1,3,j) - dfdx(3,1,i) - dfdx(1,3,i))*nwa(1) + &
+                              (dfdx(3,2,j) + dfdx(2,3,j) - dfdx(3,2,i) - dfdx(2,3,i))*nwa(2) + &
+                              (2*dfdx(3,3,j) - 2*dfdx(3,3,i))*nwa(3))
+              end if
+            elseif (dtp == 2) then
+              print*, 'symm'
+            else
+              print *, 'Diff type is not set in circuit2'
+              stop
             end if
           case default
             print *, 'Task type was not defined in circuit2 inside circle'
             stop
           end select
-          ! if ( i == 88001) then
-            ! print*, i, j, dv(:,i)
-            ! read*
-          ! end if
         end do
-        select case (tt)
+        select case (ttp)
         case(1,2,3,4)
           dh(i) =  (- h(i) / (dim * den(i))) * dh(i) / om(i)
         case(5,6)
@@ -261,6 +215,8 @@ contains
       ! read*
     end do
     !$omp end parallel do
+    call cpu_time(finish)
+    elapsed = elapsed + (finish - start) - tneib
   end subroutine c2
 
   subroutine art_termcond(pa, pb, da, db, vsigu)
@@ -286,7 +242,7 @@ contains
     end if
   end subroutine art_viscosity
 
-  subroutine fungradient(dim, t, m, d, x, v, h, nv)
+  subroutine gradf(dim, t, m, d, x, v, h, nv)
     real, allocatable, intent(in)  :: m(:), d(:), x(:,:), v(:,:), h(:)
     integer, allocatable, intent(in) :: t(:)
     real, allocatable, intent(out) :: nv(:,:,:)
@@ -294,44 +250,37 @@ contains
 
     integer, allocatable :: nlista(:), nlistb(:)
     integer :: n, i, j, la, lb, ni, nj, li
-    real    :: vba(3), nw(3), rab(3)
+    real    :: vba(3), nw(3), rab(3), t0, tneib
+    call cpu_time(start)
 
     n = size(m)
     allocate(nv(3,3,n))
     nv(:,:,:) = 0.
+    tneib = 0.
+    call getNeibListL2(nlista)
+
     !$omp parallel do default(none)&
-    !$omp private(rab, vba, nw, i, j, la, lb, ni, nj, li, nlista, nlistb) &
-    !$omp shared(dim, t, m, d, x, v, h, nv, n, stepsize)
-    do i = 1,n,stepsize                      ! a
-      if ( nv(1,1,i) == 0 ) then             !
-        call getneighbours(i, x, h, nlista)    !
-        do la = 1, size(nlista)                !
-          j = nlista(la)                       ! b a
-          if ( nv(1,1,j) == 0 ) then           !
-            call getneighbours(j, x, h, nlistb)!
-            do lb = 1, size(nlistb)            !
-              li = nlistb(lb)                  !   b
-              vba(:) = v(:,li) - v(:,j)
-              rab(:) = x(:,j) - x(:,li)
-              call get_nw(rab, h(j), nw)
-              do ni = 1,dim
-                do nj = 1,dim
-                  nv(ni,nj,j) = nv(ni,nj,j) + m(li)/d(li)*vba(ni)*nw(nj)
-                end do
-              end do
-            end do
-          end if
-          vba(:) = v(:,j) - v(:,i)
-          rab(:) = x(:,i) - x(:,j)
-          call get_nw(rab, h(i), nw)
-          do ni = 1,dim
-            do nj = 1,dim
-              nv(ni,nj,i) = nv(ni,nj,i) + m(j)/d(j)*vba(ni)*nw(nj)
-            end do
+    !$omp private(rab, vba, nw, i, j, la, lb, ni, nj, li, nlistb, t0) &
+    !$omp shared(dim, t, m, d, x, v, h, nv, n, stepsize, nlista)&
+    !$omp reduction(+:tneib)
+    do la = 1,size(nlista)
+      i = nlista(la)
+      call getneighbours(i, x, h, nlistb, t0)
+      tneib = tneib + t0
+      do lb = 1, size(nlistb)
+        j = nlistb(lb)
+        vba(:) = v(:,j) - v(:,i)
+        rab(:) = x(:,i) - x(:,j)
+        call get_nw(rab, h(i), nw)
+        do ni = 1,dim
+          do nj = 1,dim
+            nv(ni,nj,i) = nv(ni,nj,i) + m(j)/d(j)*vba(ni)*nw(nj)
           end do
         end do
-      end if
+      end do
     end do
     !$omp end parallel do
-  end subroutine fungradient
+    call cpu_time(finish)
+    elapsed = elapsed + (finish - start) - tneib
+  end subroutine gradf
 end module circuit2
