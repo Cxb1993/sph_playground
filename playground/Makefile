@@ -2,8 +2,8 @@ FC=gfortran
 FFLAGS=-fdefault-real-8 -fdefault-double-8\
  				-Ofast\
 				-g -Wall -Wextra -Warray-temporaries -Wconversion -fimplicit-none -fbacktrace\
-				-ffree-line-length-0 -fcheck=all -ffpe-trap=zero,overflow,underflow,invalid -finit-real=nan\
-				-fopenmp
+				-ffree-line-length-0 -fcheck=all -ffpe-trap=zero,overflow,underflow,invalid -finit-real=nan#\
+				# -fopenmp
 
 SRC=\
 	const.f90\

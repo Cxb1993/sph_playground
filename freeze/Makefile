@@ -2,8 +2,8 @@ FC=gfortran
 FFLAGS=-fdefault-real-8 -fdefault-double-8\
  				-Ofast\
 				-g -Wall -Wextra -Warray-temporaries -Wconversion -fimplicit-none -fbacktrace\
-				-ffree-line-length-0 -fcheck=all -ffpe-trap=zero,overflow,underflow,invalid -finit-real=nan\
-				-fopenmp
+				-ffree-line-length-0 -fcheck=all -ffpe-trap=zero,overflow,underflow,invalid -finit-real=nan#\
+				# -fopenmp
 
 SRC=\
 	const.f90\
@@ -23,11 +23,11 @@ SRC=\
 	IC/initpositions.f90\
 	IC/semiuniform.f90\
 	IC/IC.f90\
-	neighbour_search.f90\
+	neighboursearch.f90\
 	circuit1.f90\
 	circuit2.f90\
 	errcalc.f90\
-	bias.f90\
+	errteylor.f90\
 	iterator.f90\
 	main.f90
 
@@ -38,6 +38,18 @@ SUBOBJ=$(addprefix obj/, $(OBJ))
 ifndef dim
 $(warning dimention is not set, `dim=1` will be used)
 dim=1
+endif
+ifndef kt
+$(warning kernel type is not set, `kt=n2w` will be used)
+kt=n2w
+endif
+ifndef hf
+$(warning hfac is not set, `hf=1.` will be used)
+hf=1.
+endif
+ifndef dtype
+$(warning dtype is not set, `dtype=diff` will be used)
+dtype=diff
 endif
 
 %.o : src/%.f90
@@ -56,25 +68,25 @@ execute: $(OBJ)
 	$(FC) $(FFLAGS) -I mod/ -o $@ $(SUBOBJ)
 
 hydroshock1:
-	make && time ./execute $(dim) hydroshock 0.1 runresult.info fab
+	make && time ./execute $(dim) hydroshock 0.1 runresult.info $(kt) 1. $(dtype)
 
 infslb:
-	make && time ./execute $(dim) infslb 0.1 runresult.info fab 5
+	make && time ./execute $(dim) infslb 0.1 runresult.info $(kt) 5 $(dtype)
 
 hc-sinx:
-	make && time ./execute $(dim) hc-sinx 0.1 runresult.info fab .5
+	make && time ./execute $(dim) hc-sinx 0.1 runresult.info $(kt) .5 $(dtype)
 
-chi-only:
-	make && time ./execute $(dim) hc-sinx 0.002 runresult.info fab -1.5
+chi-laplace:
+	make && time ./execute $(dim) chi-laplace 0.002 runresult.info $(kt) -1 $(hf) $(dtype)
 
 pheva:
-	make && time ./execute $(dim) pheva 0.002 runresult.info fab -1.5
+	make && time ./execute $(dim) pheva 0.002 runresult.info $(kt) -1.5 $(hf) $(dtype)
 
-difflaplace:
-	make && time ./execute $(dim) diff-laplace .4 runresult.info fab 0.1 1.2
+diff-laplace:
+	make && time ./execute $(dim) diff-laplace .04 runresult.info $(kt) 0.1 $(hf) $(dtype)
 
-diffgraddiv:
-	make && time ./execute $(dim) diff-graddiv .4 runresult.info fab 0.1 1.2
+diff-graddiv:
+	make && time ./execute $(dim) diff-graddiv .04 runresult.info $(kt) 100 $(hf) $(dtype)
 
 .PHONY: execute
 

@@ -1,5 +1,5 @@
 module args
-  use kernel, only:set_tasktype, set_kerntype, set_dim
+  use kernel, only:set_tasktype, set_kerntype, set_dim, set_difftype
 
   implicit none
 
@@ -9,10 +9,11 @@ module args
     character (len=10) :: arg
 
   contains
-    subroutine fillargs(dim, pspc1, pspc2, itype, ktype, errfname, dtout, npic, tfinish, sk)
+    ! ARGS Dim, TaskType, Spacing, ErrFileName, KernelType, tFinish, hfac
+    subroutine fillargs(dim, pspc1, pspc2, itype, ktype, dtype, errfname, dtout, npic, tfinish, sk)
       real, intent(inout)               :: pspc1, pspc2, dtout, npic, tfinish, sk
       integer, intent(inout)            :: dim
-      character (len=40), intent(inout) :: itype, ktype, errfname
+      character (len=40), intent(inout) :: itype, ktype, errfname, dtype
 
       call get_command_argument(1, arg)
       read(arg(:), fmt="(i5)") dim
@@ -45,6 +46,10 @@ module args
       call get_command_argument(7, arg(:))
       read(arg(:), *) sk
       write(*, "(A, F7.5)") " # #           h:   ", sk
+
+      call get_command_argument(8, dtype)
+      write(*, "(A, A)") " # #    difftype:   ", dtype
+      call set_difftype(dtype)
 
       pspc2 = pspc1
       write(*, "(A, F7.5, A, F7.5)") " # #      set dx:   x1=", pspc1, "   x2=", pspc2

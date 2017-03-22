@@ -160,7 +160,7 @@ contains
     call resize3r(pos,n,n)
     call resize(ptype,n,n)
     write(*, "(A, F7.5, A, F7.5)") " # #   actual dx:   dx1=", pspc1, "  dx2=", pspc2
-    write(*, "(A, I3, A, I3, A, I3)") " # #  dir.layers:   nx=", ix+1, &
+    write(*, "(A, I5, A, I5, A, I5)") " # #  dir.layers:   nx=", ix+1, &
              "   ny=", iy+1, "   nz=", iz+1
     write(*, "(A, I8, A, I8, A)") " # #    p.number:  ", n, &
               " total   ", freenumber, " real"
