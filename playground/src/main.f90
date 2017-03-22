@@ -150,7 +150,7 @@ program main
     iter = iter + 1
   end do
   ! print *, 999
-
+  ! print*, 11111
   if (t <= .0) then
     select case(tt) ! l2 error calc evaluatopn
     case(1, 2, 7)
@@ -185,9 +185,9 @@ program main
       if ( dim == 1) then
         result(4) = sum(chi)
       elseif ( dim == 2 ) then
-        result(4) = merge(sum(chi)/dim/3, 0., nused>0)
+        result(4) = merge(sum(chi)/dim/3., 0., nused>0)
       elseif ( dim == 3 ) then
-        result(4) = merge(sum(chi)/dim/5, 0., nused>0)
+        result(4) = merge(sum(chi)/dim/5., 0., nused>0)
       end if
       result(6:86) = chi(1:81)
       printlen = 86
@@ -216,6 +216,11 @@ program main
     call print_appendline(11, result, errfname)
   end if
   call getTime()
+  print *, '##### Results:'
+  write(*, "(A, F10.5)") " # #  l2-error: ", result(3)
+  write(*, "(A, F10.5)") " # # chi-error: ", result(4)
+  ! write(*, "(A, F10.5)") " # #     neibs: ", elapsed
+  print *, '##############################################'
 end program main
 
 subroutine set_stepping(i)
@@ -243,12 +248,14 @@ subroutine getTime()
 
   real :: elapsed
 
+  print *, '##############################################'
+  print *, '#####    Time:'
   call c1time(elapsed)
-  print*, " Time:"
   write(*, "(A, F10.5)") " # #        c1: ", elapsed
   call c2time(elapsed)
   write(*, "(A, F10.5)") " # #        c2: ", elapsed
   call nbtime(elapsed)
   write(*, "(A, F10.5)") " # #     neibs: ", elapsed
+  print *, '##############################################'
 
 end subroutine getTime

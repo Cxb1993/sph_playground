@@ -239,22 +239,24 @@ contains
         ! xsinxcospicewise
         ! v(1,i) = merge(x(1,i)*sin(period*x(1,i)), x(1,i)*cos(period*x(1,i)), x(1,i) < 0)
         ! sinsinsin
-        v(1,i) = sin(period*x(1,i))
-        v(2,i) = sin(period*x(2,i))
-        v(3,i) = sin(period*x(3,i))
-        ! if (dim > 1) then
+        ! v(1,i) = sin(period*x(1,i))
+        ! v(2,i) = sin(period*x(2,i))
+        ! v(3,i) = sin(period*x(3,i))
+        if (dim == 1) then
+          v(1,i) = sin(period*x(1,i)) * x(1,i)
         !   v(2,i) = sin(period*x(2,i))
-        ! end if
-        ! if (dim == 3) then
+        elseif ( dim == 2 ) then
+          v(1,i) = sin(period*x(1,i)) * x(2,i)
+          v(2,i) = sin(period*x(2,i)) * x(1,i)
+        elseif ( dim == 3 ) then
+          v(1,i) = sin(period*x(1,i)) * x(2,i)
+          v(2,i) = sin(period*x(2,i)) * x(3,i)
+          v(3,i) = sin(period*x(3,i)) * x(1,i)
         !   v(3,i) = sin(period*x(3,i))
-        ! end if
         ! v(1,i)  = cos(period*x(:,i))
-        ! if (dim > 1) then
         !   v(1,i) = v(1,i) * sin(period*x(2,i))
-        ! end if
-        ! if (dim == 3) then
         !   v(1,i) = v(1,i) * sin(period*x(3,i))
-        ! end if
+        end if
       case(6)
         ! diff-graddiv
         den(i) = rho1
@@ -262,7 +264,8 @@ contains
         ! v(:,i)  = sin(period*x(:,i))*cos(period*x(:,i)**2)
         v(:,i) = 0.
         if (dim == 1) then
-          ! v(1,i) = cos(period*x(1,i)) * x(1,i)
+          ! x sinx
+          ! v(1,i) = sin(period*x(1,i)) * x(1,i)
           ! sin
           v(1,i) = sin(period*x(1,i))
           ! v(1,i) = x(1,i)
@@ -270,8 +273,9 @@ contains
         if (dim == 2) then
           ! v(1,i) = x(1,i)*x(2,i)
           ! v(2,i) = x(1,i)*x(2,i)
-          ! v(1,i) = cos(period*x(1,i))* x(2,i)
-          ! v(2,i) = cos(period*x(2,i))* x(1,i)
+          ! ysix xsiny
+          ! v(1,i) = sin(period*x(1,i))* x(2,i)
+          ! v(2,i) = sin(period*x(2,i))* x(1,i)
           ! sin
           v(1,i) = sin(period*x(1,i))
           v(2,i) = sin(period*x(2,i))
@@ -280,9 +284,10 @@ contains
           ! v(1,i) = x(1,i)*x(2,i)*x(3,i)
           ! v(2,i) = x(1,i)*x(2,i)*x(3,i)
           ! v(3,i) = x(1,i)*x(2,i)*x(3,i)
-          ! v(1,i) = cos(period*x(1,i))* x(3,i)
-          ! v(2,i) = cos(period*x(2,i))* x(2,i)
-          ! v(3,i) = cos(period*x(3,i))* x(1,i)
+          ! ysix zsiny xsinz
+          ! v(1,i) = sin(period*x(1,i))* x(2,i)
+          ! v(2,i) = sin(period*x(2,i))* x(3,i)
+          ! v(3,i) = sin(period*x(3,i))* x(1,i)
           ! sin
           v(1,i) = sin(period*x(1,i))
           v(2,i) = sin(period*x(2,i))

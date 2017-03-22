@@ -1,19 +1,21 @@
 #!/bin/bash
 
 env | grep OMP_NUM_THREADS
-# dimlist='1 2 3'
-dimlist=$1
-# tasktype='diff-graddiv'
-tasktype=$2
+dimlist='1 2 3'
+# dimlist=$1
+tasktype='diff-graddiv'
+# tasktype=$2
 # ktype='n2w fab'
-ktype='n2w'
+ktype='2nw'
 execnamelist='execute'
 storebase=`pwd`
 dtprefix=`date +%Y%m%d%H%M`
-# kernelPrefix='quintic'
-kernelPrefix='cubic'
+kernelPrefix='quintic'
+# kernelPrefix='cubic'
 # kernelPrefix='mgauss'
 # kernelPrefix='sinc'
+dtype='symm'
+# dtype='diff'
 
 tfinish='100'
 spstart='1.'
@@ -47,7 +49,7 @@ for dim in $dimlist; do
           `echo $header > $errfname`
         fi
 
-        runcmd="time ./$execname $dim $tasktype 0.06 $errfname $k $tfinish $psp &>/dev/null"
+        runcmd="time ./$execname $dim $tasktype 0.06 $errfname $k $tfinish $psp $dtype &>/dev/null"
         echo $runcmd
         runresult=`echo '\n' | $runcmd`
         echo "$runresult" >> result.info

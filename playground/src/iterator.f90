@@ -108,7 +108,9 @@ contains
       case(1)
         call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
       case(2)
-        print*, 'symm'
+        call c1(ptype, pos, mas, vel, sk, h, den, om, dfdx)
+        ! print*, '======================'
+        call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
       case default
         print *, 'Diff type is not set in iterator'
         stop

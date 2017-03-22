@@ -2,8 +2,9 @@ module errcalc
   use const
   use omp_lib
   use BC
-  use kernel, only: get_dim,&
-                    get_tasktype
+  use kernel,          only: get_dim,&
+                             get_tasktype
+  use neighboursearch, only: getNeibListL1
 
   implicit none
 
@@ -127,9 +128,19 @@ contains
         !                  -x(1,i)*cos(period*x(1,i)) - 2*sin(period*x(1,i)),&
         !                  x(1,i) < 0)
         ! sinsinsin
-        exact(1) = -sin(period*x(1,i))
-        exact(2) = -sin(period*x(2,i))
-        exact(3) = -sin(period*x(3,i))
+        ! exact(1) = -sin(period*x(1,i))
+        ! exact(2) = -sin(period*x(2,i))
+        ! exact(3) = -sin(period*x(3,i))
+        if ( dim == 1 ) then
+          exact(1) = 2*Cos(x(1,i)) - x(1,i)*Sin(x(1,i))
+        elseif ( dim == 2 ) then
+          exact(1) = -x(2,i)*Sin(x(1,i))
+          exact(2) = -x(1,i)*Sin(x(2,i))
+        elseif ( dim == 3 ) then
+          exact(1) = -(x(2,i)*Sin(x(1,i)))
+          exact(2) = -(x(3,i)*Sin(x(2,i)))
+          exact(3) = -(x(1,i)*Sin(x(3,i)))
+        end if
         ! if (dim > 1) then
         !   exact(2) = -sin(period*x(2,i))
         ! end if
@@ -149,55 +160,58 @@ contains
     real, allocatable, intent(inout) :: err(:)
     integer, intent(out)             :: count
 
-    integer             :: n, i, dim
+    integer             :: n, i, dim, la
     real                :: exact(1:3), xk(3)
+    integer, allocatable :: nlista(:)
 
     call get_dim(dim)
     n = size(ptype)
     count = 0
     err(:) = 0.
+
+    call getNeibListL1(nlista)
+
     !$omp parallel do default(none) &
-    !$omp shared(n,ptype, x,num,err,dim,period) &
-    !$omp private(exact, i,xk) &
+    !$omp shared(n,ptype, x,num,err,dim,period, nlista) &
+    !$omp private(exact, i,xk, la) &
     !$omp reduction(+:count)
-    do i=1,n,stepsize
-      ! print*,i, size(exact), size(x,dim=2),size(x,dim=1),size(num,dim=2), size(err), size(ptype)
-      if (ptype(i) /= 0) then
-        exact(:) = 0.
-        if (dim == 1) then
-          ! exact(1) = 0
-          ! exact(1) = -(x(1,i))*Cos(x(1,i)) - 2*Sin(x(1,i))
-          ! sin
-          exact(1) = -sin(x(1,i))
-        end if
-        if (dim == 2) then
-          ! exact(1) = 1
-          ! exact(2) = 1
-          ! exact(1) = -x(2,i)*Cos(x(1,i)) - Sin(x(2,i))
-          ! exact(2) = -x(1,i)*Cos(x(2,i)) - Sin(x(1,i))
-          ! sin
-          exact(1) = -sin(x(1,i))
-          exact(2) = -sin(x(2,i))
-        end if
-        if (dim == 3) then
-          ! exact(1) = x(2,i) + x(3,i)
-          ! exact(2) = x(1,i) + x(3,i)
-          ! exact(3) = x(1,i) + x(2,i)
-          ! exact(1) = -(x(3,i)*Cos(x(1,i))) - Sin(x(2,i))
-          ! exact(2) = -(x(1,i)*Cos(x(2,i))) - Sin(x(3,i))
-          ! exact(3) = -(x(2,i)*Cos(x(3,i))) - Sin(x(1,i))
-          ! sin
-          exact(1) = -sin(x(1,i))
-          exact(2) = -sin(x(2,i))
-          exact(3) = -sin(x(3,i))
-        end if
-        ! print*, exact
-        ! print*, num(:,i)
-        ! print*, '----------'
-        ! read*
-        err(i) = dot_product(exact(:)-num(:,i),exact(:)-num(:,i))
-        count = count + 1
+    do la = 1,size(nlista)
+      i = nlista(la)
+      ! print*, i, num(:,i)
+      exact(:) = 0.
+      if (dim == 1) then
+        ! exact(1) = 0
+        ! exact(1) = 2*Cos(x(1,i)) - (x(1,i))*Sin(x(1,i))
+        ! sin
+        exact(1) = -sin(x(1,i))
       end if
+      if (dim == 2) then
+        ! exact(1) = 1
+        ! exact(2) = 1
+        ! exact(1) = Cos(x(2,i)) - x(2,i)*Sin(x(1,i))
+        ! exact(2) = Cos(x(1,i)) - x(1,i)*Sin(x(2,i))
+        ! sin
+        exact(1) = -sin(x(1,i))
+        exact(2) = -sin(x(2,i))
+      end if
+      if (dim == 3) then
+        ! exact(1) = x(2,i) + x(3,i)
+        ! exact(2) = x(1,i) + x(3,i)
+        ! exact(3) = x(1,i) + x(2,i)
+        ! exact(1) = Cos(x(3,i)) - (x(2,i)*Sin(x(1,i)))
+        ! exact(2) = Cos(x(1,i)) - (x(3,i)*Sin(x(2,i)))
+        ! exact(3) = Cos(x(2,i)) - (x(1,i)*Sin(x(3,i)))
+        ! sin
+        exact(1) = -sin(x(1,i))
+        exact(2) = -sin(x(2,i))
+        exact(3) = -sin(x(3,i))
+      end if
+      ! print*, exact
+      ! print*, num(:,i)
+      ! print*, '----------'
+      ! read*
+      err(i) = dot_product(exact(:)-num(:,i),exact(:)-num(:,i))
+      count = count + 1
     end do
     !$omp end parallel do
   end subroutine err_diff_graddiv

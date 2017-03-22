@@ -73,7 +73,7 @@ contains
         if (resid(i) > allowerror) then
           den(i)  = 0.
           om(i)   = 0.
-          dfdx(3,3,i) = 0.
+          dfdx(:,:,i) = 0.
           call getneighbours(i, pos, h, nlistb, t0)
           tneib = tneib + t0
           do lb = 1, size(nlistb)
@@ -93,7 +93,7 @@ contains
               end do
             end do
           end do
-          ! There is no particle inself in neighbour list
+          ! There is no particle itself in neighbour list
           call get_dw_dh(0., slnint(i), dwdh)
           call get_w(0., slnint(i), w)
           den(i) = den(i) + mas(i) * w
@@ -110,6 +110,10 @@ contains
       end do
       !$omp end parallel do
     end do
+    ! do la = 1,size(nlista)
+    !   i = nlista(la)
+    !   print*, i, den(i)
+    ! end do
     h(:) = slnint(:)
     call cpu_time(finish)
     elapsed = elapsed + (finish - start) - tneib

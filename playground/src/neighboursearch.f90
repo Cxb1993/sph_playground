@@ -79,6 +79,8 @@ contains
     if (stepsize /= 1) then
       allocate(alllistlv1(sn))
       allocate(alllistlv2(sn))
+      alllistlv1(:) = -1
+      alllistlv2(:) = -1
       al1 = 1
       al2 = 1
     end if
@@ -88,15 +90,16 @@ contains
     !$omp shared(al1, al2, alllistlv1, alllistlv2)&
     !$omp private(i, j, tix, r, r2, tsz, tmp)
     do i=1,sn,stepsize
-      !$omp critical
-      alllistlv1(al1) = i
-      al1 = al1 + 1
-      if (.not.any(alllistlv2 == i)) then
-        alllistlv2(al2) = i
-        al2 = al2 + 1
-      end if
-      !$omp end critical
-      if ((ptype(i) /= 0) .or. (kt == 3)) then
+      ! if ((ptype(i) /= 0) .or. (kt == 3)) then
+      if (ptype(i) /= 0) then
+        !$omp critical
+        alllistlv1(al1) = i
+        al1 = al1 + 1
+        if (.not.any(alllistlv2 == i)) then
+          alllistlv2(al2) = i
+          al2 = al2 + 1
+        end if
+        !$omp end critical
         if (dim == 1) then
           allocate(neighbours(i)%list(10))
         else if (dim == 2) then

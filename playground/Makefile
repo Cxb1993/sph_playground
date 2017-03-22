@@ -23,7 +23,7 @@ SRC=\
 	IC/initpositions.f90\
 	IC/semiuniform.f90\
 	IC/IC.f90\
-	neighbour_search.f90\
+	neighboursearch.f90\
 	circuit1.f90\
 	circuit2.f90\
 	errcalc.f90\
@@ -86,7 +86,7 @@ diff-laplace:
 	make && time ./execute $(dim) diff-laplace .04 runresult.info $(kt) 0.1 $(hf) $(dtype)
 
 diff-graddiv:
-	make && time ./execute $(dim) diff-graddiv .12 runresult.info $(kt) 100 $(hf) $(dtype)
+	make && time ./execute $(dim) diff-graddiv .04 runresult.info $(kt) 100 $(hf) $(dtype)
 
 .PHONY: execute
 
