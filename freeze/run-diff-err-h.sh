@@ -1,6 +1,6 @@
 #!/bin/bash
 
-env | grep OMP_NUM_THREADS > treads.info
+env | grep OMP_NUM_THREADS
 # dimlist='1 2 3'
 dimlist=$1
 # tasktype='diff-graddiv'

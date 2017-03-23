@@ -52,7 +52,7 @@ contains
       ! infslb
       nb = 1
       call place_uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
-    case (3, 7)
+    case (3)
       ! hc-sinx ! chi-laplace
       brdx1 = -1.
       brdx2 =  1.
@@ -78,7 +78,7 @@ contains
       ! pheva
       nb = int(kr * sk) + 1
       call place_uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
-    case(5, 6)
+    case(5, 6, 7, 8)
       ! diff-laplace ! diff-graddiv
       period = pi
       brdx1 = -1.*period

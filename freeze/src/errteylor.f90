@@ -7,10 +7,11 @@ module errteylor
   use BC,              only: getSqaureBoxSides
   implicit none
 
-  public :: laplace, graddiv, setStepsize
+  public :: laplace, graddiv, setStepsize, getTime
 
   private
   integer, save :: stepsize = 1
+  real :: start=0., finish=0., elapsed=0.
 
 contains
   subroutine setStepsize(i)
@@ -18,13 +19,20 @@ contains
     stepsize = i
   end subroutine setStepsize
 
+  subroutine getTime(ot)
+    real, intent(out) :: ot
+    ot = elapsed
+  end subroutine getTime
+
   subroutine laplace(pos, mas, den, h, chi)
     real, allocatable, intent(in)    :: mas(:), den(:), pos(:,:), h(:)
     real, intent(inout) :: chi(9)
 
     integer, allocatable :: nlist(:)
     integer              :: i, j, l, kd, nx, ny, nz, idx
-    real                 :: n2w, r(3), r11, r22, r33, r12, r13, r23, kr, t(3), t0!, n2wa(3)!, Hes(3,3)
+    real                 :: n2w, r(3), r11, r22, r33, r12, r13, r23, kr, t(3), tneib!, n2wa(3)!, Hes(3,3)
+
+    call cpu_time(start)
 
     call get_krad(kr)
     call get_dim(kd)
@@ -39,7 +47,7 @@ contains
     else if (kd == 3) then
       idx = int(nz/2*(ny*(nx+1)+1))
     end if
-    call getneighbours(idx, pos, h, nlist, t0)
+    call getneighbours(idx, pos, h, nlist, tneib)
     i = idx
     do l = 1,size(nlist)
       j = nlist(l)
@@ -70,6 +78,8 @@ contains
       end if
     end do
     ! print*, ' t: ', t
+    call cpu_time(finish)
+    elapsed = elapsed + (finish - start) - tneib
   end subroutine laplace
 
   subroutine graddiv(pos, mas, den, h, chi)
@@ -78,7 +88,9 @@ contains
 
     integer, allocatable :: nlist(:)
     integer              :: i, j, l, kd, nx, ny, nz, idx, a, b, g, d, ci
-    real                 :: r(3), kr, t(3), dr, Hes(3,3), m, t0
+    real                 :: r(3), kr, t(3), dr, Hes(3,3), m, tneib
+
+    call cpu_time(start)
 
     call get_krad(kr)
     call get_dim(kd)
@@ -93,7 +105,7 @@ contains
     else if (kd == 3) then
       idx = int(nz/2*(ny*(nx+1)+1))
     end if
-    call getneighbours(idx, pos, h, nlist, t0)
+    call getneighbours(idx, pos, h, nlist, tneib)
     i = idx
     do l = 1,size(nlist)
       j = nlist(l)
@@ -128,5 +140,7 @@ contains
     !     end do
     !   end do
     ! end do
+    call cpu_time(finish)
+    elapsed = elapsed + (finish - start) - tneib
   end subroutine graddiv
 end module errteylor

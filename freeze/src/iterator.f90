@@ -29,11 +29,10 @@ contains
     call get_tasktype(ttp)
     call get_difftype(dtp)
 
-    call findneighbours(ptype, pos, h)
-
     select case (ttp)
     case (1)
       ! hydroshock
+      call findneighbours(ptype, pos, h)
       call c1(ptype, pos, mas, vel, sk, h, den, om, dfdx)
       call eos_adiabatic(n, den, uei, prs, c, cf, gamma)
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
@@ -47,10 +46,12 @@ contains
       end if
     case (2)
       ! infslb
+      call findneighbours(ptype, pos, h)
       call c1(ptype, pos, mas, vel, sk, h, den, om, dfdx)
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
     case (3)
       ! hc-sinx
+      call findneighbours(ptype, pos, h)
       call c1(ptype, pos, mas, vel, sk, h, den, om, dfdx)
       call periodic1indims(den, dim)
       call periodic1indims(h, dim)
@@ -69,6 +70,7 @@ contains
       ! print *, h
       ! read *
       ! print *, '----- 0'
+      call findneighbours(ptype, pos, h)
       call c1(ptype, pos, mas, vel, sk, h, den, om, dfdx)
       call periodic1indims(den, dim)
       call periodic1indims(h, dim)
@@ -92,6 +94,7 @@ contains
       ! end if
     case(5)
       ! 'diff-laplace'
+      call findneighbours(ptype, pos, h)
       select case(dtp)
       case(1)
         call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
@@ -104,6 +107,7 @@ contains
       end select
     case(6)
       ! 'diff-graddiv'
+      call findneighbours(ptype, pos, h)
       select case(dtp)
       case(1)
         call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
@@ -115,6 +119,7 @@ contains
         print *, 'Diff type is not set in iterator'
         stop
       end select
+    case(7,8)
     case default
       print *, 'Task type was not defined in iterator'
       stop

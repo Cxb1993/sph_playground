@@ -151,8 +151,13 @@ contains
     real, intent(inout)                 :: dt
     integer, allocatable, intent(inout) :: list(:)
     integer, intent(in)                 :: idx
+    integer                             :: sn
     call cpu_time(start)
 
+    sn = size(pos, dim=2)
+    if ( .not.allocated(neighbours) ) then
+      allocate(neighbours(sn))
+    end if
     if (allocated(neighbours(idx)%list)) then
       ! print*, 'Try to used old list', idx
       if ( allocated(list) ) then

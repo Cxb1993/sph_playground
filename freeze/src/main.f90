@@ -1,17 +1,17 @@
 program main
   use BC
-  use IC,        only: setupIC
-  use kernel,    only: get_tasktype
-  use iterator,  only: iterate
-  use printer
-  use errcalc,   only: err_init,&
-                       err_diff_laplace,&
-                       err_diff_graddiv,&
-                       err_sinxet
-  use args,      only: fillargs
-  use errteylor, only: etlaplace => laplace,&
-                       etgraddiv => graddiv
-  use circuit1,  only: c1_init
+  use IC,         only: setupIC
+  use kernel,     only: get_tasktype
+  use iterator,   only: iterate
+  use printer,    only: Output, AppendLine
+  use errcalc,    only: err_init,&
+                        err_diff_laplace,&
+                        err_diff_graddiv,&
+                        err_sinxet
+  use args,       only: fillargs
+  use errteylor,  only: etlaplace => laplace,&
+                        etgraddiv => graddiv
+  use circuit1,   only: c1_init
 
   implicit none
 
@@ -24,21 +24,20 @@ program main
 
   real                                :: dt, t, dtout, ltout, tfinish, npic,&
                                          pspc1, pspc2, gamma,&
-                                         sk, chi(81)
-  real                :: cv = 1.
+                                         sk, chi(81), cv = 1.
+
   character (len=40)  :: itype, errfname, ktype, dtype
-  integer             :: n, dim, iter, tt, nused, printlen!, i
+  integer             :: n, dim, iter, tt, nused, printlen, silent!, i
 
   print *, '##############################################'
   print *, '#####'
   call fillargs(dim, pspc1, pspc2,&
-                itype, ktype, dtype, errfname, dtout, npic, tfinish, sk)
+                itype, ktype, dtype, errfname, dtout, npic, tfinish, sk, silent)
 
   call setupIC(n, sk, gamma, cv, pspc1, pspc2, pos, vel, acc, &
                 mas, den, h, prs, iu, du, cf, kcf, dcf, ptype)
 
   call set_stepping(10**dim)
-  call set_stepping(2)
   print *, '#####'
   print *, '##############################################'
 
@@ -91,10 +90,10 @@ program main
     case(4)
       ! 'photoevaporation' 'pheva'
       dt = .3e-3 * minval(h)**2 / maxval(c)**2 / maxval(kcf) / maxval(cf)
-    case (5,6)
+    case (5,6,7,8)
       ! 'diff-laplass'      ! 'diff-graddiv'
-      dt = 0.
       tfinish = -1.
+      dt = 0.
     case default
       print *, 'Task type time increment was not defined'
       stop
@@ -102,7 +101,9 @@ program main
     ! print *, 0, 0
     if (t >= ltout) then
       print *, iter, t, dt
-      call print_output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, err)
+      if ( silent == 0) then
+        call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, err)
+      end if
       ltout = ltout + dtout
     end if
 
@@ -135,90 +136,84 @@ program main
     h(:)     = h(:)     + 0.5 * dt * (dh(:) - tdh(:))
 
     select case(tt)
-    case(1, 4, 5, 6)
+    case( 1, 4, 5, 6)
       ! 'hydroshock' ! 'diff-graddiv'
       cf(:) = cf(:)     + 0.5 * dt * (dcf(:) - tcf(:))
-    case(2, 3)
+    case( 2, 3)
       ! 'infslb', 'hc-sinx'
       cf(:) = iu(:) / cv
+    case( 7, 8)
     case default
-      print *, 'Task type was not sen in couples field integration'
+      print *, 'Task type was not sen in coupled field integration'
       stop
     end select
 
     t = t + dt
     iter = iter + 1
+    print*,1
   end do
-  ! print *, 999
   ! print*, 11111
-  if (t <= .0) then
-    select case(tt) ! l2 error calc evaluatopn
-    case(1, 2, 7)
-      ! 'hydroshock' ! chi-laplace ! 'infslb'
-    case(3)
-      ! 'hc-sinx'
-      call err_sinxet(ptype, cf, t, err, nused)
-    case(5)
-      ! 'diff-laplace'
-      call err_diff_laplace(ptype, pos, acc, err, nused)
-    case(6)
-      ! 'diff-graddiv'
-      call err_diff_graddiv(ptype, pos, acc, err, nused)
-    case default
-      print *, 'Task type was not sen in error evaluation main.f90'
-      stop
-    end select
-    result(3) = merge(sqrt(sum(err)/nused), 0., nused>0)
-    !----------------------------------------!
-    !          teylor error evaluation       !
-    !----------------------------------------!
-    select case(tt)
-    case(5)
-      ! 'diff-laplace'
-      call etlaplace(pos, mas, den, h, chi)
-      result(4) = merge(sum(chi(1:9))/dim, 0., nused>0)
-      result(6:14) = chi(1:9)
-      printlen = 14
-    case(6)
-      ! 'diff-graddiv'
-      call etgraddiv(pos, mas, den, h, chi)
-      if ( dim == 1) then
-        result(4) = sum(chi)
-      elseif ( dim == 2 ) then
-        result(4) = merge(sum(chi)/dim/3., 0., nused>0)
-      elseif ( dim == 3 ) then
-        result(4) = merge(sum(chi)/dim/5., 0., nused>0)
-      end if
-      result(6:86) = chi(1:81)
-      printlen = 86
-    case(7)
-      ! 'hydroshock' ! chi-laplace ! 'infslb'
-      call etlaplace(pos, mas, den, h, chi)
-      result(4) = merge(sum(chi)/dim, 0., nused>0)
-      result(6:14) = chi(1:9)
-      printlen = 14
-    case(1, 2, 3)
-      ! 'hc-sinx' ! 'diff-graddiv'
-    case default
-      print *, 'Task type was not sen in error evaluation main.f90'
-      stop
-    end select
-    if (nused /= 0) then
-      sqerr(:) = sqrt(err(:))
-      call print_output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, sqerr)
+  !----------------------------------------!
+  !         l2 error calc evaluatopn       !
+  !----------------------------------------!
+  select case(tt)
+  case(1, 2, 7, 8)
+    ! 'hydroshock' ! chi-laplace ! 'infslb'
+  case(3)
+    ! 'hc-sinx'
+    call err_sinxet(ptype, cf, t, err, nused)
+  case(5)
+    ! 'diff-laplace'
+    call err_diff_laplace(ptype, pos, acc, err, nused)
+  case(6)
+    ! 'diff-graddiv'
+    call err_diff_graddiv(ptype, pos, acc, err, nused)
+  case default
+    print *, 'Task type was not sen in l2 error evaluation main.f90'
+    stop
+  end select
+  result(3) = merge(sqrt(sum(err)/nused), 0., nused>0)
+  !----------------------------------------!
+  !          teylor error evaluation       !
+  !----------------------------------------!
+  select case(tt)
+  case(5, 7)
+    ! 'diff-laplace'
+    call etlaplace(pos, mas, den, h, chi)
+    result(4) = merge(sum(chi(1:9))/dim, 0., nused>0)
+    result(6:14) = chi(1:9)
+    printlen = 14
+  case(6, 8)
+    ! 'diff-graddiv'
+    call etgraddiv(pos, mas, den, h, chi)
+    if ( dim == 1) then
+      result(4) = sum(chi)
+    elseif ( dim == 2 ) then
+      result(4) = merge(sum(chi)/dim/3., 0., nused>0)
+    elseif ( dim == 3 ) then
+      result(4) = merge(sum(chi)/dim/5., 0., nused>0)
     end if
-    result(5) = sk
-    call print_appendline(printlen, result, errfname)
-  else
-    result(9) = sqrt(sum(err)/nused)
-    result(10) = 0.
-    result(11) = t
-    call print_appendline(11, result, errfname)
+    result(6:86) = chi(1:81)
+    printlen = 86
+  case(1, 2, 3)
+    ! 'hc-sinx' ! 'diff-graddiv'
+  case default
+    print *, 'Task type was not sen in taylor error evaluation main.f90'
+    stop
+  end select
+  if (nused /= 0) then
+    sqerr(:) = sqrt(err(:))
+    if (silent == 0) then
+      call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, sqerr)
+    end if
   end if
+  result(5) = sk
+  call AppendLine(printlen, result, errfname)
+
   call getTime()
-  print *, '##### Results:'
-  write(*, "(A, F10.5)") " # #  l2-error: ", result(3)
-  write(*, "(A, F10.5)") " # # chi-error: ", result(4)
+  print *, '#####  Results:'
+  write(*, "(A, F10.5)") " # #   l2-error: ", result(3)
+  write(*, "(A, F10.5)") " # #  chi-error: ", result(4)
   ! write(*, "(A, F10.5)") " # #     neibs: ", elapsed
   print *, '##############################################'
 end program main
@@ -242,20 +237,26 @@ subroutine set_stepping(i)
 end subroutine set_stepping
 
 subroutine getTime()
-  use circuit1,        only: c1time => getTime
-  use circuit2,        only: c2time => getTime
-  use neighboursearch, only: nbtime => getTime
+  use circuit1,         only: c1time => getTime
+  use circuit2,         only: c2time => getTime
+  use neighboursearch,  only: nbtime => getTime
+  use errteylor,        only: ettime => getTime
+  use printer,          only: pttime => getTime
 
   real :: elapsed
 
   print *, '##############################################'
   print *, '#####    Time:'
   call c1time(elapsed)
-  write(*, "(A, F10.5)") " # #        c1: ", elapsed
+  write(*, "(A, F10.5)") " # #         c1: ", elapsed
   call c2time(elapsed)
-  write(*, "(A, F10.5)") " # #        c2: ", elapsed
+  write(*, "(A, F10.5)") " # #         c2: ", elapsed
   call nbtime(elapsed)
-  write(*, "(A, F10.5)") " # #     neibs: ", elapsed
+  write(*, "(A, F10.5)") " # #      neibs: ", elapsed
+  call ettime(elapsed)
+  write(*, "(A, F10.5)") " # # teylor err: ", elapsed
+  call pttime(elapsed)
+  write(*, "(A, F10.5)") " # #    printer: ", elapsed
   print *, '##############################################'
 
 end subroutine getTime

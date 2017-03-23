@@ -1,8 +1,8 @@
 module kernel
   use const
   use cubic
-  use n2movedgaus
-  ! use n2ext
+  ! use n2movedgaus
+  use n2ext
   ! use quintic
   ! use gaus
   ! use sinc
@@ -49,6 +49,8 @@ module kernel
        ttype = 6
      case('chi-laplace')
        ttype = 7
+     case('chi-graddiv')
+       ttype = 8
      case default
        print *, 'Task type not set: ', itt
        stop
@@ -158,74 +160,74 @@ module kernel
     n2w = knorm(dim)*(ddf + (dim - 1) * df)/h**(dim+2)
   end subroutine get_on2w
 
-  subroutine get_n2w(r, h, n2w)
-    real, intent(in)  :: r(3), h
-    real, intent(out) :: n2w
-
-    if (ktype == 1) then
-      call get_on2w(sqrt(dot_product(r,r)), h, n2w)
-    else if (ktype == 2) then
-      call get_Fab(r, h, n2w)
-    end if
-  end subroutine get_n2w
-
-  subroutine get_hessian(r, h, Hes)
-    real, intent(in)  :: r(3), h
-    real, intent(out) :: Hes(3,3)
-    real              :: r2, dr, df, ddf, fab
-
-    if (ktype == 1) then
-      r2 = dot_product(r,r)
-      dr = sqrt(r2)
-
-      call kddf(dr, h, ddf)
-      call kdf(dr, h, df)
-      Hes(1,1) = knorm(dim)*(ddf*r(1)*r(1)/r2 + df*(1 - r(1)*r(1)/r2))/h**(dim+2)    ! d2/dx2   ! Wxx
-      Hes(1,2) = knorm(dim)*(ddf*r(2)*r(1)/r2 - df*r(2)*r(1)/r2)/h**(dim+2)          ! d2/dydx  ! Wxy
-      Hes(1,3) = knorm(dim)*(ddf*r(3)*r(1)/r2 - df*r(3)*r(1)/r2)/h**(dim+2)          ! d2/dzdx  ! Wxz
-
-      Hes(2,1) = knorm(dim)*(ddf*r(1)*r(2)/r2 - df*r(1)*r(2)/r2)/h**(dim+2)          ! d2/dxdy  ! Wyx
-      Hes(2,2) = knorm(dim)*(ddf*r(2)*r(2)/r2 + df*(1 - r(2)*r(2)/r2))/h**(dim+2)    ! d2/dy2   ! Wyy
-      Hes(2,3) = knorm(dim)*(ddf*r(3)*r(2)/r2 - df*r(3)*r(2)/r2)/h**(dim+2)          ! d2/dxdz  ! Wyz
-
-      Hes(3,1) = knorm(dim)*(ddf*r(1)*r(3)/r2 - df*r(1)*r(3)/r2)/h**(dim+2)          ! d2/dxdz  ! Wzx
-      Hes(3,2) = knorm(dim)*(ddf*r(2)*r(3)/r2 - df*r(2)*r(3)/r2)/h**(dim+2)          ! d2/dydz  ! Wzy
-      Hes(3,3) = knorm(dim)*(ddf*r(3)*r(3)/r2 + df*(1 - r(3)*r(3)/r2))/h**(dim+2)    ! d2/dz2   ! Wzz
-      if ( dim == 1 ) then
-        Hes(1,2:3) = 0.
-        Hes(2,:) = 0.
-        Hes(3,:) = 0.
-      elseif ( dim == 2 ) then
-        Hes(3,:) = 0.
-        Hes(:,3) = 0.
-      end if
-    elseif ( ktype == 2 ) then
-      r2 = dot_product(r,r)
-      dr = sqrt(r2)
-
-      call get_Fab(r, h, fab)
-      Hes(1,1) = ((dim+2)*r(1)*r(1)/r2-1)*0.5*fab
-      Hes(1,2) = (dim+2)*r(1)*r(2)/r2*0.5*fab
-      Hes(1,3) = (dim+2)*r(1)*r(3)/r2*0.5*fab
-
-      Hes(2,1) = (dim+2)*r(2)*r(1)/r2*0.5*fab
-      Hes(2,2) = ((dim+2)*r(2)*r(2)/r2-1)*0.5*fab
-      Hes(2,3) = (dim+2)*r(2)*r(3)/r2*0.5*fab
-
-      Hes(3,1) = (dim+2)*r(3)*r(1)/r2*0.5*fab
-      Hes(3,2) = (dim+2)*r(3)*r(2)/r2*0.5*fab
-      Hes(3,3) = ((dim+2)*r(3)*r(3)/r2-1)*0.5*fab
-      ! H = 2./3. * H
-      if ( dim == 1 ) then
-        Hes(1,2:3) = 0.
-        Hes(2,:) = 0.
-        Hes(3,:) = 0.
-      elseif ( dim == 2 ) then
-        Hes(3,:) = 0.
-        Hes(:,3) = 0.
-      end if
-    end if
-  end subroutine get_hessian
+  ! subroutine get_n2w(r, h, n2w)
+  !   real, intent(in)  :: r(3), h
+  !   real, intent(out) :: n2w
+  !
+  !   if (ktype == 1) then
+  !     call get_on2w(sqrt(dot_product(r,r)), h, n2w)
+  !   else if (ktype == 2) then
+  !     call get_Fab(r, h, n2w)
+  !   end if
+  ! end subroutine get_n2w
+  !
+  ! subroutine get_hessian(r, h, Hes)
+  !   real, intent(in)  :: r(3), h
+  !   real, intent(out) :: Hes(3,3)
+  !   real              :: r2, dr, df, ddf, fab
+  !
+  !   if (ktype == 1) then
+  !     r2 = dot_product(r,r)
+  !     dr = sqrt(r2)
+  !
+  !     call kddf(dr, h, ddf)
+  !     call kdf(dr, h, df)
+  !     Hes(1,1) = knorm(dim)*(ddf*r(1)*r(1)/r2 + df*(1 - r(1)*r(1)/r2))/h**(dim+2)    ! d2/dx2   ! Wxx
+  !     Hes(1,2) = knorm(dim)*(ddf*r(2)*r(1)/r2 - df*r(2)*r(1)/r2)/h**(dim+2)          ! d2/dydx  ! Wxy
+  !     Hes(1,3) = knorm(dim)*(ddf*r(3)*r(1)/r2 - df*r(3)*r(1)/r2)/h**(dim+2)          ! d2/dzdx  ! Wxz
+  !
+  !     Hes(2,1) = knorm(dim)*(ddf*r(1)*r(2)/r2 - df*r(1)*r(2)/r2)/h**(dim+2)          ! d2/dxdy  ! Wyx
+  !     Hes(2,2) = knorm(dim)*(ddf*r(2)*r(2)/r2 + df*(1 - r(2)*r(2)/r2))/h**(dim+2)    ! d2/dy2   ! Wyy
+  !     Hes(2,3) = knorm(dim)*(ddf*r(3)*r(2)/r2 - df*r(3)*r(2)/r2)/h**(dim+2)          ! d2/dxdz  ! Wyz
+  !
+  !     Hes(3,1) = knorm(dim)*(ddf*r(1)*r(3)/r2 - df*r(1)*r(3)/r2)/h**(dim+2)          ! d2/dxdz  ! Wzx
+  !     Hes(3,2) = knorm(dim)*(ddf*r(2)*r(3)/r2 - df*r(2)*r(3)/r2)/h**(dim+2)          ! d2/dydz  ! Wzy
+  !     Hes(3,3) = knorm(dim)*(ddf*r(3)*r(3)/r2 + df*(1 - r(3)*r(3)/r2))/h**(dim+2)    ! d2/dz2   ! Wzz
+  !     if ( dim == 1 ) then
+  !       Hes(1,2:3) = 0.
+  !       Hes(2,:) = 0.
+  !       Hes(3,:) = 0.
+  !     elseif ( dim == 2 ) then
+  !       Hes(3,:) = 0.
+  !       Hes(:,3) = 0.
+  !     end if
+  !   elseif ( ktype == 2 ) then
+  !     r2 = dot_product(r,r)
+  !     dr = sqrt(r2)
+  !
+  !     call get_Fab(r, h, fab)
+  !     Hes(1,1) = ((dim+2)*r(1)*r(1)/r2-1)*0.5*fab
+  !     Hes(1,2) = (dim+2)*r(1)*r(2)/r2*0.5*fab
+  !     Hes(1,3) = (dim+2)*r(1)*r(3)/r2*0.5*fab
+  !
+  !     Hes(2,1) = (dim+2)*r(2)*r(1)/r2*0.5*fab
+  !     Hes(2,2) = ((dim+2)*r(2)*r(2)/r2-1)*0.5*fab
+  !     Hes(2,3) = (dim+2)*r(2)*r(3)/r2*0.5*fab
+  !
+  !     Hes(3,1) = (dim+2)*r(3)*r(1)/r2*0.5*fab
+  !     Hes(3,2) = (dim+2)*r(3)*r(2)/r2*0.5*fab
+  !     Hes(3,3) = ((dim+2)*r(3)*r(3)/r2-1)*0.5*fab
+  !     ! H = 2./3. * H
+  !     if ( dim == 1 ) then
+  !       Hes(1,2:3) = 0.
+  !       Hes(2,:) = 0.
+  !       Hes(3,:) = 0.
+  !     elseif ( dim == 2 ) then
+  !       Hes(3,:) = 0.
+  !       Hes(:,3) = 0.
+  !     end if
+  !   end if
+  ! end subroutine get_hessian
 
 ! ---------!
 ! Y kernel !--------------------------------------------------------------------
@@ -282,72 +284,72 @@ module kernel
     FabY(:) = -2. * r(:) * nY(:)/dot_product(r,r)
   end subroutine get_FabiY
 
-  ! subroutine get_n2w(r, h, n2Y)
-  !   real, intent(in)  :: r(3), h
-  !   real, intent(out) :: n2Y
-  !
-  !   if (ktype == 1) then
-  !     call get_on2Y(sqrt(dot_product(r,r)), h, n2Y)
-  !   else if (ktype == 2) then
-  !     call get_FabY(r, h, n2Y)
-  !   end if
-  ! end subroutine get_n2w
-  !
-  ! subroutine get_hessian(r, h, Hes)
-  !   real, intent(in)  :: r(3), h
-  !   real, intent(out) :: Hes(3,3)
-  !   real              :: r2, dr, df, ddf, fab
-  !
-  !   if (ktype == 1) then
-  !     r2 = dot_product(r,r)
-  !     dr = sqrt(r2)
-  !
-  !     call n2ddf(dr, h, ddf)
-  !     call n2df(dr, h, df)
-  !     Hes(1,1) = knorm(dim)*(ddf*r(1)*r(1)/r2 + df*(1 - r(1)*r(1)/r2))/h**(dim+2)    ! d2/dx2   ! Wxx
-  !     Hes(1,2) = knorm(dim)*(ddf*r(2)*r(1)/r2 - df*r(2)*r(1)/r2)/h**(dim+2)          ! d2/dydx  ! Wxy
-  !     Hes(1,3) = knorm(dim)*(ddf*r(3)*r(1)/r2 - df*r(3)*r(1)/r2)/h**(dim+2)          ! d2/dzdx  ! Wxz
-  !
-  !     Hes(2,1) = knorm(dim)*(ddf*r(1)*r(2)/r2 - df*r(1)*r(2)/r2)/h**(dim+2)          ! d2/dxdy  ! Wyx
-  !     Hes(2,2) = knorm(dim)*(ddf*r(2)*r(2)/r2 + df*(1 - r(2)*r(2)/r2))/h**(dim+2)    ! d2/dy2   ! Wyy
-  !     Hes(2,3) = knorm(dim)*(ddf*r(3)*r(2)/r2 - df*r(3)*r(2)/r2)/h**(dim+2)          ! d2/dxdz  ! Wyz
-  !
-  !     Hes(3,1) = knorm(dim)*(ddf*r(1)*r(3)/r2 - df*r(1)*r(3)/r2)/h**(dim+2)          ! d2/dxdz  ! Wzx
-  !     Hes(3,2) = knorm(dim)*(ddf*r(2)*r(3)/r2 - df*r(2)*r(3)/r2)/h**(dim+2)          ! d2/dydz  ! Wzy
-  !     Hes(3,3) = knorm(dim)*(ddf*r(3)*r(3)/r2 + df*(1 - r(3)*r(3)/r2))/h**(dim+2)    ! d2/dz2   ! Wzz
-  !     if ( dim == 1 ) then
-  !       Hes(1,2:3) = 0.
-  !       Hes(2,:) = 0.
-  !       Hes(3,:) = 0.
-  !     elseif ( dim == 2 ) then
-  !       Hes(3,:) = 0.
-  !       Hes(:,3) = 0.
-  !     end if
-  !   elseif ( ktype == 2 ) then
-  !     r2 = dot_product(r,r)
-  !     dr = sqrt(r2)
-  !
-  !     call get_FabY(r, h, fab)
-  !     Hes(1,1) = ((dim+2)*r(1)*r(1)/r2-1)*0.5*fab
-  !     Hes(1,2) = (dim+2)*r(1)*r(2)/r2*0.5*fab
-  !     Hes(1,3) = (dim+2)*r(1)*r(3)/r2*0.5*fab
-  !
-  !     Hes(2,1) = (dim+2)*r(2)*r(1)/r2*0.5*fab
-  !     Hes(2,2) = ((dim+2)*r(2)*r(2)/r2-1)*0.5*fab
-  !     Hes(2,3) = (dim+2)*r(2)*r(3)/r2*0.5*fab
-  !
-  !     Hes(3,1) = (dim+2)*r(3)*r(1)/r2*0.5*fab
-  !     Hes(3,2) = (dim+2)*r(3)*r(2)/r2*0.5*fab
-  !     Hes(3,3) = ((dim+2)*r(3)*r(3)/r2-1)*0.5*fab
-  !     ! H = 2./3. * H
-  !     if ( dim == 1 ) then
-  !       Hes(1,2:3) = 0.
-  !       Hes(2,:) = 0.
-  !       Hes(3,:) = 0.
-  !     elseif ( dim == 2 ) then
-  !       Hes(3,:) = 0.
-  !       Hes(:,3) = 0.
-  !     end if
-  !   end if
-  ! end subroutine get_hessian
+  subroutine get_n2w(r, h, n2Y)
+    real, intent(in)  :: r(3), h
+    real, intent(out) :: n2Y
+
+    if (ktype == 1) then
+      call get_on2Y(sqrt(dot_product(r,r)), h, n2Y)
+    else if (ktype == 2) then
+      call get_FabY(r, h, n2Y)
+    end if
+  end subroutine get_n2w
+
+  subroutine get_hessian(r, h, Hes)
+    real, intent(in)  :: r(3), h
+    real, intent(out) :: Hes(3,3)
+    real              :: r2, dr, df, ddf, fab
+
+    if (ktype == 1) then
+      r2 = dot_product(r,r)
+      dr = sqrt(r2)
+
+      call n2ddf(dr, h, ddf)
+      call n2df(dr, h, df)
+      Hes(1,1) = knorm(dim)*(ddf*r(1)*r(1)/r2 + df*(1 - r(1)*r(1)/r2))/h**(dim+2)    ! d2/dx2   ! Wxx
+      Hes(1,2) = knorm(dim)*(ddf*r(2)*r(1)/r2 - df*r(2)*r(1)/r2)/h**(dim+2)          ! d2/dydx  ! Wxy
+      Hes(1,3) = knorm(dim)*(ddf*r(3)*r(1)/r2 - df*r(3)*r(1)/r2)/h**(dim+2)          ! d2/dzdx  ! Wxz
+
+      Hes(2,1) = knorm(dim)*(ddf*r(1)*r(2)/r2 - df*r(1)*r(2)/r2)/h**(dim+2)          ! d2/dxdy  ! Wyx
+      Hes(2,2) = knorm(dim)*(ddf*r(2)*r(2)/r2 + df*(1 - r(2)*r(2)/r2))/h**(dim+2)    ! d2/dy2   ! Wyy
+      Hes(2,3) = knorm(dim)*(ddf*r(3)*r(2)/r2 - df*r(3)*r(2)/r2)/h**(dim+2)          ! d2/dxdz  ! Wyz
+
+      Hes(3,1) = knorm(dim)*(ddf*r(1)*r(3)/r2 - df*r(1)*r(3)/r2)/h**(dim+2)          ! d2/dxdz  ! Wzx
+      Hes(3,2) = knorm(dim)*(ddf*r(2)*r(3)/r2 - df*r(2)*r(3)/r2)/h**(dim+2)          ! d2/dydz  ! Wzy
+      Hes(3,3) = knorm(dim)*(ddf*r(3)*r(3)/r2 + df*(1 - r(3)*r(3)/r2))/h**(dim+2)    ! d2/dz2   ! Wzz
+      if ( dim == 1 ) then
+        Hes(1,2:3) = 0.
+        Hes(2,:) = 0.
+        Hes(3,:) = 0.
+      elseif ( dim == 2 ) then
+        Hes(3,:) = 0.
+        Hes(:,3) = 0.
+      end if
+    elseif ( ktype == 2 ) then
+      r2 = dot_product(r,r)
+      dr = sqrt(r2)
+
+      call get_FabY(r, h, fab)
+      Hes(1,1) = ((dim+2)*r(1)*r(1)/r2-1)*0.5*fab
+      Hes(1,2) = (dim+2)*r(1)*r(2)/r2*0.5*fab
+      Hes(1,3) = (dim+2)*r(1)*r(3)/r2*0.5*fab
+
+      Hes(2,1) = (dim+2)*r(2)*r(1)/r2*0.5*fab
+      Hes(2,2) = ((dim+2)*r(2)*r(2)/r2-1)*0.5*fab
+      Hes(2,3) = (dim+2)*r(2)*r(3)/r2*0.5*fab
+
+      Hes(3,1) = (dim+2)*r(3)*r(1)/r2*0.5*fab
+      Hes(3,2) = (dim+2)*r(3)*r(2)/r2*0.5*fab
+      Hes(3,3) = ((dim+2)*r(3)*r(3)/r2-1)*0.5*fab
+      ! H = 2./3. * H
+      if ( dim == 1 ) then
+        Hes(1,2:3) = 0.
+        Hes(2,:) = 0.
+        Hes(3,:) = 0.
+      elseif ( dim == 2 ) then
+        Hes(3,:) = 0.
+        Hes(:,3) = 0.
+      end if
+    end if
+  end subroutine get_hessian
 end module kernel

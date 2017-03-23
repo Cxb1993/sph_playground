@@ -10,9 +10,9 @@ module args
 
   contains
     ! ARGS Dim, TaskType, Spacing, ErrFileName, KernelType, tFinish, hfac
-    subroutine fillargs(dim, pspc1, pspc2, itype, ktype, dtype, errfname, dtout, npic, tfinish, sk)
+    subroutine fillargs(dim, pspc1, pspc2, itype, ktype, dtype, errfname, dtout, npic, tfinish, sk, silent)
       real, intent(inout)               :: pspc1, pspc2, dtout, npic, tfinish, sk
-      integer, intent(inout)            :: dim
+      integer, intent(inout)            :: dim, silent
       character (len=40), intent(inout) :: itype, ktype, errfname, dtype
 
       call get_command_argument(1, arg)
@@ -50,6 +50,15 @@ module args
       call get_command_argument(8, dtype)
       write(*, "(A, A)") " # #    difftype:   ", dtype
       call set_difftype(dtype)
+
+      call get_command_argument(9, arg(:))
+      if (arg(:) == "yes") then
+        silent = 1
+      else
+        silent = 0
+        arg(:) = "no"
+      end if
+      write(*, "(A, A)") " # #      silent:   ", arg
 
       pspc2 = pspc1
       write(*, "(A, F7.5, A, F7.5)") " # #      set dx:   x1=", pspc1, "   x2=", pspc2

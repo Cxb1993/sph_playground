@@ -2,8 +2,8 @@ FC=gfortran
 FFLAGS=-fdefault-real-8 -fdefault-double-8\
  				-Ofast\
 				-g -Wall -Wextra -Warray-temporaries -Wconversion -fimplicit-none -fbacktrace\
-				-ffree-line-length-0 -fcheck=all -ffpe-trap=zero,overflow,underflow,invalid -finit-real=nan#\
-				# -fopenmp
+				-ffree-line-length-0 -fcheck=all -ffpe-trap=zero,overflow,underflow,invalid -finit-real=nan\
+				-fopenmp
 
 SRC=\
 	const.f90\
@@ -76,9 +76,6 @@ infslb:
 hc-sinx:
 	make && time ./execute $(dim) hc-sinx 0.1 runresult.info $(kt) .5 $(dtype)
 
-chi-laplace:
-	make && time ./execute $(dim) chi-laplace 0.002 runresult.info $(kt) -1 $(hf) $(dtype)
-
 pheva:
 	make && time ./execute $(dim) pheva 0.002 runresult.info $(kt) -1.5 $(hf) $(dtype)
 
@@ -87,6 +84,12 @@ diff-laplace:
 
 diff-graddiv:
 	make && time ./execute $(dim) diff-graddiv .04 runresult.info $(kt) 100 $(hf) $(dtype)
+
+chi-laplace:
+	make && time ./execute $(dim) chi-laplace 0.002 runresult.info $(kt) -1 $(hf) $(dtype)
+
+chi-graddiv:
+	make && time ./execute $(dim) chi-graddiv 0.002 runresult.info $(kt) -1 $(hf) $(dtype)
 
 .PHONY: execute
 
