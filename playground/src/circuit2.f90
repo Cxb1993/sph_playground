@@ -1,5 +1,6 @@
 module circuit2
   use omp_lib
+  use timing,          only: addTime
   use kernel
   use BC
   use neighboursearch, only: getneighbours,&
@@ -8,22 +9,17 @@ module circuit2
 
   implicit none
 
-  public :: c2, setStepsize, getTime
+  public :: c2, setStepsize
 
   private
     integer, save :: stepsize = 1
-    real :: start=0., finish=0., elapsed=0.
+    integer(8) :: start=0, finish=0
 
 contains
   subroutine setStepsize(i)
     integer, intent(in) :: i
     stepsize = i
   end subroutine setStepsize
-
-  subroutine getTime(ot)
-    real, intent(out) :: ot
-    ot = elapsed
-  end subroutine getTime
 
   subroutine c2(c, ptype, pos, v, dv, mas, den, h, om, P, u, du, dh, cf, dcf, kcf, dfdx)
     real, allocatable, intent(in)    :: pos(:,:), v(:,:), mas(:), h(:), den(:), P(:), c(:),&
@@ -32,11 +28,13 @@ contains
     real, allocatable, intent(inout) :: dv(:,:), du(:), dh(:), dcf(:), dfdx(:,:,:)
     real                 :: dr, rhoa, rhob, qa, qb, qc, n2wa, n2wb, kr, r2, &
                             nwa(3), nwb(3), rab(3), vab(3), vba(3), urab(3), Pa(3), Pb(3), &
-                            projv, df, ddf, Hes(3,3), t0, tneib, oddi ,oddj
+                            projv, df, ddf, Hes(3,3), oddi ,oddj
     integer, allocatable :: nlista(:), nlistb(:)
     integer              :: i, j, la, lb, n, dim, ttp, ktp, dtp
+    integer(8)           :: t0, tneib
 
-    call cpu_time(start)
+
+    call system_clock(start)
     n = size(ptype)
     tneib = 0.
 
@@ -226,8 +224,8 @@ contains
       ! print*, i, den(i)
     end do
     !$omp end parallel do
-    call cpu_time(finish)
-    elapsed = elapsed + (finish - start) - tneib
+    call system_clock(finish)
+    call addTime(' circuit2', finish - start - tneib)
   end subroutine c2
 
   subroutine art_termcond(pa, pb, da, db, vsigu)
@@ -260,9 +258,11 @@ contains
     integer, intent(in)            :: dim
 
     integer, allocatable :: nlista(:), nlistb(:)
-    integer :: n, i, j, la, lb, ni, nj, li
-    real    :: vba(3), nw(3), rab(3), t0, tneib
-    call cpu_time(start)
+    integer              :: n, i, j, la, lb, ni, nj, li
+    integer(8)           :: t0, tneib
+
+    real    :: vba(3), nw(3), rab(3)
+    call system_clock(start)
 
     n = size(m)
     if ( .not.allocated(nv) ) then
@@ -293,7 +293,7 @@ contains
       end do
     end do
     !$omp end parallel do
-    call cpu_time(finish)
-    elapsed = elapsed + (finish - start) - tneib
+    call system_clock(finish)
+    call addTime(' circuit2', -tneib)
   end subroutine gradf
 end module circuit2

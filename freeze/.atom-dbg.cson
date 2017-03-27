@@ -1,0 +1,5 @@
+execute:
+	debugger: "GDB debugger"
+	path: "execute"
+	args: ["2 chi-graddiv 0.002 runresult.info n2w -1 1. diff"]
+	cwd: "/Users/sergeibiriukov/_git/moca_study/fortran/playground/"

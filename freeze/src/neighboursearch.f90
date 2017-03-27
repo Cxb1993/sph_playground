@@ -1,14 +1,15 @@
 module neighboursearch
+  use timing, only: addTime
   use kernel, only: get_krad,&
                     get_dim,&
                     get_kerntype
-  use utils,  only: resize
+  use utils,  only: iresize
   use omp_lib
 
   implicit none
 
-public findneighbours, getneighbours, setStepsize, isInitialized, getTime,&
-       getNeibListL1, getNeibListL2
+public findneighbours, getneighbours, setStepsize, isInitialized,&
+       getNeibListL1, getNeibListL2, getNeibNumbers
 
 private
 save
@@ -20,7 +21,7 @@ save
 
   integer :: stepsize = 1
   integer :: initialized = 0
-  real :: start=0., finish=0., elapsed=0.
+  integer(8) :: start=0, finish=0
 contains
 
   subroutine setStepsize(i)
@@ -32,11 +33,6 @@ contains
     integer, intent(out) :: o
     o = initialized
   end subroutine isInitialized
-
-  subroutine getTime(ot)
-    real, intent(out) :: ot
-    ot = elapsed
-  end subroutine getTime
 
   subroutine getNeibListL1(ol)
     integer, allocatable, intent(inout) :: ol(:)
@@ -54,6 +50,19 @@ contains
     ol(:) = alllistlv2(:)
   end subroutine getNeibListL2
 
+  subroutine getNeibNumbers(ol1, ol2)
+    integer, intent(out) :: ol1, ol2
+
+    ol1 = 0
+    ol2 = 0
+    if (allocated(alllistlv1)) then
+      ol1 = size(alllistlv1)
+    end if
+    if (allocated(alllistlv2)) then
+      ol2 = size(alllistlv2)
+    end if
+  end subroutine getNeibNumbers
+
   ! simple list
   subroutine findneighbours(ptype, pos, h)
     real, allocatable, intent(in)    :: pos(:,:), h(:)
@@ -61,7 +70,7 @@ contains
     integer, allocatable             :: tmp(:)
     integer                          :: sn, i, j, tsz, tix, dim, kt, al1, al2
     real                             :: r2, r(3), kr
-    call cpu_time(start)
+    call system_clock(start)
 
     sn = size(pos, dim=2)
     call get_krad(kr)
@@ -92,14 +101,6 @@ contains
     do i=1,sn,stepsize
       ! if ((ptype(i) /= 0) .or. (kt == 3)) then
       if (ptype(i) /= 0) then
-        !$omp critical
-        alllistlv1(al1) = i
-        al1 = al1 + 1
-        if (.not.any(alllistlv2 == i)) then
-          alllistlv2(al2) = i
-          al2 = al2 + 1
-        end if
-        !$omp end critical
         if (dim == 1) then
           allocate(neighbours(i)%list(10))
         else if (dim == 2) then
@@ -116,7 +117,7 @@ contains
               tix = tix + 1
               tsz = size(neighbours(i)%list)
               if (tsz < tix) then
-                call resize(neighbours(i)%list, tsz, tsz * 2)
+                call iresize(neighbours(i)%list, tsz, tsz * 2)
               end if
               neighbours(i)%list(tix) = j
               !$omp critical
@@ -130,29 +131,35 @@ contains
         end do
         tsz = size(neighbours(i)%list)
         if (tsz /= tix) then
-          call resize(neighbours(i)%list, tix, tix)
+          call iresize(neighbours(i)%list, tix, tix)
         end if
-        ! print*, tix
-        ! read *
+        !$omp critical
+        alllistlv1(al1) = i
+        al1 = al1 + 1
+        if (.not.any(alllistlv2 == i)) then
+          alllistlv2(al2) = i
+          al2 = al2 + 1
+        end if
+        !$omp end critical
       end if
     end do
     !$omp end parallel do
     al1 = al1 - 1
     al2 = al2 - 1
-    call resize(alllistlv1, al1, al1)
-    call resize(alllistlv2, al2, al2)
+    call iresize(alllistlv1, al1, al1)
+    call iresize(alllistlv2, al2, al2)
     initialized = 1.
-    call cpu_time(finish)
-    elapsed = elapsed + (finish - start)
+    call system_clock(finish)
+    call addTime(' neibs', finish - start)
   end subroutine findneighbours
 
   subroutine getneighbours(idx, pos, h, list, dt)
     real, allocatable, intent(in)       :: pos(:,:), h(:)
-    real, intent(inout)                 :: dt
+    integer(8), intent(inout)           :: dt
     integer, allocatable, intent(inout) :: list(:)
     integer, intent(in)                 :: idx
     integer                             :: sn
-    call cpu_time(start)
+    call system_clock(start)
 
     sn = size(pos, dim=2)
     if ( .not.allocated(neighbours) ) then
@@ -172,18 +179,17 @@ contains
       ! print*, 'Added new list', idx
     end if
     ! read*
-    call cpu_time(finish)
+    call system_clock(finish)
     dt = finish - start
-    elapsed = elapsed + dt
+    call addTime(' neibs', dt)
   end subroutine getneighbours
 
   subroutine findneighboursonce(idx, pos, h, nlist)
     real, allocatable, intent(in)       :: pos(:,:), h(:)
     integer, allocatable, intent(inout) :: nlist(:)
     integer, intent(in)                 :: idx
-    integer                             :: sn, i, j, tsz, tix, dim
+    integer                             :: sn, j, tsz, tix, dim
     real                                :: r2, r(3), kr
-    call cpu_time(start)
 
     sn = size(pos, dim=2)
     call get_krad(kr)
@@ -209,7 +215,7 @@ contains
           tix = tix + 1
           tsz = size(nlist)
           if (tsz < tix) then
-            call resize(nlist, tsz, tsz * 2)
+            call iresize(nlist, tsz, tsz * 2)
           end if
           nlist(tix) = j
         end if
@@ -217,7 +223,7 @@ contains
     end do
     tsz = size(nlist)
     if (tsz /= tix) then
-      call resize(nlist, tix, tix)
+      call iresize(nlist, tix, tix)
     end if
 
     if (.not.allocated(neighbours)) then
@@ -227,7 +233,5 @@ contains
       allocate(neighbours(idx)%list(size(nlist)))
     end if
     neighbours(idx)%list(:) = nlist(:)
-    call cpu_time(finish)
-    elapsed = elapsed + (finish - start)
   end subroutine findneighboursonce
 end module neighboursearch

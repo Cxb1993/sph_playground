@@ -1,20 +1,18 @@
 module printer
+
+  use timing, only: addTime
+
   implicit none
 
-  public :: Output, AppendLine, getTime
+  public :: Output, AppendLine
 
   private
 
   integer, save :: ifile = 0
-  real :: start=0., finish=0., elapsed=0.
+  integer(8) :: start=0, finish=0
 
 
 contains
-  subroutine getTime(ot)
-    real, intent(out) :: ot
-    ot = elapsed
-  end subroutine getTime
-
   subroutine Output(time, ptype, x, v, dv, m, den, slen, pres, ien, cf, err)
     real, allocatable, intent(in)    :: x(:,:), v(:,:), dv(:,:), m(:), err(:), &
                                         den(:), slen(:), pres(:), ien(:), cf(:)
@@ -23,7 +21,7 @@ contains
     character (len=40)  :: fname
     integer :: iu, j, n
 
-    call cpu_time(start)
+    call system_clock(start)
 
     n = size(ptype)
     write(fname, "(a,i5.5)") 'output/step_', ifile
@@ -36,8 +34,8 @@ contains
     end do
     close(iu)
     ifile = ifile + 1
-    call cpu_time(finish)
-    elapsed = elapsed + (finish - start)
+    call system_clock(finish)
+    call addTime(' printer', finish - start)
   end subroutine Output
 
   subroutine AppendLine(n, A, fname)
@@ -46,12 +44,12 @@ contains
     character (len=*), intent(in) :: fname
     integer :: iu
 
-    call cpu_time(start)
+    call system_clock(start)
 
     open(newunit=iu, file=fname, status='old', form='formatted', access='append')
     write(iu, *) A
     close(iu)
-    call cpu_time(finish)
-    elapsed = elapsed + (finish - start)
+    call system_clock(finish)
+    call addTime(' printer', finish - start)
   end subroutine AppendLine
 end module printer

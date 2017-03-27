@@ -1,5 +1,6 @@
 module circuit1
   use omp_lib
+  use timing,          only: addTime
   use kernel
   use neighboursearch, only: getneighbours,&
                              getNeibListL1,&
@@ -7,13 +8,13 @@ module circuit1
 
   implicit none
 
-  public :: c1_init, c1, c1a, getTime, setStepsize
+  public :: c1_init, c1, c1a, setStepsize
 
   private
   save
     integer :: stepsize = 1
     real, allocatable :: slnint(:), resid(:)
-    real :: start=0., finish=0., elapsed=0.
+    integer(8) :: start=0, finish=0
 
 contains
   subroutine c1_init(n)
@@ -27,21 +28,17 @@ contains
     stepsize = i
   end subroutine setStepsize
 
-  subroutine getTime(ot)
-    real, intent(out) :: ot
-    ot = elapsed
-  end subroutine getTime
-
   subroutine c1(ptype, pos, mas, vel, sk, h, den, om, dfdx)
     real, allocatable, intent(in)    :: pos(:,:), mas(:), vel(:,:)
     real, allocatable, intent(inout) :: h(:), den(:), om(:), dfdx(:,:,:)
     integer, allocatable, intent(in) :: ptype(:)
     real, intent(in)     :: sk
     real                 :: w, dwdh, r(3), dr, r2, dfdh, fh, hn, vba(3), nw(3)
-    real                 :: allowerror, t0, tneib
+    real                 :: allowerror
     integer              :: n, ni, nj, i, j, la, lb, dim, iter, ktp
+    integer(8)           :: t0, tneib
     integer, allocatable :: nlista(:), nlistb(:)
-    call cpu_time(start)
+    call system_clock(start)
 
     n = size(ptype)
 
@@ -54,7 +51,7 @@ contains
       call getNeibListL1(nlista)
     end if
 
-    allowerror = 1e-15
+    allowerror = 1e-8
     slnint(:) = h(:)
     resid(:)  = 1.
     iter = 0
@@ -115,8 +112,8 @@ contains
     !   print*, i, den(i)
     ! end do
     h(:) = slnint(:)
-    call cpu_time(finish)
-    elapsed = elapsed + (finish - start) - tneib
+    call system_clock(finish)
+    call addTime(' circuit1', finish - start - tneib)
   end subroutine c1
 
 ! Direct density summation

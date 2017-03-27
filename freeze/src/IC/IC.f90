@@ -1,4 +1,5 @@
 module IC
+  use timing, only: addTime
   use utils
   use const
   use kernel, only: get_tasktype,&
@@ -6,7 +7,7 @@ module IC
                     get_krad,&
                     get_dim
   use BC
-  use initpositions,  only: place_uniform,&
+  use initpositions,  only: uniform,&
                             place_close_packed_fcc
   use semiuniform
 
@@ -15,6 +16,7 @@ module IC
   public :: setupIC
 
   private
+  integer(8) :: start=0, finish=0
 contains
 
   subroutine setupIC(n, sk, g, cv, pspc1, pspc2, &
@@ -29,6 +31,8 @@ contains
     real                 :: kr, prs1, prs2, rho1, rho2, kcf1, kcf2, cf1, cf2, sp, v0, &
                             brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, period
     integer              :: i, nb, tt, kt, dim, nptcs
+
+    call system_clock(start)
 
     call get_kerntype(kt)
     call get_tasktype(tt)
@@ -51,7 +55,7 @@ contains
     case (2)
       ! infslb
       nb = 1
-      call place_uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
+      call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
     case (3)
       ! hc-sinx ! chi-laplace
       brdx1 = -1.
@@ -73,11 +77,11 @@ contains
         brdz2 = 0.
       end if
       nb = int(kr * sk) + 1
-      call place_uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
+      call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
     case (4)
       ! pheva
       nb = int(kr * sk) + 1
-      call place_uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
+      call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
     case(5, 6, 7, 8)
       ! diff-laplace ! diff-graddiv
       period = pi
@@ -98,7 +102,7 @@ contains
         brdz2 = 0.
       end if
       nb = int(kr * sk) + 1
-      call place_uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
+      call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
       ! call place_close_packed_fcc(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, nb, x)
     case default
       print *, 'Task type was not defined in IC border stage'
@@ -159,7 +163,7 @@ contains
       kcf2 = 10.
       cf1 = 0.
       cf2 = 1.
-    case (3,7)
+    case (3)
       ! hc-sinx ! chi-laplace
       rho1 = 1.
       kcf1 = 1.
@@ -171,7 +175,7 @@ contains
       kcf1 = 1e-1
       v0   = 1e-4
       prs1 = 1.
-    case(5, 6)
+    case(5, 6, 7, 8)
       ! diff-laplace ! diff-graddiv
       rho1 = 1.
       period = 1.
@@ -212,8 +216,8 @@ contains
           mas(i) = (sp**dim) * rho2
         end if
         iu(i) = cf(i) / cv
-      case (3, 7)
-        ! hc-sinx ! chi-laplace
+      case (3)
+        ! hc-sinx
         mas(i) = (sp**dim) * rho1
         den(i) = rho1
         kcf(i) = kcf1
@@ -229,35 +233,30 @@ contains
         kcf(i) = kcf1
         prs(i) = prs1
         iu(i)  = prs1/(g-1)/(1-cf(i))/rho1
-      case (5)
+      case (5, 7)
         ! diff-laplace
         den(i) = rho1
         mas(i) = (sp**dim) * rho1
         v(:,i) = 0.
-        ! sin
-        ! v(1,i) = sin(period*x(1,i))
-        ! xsinxcospicewise
-        ! v(1,i) = merge(x(1,i)*sin(period*x(1,i)), x(1,i)*cos(period*x(1,i)), x(1,i) < 0)
-        ! sinsinsin
-        ! v(1,i) = sin(period*x(1,i))
-        ! v(2,i) = sin(period*x(2,i))
-        ! v(3,i) = sin(period*x(3,i))
         if (dim == 1) then
-          v(1,i) = sin(period*x(1,i)) * x(1,i)
-        !   v(2,i) = sin(period*x(2,i))
+          v(1,i) = sin(period*x(1,i))
+          ! v(1,i) = sin(period*x(1,i)) * x(1,i)
         elseif ( dim == 2 ) then
-          v(1,i) = sin(period*x(1,i)) * x(2,i)
-          v(2,i) = sin(period*x(2,i)) * x(1,i)
+          v(1,i) = sin(period*x(1,i))
+          v(2,i) = sin(period*x(2,i))
+          ! v(1,i) = sin(period*x(1,i)) * x(2,i)
+          ! v(2,i) = sin(period*x(2,i)) * x(1,i)
         elseif ( dim == 3 ) then
-          v(1,i) = sin(period*x(1,i)) * x(2,i)
-          v(2,i) = sin(period*x(2,i)) * x(3,i)
-          v(3,i) = sin(period*x(3,i)) * x(1,i)
-        !   v(3,i) = sin(period*x(3,i))
-        ! v(1,i)  = cos(period*x(:,i))
+          v(1,i) = sin(period*x(1,i))
+          v(2,i) = sin(period*x(2,i))
+          v(3,i) = sin(period*x(3,i))
+          ! v(1,i) = sin(period*x(1,i)) * x(2,i)
+          ! v(2,i) = sin(period*x(2,i)) * x(3,i)
+          ! v(3,i) = sin(period*x(3,i)) * x(1,i)
         !   v(1,i) = v(1,i) * sin(period*x(2,i))
         !   v(1,i) = v(1,i) * sin(period*x(3,i))
         end if
-      case(6)
+      case(6, 8)
         ! diff-graddiv
         den(i) = rho1
         mas(i) = (sp**dim) * rho1
@@ -269,8 +268,7 @@ contains
           ! sin
           v(1,i) = sin(period*x(1,i))
           ! v(1,i) = x(1,i)
-        end if
-        if (dim == 2) then
+        elseif ( dim == 2 ) then
           ! v(1,i) = x(1,i)*x(2,i)
           ! v(2,i) = x(1,i)*x(2,i)
           ! ysix xsiny
@@ -279,8 +277,7 @@ contains
           ! sin
           v(1,i) = sin(period*x(1,i))
           v(2,i) = sin(period*x(2,i))
-        end if
-        if (dim == 3) then
+        elseif ( dim == 3 ) then
           ! v(1,i) = x(1,i)*x(2,i)*x(3,i)
           ! v(2,i) = x(1,i)*x(2,i)*x(3,i)
           ! v(3,i) = x(1,i)*x(2,i)*x(3,i)
@@ -298,5 +295,7 @@ contains
         stop
       end select
     end do
+    call system_clock(finish)
+    call addTime(' ic', finish - start)
   end subroutine setupIC
 end module IC

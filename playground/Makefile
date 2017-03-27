@@ -6,6 +6,8 @@ FFLAGS=-fdefault-real-8 -fdefault-double-8\
 				-fopenmp
 
 SRC=\
+	utils.f90\
+	timing.f90\
 	const.f90\
 	kernel/base_cubic.f90\
 	kernel/base_quintic.f90\
@@ -19,8 +21,7 @@ SRC=\
 	printer.f90\
 	eos.f90\
 	BC.f90\
-	utils.f90\
-	IC/initpositions.f90\
+	IC/uniform.f90\
 	IC/semiuniform.f90\
 	IC/IC.f90\
 	neighboursearch.f90\
@@ -51,6 +52,10 @@ ifndef dtype
 $(warning dtype is not set, `dtype=diff` will be used)
 dtype=diff
 endif
+ifndef silent
+$(warning silent is not set, `silent=no` will be used)
+silent=no
+endif
 
 %.o : src/%.f90
 	@mkdir -p obj
@@ -68,28 +73,28 @@ execute: $(OBJ)
 	$(FC) $(FFLAGS) -I mod/ -o $@ $(SUBOBJ)
 
 hydroshock1:
-	make && time ./execute $(dim) hydroshock 0.1 runresult.info $(kt) 1. $(dtype)
+	make && time ./execute $(dim) hydroshock 0.1 runresult.info $(kt) 1. $(dtype) $(silent)
 
 infslb:
-	make && time ./execute $(dim) infslb 0.1 runresult.info $(kt) 5 $(dtype)
+	make && time ./execute $(dim) infslb 0.1 runresult.info $(kt) 5 $(dtype) $(silent)
 
 hc-sinx:
-	make && time ./execute $(dim) hc-sinx 0.1 runresult.info $(kt) .5 $(dtype)
+	make && time ./execute $(dim) hc-sinx 0.1 runresult.info $(kt) .5 $(dtype) $(silent)
 
 pheva:
-	make && time ./execute $(dim) pheva 0.002 runresult.info $(kt) -1.5 $(hf) $(dtype)
+	make && time ./execute $(dim) pheva 0.002 runresult.info $(kt) -1.5 $(hf) $(dtype) $(silent)
 
 diff-laplace:
-	make && time ./execute $(dim) diff-laplace .04 runresult.info $(kt) 0.1 $(hf) $(dtype)
+	make && time ./execute $(dim) diff-laplace .04 runresult.info $(kt) 0.1 $(hf) $(dtype) $(silent)
 
 diff-graddiv:
-	make && time ./execute $(dim) diff-graddiv .04 runresult.info $(kt) 100 $(hf) $(dtype)
+	make && time ./execute $(dim) diff-graddiv .05 runresult.info $(kt) 100 $(hf) $(dtype) $(silent)
 
 chi-laplace:
-	make && time ./execute $(dim) chi-laplace 0.002 runresult.info $(kt) -1 $(hf) $(dtype)
+	make && time ./execute $(dim) chi-laplace 0.06 runresult.info $(kt) -1 $(hf) $(dtype) $(silent)
 
 chi-graddiv:
-	make && time ./execute $(dim) chi-graddiv 0.002 runresult.info $(kt) -1 $(hf) $(dtype)
+	make && time ./execute $(dim) chi-graddiv 0.06 runresult.info $(kt) -1 $(hf) $(dtype) $(silent)
 
 .PHONY: execute
 

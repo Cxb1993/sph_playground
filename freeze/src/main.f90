@@ -1,17 +1,20 @@
 program main
   use BC
-  use IC,         only: setupIC
-  use kernel,     only: get_tasktype
-  use iterator,   only: iterate
-  use printer,    only: Output, AppendLine
-  use errcalc,    only: err_init,&
-                        err_diff_laplace,&
-                        err_diff_graddiv,&
-                        err_sinxet
-  use args,       only: fillargs
-  use errteylor,  only: etlaplace => laplace,&
-                        etgraddiv => graddiv
-  use circuit1,   only: c1_init
+  use IC,              only: setupIC
+  use kernel,          only: get_tasktype
+  use iterator,        only: iterate
+  use printer,         only: Output, AppendLine
+  use errcalc,         only: err_init,&
+                             err_diff_laplace,&
+                             err_diff_graddiv,&
+                             err_sinxet
+  use args,            only: fillargs
+  use errteylor,       only: etlaplace => laplace,&
+                             etgraddiv => graddiv
+  use circuit1,        only: c1_init
+  use timing,          only: printTimes,&
+                             tinit => init
+  use neighboursearch, only: getNeibNumbers
 
   implicit none
 
@@ -27,7 +30,7 @@ program main
                                          sk, chi(81), cv = 1.
 
   character (len=40)  :: itype, errfname, ktype, dtype
-  integer             :: n, dim, iter, tt, nused, printlen, silent!, i
+  integer             :: n, dim, iter, tt, nusedl1, nusedl2, printlen, silent!, i
 
   print *, '##############################################'
   print *, '#####'
@@ -50,7 +53,6 @@ program main
   dt = 0.
   ltout = 0.
   iter = 0.
-  nused = 0
   p = pos
   v = vel
   a = acc
@@ -68,6 +70,7 @@ program main
 
   read *
 
+  call tinit()
   call err_init(n, pos)
   call c1_init(n)
 
@@ -86,7 +89,7 @@ program main
     case(3)
       ! 'hc-sinx'
       dt = .144 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
-      call err_sinxet(ptype, cf, t, err, nused)
+      call err_sinxet(ptype, cf, t, err, nusedl2)
     case(4)
       ! 'photoevaporation' 'pheva'
       dt = .3e-3 * minval(h)**2 / maxval(c)**2 / maxval(kcf) / maxval(cf)
@@ -161,18 +164,20 @@ program main
     ! 'hydroshock' ! chi-laplace ! 'infslb'
   case(3)
     ! 'hc-sinx'
-    call err_sinxet(ptype, cf, t, err, nused)
+    call err_sinxet(ptype, cf, t, err, nusedl2)
   case(5)
     ! 'diff-laplace'
-    call err_diff_laplace(ptype, pos, acc, err, nused)
+    call err_diff_laplace(ptype, pos, acc, err, nusedl2)
   case(6)
     ! 'diff-graddiv'
-    call err_diff_graddiv(ptype, pos, acc, err, nused)
+    call err_diff_graddiv(ptype, pos, acc, err, nusedl2)
   case default
     print *, 'Task type was not sen in l2 error evaluation main.f90'
     stop
   end select
-  result(3) = merge(sqrt(sum(err)/nused), 0., nused>0)
+  call getNeibNumbers(nusedl1, nusedl2)
+
+  result(3) = merge(sqrt(sum(err)/nusedl1), 0., nusedl1 > 0)
   !----------------------------------------!
   !          teylor error evaluation       !
   !----------------------------------------!
@@ -180,7 +185,7 @@ program main
   case(5, 7)
     ! 'diff-laplace'
     call etlaplace(pos, mas, den, h, chi)
-    result(4) = merge(sum(chi(1:9))/dim, 0., nused>0)
+    result(4) = sum(chi(1:9))/dim
     result(6:14) = chi(1:9)
     printlen = 14
   case(6, 8)
@@ -189,9 +194,9 @@ program main
     if ( dim == 1) then
       result(4) = sum(chi)
     elseif ( dim == 2 ) then
-      result(4) = merge(sum(chi)/dim/3., 0., nused>0)
+      result(4) = sum(chi)/dim/3.
     elseif ( dim == 3 ) then
-      result(4) = merge(sum(chi)/dim/5., 0., nused>0)
+      result(4) = sum(chi)/dim/5.
     end if
     result(6:86) = chi(1:81)
     printlen = 86
@@ -201,7 +206,7 @@ program main
     print *, 'Task type was not sen in taylor error evaluation main.f90'
     stop
   end select
-  if (nused /= 0) then
+  if (nusedl1 /= 0) then
     sqerr(:) = sqrt(err(:))
     if (silent == 0) then
       call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, sqerr)
@@ -210,7 +215,7 @@ program main
   result(5) = sk
   call AppendLine(printlen, result, errfname)
 
-  call getTime()
+  call printTimes()
   print *, '#####  Results:'
   write(*, "(A, F10.5)") " # #   l2-error: ", result(3)
   write(*, "(A, F10.5)") " # #  chi-error: ", result(4)
@@ -235,28 +240,3 @@ subroutine set_stepping(i)
   call stnb(i)
   print *, '# #   step.size:', i
 end subroutine set_stepping
-
-subroutine getTime()
-  use circuit1,         only: c1time => getTime
-  use circuit2,         only: c2time => getTime
-  use neighboursearch,  only: nbtime => getTime
-  use errteylor,        only: ettime => getTime
-  use printer,          only: pttime => getTime
-
-  real :: elapsed
-
-  print *, '##############################################'
-  print *, '#####    Time:'
-  call c1time(elapsed)
-  write(*, "(A, F10.5)") " # #         c1: ", elapsed
-  call c2time(elapsed)
-  write(*, "(A, F10.5)") " # #         c2: ", elapsed
-  call nbtime(elapsed)
-  write(*, "(A, F10.5)") " # #      neibs: ", elapsed
-  call ettime(elapsed)
-  write(*, "(A, F10.5)") " # # teylor err: ", elapsed
-  call pttime(elapsed)
-  write(*, "(A, F10.5)") " # #    printer: ", elapsed
-  print *, '##############################################'
-
-end subroutine getTime

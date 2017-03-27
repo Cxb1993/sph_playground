@@ -33,16 +33,17 @@ contains
     call get_tasktype(tt)
 
     select case(tt)
-    case(1, 2, 7)
-      ! 'hydroshock' ! 'infslb' ! chi-laplace
+    case(1, 2)
+      ! 'hydroshock' ! 'infslb'
     case(3)
       ! 'hc-sinx'
       do i=1,n
         ! print *, pos(:,i)
         tsin(i) = sin(pi * (pos(1,i) + 1.))
       end do
-    case(5, 6)
-      ! 'diff-laplace' ! 'diff-graddiv
+    case(5, 6, 7, 8)
+      ! diff-laplace diff-graddiv
+      !  chi-laplace  chi-graddiv
       period = 1.
     case default
       print *, 'Task type was not sen in error init errcalc.f90'

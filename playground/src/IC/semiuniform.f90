@@ -1,6 +1,6 @@
 module semiuniform
   use kernel
-  use utils
+  use utils, only:iresize, resize3r
   use BC
 
   implicit none
@@ -63,14 +63,14 @@ contains
           if (x < brdx1 + nb * sp) then
             freeflag = 1.
             if (size(bX1) < nbnewX1) then
-              call resize(bX1,size(bX1),size(bX1)*2)
+              call iresize(bX1,size(bX1),size(bX1)*2)
             end if
             bX1(nbnewX1) = n
             nbnewX1 = nbnewX1 + 1
           else if (x > brdx2 - nb * sp - eps) then
             freeflag = 1.
             if (size(bX2) < nbnewX2) then
-              call resize(bX2,size(bX2),size(bX2)*2)
+              call iresize(bX2,size(bX2),size(bX2)*2)
             end if
             bX2(nbnewX2) = n
             nbnewX2 = nbnewX2 + 1
@@ -80,7 +80,7 @@ contains
             if (y < brdy1 + nb * sp) then
               freeflag = 1.
               if (size(bY1) < nbnewY1) then
-                call resize(bY1,size(bY1),size(bY1)*2)
+                call iresize(bY1,size(bY1),size(bY1)*2)
               end if
               bY1(nbnewY1) = n
               nbnewY1 = nbnewY1 + 1
@@ -88,7 +88,7 @@ contains
           else if (y > brdy2 - nb * sp - eps) then
               freeflag = 1.
               if (size(bY2) < nbnewY2) then
-                call resize(bY2,size(bY2),size(bY2)*2)
+                call iresize(bY2,size(bY2),size(bY2)*2)
               end if
               bY2(nbnewY2) = n
               nbnewY2 = nbnewY2 + 1
@@ -97,14 +97,14 @@ contains
               if (z < brdz1 + nb * sp) then
                 freeflag = 1.
                 if (size(bZ1) < nbnewZ1) then
-                  call resize(bZ1,size(bZ1),size(bZ1)*2)
+                  call iresize(bZ1,size(bZ1),size(bZ1)*2)
                 end if
                 bZ1(nbnewZ1) = n
                 nbnewZ1 = nbnewZ1 + 1
               else if (z > brdz2 - nb * sp - eps) then
                 freeflag = 1.
                 if (size(bZ2) < nbnewZ2) then
-                  call resize(bZ2,size(bZ2),size(bZ2)*2)
+                  call iresize(bZ2,size(bZ2),size(bZ2)*2)
                 end if
                 bZ2(nbnewZ2) = n
                 nbnewZ2 = nbnewZ2 + 1

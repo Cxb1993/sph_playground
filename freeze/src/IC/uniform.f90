@@ -1,17 +1,17 @@
 module initpositions
   use kernel
-  use utils
+  use utils, only:iresize, resize3r
   use BC
 
   implicit none
 
-  public :: place_uniform, place_close_packed_fcc
+  public :: uniform, place_close_packed_fcc
 
   private
 
 contains
 
-  subroutine place_uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, pos, ptype)
+  subroutine uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, pos, ptype)
     real,    allocatable, intent(inout) :: pos(:,:)
     integer, allocatable, intent(inout) :: ptype(:)
     real, intent(inout)  :: pspc1, pspc2, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2
@@ -82,7 +82,7 @@ contains
           if (x < brdx1 - eps) then
             freeflag = 1.
             if (size(bX1) < nbnewX1) then
-              call resize(bX1,size(bX1),size(bX1)*2)
+              call iresize(bX1,size(bX1),size(bX1)*2)
             end if
             bX1(nbnewX1) = n
             nbnewX1 = nbnewX1 + 1
@@ -90,7 +90,7 @@ contains
           else if (x > brdx2 + eps) then
             freeflag = 1.
             if (size(bX2) < nbnewX2) then
-              call resize(bX2,size(bX2),size(bX2)*2)
+              call iresize(bX2,size(bX2),size(bX2)*2)
             end if
             bX2(nbnewX2) = n
             nbnewX2 = nbnewX2 + 1
@@ -100,7 +100,7 @@ contains
             if (y < brdy1 - eps) then
               freeflag = 1.
               if (size(bY1) < nbnewY1) then
-                call resize(bY1,size(bY1),size(bY1)*2)
+                call iresize(bY1,size(bY1),size(bY1)*2)
               end if
               bY1(nbnewY1) = n
               nbnewY1 = nbnewY1 + 1
@@ -108,7 +108,7 @@ contains
             else if (y > brdy2 + eps) then
               freeflag = 1.
               if (size(bY2) < nbnewY2) then
-                call resize(bY2,size(bY2),size(bY2)*2)
+                call iresize(bY2,size(bY2),size(bY2)*2)
               end if
               bY2(nbnewY2) = n
               nbnewY2 = nbnewY2 + 1
@@ -118,7 +118,7 @@ contains
               if (z < brdz1 - eps) then
                 freeflag = 1.
                 if (size(bZ1) < nbnewZ1) then
-                  call resize(bZ1,size(bZ1),size(bZ1)*2)
+                  call iresize(bZ1,size(bZ1),size(bZ1)*2)
                 end if
                 bZ1(nbnewZ1) = n
                 nbnewZ1 = nbnewZ1 + 1
@@ -126,7 +126,7 @@ contains
               else if (z > brdz2 + eps) then
                 freeflag = 1.
                 if (size(bZ2) < nbnewZ2) then
-                  call resize(bZ2,size(bZ2),size(bZ2)*2)
+                  call iresize(bZ2,size(bZ2),size(bZ2)*2)
                 end if
                 bZ2(nbnewZ2) = n
                 nbnewZ2 = nbnewZ2 + 1
@@ -136,7 +136,7 @@ contains
           ptsz = size(pos, dim=2)
           if (ptsz < n) then
             call resize3r(pos, ptsz, ptsz*2)
-            call resize(ptype, ptsz, ptsz*2)
+            call iresize(ptype, ptsz, ptsz*2)
           end if
           pos(1,n) = x
           pos(2,n) = y
@@ -158,7 +158,7 @@ contains
     n = n - 1
 
     call resize3r(pos,n,n)
-    call resize(ptype,n,n)
+    call iresize(ptype,n,n)
     write(*, "(A, F7.5, A, F7.5)") " # #   actual dx:   dx1=", pspc1, "  dx2=", pspc2
     write(*, "(A, I5, A, I5, A, I5)") " # #  dir.layers:   nx=", ix+1, &
              "   ny=", iy+1, "   nz=", iz+1
@@ -179,7 +179,7 @@ contains
     call set_border(31, nbnewZ1, bZ1)
     call set_border(32, nbnewZ2, bZ2)
 
-  end subroutine place_uniform
+  end subroutine uniform
 
   subroutine place_close_packed_fcc(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, nb, pos)
     real, allocatable, intent(inout) :: pos(:,:)
@@ -249,14 +249,14 @@ contains
             if (x < brdx1 - eps) then
               freeflag = 1.
               if (size(bX1) < nbnewX1) then
-                call resize(bX1,size(bX1),size(bX1)*2)
+                call iresize(bX1,size(bX1),size(bX1)*2)
               end if
               bX1(nbnewX1) = n
               nbnewX1 = nbnewX1 + 1
             else if (x > brdx2 - sfbdx2 + eps) then
               freeflag = 1.
               ! if (size(bX2) < nbnewX2) then
-              !   call resize(bX2,size(bX2),size(bX2)*2)
+              !   call iresize(bX2,size(bX2),size(bX2)*2)
               ! end if
               ! bX2(nbnewX2) = n
               bxcur(nbnewX2) = n
@@ -267,7 +267,7 @@ contains
                 ! print *, "BRDY1"
                 freeflag = 1.
                 if (size(bY1) < nbnewY1) then
-                  call resize(bY1,size(bY1),size(bY1)*2)
+                  call iresize(bY1,size(bY1),size(bY1)*2)
                 end if
                 bY1(nbnewY1) = n
                 nbnewY1 = nbnewY1 + 1
@@ -275,7 +275,7 @@ contains
                 ! print *, "BRDY2"
                 freeflag = 1.
                 if (size(bY2) < nbnewY2) then
-                  call resize(bY2,size(bY2),size(bY2)*2)
+                  call iresize(bY2,size(bY2),size(bY2)*2)
                 end if
                 bY2(nbnewY2) = n
                 nbnewY2 = nbnewY2 + 1
@@ -284,14 +284,14 @@ contains
                 if (z < brdz1 - eps) then
                   freeflag = 1.
                   if (size(bZ1) < nbnewZ1) then
-                    call resize(bZ1,size(bZ1),size(bZ1)*2)
+                    call iresize(bZ1,size(bZ1),size(bZ1)*2)
                   end if
                   bZ1(nbnewZ1) = n
                   nbnewZ1 = nbnewZ1 + 1
                 else if (z > brdz2 + eps) then
                   freeflag = 1.
                   if (size(bZ2) < nbnewZ2) then
-                    call resize(bZ2,size(bZ2),size(bZ2)*2)
+                    call iresize(bZ2,size(bZ2),size(bZ2)*2)
                   end if
                   bZ2(nbnewZ2) = n
                   nbnewZ2 = nbnewZ2 + 1
@@ -321,7 +321,7 @@ contains
           bxcur(:) = 0
         else if (i == nx+bdx) then
           nbnewX2 = size(bX2)
-          call resize(bX2,nbnewX2,nbnewX2+size(bxcur))
+          call iresize(bX2,nbnewX2,nbnewX2+size(bxcur))
           do k = 1,size(bxcur)
             if (mod(k,2)==1) then
               bX2(nbnewX2+k) = bxcur(k/2+1)
@@ -336,7 +336,7 @@ contains
         else
           ! In fact old size of border particles on x 2
           nbnewX2 = size(bX2)
-          call resize(bX2,nbnewX2,nbnewX2+size(bxcur))
+          call iresize(bX2,nbnewX2,nbnewX2+size(bxcur))
           do k = 1,size(bxcur)
             if (mod(k,2)==1) then
               bX2(nbnewX2+k) = bxcur(k)
