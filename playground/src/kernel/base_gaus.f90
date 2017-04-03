@@ -23,7 +23,6 @@ module gaus
     ! real :: knorm(3) = (/ 1./(sqrt(pi) - 0.835), &
     !                       1./(pi - 0.115),     &
     !                       1./(pi**(3./2) - .29) /)
-    ! WOOOW
     real :: knorm(3,2) = reshape( &
                        (/ 3/(sqrt(pi)) - 0.075,       &
                           30./(7.*pi) + 0.01,         &

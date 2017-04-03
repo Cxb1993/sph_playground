@@ -4,8 +4,7 @@ program main
   use kernel,          only: get_tasktype
   use iterator,        only: iterate
   use printer,         only: Output, AppendLine
-  use errcalc,         only: err_init,&
-                             err_diff_laplace,&
+  use errcalc,         only: err_diff_laplace,&
                              err_diff_graddiv,&
                              err_sinxet
   use args,            only: fillargs
@@ -68,10 +67,9 @@ program main
   allocate(om(n))
   allocate(dfdx(3,3,n))
 
-  read *
+  ! read *
 
   call tinit()
-  call err_init(n, pos)
   call c1_init(n)
 
  print *, "Finish time = ", tfinish
@@ -167,7 +165,7 @@ program main
     call err_sinxet(ptype, cf, t, err, nusedl2)
   case(5)
     ! 'diff-laplace'
-    call err_diff_laplace(ptype, pos, acc, err, nusedl2)
+    call err_diff_laplace(ptype, pos, acc, err)
   case(6)
     ! 'diff-graddiv'
     call err_diff_graddiv(ptype, pos, acc, err, nusedl2)
@@ -224,17 +222,12 @@ program main
 end program main
 
 subroutine set_stepping(i)
-  use kernel,          only: get_kerntype
-  use errcalc,         only: sterr => setStepsize
   use circuit1,        only: stc1  => setStepsize
   use circuit2,        only: stc2  => setStepsize
   use neighboursearch, only: stnb  => setStepsize
 
   integer, intent(in) :: i
-  integer :: ktp
 
-  call get_kerntype(ktp)
-  call sterr(i)
   call stc1(i)
   call stc2(i)
   call stnb(i)

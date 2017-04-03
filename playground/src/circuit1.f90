@@ -90,12 +90,14 @@ contains
               end do
             end do
           end do
+          ! ---------------------------------------------
           ! There is no particle itself in neighbour list
+          ! ---------------------------------------------
           call get_dw_dh(0., slnint(i), dwdh)
           call get_w(0., slnint(i), w)
           den(i) = den(i) + mas(i) * w
           om(i) = om(i) + mas(i) * dwdh
-          !---------------------------------------
+          ! ---------------------------------------------
           om(i) = 1. - om(i) * (- slnint(i) / (dim * den(i)))
           dfdx(:,:,i) = dfdx(:,:,i) / om(i) /den(i)
           dfdh = - dim * den(i) * om(i) / slnint(i)

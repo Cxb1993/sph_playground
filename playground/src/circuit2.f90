@@ -12,7 +12,8 @@ module circuit2
   public :: c2, setStepsize
 
   private
-    integer, save :: stepsize = 1
+  save
+    integer :: stepsize = 1
     integer(8) :: start=0, finish=0
 
 contains
@@ -146,18 +147,24 @@ contains
         case(5)
           ! 'diff-laplace'
           if (dtp == 1) then
+            ! diff form
             if ( ktp /= 3 ) then
+              ! n2w fab
               call get_n2w(rab, h(i), n2wa)
               dv(:,i)  = dv(:,i) + mas(j)/den(j) * vba(:) * n2wa
             else
+              ! 2nw
               call get_nw(rab, h(i), nwa)
               dv(1,i) = dv(1,i) + mas(j)/den(j) * ((dfdx(1,1,j) - dfdx(1,1,i))*nwa(1))
               dv(2,i) = dv(2,i) + mas(j)/den(j) * ((dfdx(2,2,j) - dfdx(2,2,i))*nwa(2))
               dv(3,i) = dv(3,i) + mas(j)/den(j) * ((dfdx(3,3,j) - dfdx(3,3,i))*nwa(3))
             end if
           elseif (dtp == 2) then
+            ! symm form
             if ( ktp /= 3 ) then
+              ! n2w fab
             else
+              ! 2nw
               call get_nw(rab, h(i), nwa)
               call get_nw(rab, h(j), nwb)
               oddi = 1./om(i)/den(i)/den(i)
@@ -176,20 +183,26 @@ contains
         case(6)
           ! diff-graddiv
           if (dtp == 1) then
+            ! diff form
             if (ktp /= 3) then
+              ! n2w fab
               call get_hessian(rab, h(i), Hes)
               dv(1,i) = dv(1,i) + mas(j)/den(j) * (vba(1)*Hes(1,1) + vba(2)*Hes(1,2) + vba(3)*Hes(1,3))
               dv(2,i) = dv(2,i) + mas(j)/den(j) * (vba(1)*Hes(2,1) + vba(2)*Hes(2,2) + vba(3)*Hes(2,3))
               dv(3,i) = dv(3,i) + mas(j)/den(j) * (vba(1)*Hes(3,1) + vba(2)*Hes(3,2) + vba(3)*Hes(3,3))
             else
+              ! 2nw
               call get_nw(rab, h(i), nwa)
               qa = dfdx(1,1,i) + dfdx(2,2,i) + dfdx(3,3,i)
               qb = dfdx(1,1,j) + dfdx(2,2,j) + dfdx(3,3,j)
               dv(:,i) = dv(:,i) + mas(j) * (qb - qa) * nwa(:)
             end if
           elseif (dtp == 2) then
+            ! symm form
             if ( ktp /= 3 ) then
+              ! n2w fab
             else
+              ! 2nw
               call get_nw(rab, h(i), nwa)
               call get_nw(rab, h(j), nwb)
               oddi = 1./om(i)/den(i)/den(i)
@@ -262,7 +275,6 @@ contains
     integer(8)           :: t0, tneib
 
     real    :: vba(3), nw(3), rab(3)
-    call system_clock(start)
 
     n = size(m)
     if ( .not.allocated(nv) ) then
@@ -293,7 +305,6 @@ contains
       end do
     end do
     !$omp end parallel do
-    call system_clock(finish)
     call addTime(' circuit2', -tneib)
   end subroutine gradf
 end module circuit2

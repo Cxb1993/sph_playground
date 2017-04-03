@@ -1,9 +1,21 @@
+#! /usr/bin/make -f
+
 FC=gfortran
 FFLAGS=-fdefault-real-8 -fdefault-double-8\
- 				-Ofast\
-				-g -Wall -Wextra -Warray-temporaries -Wconversion -fimplicit-none -fbacktrace\
+ 				-O4 \
+				-Wall -Wextra -Warray-temporaries -Wconversion -fimplicit-none -fbacktrace\
 				-ffree-line-length-0 -fcheck=all -ffpe-trap=zero,overflow,underflow,invalid -finit-real=nan\
 				-fopenmp
+
+# FC := pgfortran
+# FFLAGS=-r8 -Mallocatable=03 -mp -Mconcur=allcores -Mipa -Mprof -Minfo
+				# -ffree-line-length-0 -fcheck=all -ffpe-trap=zero,overflow,underflow,invalid -finit-real=nan
+				# -fopenmp
+				# -Wall -Wextra -Warray-temporaries -Wconversion -fimplicit-none -fbacktrace
+				# -g
+
+# kernel/base_gaus.f90\
+# kernel/n2movedgaus.f90\
 
 SRC=\
 	utils.f90\
@@ -12,9 +24,7 @@ SRC=\
 	kernel/base_cubic.f90\
 	kernel/base_quintic.f90\
 	kernel/base_external.f90\
-	kernel/base_gaus.f90\
 	kernel/base_sinq.f90\
-	kernel/n2movedgaus.f90\
 	kernel/n2ext.f90\
 	kernel/kernel.f90\
 	args.f90\
@@ -57,20 +67,31 @@ $(warning silent is not set, `silent=no` will be used)
 silent=no
 endif
 
+ifeq ($(FC),gfortran)
+modflagout=-J
+modflaginp=-I
+endif
+ifeq ($(FC),pgfortran)
+modflagout=-module
+modflaginp=-module
+endif
+
 %.o : src/%.f90
 	@mkdir -p obj
-	$(FC) $(FFLAGS) -J mod/ -o obj/$@ -c $<
+	$(FC) $(FFLAGS) $(modflagout) mod/ -o obj/$@ -c $<
+
 IC/%.o : src/IC/%.f90
 	@mkdir -p obj/IC
 	@mkdir -p mod
-	$(FC) $(FFLAGS) -J mod/ -o obj/$@ -c $<
+	$(FC) $(FFLAGS) $(modflagout) mod/ -o obj/$@ -c $<
+
 kernel/%.o : src/kernel/%.f90
 	@mkdir -p obj/kernel
-	$(FC) $(FFLAGS) -J mod/ -o obj/$@ -c $<
+	$(FC) $(FFLAGS) $(modflagout) mod/ -o obj/$@ -c $<
 
 execute: $(OBJ)
 	@mkdir -p output
-	$(FC) $(FFLAGS) -I mod/ -o $@ $(SUBOBJ)
+	$(FC) $(FFLAGS) $(modflaginp) mod/ -o $@ $(SUBOBJ)
 
 hydroshock1:
 	make && time ./execute $(dim) hydroshock 0.1 runresult.info $(kt) 1. $(dtype) $(silent)
