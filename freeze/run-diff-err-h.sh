@@ -3,25 +3,27 @@
 env | grep OMP_NUM_THREADS
 # dimlist='1 2 3'
 dimlist=$1
-# tasktype='diff-graddiv'
+# dimlist='1 2'
+# tasktype='diff-laplace'
 tasktype=$2
-# ktype='n2w fab 2nw'
+# ktype='n2w fab'
 ktype='n2w'
 execnamelist='execute'
 storebase=`pwd`
 dtprefix=`date +%Y%m%d%H%M`
-# kernelPrefix='quintic'
-kernelPrefix='cubic'
+kernelPrefix='quintic'
+# kernelPrefix='cubic'
 # kernelPrefix='mgauss'
 # kernelPrefix='sinc'
-# dtype='symm'
-dtype='diff'
+difftype='diff'
+# difftype='symm'
+suppressprinter='yes'
 
 tfinish='100'
 spstart='1.'
 spend='2.'
 # spend='3.'
-spstep='.02'
+spstep='.01'
 tstep=$spstart
 flag='1'
 spacing=""
@@ -41,15 +43,15 @@ for dim in $dimlist; do
     for execname in $execnamelist; do
       for k in $ktype; do
         fullkernel=$kernelPrefix' '$k
-        errfname=$dtprefix'-'$tasktype'-'$dim'D-'$k
+        errfname=$dtprefix'-'$tasktype'-'$difftype'-'$dim'D-'$k
 
         if [ "$it" = "0" ]; then
-          header='ARG: xey. '$fullkernel'. '$tasktype'. '
+          header='ARG. '$fullkernel'. '$tasktype'. '$difftype'. '
           header=$header$dim'D. {| dx | partN | err l2 | 2nd err term | hfac |}'
           `echo $header > $errfname`
         fi
 
-        runcmd="time ./$execname $dim $tasktype 0.06 $errfname $k $tfinish $psp $dtype yes &>/dev/null"
+        runcmd="time ./$execname $dim $tasktype 0.06 $errfname $k $tfinish $psp $difftype $suppressprinter &>/dev/null"
         echo $runcmd
         runresult=`echo '\n' | $runcmd`
         echo "$runresult" >> result.info
