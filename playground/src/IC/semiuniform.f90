@@ -140,12 +140,12 @@ contains
 
     call resize(pos,n,n)
 
-    write(*, "(A, F7.5, A, F7.5)") " # #   actual dx:   x1=", pspc1, "   x2=", pspc2
-    print *, '# #      placed:', n
-    print *, '# #  freenumber:', freenumber
-    print *, '# #    border-x:', nbnewX1, nbnewX2
-    print *, '# #    border-y:', nbnewY1, nbnewY2
-    print *, '# #    border-z:', nbnewZ1, nbnewZ2
+    write(*, "(A, F7.5, A, F7.5)") " # #      actual dx:   x1=", pspc1, "   x2=", pspc2
+    print *, '# #         placed:', n
+    print *, '# #     freenumber:', freenumber
+    print *, '# #       border-x:', nbnewX1, nbnewX2
+    print *, '# #       border-y:', nbnewY1, nbnewY2
+    print *, '# #       border-z:', nbnewZ1, nbnewZ2
 
     call set_particles_numbers(n, abs(nb))
     call set_border(11, nbnewX1, bX1)

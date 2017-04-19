@@ -159,17 +159,17 @@ contains
 
     call resize(pos,n,n)
     call resize(ptype,n,n)
-    write(*, "(A, F7.5, A, F7.5)") " # #   actual dx:   dx1=", pspc1, "  dx2=", pspc2
-    write(*, "(A, I5, A, I5, A, I5)") " # #  dir.layers:   nx=", ix+1, &
+    write(*, "(A, F7.5, A, F7.5)") " # #      actual dx:   dx1=", pspc1, "  dx2=", pspc2
+    write(*, "(A, I5, A, I5, A, I5)") " # #     dir.layers:   nx=", ix+1, &
              "   ny=", iy+1, "   nz=", iz+1
-    write(*, "(A, I8, A, I8, A)") " # #    p.number:  ", n, &
+    write(*, "(A, I8, A, I8, A)") " # #       p.number:  ", n, &
               " total   ", freenumber, " real"
-    print *, '# #    border-x:', brdx1, brdx2
-    print *, '# #    border-y:', brdy1, brdy2
-    print *, '# #    border-z:', brdz1, brdz2
-    print *, '# #   № bd.pt X:', nbnewX1, nbnewX2
-    print *, '# #   № bd.pt Y:', nbnewY1, nbnewY2
-    print *, '# #   № bd.pt Z:', nbnewZ1, nbnewZ2
+    print *, '# #       border-x:', brdx1, brdx2
+    print *, '# #       border-y:', brdy1, brdy2
+    print *, '# #       border-z:', brdz1, brdz2
+    print *, '# #      № bd.pt X:', nbnewX1, nbnewX2
+    print *, '# #      № bd.pt Y:', nbnewY1, nbnewY2
+    print *, '# #      № bd.pt Z:', nbnewZ1, nbnewZ2
 
     call set_particles_numbers(n, abs(nb))
     call set_border(11, nbnewX1, bX1)

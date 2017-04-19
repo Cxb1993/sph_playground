@@ -46,7 +46,7 @@ contains
     call get_difftype(dtp)
 
     if (( ktp == 3 ).and.( dtp == 1 )) then
-      call gradf(dim, ptype, mas, den, pos, v, h, dfdx)
+      call gradf(dim, ptype, mas, den, pos, v, h, om, dfdx)
     end if
     call getNeibListL1(nlista)
 
@@ -63,6 +63,12 @@ contains
       du(i) = 0.
       dh(i) = 0.
       dcf(i) = 0.
+      ! print*, i
+      ! print*, pos(:,i)
+      ! print*, dfdx(1,:,i)
+      ! print*, dfdx(2,:,i)
+      ! print*, dfdx(3,:,i)
+      ! read*
       call getneighbours(i, pos, h, nlistb, t0)
       tneib = tneib + t0
       do lb = 1, size(nlistb)
@@ -193,8 +199,10 @@ contains
             else
               ! 2nw
               call get_nw(rab, h(i), nwa)
-              qa = dfdx(1,1,i) + dfdx(2,2,i) + dfdx(3,3,i)
-              qb = dfdx(1,1,j) + dfdx(2,2,j) + dfdx(3,3,j)
+              ! qa = dfdx(1,1,i) + dfdx(2,2,i) + dfdx(3,3,i)
+              ! qb = dfdx(1,1,j) + dfdx(2,2,j) + dfdx(3,3,j)
+              qa = v(1,i)
+              qb = v(1,j)
               dv(:,i) = dv(:,i) + mas(j) * (qb - qa) * nwa(:)
             end if
           elseif (dtp == 2) then
@@ -207,8 +215,10 @@ contains
               call get_nw(rab, h(j), nwb)
               oddi = 1./om(i)/den(i)/den(i)
               oddj = 1./om(j)/den(j)/den(j)
-              qa = dfdx(1,1,i) + dfdx(2,2,i) + dfdx(3,3,i)
-              qb = dfdx(1,1,j) + dfdx(2,2,j) + dfdx(3,3,j)
+              ! qa = dfdx(1,1,i) + dfdx(2,2,i) + dfdx(3,3,i)
+              ! qb = dfdx(1,1,j) + dfdx(2,2,j) + dfdx(3,3,j)
+              qa = v(1,i)
+              qb = v(1,j)
               dv(:,i) = dv(:,i) + mas(j) * (qa*nwa(:)*oddi + qb*nwb(:)*oddj)
             end if
           else
@@ -264,8 +274,8 @@ contains
     end if
   end subroutine art_viscosity
 
-  subroutine gradf(dim, t, m, d, x, v, h, nv)
-    real, allocatable, intent(in)  :: m(:), d(:), x(:,:), v(:,:), h(:)
+  subroutine gradf(dim, t, m, d, x, v, h, om, nv)
+    real, allocatable, intent(in)  :: m(:), d(:), x(:,:), v(:,:), h(:), om(:)
     integer, allocatable, intent(in) :: t(:)
     real, allocatable, intent(out) :: nv(:,:,:)
     integer, intent(in)            :: dim
@@ -274,18 +284,20 @@ contains
     integer              :: n, i, j, la, lb, ni, nj, li
     integer(8)           :: t0, tneib
 
-    real    :: vba(3), nw(3), rab(3)
+    real    :: vba(3), nw(3), rab(3), nwi(3), nwj(3), oddi, oddj
 
     n = size(m)
     if ( .not.allocated(nv) ) then
       allocate(nv(3,3,n))
     end if
     tneib = 0.
-    call getNeibListL2(nlista)
+    ! call getNeibListL2(nlista)
+    call getNeibListL1(nlista)
 
     !$omp parallel do default(none)&
     !$omp private(rab, vba, nw, i, j, la, lb, ni, nj, li, nlistb, t0) &
-    !$omp shared(dim, t, m, d, x, v, h, nv, n, stepsize, nlista)&
+    !$omp private(nwi, nwj, oddi, oddj)&
+    !$omp shared(dim, t, m, d, x, v, h, om, nv, n, stepsize, nlista)&
     !$omp reduction(+:tneib)
     do la = 1,size(nlista)
       i = nlista(la)
@@ -296,13 +308,18 @@ contains
         j = nlistb(lb)
         vba(:) = v(:,j) - v(:,i)
         rab(:) = x(:,i) - x(:,j)
-        call get_nw(rab, h(i), nw)
+        call get_nw(rab, h(i), nwi)
+        call get_nw(rab, h(j), nwj)
+        oddi = 1./om(i)/d(i)/d(i)
+        oddj = 1./om(j)/d(j)/d(j)
         do ni = 1,dim
           do nj = 1,dim
-            nv(ni,nj,i) = nv(ni,nj,i) + m(j)/d(j)*vba(ni)*nw(nj)
+            ! nv(ni,nj,i) = nv(ni,nj,i) + m(j)/d(j)*vba(ni)*nwi(nj)
+            nv(ni,nj,i) = nv(ni,nj,i) + m(j)*(v(ni,i)*nwi(nj)*oddi + v(ni,j)*nwj(nj)*oddj)
           end do
         end do
       end do
+      nv(:,:,i) = nv(:,:,i) / om(i) / d(i)
     end do
     !$omp end parallel do
     call addTime(' circuit2', -tneib)

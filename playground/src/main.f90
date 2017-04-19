@@ -39,7 +39,8 @@ program main
   call setupIC(n, sk, gamma, cv, pspc1, pspc2, pos, vel, acc, &
                 mas, den, h, prs, iu, du, cf, kcf, dcf, ptype)
 
-  call set_stepping(10**dim)
+  call set_stepping(2**dim)
+  ! call set_stepping(10**dim)
   print *, '#####'
   print *, '##############################################'
 
@@ -231,5 +232,5 @@ subroutine set_stepping(i)
   call stc1(i)
   call stc2(i)
   call stnb(i)
-  print *, '# #   step.size:', i
+  print *, '# #      step.size:', i
 end subroutine set_stepping

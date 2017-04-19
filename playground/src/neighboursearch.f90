@@ -19,9 +19,10 @@ save
   type(neighbourlisttype), allocatable :: neighbours(:)
   integer, allocatable :: alllistlv1(:), alllistlv2(:)
 
-  integer :: stepsize = 1
-  integer :: initialized = 0
-  integer(8) :: start=0, finish=0
+  integer    :: stepsize = 1
+  integer    :: initialized = 0
+  integer(8) :: start = 0, finish = 0
+  real, parameter :: eps = epsilon(1.)
 contains
 
   subroutine setStepsize(i)
@@ -113,7 +114,7 @@ contains
           if (i /= j) then
             r(:) = pos(:,i) - pos(:,j)
             r2 = dot_product(r(:),r(:))
-            if (r2 < (kr * h(i))**2) then
+            if (r2 < (kr * h(i))**2 + eps) then
               tix = tix + 1
               tsz = size(neighbours(i)%list)
               if (tsz < tix) then
@@ -211,7 +212,7 @@ contains
       if ( j /= idx ) then
         r(:) = pos(:,idx) - pos(:,j)
         r2 = dot_product(r(:),r(:))
-        if (r2 < (kr * h(idx))**2) then
+        if (r2 < (kr * h(idx))**2 + eps) then
           tix = tix + 1
           tsz = size(nlist)
           if (tsz < tix) then

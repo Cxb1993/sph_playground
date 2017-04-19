@@ -27,18 +27,18 @@ SRC=\
 	kernel/base_sinq.f90\
 	kernel/n2ext.f90\
 	kernel/kernel.f90\
+	neighboursearch.f90\
+	BC.f90\
+	errteylor.f90\
 	args.f90\
 	printer.f90\
 	eos.f90\
-	BC.f90\
 	IC/uniform.f90\
 	IC/semiuniform.f90\
 	IC/IC.f90\
-	neighboursearch.f90\
 	circuit1.f90\
 	circuit2.f90\
 	errcalc.f90\
-	errteylor.f90\
 	iterator.f90\
 	main.f90
 
@@ -64,7 +64,7 @@ dtype=diff
 endif
 ifndef silent
 $(warning silent is not set, `silent=no` will be used)
-silent=no
+silent=yes
 endif
 
 ifeq ($(FC),gfortran)
@@ -116,6 +116,13 @@ chi-laplace:
 
 chi-graddiv:
 	make && time ./execute $(dim) chi-graddiv 0.06 runresult.info $(kt) -1 $(hf) $(dtype) $(silent)
+
+inflience:
+	make && time ./execute --dim $(dim) \
+			--tasktype chi-laplace --spacing 0.06 \
+			--errfilename runresult.info --kerneltype $(kt)\
+			--tfinish 100 --hfac $(hf) --difftype $(dtype) \
+			--kerninfluencefile f.info --silent $(silent)
 
 .PHONY: execute
 

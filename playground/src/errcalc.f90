@@ -137,7 +137,9 @@ contains
         ! exact(1) = 0
         ! exact(1) = 2*Cos(x(1,i)) - (x(1,i))*Sin(x(1,i))
         ! sin
-        exact(1) = -sin(x(1,i))
+        ! exact(1) = -sin(x(1,i))
+        ! grad only
+        exact(1) = cos(x(1,i))
       end if
       if (dim == 2) then
         ! exact(1) = 1
@@ -145,8 +147,11 @@ contains
         ! exact(1) = Cos(x(2,i)) - x(2,i)*Sin(x(1,i))
         ! exact(2) = Cos(x(1,i)) - x(1,i)*Sin(x(2,i))
         ! sin
-        exact(1) = -sin(x(1,i))
-        exact(2) = -sin(x(2,i))
+        ! exact(1) = -sin(x(1,i))
+        ! exact(2) = -sin(x(2,i))
+        ! grad only
+        exact(1) = cos(x(1,i))
+        ! exact(2) = cos(x(2,i))
       end if
       if (dim == 3) then
         ! exact(1) = x(2,i) + x(3,i)
@@ -156,9 +161,13 @@ contains
         ! exact(2) = Cos(x(1,i)) - (x(3,i)*Sin(x(2,i)))
         ! exact(3) = Cos(x(2,i)) - (x(1,i)*Sin(x(3,i)))
         ! sin
-        exact(1) = -sin(x(1,i))
-        exact(2) = -sin(x(2,i))
-        exact(3) = -sin(x(3,i))
+        ! exact(1) = -sin(x(1,i))
+        ! exact(2) = -sin(x(2,i))
+        ! exact(3) = -sin(x(3,i))
+        ! grad only
+        exact(1) = cos(x(1,i))
+        ! exact(2) = cos(x(2,i))
+        ! exact(3) = cos(x(3,i))
       end if
       ! print*, exact
       ! print*, num(:,i)

@@ -1,4 +1,6 @@
 module errteylor
+  use omp_lib
+
   use timing,          only: addTime
   use kernel
   use neighboursearch, only:  getneighbours,&
@@ -6,19 +8,28 @@ module errteylor
                               findneighbours,&
                               getneighbours
   use BC,              only: getSqaureBoxSides
+
   implicit none
 
-  public :: laplace, graddiv, setStepsize
+  public :: laplace, graddiv, setStepsize, setInfluenceCalc
 
   private
-  integer, save :: stepsize = 1
+  save
+  integer    :: stepsize = 1
   integer(8) :: start=0, finish=0
+  character (len=40) :: kinfname = ''
 
 contains
   subroutine setStepsize(i)
     integer, intent(in) :: i
     stepsize = i
-  end subroutine setStepsize
+  end subroutine
+
+  subroutine setInfluenceCalc(fname)
+    character (len=40), intent(in) :: fname
+    kinfname = adjustl(fname)
+  end subroutine
+
 
   subroutine laplace(pos, mas, den, h, chi)
     real, allocatable, intent(in)    :: mas(:), den(:), pos(:,:), h(:)
@@ -27,13 +38,17 @@ contains
     integer, allocatable :: nlist(:)
     integer              :: i, j, l, kd, nx, ny, nz, idx
     integer(8)           :: tneib
-    real                 :: n2w, r(3), r11, r22, r33, r12, r13, r23, kr, t(3)!, n2wa(3)!, Hes(3,3)
+    real                 :: n2w, r(3), r11, r22, r33, r12, r13, r23, kr, t(3),&
+                            dsum, osum, dchi(9)
 
     call system_clock(start)
+
+    print*, kinfname
 
     call get_krad(kr)
     call get_dim(kd)
     chi(1:9) = 0.
+    dchi(:) = 0.
     t(:) = 0.
 
     call getSqaureBoxSides(nx, ny, nz)
@@ -46,6 +61,9 @@ contains
     end if
     call getneighbours(idx, pos, h, nlist, tneib)
     i = idx
+
+    dsum = 0.
+    osum = 0.
     do l = 1,size(nlist)
       j = nlist(l)
       r(:) = pos(:,j) - pos(:,i)
@@ -60,18 +78,24 @@ contains
       ! call get_Hesobian(r, h(i), Hes)
       t(:) = t(:) + mas(j)/den(j) * r(:) * n2w
 
-      chi(1) = chi(1) + 0.5 * mas(j)/den(j) * r11 * n2w ! Hes(1,1)
-      if (kd > 1) then
-        chi(2) = chi(2) + 0.5 * mas(j)/den(j) * r12 * n2w ! Hes(1,2)
-        chi(5) = chi(5) + 0.5 * mas(j)/den(j) * r22 * n2w ! Hes(2,2)
-        chi(4) = chi(4) + 0.5 * mas(j)/den(j) * r12 * n2w ! Hes(1,2)
-        if (kd == 3) then
-          chi(3) = chi(3) + 0.5 * mas(j)/den(j) * r13 * n2w ! Hes(1,3)
-          chi(6) = chi(6) + 0.5 * mas(j)/den(j) * r23 * n2w ! Hes(2,3)
-          chi(9) = chi(9) + 0.5 * mas(j)/den(j) * r33 * n2w ! Hes(3,3)
-          chi(8) = chi(8) + 0.5 * mas(j)/den(j) * r23 * n2w ! Hes(2,3)
-          chi(7) = chi(7) + 0.5 * mas(j)/den(j) * r13 * n2w ! Hes(1,3)
-        end if
+      dchi(1) = 0.5 * mas(j)/den(j) * r11 * n2w ! Hes(1,1)
+      if ( kd > 1 ) then
+        dchi(2) = 0.5 * mas(j)/den(j) * r12 * n2w ! Hes(1,2)
+        dchi(5) = 0.5 * mas(j)/den(j) * r22 * n2w ! Hes(2,2)
+        dchi(4) = 0.5 * mas(j)/den(j) * r12 * n2w ! Hes(1,2)
+      end if
+      if ( kd == 3 ) then
+        dchi(3) = 0.5 * mas(j)/den(j) * r13 * n2w ! Hes(1,3)
+        dchi(6) = 0.5 * mas(j)/den(j) * r23 * n2w ! Hes(2,3)
+        dchi(9) = 0.5 * mas(j)/den(j) * r33 * n2w ! Hes(3,3)
+        dchi(8) = 0.5 * mas(j)/den(j) * r23 * n2w ! Hes(2,3)
+        dchi(7) = 0.5 * mas(j)/den(j) * r13 * n2w ! Hes(1,3)
+      end if
+      chi(:) = chi(:) + dchi(:)
+      if ( kinfname /= '' ) then
+        dsum = dchi(1) + dchi(5) + dchi(9)
+        osum = dchi(2) + dchi(4) + dchi(3) + dchi(6) + dchi(8) + dchi(7)
+        print*, r(:), sqrt(dot_product(r,r)), dsum, osum
       end if
     end do
     ! print*, ' t: ', t
