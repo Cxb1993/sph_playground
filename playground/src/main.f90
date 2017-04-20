@@ -14,6 +14,7 @@ program main
   use timing,          only: printTimes,&
                              tinit => init
   use neighboursearch, only: getNeibNumbers
+  use utils,           only: resize
 
   implicit none
 
@@ -30,6 +31,8 @@ program main
 
   character (len=40)  :: itype, errfname, ktype, dtype
   integer             :: n, dim, iter, tt, nusedl1, nusedl2, printlen, silent!, i
+
+  integer(8)          :: tprint
 
   print *, '##############################################'
   print *, '#####'
@@ -212,13 +215,13 @@ program main
     end if
   end if
   result(5) = sk
-  call AppendLine(printlen, result, errfname)
+  call resize(result, printlen, printlen)
+  call AppendLine(result, errfname, tprint)
 
   call printTimes()
   print *, '#####  Results:'
   write(*, "(A, F10.5)") " # #   l2-error: ", result(3)
   write(*, "(A, F10.5)") " # #  chi-error: ", result(4)
-  ! write(*, "(A, F10.5)") " # #     neibs: ", elapsed
   print *, '##############################################'
 end program main
 

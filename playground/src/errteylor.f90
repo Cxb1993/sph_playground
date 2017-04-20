@@ -1,13 +1,14 @@
 module errteylor
   use omp_lib
 
-  use timing,          only: addTime
+  use timing,           only: addTime
   use kernel
-  use neighboursearch, only:  getneighbours,&
-                              isInitialized,&
-                              findneighbours,&
-                              getneighbours
-  use BC,              only: getSqaureBoxSides
+  use neighboursearch,  only:  getneighbours,&
+                               isInitialized,&
+                               findneighbours,&
+                               getneighbours
+  use BC,               only: getSqaureBoxSides
+  use printer,          only: AppendLine
 
   implicit none
 
@@ -37,9 +38,12 @@ contains
 
     integer, allocatable :: nlist(:)
     integer              :: i, j, l, kd, nx, ny, nz, idx
-    integer(8)           :: tneib
+    integer(8)           :: tneib, tprint
     real                 :: n2w, r(3), r11, r22, r33, r12, r13, r23, kr, t(3),&
                             dsum, osum, dchi(9)
+    real, allocatable    :: printres(:)
+
+    allocate(printres(4))
 
     call system_clock(start)
 
@@ -95,7 +99,11 @@ contains
       if ( kinfname /= '' ) then
         dsum = dchi(1) + dchi(5) + dchi(9)
         osum = dchi(2) + dchi(4) + dchi(3) + dchi(6) + dchi(8) + dchi(7)
-        print*, r(:), sqrt(dot_product(r,r)), dsum, osum
+        print*, j, dsum, osum
+        printres = [r(:), sqrt(dot_product(r,r)), dsum, osum]
+        call AppendLine(printres, kinfname, tprint)
+        tneib = tneib + tprint
+        ! print*, r(:), sqrt(dot_product(r,r)), dsum, osum
       end if
     end do
     ! print*, ' t: ', t
@@ -109,14 +117,19 @@ contains
 
     integer, allocatable :: nlist(:)
     integer              :: i, j, l, kd, nx, ny, nz, idx, a, b, g, d, ci
-    integer(8)           :: tneib
-    real                 :: r(3), kr, t(3), dr, Hes(3,3), m
+    integer(8)           :: tneib, tprint
+    real                 :: r(3), kr, t(3), dr, Hes(3,3), m, dchi(81), dsum, osum
+    real, allocatable    :: printres(:)
+
+    allocate(printres(4))
+
 
     call system_clock(start)
 
     call get_krad(kr)
     call get_dim(kd)
     chi(1:81) = 0.
+    dchi(:) = 0.
     t(:) = 0.
 
     call getSqaureBoxSides(nx, ny, nz)
@@ -144,12 +157,35 @@ contains
           end if
           do g = 1,3
             do d = 1,3
-              chi(ci) = chi(ci) + m * mas(j) / den(j) * dr * Hes(g,d)
+              dchi(ci) = m * mas(j) / den(j) * dr * Hes(g,d)
               ci = ci + 1
             end do
           end do
         end do
       end do
+      chi(:) = chi(:) + dchi(:)
+      if ( kinfname /= '' ) then
+        dsum = 0.
+        osum = 0.
+        ci = 1
+        do a = 1,3
+          do b = 1,3
+            do g = 1,3
+              do d = 1,3
+                if ((( a == g ).and.( b == d )).or.(( a == d ).and.( b == g ))) then
+                  dsum = dsum + dchi(ci)
+                else
+                  osum = osum + dchi(ci)
+                end if
+                ci = ci + 1
+              end do
+            end do
+          end do
+        end do
+        printres = [r(:), sqrt(dot_product(r,r)), dsum, osum]
+        call AppendLine(printres, kinfname, tprint)
+        tneib = tneib + tprint
+      end if
     end do
     ! ci = 1
     ! do a = 1,3
@@ -162,6 +198,7 @@ contains
     !     end do
     !   end do
     ! end do
+    ! print*, dchi
     call system_clock(finish)
     call addTime(' teylor err', finish - start - tneib)
   end subroutine graddiv

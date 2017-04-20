@@ -29,9 +29,9 @@ SRC=\
 	kernel/kernel.f90\
 	neighboursearch.f90\
 	BC.f90\
+	printer.f90\
 	errteylor.f90\
 	args.f90\
-	printer.f90\
 	eos.f90\
 	IC/uniform.f90\
 	IC/semiuniform.f90\
@@ -117,12 +117,19 @@ chi-laplace:
 chi-graddiv:
 	make && time ./execute $(dim) chi-graddiv 0.06 runresult.info $(kt) -1 $(hf) $(dtype) $(silent)
 
-inflience:
+inflience-graddiv:
+	make && time ./execute --dim $(dim) \
+			--tasktype chi-graddiv --spacing 0.06 \
+			--errfilename runresult.info --kerneltype $(kt)\
+			--tfinish 100 --hfac $(hf) --difftype $(dtype) \
+			--kerninfluencefile influence.info --silent $(silent)
+
+inflience-laplace:
 	make && time ./execute --dim $(dim) \
 			--tasktype chi-laplace --spacing 0.06 \
 			--errfilename runresult.info --kerneltype $(kt)\
 			--tfinish 100 --hfac $(hf) --difftype $(dtype) \
-			--kerninfluencefile f.info --silent $(silent)
+			--kerninfluencefile output/influence.info --silent $(silent)
 
 .PHONY: execute
 
