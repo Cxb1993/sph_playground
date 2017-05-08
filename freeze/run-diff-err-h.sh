@@ -11,10 +11,11 @@ ktype='n2w'
 execnamelist='execute'
 storebase=`pwd`
 dtprefix=`date +%Y%m%d%H%M`
-kernelPrefix='quintic'
+# kernelPrefix='quintic'
 # kernelPrefix='cubic'
 # kernelPrefix='mgauss'
 # kernelPrefix='sinc'
+kernelPrefix='optimization'
 difftype='diff'
 # difftype='symm'
 suppressprinter='yes'
@@ -51,7 +52,12 @@ for dim in $dimlist; do
           `echo $header > $errfname`
         fi
 
-        runcmd="time ./$execname $dim $tasktype 0.06 $errfname $k $tfinish $psp $difftype $suppressprinter &>/dev/null"
+        # `echo "hfac=$psp\n" > output/$dim/influence$iti.info`
+        runcmd="time ./$execname --dim $dim --tasktype $tasktype --spacing 0.06 \
+                      --errfilename $errfname --kerneltype $k --tfinish $tfinish \
+                      --hfac $psp --difftype $difftype --silent yes &>/dev/null"
+                      # --kerninfluencefile output/$dim/influence$iti.info \
+
         echo $runcmd
         runresult=`echo '\n' | $runcmd`
         echo "$runresult" >> result.info
@@ -80,7 +86,7 @@ for dim in $dimlist; do
     it=$((it+1))
   done
 done
-runcmd="zip -9 output.zip ./output/*"
-cmdres=`$runcmd`
-`rm -rf output`
+# runcmd="zip -9 output.zip ./output/*"
+# cmdres=`$runcmd`
+# `rm -rf output`
 echo "$errfname"

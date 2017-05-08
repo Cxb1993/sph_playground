@@ -8,11 +8,10 @@ module circuit1
 
   implicit none
 
-  public :: c1_init, c1, c1a, setStepsize
+  public :: c1_init, c1, c1a
 
   private
   save
-    integer :: stepsize = 1
     real, allocatable :: slnint(:), resid(:)
     integer(8) :: start=0, finish=0
 
@@ -22,11 +21,6 @@ contains
     allocate(slnint(n))
     allocate(resid(n))
   end subroutine c1_init
-
-  subroutine setStepsize(i)
-    integer, intent(in) :: i
-    stepsize = i
-  end subroutine setStepsize
 
   subroutine c1(ptype, pos, mas, vel, sk, h, den, om, dfdx)
     real, allocatable, intent(in)    :: pos(:,:), mas(:), vel(:,:)

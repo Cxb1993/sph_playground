@@ -9,18 +9,13 @@ module circuit2
 
   implicit none
 
-  public :: c2, setStepsize
+  public :: c2
 
   private
   save
-    integer :: stepsize = 1
     integer(8) :: start=0, finish=0
 
 contains
-  subroutine setStepsize(i)
-    integer, intent(in) :: i
-    stepsize = i
-  end subroutine setStepsize
 
   subroutine c2(c, ptype, pos, v, dv, mas, den, h, om, P, u, du, dh, cf, dcf, kcf, dfdx)
     real, allocatable, intent(in)    :: pos(:,:), v(:,:), mas(:), h(:), den(:), P(:), c(:),&
@@ -55,7 +50,7 @@ contains
     !$omp private(n2wa, n2wb, j, i, r2, oddi ,oddj, la, lb)&
     !$omp private(projv, df, ddf, nlistb, Hes, vba, t0) &
     !$omp shared(dv, du, dh, dcf, n, pos, h, v, den, c, p, om, mas, u, kcf, cf)&
-    !$omp shared(dim, kr, ktp, dtp, ttp, ptype, stepsize, dfdx, nlista)&
+    !$omp shared(dim, kr, ktp, dtp, ttp, ptype, dfdx, nlista)&
     !$omp reduction(+:tneib)
     do la = 1, size(nlista)
       i = nlista(la)
@@ -297,7 +292,7 @@ contains
     !$omp parallel do default(none)&
     !$omp private(rab, vba, nw, i, j, la, lb, ni, nj, li, nlistb, t0) &
     !$omp private(nwi, nwj, oddi, oddj)&
-    !$omp shared(dim, t, m, d, x, v, h, om, nv, n, stepsize, nlista)&
+    !$omp shared(dim, t, m, d, x, v, h, om, nv, n, nlista)&
     !$omp reduction(+:tneib)
     do la = 1,size(nlista)
       i = nlista(la)

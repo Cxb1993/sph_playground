@@ -4,8 +4,7 @@ program main
   use kernel,          only: get_tasktype
   use iterator,        only: iterate
   use printer,         only: Output, AppendLine
-  use errcalc,         only: err_init,&
-                             err_diff_laplace,&
+  use errcalc,         only: err_diff_laplace,&
                              err_diff_graddiv,&
                              err_sinxet
   use args,            only: fillargs
@@ -15,6 +14,7 @@ program main
   use timing,          only: printTimes,&
                              tinit => init
   use neighboursearch, only: getNeibNumbers
+  use utils,           only: resize
 
   implicit none
 
@@ -32,6 +32,8 @@ program main
   character (len=40)  :: itype, errfname, ktype, dtype
   integer             :: n, dim, iter, tt, nusedl1, nusedl2, printlen, silent!, i
 
+  integer(8)          :: tprint
+
   print *, '##############################################'
   print *, '#####'
   call fillargs(dim, pspc1, pspc2,&
@@ -40,6 +42,7 @@ program main
   call setupIC(n, sk, gamma, cv, pspc1, pspc2, pos, vel, acc, &
                 mas, den, h, prs, iu, du, cf, kcf, dcf, ptype)
 
+  ! call set_stepping(2**dim)
   call set_stepping(10**dim)
   print *, '#####'
   print *, '##############################################'
@@ -68,10 +71,9 @@ program main
   allocate(om(n))
   allocate(dfdx(3,3,n))
 
-  read *
+  ! read *
 
   call tinit()
-  call err_init(n, pos)
   call c1_init(n)
 
  print *, "Finish time = ", tfinish
@@ -167,7 +169,7 @@ program main
     call err_sinxet(ptype, cf, t, err, nusedl2)
   case(5)
     ! 'diff-laplace'
-    call err_diff_laplace(ptype, pos, acc, err, nusedl2)
+    call err_diff_laplace(ptype, pos, acc, err)
   case(6)
     ! 'diff-graddiv'
     call err_diff_graddiv(ptype, pos, acc, err, nusedl2)
@@ -213,30 +215,21 @@ program main
     end if
   end if
   result(5) = sk
-  call AppendLine(printlen, result, errfname)
+  call resize(result, printlen, printlen)
+  call AppendLine(result, errfname, tprint)
 
   call printTimes()
   print *, '#####  Results:'
   write(*, "(A, F10.5)") " # #   l2-error: ", result(3)
   write(*, "(A, F10.5)") " # #  chi-error: ", result(4)
-  ! write(*, "(A, F10.5)") " # #     neibs: ", elapsed
   print *, '##############################################'
 end program main
 
 subroutine set_stepping(i)
-  use kernel,          only: get_kerntype
-  use errcalc,         only: sterr => setStepsize
-  use circuit1,        only: stc1  => setStepsize
-  use circuit2,        only: stc2  => setStepsize
   use neighboursearch, only: stnb  => setStepsize
 
   integer, intent(in) :: i
-  integer :: ktp
 
-  call get_kerntype(ktp)
-  call sterr(i)
-  call stc1(i)
-  call stc2(i)
   call stnb(i)
-  print *, '# #   step.size:', i
+  print *, '# #      step.size:', i
 end subroutine set_stepping

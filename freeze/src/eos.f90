@@ -38,7 +38,7 @@ contains
     integer             :: i
 
     !$omp parallel do default(none)&
-    !$omp shared(P, den, c)&
+    !$omp shared(P, den, c, n)&
     !$omp private(i)
     do i = 1, n
       P(i) = den(i) * c * c

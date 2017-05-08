@@ -1,6 +1,6 @@
 module semiuniform
   use kernel
-  use utils, only:iresize, resize3r
+  use utils, only:resize
   use BC
 
   implicit none
@@ -63,14 +63,14 @@ contains
           if (x < brdx1 + nb * sp) then
             freeflag = 1.
             if (size(bX1) < nbnewX1) then
-              call iresize(bX1,size(bX1),size(bX1)*2)
+              call resize(bX1,size(bX1),size(bX1)*2)
             end if
             bX1(nbnewX1) = n
             nbnewX1 = nbnewX1 + 1
           else if (x > brdx2 - nb * sp - eps) then
             freeflag = 1.
             if (size(bX2) < nbnewX2) then
-              call iresize(bX2,size(bX2),size(bX2)*2)
+              call resize(bX2,size(bX2),size(bX2)*2)
             end if
             bX2(nbnewX2) = n
             nbnewX2 = nbnewX2 + 1
@@ -80,7 +80,7 @@ contains
             if (y < brdy1 + nb * sp) then
               freeflag = 1.
               if (size(bY1) < nbnewY1) then
-                call iresize(bY1,size(bY1),size(bY1)*2)
+                call resize(bY1,size(bY1),size(bY1)*2)
               end if
               bY1(nbnewY1) = n
               nbnewY1 = nbnewY1 + 1
@@ -88,7 +88,7 @@ contains
           else if (y > brdy2 - nb * sp - eps) then
               freeflag = 1.
               if (size(bY2) < nbnewY2) then
-                call iresize(bY2,size(bY2),size(bY2)*2)
+                call resize(bY2,size(bY2),size(bY2)*2)
               end if
               bY2(nbnewY2) = n
               nbnewY2 = nbnewY2 + 1
@@ -97,14 +97,14 @@ contains
               if (z < brdz1 + nb * sp) then
                 freeflag = 1.
                 if (size(bZ1) < nbnewZ1) then
-                  call iresize(bZ1,size(bZ1),size(bZ1)*2)
+                  call resize(bZ1,size(bZ1),size(bZ1)*2)
                 end if
                 bZ1(nbnewZ1) = n
                 nbnewZ1 = nbnewZ1 + 1
               else if (z > brdz2 - nb * sp - eps) then
                 freeflag = 1.
                 if (size(bZ2) < nbnewZ2) then
-                  call iresize(bZ2,size(bZ2),size(bZ2)*2)
+                  call resize(bZ2,size(bZ2),size(bZ2)*2)
                 end if
                 bZ2(nbnewZ2) = n
                 nbnewZ2 = nbnewZ2 + 1
@@ -113,7 +113,7 @@ contains
           end if
 
           if (size(pos, dim=2) < n) then
-            call resize3r(pos,size(pos, dim=2),size(pos, dim=2)*2)
+            call resize(pos,size(pos, dim=2),size(pos, dim=2)*2)
           end if
           pos(1,n) = x
           pos(2,n) = y
@@ -138,14 +138,14 @@ contains
     nbnewZ2 = nbnewZ2 - 1
     n = n - 1
 
-    call resize3r(pos,n,n)
+    call resize(pos,n,n)
 
-    write(*, "(A, F7.5, A, F7.5)") " # #   actual dx:   x1=", pspc1, "   x2=", pspc2
-    print *, '# #      placed:', n
-    print *, '# #  freenumber:', freenumber
-    print *, '# #    border-x:', nbnewX1, nbnewX2
-    print *, '# #    border-y:', nbnewY1, nbnewY2
-    print *, '# #    border-z:', nbnewZ1, nbnewZ2
+    write(*, "(A, F7.5, A, F7.5)") " # #      actual dx:   x1=", pspc1, "   x2=", pspc2
+    print *, '# #         placed:', n
+    print *, '# #     freenumber:', freenumber
+    print *, '# #       border-x:', nbnewX1, nbnewX2
+    print *, '# #       border-y:', nbnewY1, nbnewY2
+    print *, '# #       border-z:', nbnewZ1, nbnewZ2
 
     call set_particles_numbers(n, abs(nb))
     call set_border(11, nbnewX1, bX1)

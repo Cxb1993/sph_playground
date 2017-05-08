@@ -47,7 +47,7 @@ contains
 
     call system_clock(start)
 
-    print*, kinfname
+    ! print*, kinfname
 
     call get_krad(kr)
     call get_dim(kd)
@@ -99,7 +99,6 @@ contains
       if ( kinfname /= '' ) then
         dsum = dchi(1) + dchi(5) + dchi(9)
         osum = dchi(2) + dchi(4) + dchi(3) + dchi(6) + dchi(8) + dchi(7)
-        print*, j, dsum, osum
         printres = [r(:), sqrt(dot_product(r,r)), dsum, osum]
         call AppendLine(printres, kinfname, tprint)
         tneib = tneib + tprint

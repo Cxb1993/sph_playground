@@ -1,6 +1,6 @@
 module timing
 
-  use utils, only: iresize, rresize, cresize
+  use utils, only: resize
 
   implicit none
 
@@ -10,7 +10,7 @@ module timing
   save
     integer, parameter :: namelen = 15
 
-    integer, allocatable  :: timings(:)
+    integer(8), allocatable  :: timings(:)
     character(len=namelen), allocatable :: names(:)
     real :: clockrate
 
@@ -43,8 +43,8 @@ module timing
         end if
       end do
       if ( f == 0 ) then
-        call cresize(names, namelen, n, n+1)
-        call iresize(timings, n, n+1)
+        call resize(names, namelen, n, n+1)
+        call resize(timings, n, n+1)
         names(n+1)   = inkey
         timings(n+1) = inval
       end if

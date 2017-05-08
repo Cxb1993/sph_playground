@@ -12,7 +12,7 @@ module quintic
 
  contains
 
-  subroutine kf(r, h, f)
+  pure subroutine kf(r, h, f)
     real, intent(in)  :: r, h
     real, intent(out) :: f
     real              :: q
@@ -27,12 +27,15 @@ module quintic
     else if (q >= 0.) then
       f = (3. - q)**5 - 6. * (2. - q)**5 + 15. * (1. - q)**5
     else
-      print *, 'something went wrong, q =', q
-      stop
+      if (isnan(q)) then
+        error stop 'q is nan'
+      else
+        error stop 'q is negative'
+      end if
     end if
   end subroutine kf
 
-  subroutine kdf(r, h, df)
+  pure subroutine kdf(r, h, df)
     real, intent(in)  :: r, h
     real, intent(out) :: df
     real              :: q
@@ -49,12 +52,15 @@ module quintic
     else if (q == 0.) then
       df = 0.
     else
-      print *, 'something went wrong, q =', q
-      stop
+      if (isnan(q)) then
+        error stop 'q is nan'
+      else
+        error stop 'q is negative'
+      end if
     end if
   end subroutine kdf
 
-  subroutine kddf(r, h, ddf)
+  pure subroutine kddf(r, h, ddf)
     real, intent(in)  :: r, h
     real, intent(out) :: ddf
     real              :: q
@@ -69,8 +75,11 @@ module quintic
     else if (q >= 0.) then
       ddf = 20. * (3. - q)**3 - 120. * (2. - q)**3 + 300. * (1. - q)**3
     else
-      print *, 'something went wrong, q =', q
-      stop
+      if (isnan(q)) then
+        error stop 'q is nan'
+      else
+        error stop 'q is negative'
+      end if
     end if
   end subroutine kddf
 end module quintic

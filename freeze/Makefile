@@ -1,9 +1,21 @@
+#! /usr/bin/make -f
+
 FC=gfortran
 FFLAGS=-fdefault-real-8 -fdefault-double-8\
- 				-Ofast\
-				-g -Wall -Wextra -Warray-temporaries -Wconversion -fimplicit-none -fbacktrace\
+ 				-O4 \
+				-Wall -Wextra -Warray-temporaries -Wconversion -fimplicit-none -fbacktrace\
 				-ffree-line-length-0 -fcheck=all -ffpe-trap=zero,overflow,underflow,invalid -finit-real=nan\
 				-fopenmp
+
+# FC := pgfortran
+# FFLAGS=-r8 -Mallocatable=03 -mp -Mconcur=allcores -Mipa -Mprof -Minfo
+				# -ffree-line-length-0 -fcheck=all -ffpe-trap=zero,overflow,underflow,invalid -finit-real=nan
+				# -fopenmp
+				# -Wall -Wextra -Warray-temporaries -Wconversion -fimplicit-none -fbacktrace
+				# -g
+
+# kernel/base_gaus.f90\
+# kernel/n2movedgaus.f90\
 
 SRC=\
 	utils.f90\
@@ -12,23 +24,22 @@ SRC=\
 	kernel/base_cubic.f90\
 	kernel/base_quintic.f90\
 	kernel/base_external.f90\
-	kernel/base_gaus.f90\
 	kernel/base_sinq.f90\
-	kernel/n2movedgaus.f90\
 	kernel/n2ext.f90\
+	kernel/n2fromfab.f90\
 	kernel/kernel.f90\
-	args.f90\
-	printer.f90\
-	eos.f90\
+	neighboursearch.f90\
 	BC.f90\
+	printer.f90\
+	errteylor.f90\
+	args.f90\
+	eos.f90\
 	IC/uniform.f90\
 	IC/semiuniform.f90\
 	IC/IC.f90\
-	neighboursearch.f90\
 	circuit1.f90\
 	circuit2.f90\
 	errcalc.f90\
-	errteylor.f90\
 	iterator.f90\
 	main.f90
 
@@ -54,23 +65,34 @@ dtype=diff
 endif
 ifndef silent
 $(warning silent is not set, `silent=no` will be used)
-silent=no
+silent=yes
+endif
+
+ifeq ($(FC),gfortran)
+modflagout=-J
+modflaginp=-I
+endif
+ifeq ($(FC),pgfortran)
+modflagout=-module
+modflaginp=-module
 endif
 
 %.o : src/%.f90
 	@mkdir -p obj
-	$(FC) $(FFLAGS) -J mod/ -o obj/$@ -c $<
+	$(FC) $(FFLAGS) $(modflagout) mod/ -o obj/$@ -c $<
+
 IC/%.o : src/IC/%.f90
 	@mkdir -p obj/IC
 	@mkdir -p mod
-	$(FC) $(FFLAGS) -J mod/ -o obj/$@ -c $<
+	$(FC) $(FFLAGS) $(modflagout) mod/ -o obj/$@ -c $<
+
 kernel/%.o : src/kernel/%.f90
 	@mkdir -p obj/kernel
-	$(FC) $(FFLAGS) -J mod/ -o obj/$@ -c $<
+	$(FC) $(FFLAGS) $(modflagout) mod/ -o obj/$@ -c $<
 
 execute: $(OBJ)
 	@mkdir -p output
-	$(FC) $(FFLAGS) -I mod/ -o $@ $(SUBOBJ)
+	$(FC) $(FFLAGS) $(modflaginp) mod/ -o $@ $(SUBOBJ)
 
 hydroshock1:
 	make && time ./execute $(dim) hydroshock 0.1 runresult.info $(kt) 1. $(dtype) $(silent)
@@ -85,7 +107,11 @@ pheva:
 	make && time ./execute $(dim) pheva 0.002 runresult.info $(kt) -1.5 $(hf) $(dtype) $(silent)
 
 diff-laplace:
-	make && time ./execute $(dim) diff-laplace .04 runresult.info $(kt) 0.1 $(hf) $(dtype) $(silent)
+	make && time ./execute --dim $(dim)\
+			--tasktype diff-laplace --spacing .06\
+			--errfilename runresult.info --kerneltype $(kt)\
+			--tfinish 100 --hfac $(hf) --difftype $(dtype)\
+			--silent $(silent)
 
 diff-graddiv:
 	make && time ./execute $(dim) diff-graddiv .05 runresult.info $(kt) 100 $(hf) $(dtype) $(silent)
@@ -95,6 +121,20 @@ chi-laplace:
 
 chi-graddiv:
 	make && time ./execute $(dim) chi-graddiv 0.06 runresult.info $(kt) -1 $(hf) $(dtype) $(silent)
+
+inflience-graddiv:
+	make && time ./execute --dim $(dim) \
+			--tasktype chi-graddiv --spacing 0.06 \
+			--errfilename runresult.info --kerneltype $(kt)\
+			--tfinish 100 --hfac $(hf) --difftype $(dtype) \
+			--kerninfluencefile influence.info --silent $(silent)
+
+inflience-laplace:
+	make && time ./execute --dim $(dim) \
+			--tasktype chi-laplace --spacing 0.06 \
+			--errfilename runresult.info --kerneltype $(kt)\
+			--tfinish 100 --hfac $(hf) --difftype $(dtype) \
+			--kerninfluencefile output/influence.info --silent $(silent)
 
 .PHONY: execute
 

@@ -42,8 +42,8 @@ program main
   call setupIC(n, sk, gamma, cv, pspc1, pspc2, pos, vel, acc, &
                 mas, den, h, prs, iu, du, cf, kcf, dcf, ptype)
 
-  call set_stepping(2**dim)
-  ! call set_stepping(10**dim)
+  ! call set_stepping(2**dim)
+  call set_stepping(10**dim)
   print *, '#####'
   print *, '##############################################'
 
@@ -226,14 +226,10 @@ program main
 end program main
 
 subroutine set_stepping(i)
-  use circuit1,        only: stc1  => setStepsize
-  use circuit2,        only: stc2  => setStepsize
   use neighboursearch, only: stnb  => setStepsize
 
   integer, intent(in) :: i
 
-  call stc1(i)
-  call stc2(i)
   call stnb(i)
   print *, '# #      step.size:', i
 end subroutine set_stepping

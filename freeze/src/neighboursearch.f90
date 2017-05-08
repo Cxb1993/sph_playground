@@ -3,7 +3,7 @@ module neighboursearch
   use kernel, only: get_krad,&
                     get_dim,&
                     get_kerntype
-  use utils,  only: iresize
+  use utils,  only: resize
   use omp_lib
 
   implicit none
@@ -19,9 +19,10 @@ save
   type(neighbourlisttype), allocatable :: neighbours(:)
   integer, allocatable :: alllistlv1(:), alllistlv2(:)
 
-  integer :: stepsize = 1
-  integer :: initialized = 0
-  integer(8) :: start=0, finish=0
+  integer    :: stepsize = 1
+  integer    :: initialized = 0
+  integer(8) :: start = 0, finish = 0
+  real, parameter :: eps = epsilon(1.)
 contains
 
   subroutine setStepsize(i)
@@ -34,7 +35,7 @@ contains
     o = initialized
   end subroutine isInitialized
 
-  subroutine getNeibListL1(ol)
+  pure subroutine getNeibListL1(ol)
     integer, allocatable, intent(inout) :: ol(:)
     if ( .not.allocated(ol) ) then
       allocate(ol(size(alllistlv1)))
@@ -42,7 +43,7 @@ contains
     ol(:) = alllistlv1(:)
   end subroutine getNeibListL1
 
-  subroutine getNeibListL2(ol)
+  pure subroutine getNeibListL2(ol)
     integer, allocatable, intent(inout) :: ol(:)
     if ( .not.allocated(ol) ) then
       allocate(ol(size(alllistlv2)))
@@ -50,7 +51,7 @@ contains
     ol(:) = alllistlv2(:)
   end subroutine getNeibListL2
 
-  subroutine getNeibNumbers(ol1, ol2)
+  pure subroutine getNeibNumbers(ol1, ol2)
     integer, intent(out) :: ol1, ol2
 
     ol1 = 0
@@ -68,7 +69,7 @@ contains
     real, allocatable, intent(in)    :: pos(:,:), h(:)
     integer, allocatable, intent(in) :: ptype(:)
     integer, allocatable             :: tmp(:)
-    integer                          :: sn, i, j, tsz, tix, dim, kt, al1, al2
+    integer                          :: sn, i, j, k, kj, tsz, tix, dim, kt, al1, al2
     real                             :: r2, r(3), kr
     call system_clock(start)
 
@@ -88,8 +89,8 @@ contains
     if (stepsize /= 1) then
       allocate(alllistlv1(sn))
       allocate(alllistlv2(sn))
-      alllistlv1(:) = -1
-      alllistlv2(:) = -1
+      alllistlv1(:) = 0
+      alllistlv2(:) = 0
       al1 = 1
       al2 = 1
     end if
@@ -97,10 +98,10 @@ contains
     !$omp parallel do default(none)&
     !$omp shared(pos, ptype, h, sn, kr, neighbours, dim, stepsize, kt)&
     !$omp shared(al1, al2, alllistlv1, alllistlv2)&
-    !$omp private(i, j, tix, r, r2, tsz, tmp)
+    !$omp private(i, j, k, kj, tix, r, r2, tsz, tmp)
     do i=1,sn,stepsize
-      ! if ((ptype(i) /= 0) .or. (kt == 3)) then
       if (ptype(i) /= 0) then
+        alllistlv2(i) = 1
         if (dim == 1) then
           allocate(neighbours(i)%list(10))
         else if (dim == 2) then
@@ -113,42 +114,42 @@ contains
           if (i /= j) then
             r(:) = pos(:,i) - pos(:,j)
             r2 = dot_product(r(:),r(:))
-            if (r2 < (kr * h(i))**2) then
+            if (r2 < (kr * h(i))**2 + eps) then
               tix = tix + 1
               tsz = size(neighbours(i)%list)
               if (tsz < tix) then
-                call iresize(neighbours(i)%list, tsz, tsz * 2)
+                call resize(neighbours(i)%list, tsz, tsz * 2)
               end if
               neighbours(i)%list(tix) = j
-              !$omp critical
-              if (.not.any(alllistlv2 == j)) then
-                alllistlv2(al2) = j
-                al2 = al2 + 1
-              end if
-              !$omp end critical
+              alllistlv2(j) = 1
             end if
           end if
         end do
         tsz = size(neighbours(i)%list)
         if (tsz /= tix) then
-          call iresize(neighbours(i)%list, tix, tix)
+          call resize(neighbours(i)%list, tix, tix)
         end if
         !$omp critical
         alllistlv1(al1) = i
         al1 = al1 + 1
-        if (.not.any(alllistlv2 == i)) then
-          alllistlv2(al2) = i
-          al2 = al2 + 1
-        end if
         !$omp end critical
       end if
     end do
     !$omp end parallel do
     al1 = al1 - 1
+    call resize(alllistlv1, al1, al1)
+
+    do i = 1,sn
+      if ( alllistlv2(i) == 1 ) then
+        alllistlv2(al2) = i
+        al2 = al2 + 1
+      end if
+    end do
     al2 = al2 - 1
-    call iresize(alllistlv1, al1, al1)
-    call iresize(alllistlv2, al2, al2)
+    call resize(alllistlv2, al2, al2)
+
     initialized = 1.
+
     call system_clock(finish)
     call addTime(' neibs', finish - start)
   end subroutine findneighbours
@@ -211,11 +212,11 @@ contains
       if ( j /= idx ) then
         r(:) = pos(:,idx) - pos(:,j)
         r2 = dot_product(r(:),r(:))
-        if (r2 < (kr * h(idx))**2) then
+        if (r2 < (kr * h(idx))**2 + eps) then
           tix = tix + 1
           tsz = size(nlist)
           if (tsz < tix) then
-            call iresize(nlist, tsz, tsz * 2)
+            call resize(nlist, tsz, tsz * 2)
           end if
           nlist(tix) = j
         end if
@@ -223,7 +224,7 @@ contains
     end do
     tsz = size(nlist)
     if (tsz /= tix) then
-      call iresize(nlist, tix, tix)
+      call resize(nlist, tix, tix)
     end if
 
     if (.not.allocated(neighbours)) then

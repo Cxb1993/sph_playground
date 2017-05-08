@@ -26,6 +26,7 @@ SRC=\
 	kernel/base_external.f90\
 	kernel/base_sinq.f90\
 	kernel/n2ext.f90\
+	kernel/n2fromfab.f90\
 	kernel/kernel.f90\
 	neighboursearch.f90\
 	BC.f90\
@@ -106,7 +107,11 @@ pheva:
 	make && time ./execute $(dim) pheva 0.002 runresult.info $(kt) -1.5 $(hf) $(dtype) $(silent)
 
 diff-laplace:
-	make && time ./execute $(dim) diff-laplace .04 runresult.info $(kt) 0.1 $(hf) $(dtype) $(silent)
+	make && time ./execute --dim $(dim)\
+			--tasktype diff-laplace --spacing .06\
+			--errfilename runresult.info --kerneltype $(kt)\
+			--tfinish 100 --hfac $(hf) --difftype $(dtype)\
+			--silent $(silent)
 
 diff-graddiv:
 	make && time ./execute $(dim) diff-graddiv .05 runresult.info $(kt) 100 $(hf) $(dtype) $(silent)

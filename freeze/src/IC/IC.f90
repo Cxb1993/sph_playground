@@ -233,31 +233,8 @@ contains
         kcf(i) = kcf1
         prs(i) = prs1
         iu(i)  = prs1/(g-1)/(1-cf(i))/rho1
-      case (5, 7)
-        ! diff-laplace
-        den(i) = rho1
-        mas(i) = (sp**dim) * rho1
-        v(:,i) = 0.
-        if (dim == 1) then
-          v(1,i) = sin(period*x(1,i))
-          ! v(1,i) = sin(period*x(1,i)) * x(1,i)
-        elseif ( dim == 2 ) then
-          v(1,i) = sin(period*x(1,i))
-          v(2,i) = sin(period*x(2,i))
-          ! v(1,i) = sin(period*x(1,i)) * x(2,i)
-          ! v(2,i) = sin(period*x(2,i)) * x(1,i)
-        elseif ( dim == 3 ) then
-          v(1,i) = sin(period*x(1,i))
-          v(2,i) = sin(period*x(2,i))
-          v(3,i) = sin(period*x(3,i))
-          ! v(1,i) = sin(period*x(1,i)) * x(2,i)
-          ! v(2,i) = sin(period*x(2,i)) * x(3,i)
-          ! v(3,i) = sin(period*x(3,i)) * x(1,i)
-        !   v(1,i) = v(1,i) * sin(period*x(2,i))
-        !   v(1,i) = v(1,i) * sin(period*x(3,i))
-        end if
-      case(6, 8)
-        ! diff-graddiv
+      case(5, 6, 7, 8)
+        ! diff-graddiv ! diff-laplace ! chi-laplace ! chi-graddiv
         den(i) = rho1
         mas(i) = (sp**dim) * rho1
         ! v(:,i)  = sin(period*x(:,i))*cos(period*x(:,i)**2)
