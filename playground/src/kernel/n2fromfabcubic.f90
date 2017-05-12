@@ -1,4 +1,4 @@
-module n2fromfab
+module n2fromfabcubic
   use const
   implicit none
 

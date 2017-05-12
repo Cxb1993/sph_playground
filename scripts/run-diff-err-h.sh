@@ -5,12 +5,14 @@ dimlist='1 2 3'
 # dimlist=$1
 # dimlist='1 2'
 # tasktype='diff-laplace'
-tasktype='chi-laplace'
+tasklist='chi-graddiv chi-laplace'
+# tasktype='chi-laplace'
 # tasktype=$2
 # ktype='n2w'
-ktype='fab'
+# ktype='fab'
 # ktype='2nw'
-execnamelist='execute'
+kernellist='n2w fab'
+execname='execute'
 storebase=`pwd`
 dtprefix=`date +%Y%m%d%H%M`
 # kernelPrefix='quintic'
@@ -19,10 +21,11 @@ kernelPrefix='cubic'
 # kernelPrefix='sinc'
 difftype='diff'
 # difftype='symm'
-
+#----------------------------
+calcinfluence='no'
 tfinish='100'
 spstart='1.'
-spend='10.'
+spend='2.'
 # spend='3.'
 spstep='.01'
 tstep=$spstart
@@ -33,21 +36,21 @@ while [[ $flag -eq "1" ]]; do
   tstep=`echo "$tstep + $spstep" | bc`
   flag=`echo "$tstep < $spend" | bc`
 done
-# spacing='0.2 0.19 0.2 0.19'
+# spacing='0.2'
 echo "Spacings: $spacing"
 
 echo '' > result.info
 `mkdir -p output/1 output/2 output/3`
 for dim in $dimlist; do
-  it=0
-  for psp in $spacing; do
-    for execname in $execnamelist; do
-      for k in $ktype; do
-        fullkernel=$kernelPrefix' '$k
-        errfname=$dtprefix'-'$tasktype'-'$difftype'-'$dim'D-'$k
+  for curtask in $tasklist; do
+    for curkern in $kernellist; do
+      fullkernel=$kernelPrefix' '$curkern
+      errfname=$dtprefix'-'$curtask'-'$difftype'-'$dim'D-'$curkern
+      it=0
 
+      for psp in $spacing; do
         if [ "$it" = "0" ]; then
-          header='ARG. '$fullkernel'. '$tasktype'. '$difftype'. '
+          header='ARG. '$fullkernel'. '$curtask'. '$difftype'. '
           header=$header$dim'D. {| dx | partN | err l2 | 2nd err term | hfac |}'
           `echo $header > $errfname`
         fi
@@ -64,12 +67,17 @@ for dim in $dimlist; do
             iti=$it
           fi
         fi
-        `echo "hfac=$psp\n" > output/$dim/influence$iti.info`
 
-        runcmd="time ./$execname --dim $dim --tasktype $tasktype --spacing 0.06 \
-                      --errfilename $errfname --kerneltype $k --tfinish $tfinish \
-                      --kerninfluencefile output/$dim/influence$iti.info \
-                      --hfac $psp --difftype $difftype --silent yes &>/dev/null"
+        runcmd="time ./$execname --dim $dim --tasktype $curtask --spacing 0.06 \
+                      --errfilename $errfname --kerneltype $curkern --tfinish $tfinish \
+                      --hfac $psp --difftype $difftype --silent yes"
+
+        if [ "$calcinfluence" = "yes" ]; then
+          `echo "hfac=$psp\n" > output/$dim/influence$iti.info`
+          runcmd="$runcmd --kerninfluencefile output/$dim/influence$iti.info"
+        fi
+
+        runcmd="$runcmd &>/dev/null"
         echo $runcmd
         runresult=`echo '\n' | $runcmd`
         echo "$runresult" >> result.info
@@ -80,9 +88,9 @@ for dim in $dimlist; do
         # echo "$runresult" >> result.info
         # `rm -rf output/*`
         # echo -e "\nDone $tasktype $fullkernel $psp\n"
+        it=$((it+1))
       done
     done
-    it=$((it+1))
   done
 done
 runcmd="zip -9 -r output.zip ./output/*"

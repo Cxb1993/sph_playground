@@ -26,18 +26,18 @@ module n2ext
     real              :: q
 
     q = r / h
-    if (q <= 0.0) then
+    if (q >= 2.) then
+      f  = 0.
+    else if (q >= 1.) then
+      f  = 0.25 * (2. - q)**3
+    else if (q >= 0.) then
+      f  = 0.25 * (2. - q)**3 - (1. - q)**3
+    else
       if (isnan(q)) then
         error stop 'q is nan'
       else
         error stop 'q is negative'
       end if
-    elseif ( q < 1.0 ) then
-      f  = 0.25 * (2. - q)**3 - (1. - q)**3
-    elseif ( q < 2.0 ) then
-      f  = 0.25 * (2. - q)**3
-    else
-      f  = 0.
     end if
   end subroutine n2f
 
@@ -47,20 +47,19 @@ module n2ext
     real              :: q
 
     q = r / h
-    if (q <= 0.0) then
+    if (q >= 2.) then
+      df = 0.
+    else if (q >= 1.) then
+      df = (- 0.75 * ((2. - q) ** 2)) / q
+    else if (q >= 0.) then
+      df = -3. + 2.25 * q
+    else
       if (isnan(q)) then
         error stop 'q is nan'
       else
         error stop 'q is negative'
       end if
-    elseif ( q < 1.0 ) then
-      df = -3. + 2.25 * q
-    elseif ( q < 2.0 ) then
-      df = (- 0.75 * ((2. - q) ** 2)) / q
-    else
-      df = 0.
     end if
-    ! df = df / q
   end subroutine n2df
 
   pure subroutine n2ddf(r, h, ddf)
@@ -69,18 +68,18 @@ module n2ext
     real              :: q
 
     q = r / h
-    if (q <= 0.0) then
+    if (q >= 2.) then
+      ddf = 0.
+    else if (q >= 1.) then
+      ddf = 3. - 1.5 * q
+    else if (q >= 0.) then
+      ddf = -3. + 4.5 * q
+    else
       if (isnan(q)) then
         error stop 'q is nan'
       else
         error stop 'q is negative'
       end if
-    elseif ( q < 1.0 ) then
-      ddf = -3. + 4.5 * q
-    elseif ( q < 2.0 ) then
-      ddf = 3. - 1.5 * q
-    else
-      ddf = 0.
     end if
   end subroutine n2ddf
 end module n2ext

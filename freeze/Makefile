@@ -26,7 +26,7 @@ SRC=\
 	kernel/base_external.f90\
 	kernel/base_sinq.f90\
 	kernel/n2ext.f90\
-	kernel/n2fromfab.f90\
+	kernel/n2fromfabcubic.f90\
 	kernel/kernel.f90\
 	neighboursearch.f90\
 	BC.f90\

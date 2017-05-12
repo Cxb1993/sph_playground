@@ -1,4 +1,4 @@
-module n2fromfab
+module n2fromfabcubic
   use const
   implicit none
 
@@ -8,7 +8,7 @@ module n2fromfab
   private
     real, parameter :: n2C(3) = (/  2./3., 10./(7. * pi), 1./(pi) /)
 
-    character (len=10) :: n2Name=' genesis '
+    character (len=10) :: n2Name = ' genesis '
     real               :: n2R = 2.0, n2Cv
     integer            :: dim
 
@@ -40,7 +40,7 @@ module n2fromfab
       elseif ( q < 1.0 ) then
         f = -0.75*q**3 + 3.0*q**2 - 4.15888308335967*q + 2.0
       elseif ( q < 2.0 ) then
-        f  = 0.25*q**3 - 3.0*q**2 + 6.0*q*log(q) - 1.15888308335967*q + 4.0
+        f = 0.25*q**3 - 3.0*q**2 + 6.0*q*log(q) - 1.15888308335967*q + 4.0
       else
         f = .0
       end if

@@ -1,9 +1,10 @@
 module kernel
   use const
-  use cubic
+  ! use cubic
   ! use n2movedgaus
-  use n2ext
-  ! use n2fromfab
+  ! use n2ext
+  ! use n2fromfabcubic
+  use n2fromWcubic
   ! use quintic
   ! use gaus
   ! use sinc
@@ -118,34 +119,34 @@ module kernel
   ! W kernel !------------------------------------------------------------------
   !----------!
   !
-  pure subroutine get_w(r, h, w)
-    real, intent(in)  :: r, h
-    real, intent(out) :: w
-    real              :: f
-
-    call kf(r, h, f)
-    w = knorm(dim) * f / h ** dim
-  end subroutine get_w
-
-  pure subroutine get_nw(rab, h, nw)
-    real, intent(in)  :: rab(3), h
-    real, intent(out) :: nw(3)
-    real              :: df
-
-    call kdf(sqrt(dot_product(rab(:),rab(:))), h, df)
-
-    nw(:) = knorm(dim) * df * rab(:) / h**(dim+2)
-  end subroutine get_nw
-
-  pure subroutine get_dw_dh(r, h, dwdh)
-    real, intent(in)  :: r, h
-    real, intent(out) :: dwdh
-    real              :: f, df
-
-    call kf(r, h, f)
-    call kdf(r, h, df)
-    dwdh = - knorm(dim) * (dim * f + r * df / h) / h ** (dim + 1)
-  end subroutine get_dw_dh
+  ! pure subroutine get_w(r, h, w)
+  !   real, intent(in)  :: r, h
+  !   real, intent(out) :: w
+  !   real              :: f
+  !
+  !   call kf(r, h, f)
+  !   w = knorm(dim) * f / h ** dim
+  ! end subroutine get_w
+  !
+  ! pure subroutine get_nw(rab, h, nw)
+  !   real, intent(in)  :: rab(3), h
+  !   real, intent(out) :: nw(3)
+  !   real              :: df
+  !
+  !   call kdf(sqrt(dot_product(rab(:),rab(:))), h, df)
+  !
+  !   nw(:) = knorm(dim) * df * rab(:) / h**(dim+2)
+  ! end subroutine get_nw
+  !
+  ! pure subroutine get_dw_dh(r, h, dwdh)
+  !   real, intent(in)  :: r, h
+  !   real, intent(out) :: dwdh
+  !   real              :: f, df
+  !
+  !   call kf(r, h, f)
+  !   call kdf(r, h, df)
+  !   dwdh = - knorm(dim) * (dim * f + r * df / h) / h ** (dim + 1)
+  ! end subroutine get_dw_dh
   !
   ! pure subroutine get_Fab(r, h, Fab)
   !   real, intent(in)  :: r(3), h
@@ -238,37 +239,37 @@ module kernel
 ! ---------!
 ! Y kernel !--------------------------------------------------------------------
 !----------!
-  !
-  ! pure subroutine get_w(r, h, w)
-  !   real, intent(in)  :: r, h
-  !   real, intent(out) :: w
-  !   real              :: f
-  !
-  !   call n2f(r, h, f)
-  !   w = n2Cv * f / h ** dim
-  ! end subroutine get_w
-  !
-  ! ! pure subroutine get_nw(rab, h, nw)
+
+  pure subroutine get_w(r, h, w)
+    real, intent(in)  :: r, h
+    real, intent(out) :: w
+    real              :: f
+
+    call n2f(r, h, f)
+    w = n2Cv * f / h ** dim
+  end subroutine get_w
+
   ! pure subroutine get_nw(rab, h, nw)
-  !   real, intent(in)  :: rab(3), h
-  !   real, intent(out) :: nw(3)
-  !   real              :: df
-  !
-  !   call n2df(sqrt(dot_product(rab(:),rab(:))), h, df)
-  !
-  !   nw(:) = n2Cv * df * rab(:) / h**(dim+2)
-  ! end subroutine get_nw
-  !
-  ! ! pure subroutine get_dw_dh(r, h, dwdh)
-  ! subroutine get_dw_dh(r, h, dwdh)
-  !   real, intent(in)  :: r, h
-  !   real, intent(out) :: dwdh
-  !   real              :: f, df
-  !
-  !   call n2f(r, h, f)
-  !   call n2df(r, h, df)
-  !   dwdh = - n2Cv * (dim * f + r * df / h) / h ** (dim + 1)
-  ! end subroutine get_dw_dh
+  pure subroutine get_nw(rab, h, nw)
+    real, intent(in)  :: rab(3), h
+    real, intent(out) :: nw(3)
+    real              :: df
+
+    call n2df(sqrt(dot_product(rab(:),rab(:))), h, df)
+
+    nw(:) = n2Cv * df * rab(:) / h**(dim+2)
+  end subroutine get_nw
+
+  ! pure subroutine get_dw_dh(r, h, dwdh)
+  subroutine get_dw_dh(r, h, dwdh)
+    real, intent(in)  :: r, h
+    real, intent(out) :: dwdh
+    real              :: f, df
+
+    call n2f(r, h, f)
+    call n2df(r, h, df)
+    dwdh = - n2Cv * (dim * f + r * df / h) / h ** (dim + 1)
+  end subroutine get_dw_dh
 
   pure subroutine get_nY(rab, h, ny)
     real, intent(in)  :: rab(3), h
