@@ -4,6 +4,7 @@ module kernel
   ! use n2movedgaus
   use n2ext
   ! use n2fromfabcubic
+  ! use n2fromWcubic
   ! use quintic
   ! use gaus
   ! use sinc
@@ -117,7 +118,7 @@ module kernel
   ! ---------!
   ! W kernel !------------------------------------------------------------------
   !----------!
-  !
+
   ! pure subroutine get_w(r, h, w)
   !   real, intent(in)  :: r, h
   !   real, intent(out) :: w

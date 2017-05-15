@@ -185,13 +185,14 @@ program main
   !----------------------------------------!
   select case(tt)
   case(5, 7)
-    ! 'diff-laplace'
+    ! diff-laplace ! chi-laplace
     call etlaplace(pos, mas, den, h, chi)
     result(4) = sum(chi(1:9))/dim
     result(6:14) = chi(1:9)
     printlen = 14
+    ! print(result(4))
   case(6, 8)
-    ! 'diff-graddiv'
+    ! diff-graddiv ! chi-graddiv
     call etgraddiv(pos, mas, den, h, chi)
     if ( dim == 1) then
       result(4) = sum(chi)

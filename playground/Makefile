@@ -118,10 +118,18 @@ diff-graddiv:
 	make && time ./execute $(dim) diff-graddiv .05 runresult.info $(kt) 100 $(hf) $(dtype) $(silent)
 
 chi-laplace:
-	make && time ./execute $(dim) chi-laplace 0.06 runresult.info $(kt) -1 $(hf) $(dtype) $(silent)
+	make && time ./execute --dim $(dim)\
+			--tasktype chi-laplace --spacing .06\
+			--errfilename runresult.info --kerneltype $(kt)\
+			--tfinish -1 --hfac $(hf) --difftype $(dtype)\
+			--silent $(silent)
 
 chi-graddiv:
-	make && time ./execute $(dim) chi-graddiv 0.06 runresult.info $(kt) -1 $(hf) $(dtype) $(silent)
+	make && time ./execute --dim $(dim)\
+			--tasktype chi-graddiv --spacing .06\
+			--errfilename runresult.info --kerneltype $(kt)\
+			--tfinish -1 --hfac $(hf) --difftype $(dtype)\
+			--silent $(silent)
 
 inflience-graddiv:
 	make && time ./execute --dim $(dim) \

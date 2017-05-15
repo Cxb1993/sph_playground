@@ -1,4 +1,6 @@
 module IC
+  use omp_lib
+
   use timing, only: addTime
   use utils
   use const
@@ -187,6 +189,12 @@ contains
     !-----------------
     ! particles values
     !-----------------
+
+    !$omp parallel do default(none)&
+    !$omp private(i, sp)&
+    !$omp shared(n, pspc1, pspc2, x, sln, den, prs, mas, iu, g, rho1, rho2)&
+    !$omp shared(cf, kcf, dim, sk, tt, prs1, prs2, cf1, cf2, kcf1, kcf2, cv)&
+    !$omp shared(brdx2, brdx1, v0, v, period)
     do i=1,n
       sp = merge(pspc1, pspc2, x(1,i) < 0)
       sln(i) = sk * sp
@@ -272,6 +280,7 @@ contains
         stop
       end select
     end do
+    !$omp end parallel do
     call system_clock(finish)
     call addTime(' ic', finish - start)
   end subroutine setupIC
