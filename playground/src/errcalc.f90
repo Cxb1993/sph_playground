@@ -35,32 +35,37 @@ contains
     !$OMP END PARALLEL
   end subroutine err_T0sxsyet
 
-  subroutine err_sinxet(ptype, num, t, err, count)
+  subroutine err_sinxet(ptype, x, num, t, err)
     integer, allocatable, intent(in) :: ptype(:)
-    real, allocatable, intent(in)    :: num(:)
+    real, allocatable, intent(in)    :: num(:), x(:,:)
     real, allocatable, intent(inout) :: err(:)
-    integer, intent(inout)           :: count
     real, intent(in)                 :: t
 
-    integer             :: i, n
+    integer             :: i, n, dim
     real                :: exact
 
-    print*, 'Not ready to NBS will divide to random number'
-
+    call get_dim(dim)
     n = size(ptype)
-    count = 0
     err(1:n) = 0.
     !$omp parallel do default(none) &
-    !$omp shared(n,num,err,t,ptype) &
-    !$omp private(exact, i)&
-    !$omp reduction(+:count)
+    !$omp shared(n,num,err,t,ptype, x, dim) &
+    !$omp private(exact, i)
     do i=1,n
-      ! if (ptype(i) /= 0) then
-      !   exact = tsin(i) * exp(-pi**2 * t)
-      !   err(i) = (exact - num(i))**2
-      !   count = count + 1
-      ! end if
-      err(i) = -100000000.
+      exact = 0.
+      if (ptype(i) /= 0) then
+        if ( dim == 1) then
+          exact = sin(pi * (x(1,i) + 1.) / 2.) * exp(-(pi/2.)**2 * 0.1 * t)
+        elseif ( dim == 2 ) then
+          exact = sin(pi * (x(1,i) + 1.) / 2.) * &
+                  sin(pi * (x(2,i) + 1.) / 2.) * exp(-2 * (pi/2.)**2 * 0.1 * t)
+        elseif ( dim == 3 ) then
+          exact = sin(pi * (x(1,i) + 1.) / 2.) * &
+                  sin(pi * (x(2,i) + 1.) / 2.) * &
+                  sin(pi * (x(3,i) + 1.) / 2.) * exp(-3 * (pi/2.)**2 * 0.1 * t)
+        end if
+
+        err(i) = (exact - num(i))**2
+      end if
     end do
     !$omp end parallel do
   end subroutine err_sinxet

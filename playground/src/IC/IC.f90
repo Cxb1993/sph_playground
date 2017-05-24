@@ -10,8 +10,8 @@ module IC
                     get_dim
   use BC
   use initpositions,  only: uniform,&
+                            semiuniform,&
                             place_close_packed_fcc
-  use semiuniform
 
   implicit none
 
@@ -50,10 +50,24 @@ contains
       ! hydroshock
       brdx1 = -.5
       brdx2 = .5
-      nb = 4
-      pspc1 = 0.001
-      pspc2 = 0.008
-      call make_semiuniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x)
+      if ( dim > 1) then
+        brdy1 = -.5
+        brdy2 = .5
+      else
+        brdy1 = 0.
+        brdy2 = 0.
+      end if
+      if ( dim == 3 ) then
+        brdz1 = -.5
+        brdz2 = .5
+      else
+        brdz1 = 0.
+        brdz2 = 0.
+      end if
+      ! pspc1 = 0.001
+      pspc2 = pspc2 * 8
+      nb = int(kr * sk)*2
+      call semiuniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
     case (2)
       ! infslb
       nb = 1
@@ -65,19 +79,20 @@ contains
       nptcs = int((brdx2-brdx1)/pspc1)
       pspc1 = merge(0.,(brdx2-brdx1)/nptcs, nptcs == 0)
       if (dim > 1) then
-        brdy1 = - int(kr * sk) * pspc1 * 2
-        brdy2 =   int(kr * sk) * pspc1 * 2
+        brdy1 = -1.
+        brdy2 =  1.
       else
         brdy1 = 0.
         brdy2 = 0.
       end if
       if (dim == 3) then
-        brdz1 = - int(kr * sk) * pspc1 * 2
-        brdz2 =   int(kr * sk) * pspc1 * 2
+        brdz1 = -1.
+        brdz2 =  1.
       else
         brdz1 = 0.
         brdz2 = 0.
       end if
+      ! nb = 1
       nb = int(kr * sk) + 1
       call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
     case (4)
@@ -155,9 +170,9 @@ contains
       ! hydroshock
       g = 1.4
       prs1 = 1.
-      prs2 = 0.1
+      prs2 = prs1 / 10.
       rho1 = 1.
-      rho2 = 0.125
+      rho2 = rho1 / 8.
     case (2)
       ! infslb
       g = 1.4
@@ -167,7 +182,8 @@ contains
       cf2 = 1.
     case (3)
       ! hc-sinx ! chi-laplace
-      rho1 = 1.
+      ! ptype(:) = 1
+      rho1 = 10.
       kcf1 = 1.
     case (4)
       ! pheva
@@ -194,7 +210,7 @@ contains
     !$omp private(i, sp)&
     !$omp shared(n, pspc1, pspc2, x, sln, den, prs, mas, iu, g, rho1, rho2)&
     !$omp shared(cf, kcf, dim, sk, tt, prs1, prs2, cf1, cf2, kcf1, kcf2, cv)&
-    !$omp shared(brdx2, brdx1, v0, v, period)
+    !$omp shared(brdx2, brdx1, brdy2, brdy1, brdz2, brdz1, v0, v, period, ptype)
     do i=1,n
       sp = merge(pspc1, pspc2, x(1,i) < 0)
       sln(i) = sk * sp
@@ -230,7 +246,21 @@ contains
         den(i) = rho1
         kcf(i) = kcf1
         prs(i) = prs1
-        cf(i)  = sin(2 * pi * (x(1,i) - brdx2) / abs(brdx2-brdx1))
+        if ( ptype(i) == 0 ) then
+          cf(i) = 0
+          ptype(i) = 1
+        else
+          if ( dim == 1) then
+            cf(i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1))
+          elseif ( dim == 2 ) then
+            cf(i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1)) * &
+                     sin(pi * (x(2,i) - brdy1) / abs(brdy2-brdy1))
+          elseif ( dim == 3 ) then
+            cf(i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1)) * &
+                     sin(pi * (x(2,i) - brdy1) / abs(brdy2-brdy1)) * &
+                     sin(pi * (x(3,i) - brdz1) / abs(brdz2-brdz1))
+          end if
+        end if
         iu(i) = cf(i) / cv
       case (4)
         ! pheva

@@ -9,7 +9,7 @@ module neighboursearch
   implicit none
 
 public findneighbours, getneighbours, setStepsize, isInitialized,&
-       getNeibListL1, getNeibListL2, getNeibNumbers
+       getNeibListL1, getNeibListL2, getNeibNumbers, destroy
 
 private
 save
@@ -80,20 +80,36 @@ contains
 
     if(allocated(neighbours)) then
       do i=1,sn,stepsize
-        deallocate(neighbours(i)%list)
+        if (allocated(neighbours(i)%list)) then
+          neighbours(i)%list = -1
+          ! deallocate(neighbours(i)%list)
+        end if
       end do
-      deallocate(neighbours)
+      ! deallocate(neighbours)
+    else
+      allocate(neighbours(sn))
     end if
-    allocate(neighbours(sn))
 
-    if (stepsize /= 1) then
-      allocate(alllistlv1(sn))
-      allocate(alllistlv2(sn))
-      alllistlv1(:) = 0
-      alllistlv2(:) = 0
-      al1 = 1
-      al2 = 1
+    if (allocated(alllistlv1)) then
+      deallocate(alllistlv1)
+      deallocate(alllistlv2)
     end if
+
+    allocate(alllistlv1(sn))
+    allocate(alllistlv2(sn))
+
+    ! ---------------------
+    ! what if ss == 1?
+    ! it broke hydroshock
+    ! don't remember the reason
+    !  to check it
+    ! ---------------------
+    ! if (stepsize /= 1) then
+    alllistlv1(:) = 0
+    alllistlv2(:) = 0
+    al1 = 1
+    al2 = 1
+    ! end if
 
     !$omp parallel do default(none)&
     !$omp shared(pos, ptype, h, sn, kr, neighbours, dim, stepsize, kt)&
@@ -102,12 +118,14 @@ contains
     do i=1,sn,stepsize
       if (ptype(i) /= 0) then
         alllistlv2(i) = 1
-        if (dim == 1) then
-          allocate(neighbours(i)%list(10))
-        else if (dim == 2) then
-          allocate(neighbours(i)%list(50))
-        else
-          allocate(neighbours(i)%list(100))
+        if (.not.(allocated(neighbours(i)%list))) then
+          if (dim == 1) then
+            allocate(neighbours(i)%list(10))
+          else if (dim == 2) then
+            allocate(neighbours(i)%list(50))
+          else
+            allocate(neighbours(i)%list(100))
+          end if
         end if
         tix = 0
         do j=1,sn
@@ -235,4 +253,24 @@ contains
     end if
     neighbours(idx)%list(:) = nlist(:)
   end subroutine findneighboursonce
+
+  subroutine destroy()
+    integer :: i, sn
+
+    if(allocated(neighbours)) then
+      sn = size(neighbours)
+      do i=1,sn
+        if (allocated(neighbours(i)%list)) then
+          deallocate(neighbours(i)%list)
+        end if
+      end do
+      deallocate(neighbours)
+      if (allocated(alllistlv1)) then
+        deallocate(alllistlv1)
+      end if
+      if (allocated(alllistlv2)) then
+        deallocate(alllistlv2)
+      end if
+    end if
+  end subroutine
 end module neighboursearch

@@ -8,7 +8,7 @@ module circuit1
 
   implicit none
 
-  public :: c1_init, c1, c1a
+  public :: c1_init, c1, c1a, destroy
 
   private
   save
@@ -22,6 +22,11 @@ contains
     allocate(resid(n))
   end subroutine c1_init
 
+  subroutine destroy()
+    deallocate(slnint)
+    deallocate(resid)
+  end subroutine
+
   subroutine c1(ptype, pos, mas, vel, sk, h, den, om, dfdx)
     real, allocatable, intent(in)    :: pos(:,:), mas(:), vel(:,:)
     real, allocatable, intent(inout) :: h(:), den(:), om(:), dfdx(:,:,:)
@@ -29,7 +34,7 @@ contains
     real, intent(in)     :: sk
     real                 :: w, dwdh, r(3), dr, r2, dfdh, fh, hn, vba(3), nw(3)
     real                 :: allowerror
-    integer              :: n, ni, nj, i, j, la, lb, dim, iter, ktp
+    integer              :: n, ni, nj, i, j, la, lb, dim, iter, ktp, tt
     integer(8)           :: t0, tneib
     integer, allocatable :: nlista(:), nlistb(:)
     call system_clock(start)
@@ -64,7 +69,9 @@ contains
         if (resid(i) > allowerror) then
           den(i)  = 0.
           om(i)   = 0.
-          dfdx(:,:,i) = 0.
+          if ( ktp == 3 ) then
+            dfdx(:,:,i) = 0.
+          end if
           call getneighbours(i, pos, h, nlistb, t0)
           tneib = tneib + t0
           do lb = 1, size(nlistb)
@@ -80,16 +87,18 @@ contains
             ! print*,0
             den(i) = den(i) + mas(j) * w
             om(i) = om(i) + mas(j) * dwdh
-            vba(:) = vel(:,j) - vel(:,i)
-            call get_nw(r, h(i), nw)
-            do ni = 1,dim
-              do nj = 1,dim
-                ! diff without omega
-                ! dfdx(ni,nj,i) = dfdx(ni,nj,i) + mas(j)/den(j)*vba(ni)*nw(nj)
-                ! diff
-                dfdx(ni,nj,i) = dfdx(ni,nj,i) + mas(j)*vba(ni)*nw(nj)
+            if ( ktp == 3 ) then
+              vba(:) = vel(:,j) - vel(:,i)
+              call get_nw(r, h(i), nw)
+              do ni = 1,dim
+                do nj = 1,dim
+                  ! diff without omega
+                  ! dfdx(ni,nj,i) = dfdx(ni,nj,i) + mas(j)/den(j)*vba(ni)*nw(nj)
+                  ! diff
+                  dfdx(ni,nj,i) = dfdx(ni,nj,i) + mas(j)*vba(ni)*nw(nj)
+                end do
               end do
-            end do
+            end if
           end do
           ! -------------------------------------------------------!
           !      There is no particle itself in neighbour list     !
@@ -105,7 +114,9 @@ contains
           ! print*,4
           om(i) = 1. - om(i) * (- slnint(i) / (dim * den(i)))
           ! print*,5
-          dfdx(:,:,i) = dfdx(:,:,i) / om(i) / den(i)
+          if ( ktp == 3 ) then
+            dfdx(:,:,i) = dfdx(:,:,i) / om(i) / den(i)
+          end if
           ! print*,6
           dfdh = - dim * den(i) * om(i) / slnint(i)
           ! print*,7
