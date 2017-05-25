@@ -25,6 +25,7 @@ contains
     do i=1,oldsize
       array(i) = tmp(i)
     end do
+    ! deallocate(tmp)
   end subroutine
 
   pure subroutine i8resize(array, oldsize, newsize)
@@ -42,6 +43,7 @@ contains
     do i=1,oldsize
       array(i) = tmp(i)
     end do
+    ! deallocate(tmp)
   end subroutine
 
   pure subroutine rresize(array, oldsize, newsize)
@@ -59,12 +61,13 @@ contains
     do i=1,oldsize
       array(i) = tmp(i)
     end do
+    ! deallocate(tmp)
   end subroutine
 
   pure subroutine cresize(array, chsz, oldsize, newsize)
     integer, intent(in)                          :: newsize, oldsize, chsz
     character(len=*), allocatable, intent(inout) :: array(:)
-    character(len=chsz), allocatable               :: tmp(:)
+    character(len=chsz), allocatable             :: tmp(:)
     integer                                      :: i
 
     allocate(tmp(newsize))
@@ -76,6 +79,7 @@ contains
     do i=1,oldsize
       array(i) = tmp(i)
     end do
+    ! deallocate(tmp)
   end subroutine
 
   pure subroutine resize3r(array, oldsize, newsize)
@@ -93,5 +97,6 @@ contains
     do i=1,oldsize
       array(:,i) = tmp(:,i)
     end do
+    ! deallocate(tmp)
   end subroutine
 end module utils

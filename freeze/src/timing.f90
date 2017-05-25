@@ -4,7 +4,7 @@ module timing
 
   implicit none
 
-  public :: printTimes, addTime, init
+  public :: printTimes, addTime, init, destroy
 
   private
   save
@@ -17,14 +17,18 @@ module timing
   contains
 
   subroutine init()
-  integer(8) :: cr, cm
-  external rtc
+    integer(8) :: cr, cm
+    external rtc
 
-  call system_clock(count_rate=cr)
-  call system_clock(count_max=cm)
-  clockrate = real(cr)
-
+    call system_clock(count_rate=cr)
+    call system_clock(count_max=cm)
+    clockrate = real(cr)
   end subroutine init
+
+  subroutine destroy()
+    deallocate(names)
+    deallocate(timings)
+  end subroutine
 
   subroutine addTime(inkey, inval)
     character(len=*), intent(in) :: inkey

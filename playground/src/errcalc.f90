@@ -2,9 +2,9 @@ module errcalc
   use const
   use omp_lib
   use BC
-  use kernel,          only: get_dim,&
-                             get_tasktype
-  use neighboursearch, only: getNeibListL1
+  use state,            only: getdim,&
+                              get_tasktype
+  use neighboursearch,  only: getNeibListL1
 
   implicit none
 
@@ -44,7 +44,7 @@ contains
     integer             :: i, n, dim
     real                :: exact
 
-    call get_dim(dim)
+    call getdim(dim)
     n = size(ptype)
     err(1:n) = 0.
     !$omp parallel do default(none) &
@@ -79,7 +79,7 @@ contains
     integer              :: i, j, dim
     real                 :: exact(1:3)
 
-    call get_dim(dim)
+    call getdim(dim)
     call getNeibListL1(nlista)
     err(:) = 0.
     exact(:) = 0.
@@ -123,7 +123,7 @@ contains
     real                :: exact(1:3), xk(3)
     integer, allocatable :: nlista(:)
 
-    call get_dim(dim)
+    call getdim(dim)
     n = size(ptype)
     count = 0
     err(:) = 0.

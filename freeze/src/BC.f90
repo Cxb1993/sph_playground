@@ -1,7 +1,7 @@
 module BC
   implicit none
 
-  public :: periodic1, periodic3, fixed1, fixed3
+  public :: periodic1, periodic3, fixed1, fixed3, destroy
   public :: set_particles_numbers, set_border, set_sqare_box_sides, getSqaureBoxSides
 
   private
@@ -9,6 +9,27 @@ module BC
     integer, allocatable, save :: borderX1(:), borderY1(:), borderZ1(:), borderX2(:), borderY2(:), borderZ2(:)
 
 contains
+  subroutine destroy
+    if (allocated(borderX1)) then
+      deallocate(borderX1)
+    end if
+    if (allocated(borderX2)) then
+      deallocate(borderX2)
+    end if
+    if (allocated(borderY1)) then
+      deallocate(borderY1)
+    end if
+    if (allocated(borderY2)) then
+      deallocate(borderY2)
+    end if
+    if (allocated(borderZ1)) then
+      deallocate(borderZ1)
+    end if
+    if (allocated(borderZ2)) then
+      deallocate(borderZ2)
+    end if
+  end subroutine
+
   subroutine set_particles_numbers(ins, inbrd)
     integer, intent(in) :: ins, inbrd
     ns = ins

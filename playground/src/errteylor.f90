@@ -2,11 +2,14 @@ module errteylor
   use omp_lib
 
   use timing,           only: addTime
-  use kernel
-  use neighboursearch,  only:  getneighbours,&
-                               isInitialized,&
-                               findneighbours,&
-                               getneighbours
+  use kernel,           only: get_n2w, &
+                              get_hessian, &
+                              get_krad
+  use state,            only: getdim
+  use neighboursearch,  only: getneighbours,&
+                              isInitialized,&
+                              findneighbours,&
+                              getneighbours
   use BC,               only: getSqaureBoxSides
   use printer,          only: AppendLine
 
@@ -50,7 +53,7 @@ contains
     ! print*, kinfname
 
     call get_krad(kr)
-    call get_dim(kd)
+    call getdim(kd)
     chi(1:9) = 0.
     dchi(:) = 0.
     t(:) = 0.
@@ -126,7 +129,7 @@ contains
     call system_clock(start)
 
     call get_krad(kr)
-    call get_dim(kd)
+    call getdim(kd)
     chi(1:81) = 0.
     dchi(:) = 0.
     t(:) = 0.

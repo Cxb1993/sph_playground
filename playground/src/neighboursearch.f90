@@ -1,7 +1,7 @@
 module neighboursearch
   use timing, only: addTime
-  use kernel, only: get_krad,&
-                    get_dim,&
+  use kernel, only: get_krad
+  use state,  only: getdim,&
                     get_kerntype
   use utils,  only: resize
   use omp_lib
@@ -75,7 +75,7 @@ contains
 
     sn = size(pos, dim=2)
     call get_krad(kr)
-    call get_dim(dim)
+    call getdim(dim)
     call get_kerntype(kt)
 
     if(allocated(neighbours)) then
@@ -212,7 +212,7 @@ contains
 
     sn = size(pos, dim=2)
     call get_krad(kr)
-    call get_dim(dim)
+    call getdim(dim)
 
     if ( allocated(nlist) ) then
       deallocate(nlist)

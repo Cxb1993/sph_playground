@@ -1,11 +1,18 @@
 module circuit2
   use omp_lib
-  use timing,          only: addTime
-  use kernel
+  use timing,           only: addTime
+  use kernel,           only: get_hessian, &
+                              get_krad, &
+                              get_n2w, &
+                              get_nw
+  use state,            only: get_difftype, &
+                              getdim, &
+                              get_tasktype, &
+                              get_kerntype
   use BC
-  use neighboursearch, only: getneighbours,&
-                             getNeibListL1,&
-                             getNeibListL2
+  use neighboursearch,  only: getneighbours,&
+                              getNeibListL1,&
+                              getNeibListL2
 
   implicit none
 
@@ -36,7 +43,7 @@ contains
     n = size(ptype)
     tneib = 0.
 
-    call get_dim(dim)
+    call getdim(dim)
     call get_krad(kr)
     call get_tasktype(ttp)
     call get_kerntype(ktp)

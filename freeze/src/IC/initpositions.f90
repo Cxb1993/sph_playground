@@ -1,7 +1,6 @@
 module initpositions
   use kernel
-  use state,  only: getdim
-  use utils,  only: resize
+  use utils, only:resize
   use BC
 
   implicit none
@@ -26,7 +25,7 @@ contains
 
     eps = 10*epsilon(0.)
 
-    call getdim(dim)
+    call get_dim(dim)
 
     allocate(bX1(1))
     allocate(bX2(1))
@@ -199,7 +198,7 @@ contains
                             ptsz
     real                 :: x, y, z, sp, eps
 
-    call getdim(dim)
+    call get_dim(dim)
 
     allocate(bX1(1))
     allocate(bX2(1))
@@ -344,7 +343,7 @@ contains
                             i, j, k, nx, ny, nz, n, nbnewX1, nbnewY1, nbnewZ1, nbnewX2, nbnewY2, nbnewZ2
     real                 :: dx, dy, dz, x, y, z, eps, sfxy, sfxz, sfyz, cy, sfbdx2
     eps = epsilon(0.)
-    call getdim(dim)
+    call get_dim(dim)
 
     allocate(bX1(1))
     allocate(bX2(0))

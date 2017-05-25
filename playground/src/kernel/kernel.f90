@@ -1,107 +1,23 @@
 module kernel
   use const
+  use state
   ! use cubic
   ! use n2movedgaus
-  use n2ext
+  ! use n2ext
   ! use n2fromfabcubic
   ! use n2fromWcubic
   ! use quintic
   ! use gaus
-  ! use sinc
+  use sinc
   ! use external
   implicit none
 
-  public :: set_dim, get_nw, get_dw_dh, get_w, get_dim,             &
-            set_tasktype, get_tasktype, set_kerntype, get_kerntype, &
-            get_n2w, get_krad, get_hessian, set_difftype, get_difftype!, PureKernel!, GradDivW!, get_n2y !, get_dphi_dh,
-
-  private
+  public :: get_nw, get_dw_dh, get_w, setdimkernel, &
+            get_n2w, get_krad, get_hessian!, PureKernel!, GradDivW!, get_n2y !, get_dphi_dh,
   save
-    integer :: dim = 1
-    integer :: ttype, ktype, dtype
+    integer :: dim
+  private
  contains
-   !
-   !-- GetterSetter access
-   !
-   subroutine set_dim(d)
-     integer, intent(in) :: d
-     dim = d
-     call setdimbase(dim)
-   end subroutine set_dim
-
-   pure subroutine get_dim(d)
-     integer, intent(out) :: d
-     d = dim
-   end subroutine get_dim
-
-   subroutine set_tasktype(itt)
-     character (len=*), intent(in) :: itt
-     select case(itt)
-     case('hydroshock')
-       ttype = 1
-     case('infslb')
-       ttype = 2
-     case('hc-sinx')
-       ttype = 3
-     case('pheva')
-       ttype = 4
-     case('diff-laplace')
-       ttype = 5
-     case('diff-graddiv')
-       ttype = 6
-     case('chi-laplace')
-       ttype = 7
-     case('chi-graddiv')
-       ttype = 8
-     case default
-       print *, 'Task type not set: ', itt
-       stop
-     end select
-   end subroutine set_tasktype
-
-   pure subroutine get_tasktype(ott)
-     integer, intent(out) :: ott
-     ott = ttype
-   end subroutine get_tasktype
-
-   subroutine set_kerntype(itt)
-     character (len=*), intent(in) :: itt
-     select case(itt)
-     case('n2w')
-       ktype = 1
-     case('fab')
-       ktype = 2
-     case('2nw')
-       ktype = 3
-     case default
-       print *, 'Kernel type not set: ', itt
-       stop
-     end select
-    !  call calc_params()
-   end subroutine set_kerntype
-
-   pure subroutine get_kerntype(ott)
-     integer, intent(out) :: ott
-     ott = ktype
-   end subroutine get_kerntype
-
-  subroutine set_difftype(idt)
-    character (len=*), intent(in) :: idt
-    select case(idt)
-    case('diff')
-      dtype = 1
-    case('symm')
-      dtype = 2
-    case default
-      print *, 'Differentiation type is not set: ', idt
-      stop
-    end select
-  end subroutine set_difftype
-
-  pure subroutine get_difftype(odt)
-    integer, intent(out) :: odt
-    odt = dtype
-  end subroutine get_difftype
 
   pure subroutine get_kernelname(kname)
     character (len=*), intent(out) :: kname
@@ -112,6 +28,13 @@ module kernel
     real, intent(out) :: kr
     kr = krad
   end subroutine get_krad
+
+  subroutine setdimkernel(indim)
+    integer, intent(in) :: indim
+    dim = indim
+    call setdimbase(dim)
+    call setdim(dim)
+  end subroutine
   !
   ! ---------!
   ! W kernel !------------------------------------------------------------------
@@ -168,6 +91,9 @@ module kernel
   pure subroutine get_n2w(r, h, n2w)
     real, intent(in)  :: r(3), h
     real, intent(out) :: n2w
+    integer :: ktype
+
+    call get_kerntype(ktype)
 
     if (ktype == 1) then
       call get_on2w(sqrt(dot_product(r,r)), h, n2w)
@@ -180,6 +106,9 @@ module kernel
     real, intent(in)  :: r(3), h
     real, intent(out) :: Hes(3,3)
     real              :: r2, dr, df, ddf, fab
+    integer :: ktype
+
+    call get_kerntype(ktype)
 
     if (ktype == 1) then
       r2 = dot_product(r,r)

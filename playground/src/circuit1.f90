@@ -1,10 +1,15 @@
 module circuit1
   use omp_lib
-  use timing,          only: addTime
-  use kernel
-  use neighboursearch, only: getneighbours,&
-                             getNeibListL1,&
-                             getNeibListL2
+  use timing,           only: addTime
+  use state,            only: getdim, &
+                              get_kerntype
+  use kernel,           only: get_krad, &
+                              get_dw_dh, &
+                              get_nw, &
+                              get_w
+  use neighboursearch,  only: getneighbours,&
+                              getNeibListL1,&
+                              getNeibListL2
 
   implicit none
 
@@ -41,14 +46,14 @@ contains
 
     n = size(ptype)
 
-    call get_dim(dim)
+    call getdim(dim)
     call get_kerntype(ktp)
 
-    ! if ( ktp == 3 ) then
+    if ( ktp == 3 ) then
       call getNeibListL2(nlista)
-    ! else
-    !   call getNeibListL1(nlista)
-    ! end if
+    else
+      call getNeibListL1(nlista)
+    end if
 
     allowerror = 1e-8
     slnint(:) = h(:)
@@ -103,9 +108,9 @@ contains
           ! -------------------------------------------------------!
           !      There is no particle itself in neighbour list     !
           ! -------------------------------------------------------!
-          ! print*,1
+          print*,'c1', 1
           call get_dw_dh(0., slnint(i), dwdh)
-          ! print*,2
+          print*,'c1', 2
           call get_w(0., slnint(i), w)
           ! print*,3
           den(i) = den(i) + mas(i) * w

@@ -3,8 +3,8 @@ module iterator
   use circuit1
   use circuit2,         only:  c2
   use BC
-  use kernel,           only: get_difftype,&
-                              get_dim,&
+  use state,            only: get_difftype,&
+                              getdim,&
                               get_tasktype
   use neighboursearch,  only: findneighbours
 
@@ -25,7 +25,7 @@ contains
     real, intent(in)    :: sk, gamma
     integer             :: dim, ttp, dtp
 
-    call get_dim(dim)
+    call getdim(dim)
     call get_tasktype(ttp)
     call get_difftype(dtp)
 
@@ -124,8 +124,18 @@ contains
         stop
       end select
     case(7,8)
+    case(9)
+      ! soundwave
+      call findneighbours(ptype, pos, h)
+      call c1(ptype, pos, mas, vel, sk, h, den, om, dfdx)
+      print*, 1
+      call periodic1indims(den, dim)
+      call periodic1indims(h, dim)
+      call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
+
+      call periodic3(acc, 00, dim)
     case default
-      print *, 'Task type was not defined in iterator'
+      print *, 'Task type was not defined in iterator.f90: line 140.'
       stop
     end select
   end subroutine iterate

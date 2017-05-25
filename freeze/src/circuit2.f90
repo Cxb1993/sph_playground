@@ -24,12 +24,14 @@ contains
     real, allocatable, intent(inout) :: dv(:,:), du(:), dh(:), dcf(:), dfdx(:,:,:)
     real                 :: dr, rhoa, rhob, qa, qb, qc, n2wa, n2wb, kr, r2, &
                             nwa(3), nwb(3), rab(3), vab(3), vba(3), urab(3), Pa(3), Pb(3), &
-                            projv, df, ddf, Hes(3,3), oddi ,oddj
+                            projv, df, ddf, Hes(3,3), oddi, oddj, tau2, r(3)
     integer, allocatable :: nlista(:), nlistb(:)
-    integer              :: i, j, la, lb, n, dim, ttp, ktp, dtp
+    integer              :: i, j, la, lb, n, dim, ttp, ktp, dtp, usekorrection
     integer(8)           :: t0, tneib
 
 
+    ! usekorrection = 1
+    usekorrection = 0
     call system_clock(start)
     n = size(ptype)
     tneib = 0.
@@ -48,12 +50,13 @@ contains
     !$omp parallel do default(none)&
     !$omp private(rab, dr, vab, urab, rhoa, rhob, nwa, nwb, qa, qb, qc, Pa, Pb)&
     !$omp private(n2wa, n2wb, j, i, r2, oddi ,oddj, la, lb)&
-    !$omp private(projv, df, ddf, nlistb, Hes, vba, t0) &
+    !$omp private(projv, df, ddf, nlistb, Hes, vba, t0, tau2) &
     !$omp shared(dv, du, dh, dcf, n, pos, h, v, den, c, p, om, mas, u, kcf, cf)&
-    !$omp shared(dim, kr, ktp, dtp, ttp, ptype, dfdx, nlista)&
+    !$omp shared(dim, kr, ktp, dtp, ttp, ptype, dfdx, nlista, usekorrection)&
     !$omp reduction(+:tneib)
     do la = 1, size(nlista)
       i = nlista(la)
+      tau2 = 0.
       dv(:,i) = 0.
       du(i) = 0.
       dh(i) = 0.
@@ -78,6 +81,7 @@ contains
         urab(:) = rab(:) / dr
         select case (ttp)
         case (1)
+          ! hydroshock
           qa = 0.
           qb = 0.
           qc = 0.
@@ -101,10 +105,14 @@ contains
 
           dh(i)   = dh(i) + mas(j) * dot_product(vab(:), nwa(:))
         case (2, 3)
+          ! heatconduction
           call get_n2w(rab, h(i), n2wa)
 
           du(i) = du(i) - mas(j) / (den(i) * den(j)) * 2. * kcf(i) * kcf(j) &
                   / (kcf(i) + kcf(j)) * (cf(i) - cf(j)) * n2wa
+          if (usekorrection == 1) then
+            call LaplaceCorrection(rab, mas(j), den(j), dim, n2wa, tau2)
+          end if
           ! du(i) = du(i) - mas(j) / (den(i) * den(j)) * (kcf(i) + kcf(j)) / 2. &
           !               * (cf(i) - cf(j)) * n2w
         case(4)
@@ -152,6 +160,9 @@ contains
             if ( ktp /= 3 ) then
               ! n2w fab
               call get_n2w(rab, h(i), n2wa)
+              if (usekorrection == 1) then
+                call LaplaceCorrection(rab, mas(j), den(j), dim, n2wa, tau2)
+              end if
               dv(:,i)  = dv(:,i) + mas(j)/den(j) * vba(:) * n2wa
             else
               ! 2nw
@@ -228,7 +239,18 @@ contains
       select case (ttp)
       case(1,2,3,4)
         dh(i) =  (- h(i) / (dim * den(i))) * dh(i) / om(i)
+        if ( usekorrection == 1 ) then
+          tau2 = tau2 / dim
+          ! print*, tau2
+          du(i) = du(i) / tau2
+        end if
       case(5,6)
+        ! diff-graddiv ! diff-laplace
+        if ( usekorrection == 1 ) then
+          tau2 = tau2 / dim
+          print*, tau2
+          dv(:,i) = dv(:,i) / tau2
+        end if
         if ( ktp == 3 ) then
           dv(:,i) = dv(:,i) * den(i)
           ! print*, dv(:,i), den(i)
@@ -242,6 +264,7 @@ contains
       ! print*, i, den(i)
     end do
     !$omp end parallel do
+    ! print*, du(1:5)
     call system_clock(finish)
     call addTime(' circuit2', finish - start - tneib)
   end subroutine c2
@@ -272,7 +295,7 @@ contains
   subroutine gradf(dim, t, m, d, x, v, h, om, nv)
     real, allocatable, intent(in)  :: m(:), d(:), x(:,:), v(:,:), h(:), om(:)
     integer, allocatable, intent(in) :: t(:)
-    real, allocatable, intent(out) :: nv(:,:,:)
+    real, allocatable, intent(inout) :: nv(:,:,:)
     integer, intent(in)            :: dim
 
     integer, allocatable :: nlista(:), nlistb(:)
@@ -282,9 +305,9 @@ contains
     real    :: vba(3), nw(3), rab(3), nwi(3), nwj(3), oddi, oddj
 
     n = size(m)
-    if ( .not.allocated(nv) ) then
-      allocate(nv(3,3,n))
-    end if
+    ! if ( .not.allocated(nv) ) then
+    !   allocate(nv(3,3,n))
+    ! end if
     tneib = 0.
     ! call getNeibListL2(nlista)
     call getNeibListL1(nlista)
@@ -319,4 +342,24 @@ contains
     !$omp end parallel do
     call addTime(' circuit2', -tneib)
   end subroutine gradf
+
+  subroutine LaplaceCorrection(r, m, d, dim, n2w, tau2)
+    real, intent(in)    :: r(3), m, d, n2w
+    integer, intent(in) :: dim
+    real, intent(inout) :: tau2
+
+    tau2 = tau2 + 0.5 * m/d * r(1)*r(1) * n2w ! Hes(1,1)
+    if ( dim > 1 ) then
+      tau2 = tau2 + 0.5 * m/d * r(1)*r(2) * n2w ! Hes(1,2)
+      tau2 = tau2 + 0.5 * m/d * r(2)*r(2) * n2w ! Hes(2,2)
+      tau2 = tau2 + 0.5 * m/d * r(1)*r(2) * n2w ! Hes(1,2)
+    end if
+    if ( dim == 3 ) then
+      tau2 = tau2 + 0.5 * m/d * r(1)*r(3) * n2w ! Hes(1,3)
+      tau2 = tau2 + 0.5 * m/d * r(2)*r(3) * n2w ! Hes(2,3)
+      tau2 = tau2 + 0.5 * m/d * r(3)*r(3) * n2w ! Hes(3,3)
+      tau2 = tau2 + 0.5 * m/d * r(2)*r(3) * n2w ! Hes(2,3)
+      tau2 = tau2 + 0.5 * m/d * r(1)*r(3) * n2w ! Hes(1,3)
+    end if
+  end subroutine
 end module circuit2

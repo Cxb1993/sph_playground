@@ -36,10 +36,10 @@ contains
       call c1(ptype, pos, mas, vel, sk, h, den, om, dfdx)
       call eos_adiabatic(n, den, uei, prs, c, cf, gamma)
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
-      if (dim.gt.0) then
+      if ( dim > 0 ) then
         call fixed3(acc, 11, 1, 0.)
         call fixed3(acc, 12, 1, 0.)
-        if (dim.gt.1) then
+        if ( dim > 1 ) then
           call fixed3(acc, 21, 2, 0.)
           call fixed3(acc, 22, 2, 0.)
         end if
@@ -53,17 +53,20 @@ contains
       ! hc-sinx
       call findneighbours(ptype, pos, h)
       call c1(ptype, pos, mas, vel, sk, h, den, om, dfdx)
-      call periodic1indims(den, dim)
-      call periodic1indims(h, dim)
+      ! call periodic1indims(den, dim)
+      ! call periodic1indims(h, dim)
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
-      call periodic1indims(due, dim)
-      ! call periodic1(due, 1)
-      ! if (dim > 1) then
-      !   call periodic1(due, 2)
-      !   if (dim == 3) then
-      !     call periodic1(due, 3)
-      !   end if
-      ! end if
+
+      call fixed1(due, 11, 0.)
+      call fixed1(due, 12, 0.)
+      if (dim > 1) then
+        call fixed1(due, 21, 0.)
+        call fixed1(due, 22, 0.)
+        if (dim == 3) then
+          call fixed1(due, 31, 0.)
+          call fixed1(due, 32, 0.)
+        end if
+      end if
     case(4)
       ! print *, pos
       ! print *, den

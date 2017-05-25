@@ -19,7 +19,7 @@ contains
     integer, allocatable, intent(in) :: ptype(:)
     real, intent(in)    :: time
     character (len=40)  :: fname
-    integer :: iu, j, n
+    integer :: iu = 0, j, n
 
     call system_clock(start)
 
@@ -28,9 +28,9 @@ contains
     open(newunit=iu, file=fname, status='replace', form='formatted')
     write(iu,*) time
     do j = 1, n
-      if (ptype(j) == 1) then
+      ! if (ptype(j) == 1) then
         write(iu, *) x(:,j), v(:,j), dv(:,j), m(j), den(j), slen(j), pres(j), ien(j), cf(j), err(j)
-      end if
+      ! end if
     end do
     close(iu)
     ifile = ifile + 1
@@ -39,10 +39,10 @@ contains
   end subroutine Output
 
   subroutine AppendLine(A, fname, t)
-    real, allocatable, intent(in) :: A(:)
+    real, allocatable, intent(inout) :: A(:)
     character (len=*), intent(in) :: fname
     integer(8), intent(out) :: t
-    integer :: iu
+    integer :: iu = 0
     logical :: exist
 
     call system_clock(start)

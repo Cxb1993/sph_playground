@@ -4,10 +4,10 @@ module IC
   use timing, only: addTime
   use utils
   use const
-  use kernel, only: get_tasktype,&
+  use kernel, only: get_krad
+  use state,  only: get_tasktype,&
                     get_kerntype,&
-                    get_krad,&
-                    get_dim
+                    getdim
   use BC
   use initpositions,  only: uniform,&
                             semiuniform,&
@@ -39,7 +39,7 @@ contains
     call get_kerntype(kt)
     call get_tasktype(tt)
     call get_krad(kr)
-    call get_dim(dim)
+    call getdim(dim)
 
     if ( kt == 3 ) then
       kr = kr * 2
@@ -72,8 +72,8 @@ contains
       ! infslb
       nb = 1
       call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
-    case (3)
-      ! hc-sinx ! chi-laplace
+    case (3, 9)
+      ! hc-sinx ! soundwave
       brdx1 = -1.
       brdx2 =  1.
       nptcs = int((brdx2-brdx1)/pspc1)
@@ -122,7 +122,7 @@ contains
       call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
       ! call place_close_packed_fcc(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, nb, x)
     case default
-      print *, 'Task type was not defined in IC border stage'
+      print *, 'Task type was not defined in IC.f90: line 125'
       stop
     end select
 
@@ -175,13 +175,13 @@ contains
       rho2 = rho1 / 8.
     case (2)
       ! infslb
-      g = 1.4
+      g = 5./3.
       kcf1 = 1.
       kcf2 = 10.
       cf1 = 0.
       cf2 = 1.
     case (3)
-      ! hc-sinx ! chi-laplace
+      ! hc-sinx
       ! ptype(:) = 1
       rho1 = 10.
       kcf1 = 1.
@@ -194,11 +194,14 @@ contains
       v0   = 1e-4
       prs1 = 1.
     case(5, 6, 7, 8)
-      ! diff-laplace ! diff-graddiv
+      ! diff-laplace ! diff-graddiv ! chi-laplace ! chi-graddiv
       rho1 = 1.
       period = 1.
+    case(9)
+      ! soundwave
+      g = 5./3.
     case default
-      print *, 'Task type was not defined in IC state stage'
+      print *, 'Task type was not defined in IC.f90: line 200'
       stop
     end select
 
@@ -271,8 +274,10 @@ contains
         kcf(i) = kcf1
         prs(i) = prs1
         iu(i)  = prs1/(g-1)/(1-cf(i))/rho1
-      case(5, 6, 7, 8)
-        ! diff-graddiv ! diff-laplace ! chi-laplace ! chi-graddiv
+      case(5, 6, 7, 8, 9)
+        ! diff-graddiv ! diff-laplace ! chi-laplace
+        ! chi-graddiv  ! soundwave
+        g = 5./3.
         den(i) = rho1
         mas(i) = (sp**dim) * rho1
         ! v(:,i)  = sin(period*x(:,i))*cos(period*x(:,i)**2)
@@ -306,7 +311,7 @@ contains
           v(3,i) = sin(period*x(3,i))
         end if
       case default
-        print *, 'Task type was not defined in IC state stage'
+        print *, 'Task type was not defined in IC.f90: line 300'
         stop
       end select
     end do
