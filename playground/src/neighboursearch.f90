@@ -80,9 +80,11 @@ contains
 
     if(allocated(neighbours)) then
       do i=1,sn,stepsize
-        if (allocated(neighbours(i)%list)) then
-          neighbours(i)%list = -1
+        if (ptype(i) /= 0) then
+          if (allocated(neighbours(i)%list)) then
+            neighbours(i)%list = -1
           ! deallocate(neighbours(i)%list)
+          end if
         end if
       end do
       ! deallocate(neighbours)
@@ -156,7 +158,6 @@ contains
     !$omp end parallel do
     al1 = al1 - 1
     call resize(alllistlv1, al1, al1)
-
     do i = 1,sn
       if ( alllistlv2(i) == 1 ) then
         alllistlv2(al2) = i

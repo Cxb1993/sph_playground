@@ -98,7 +98,6 @@ contains
           call get_nw(rab, h(i), nwa)
           call get_nw(rab, h(j), nwb)
           ! call get_n2w(r, h(i), n2w)
-
           call art_viscosity(rhoa, rhob, vab, urab, c(i), c(j), qa, qb)
           call art_termcond(P(i), P(j), rhoa, rhob, qc)
           Pa(:) = (P(i) + qa) * nwa(:) / (rhoa**2 * om(i))

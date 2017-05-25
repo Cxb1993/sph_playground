@@ -319,6 +319,7 @@ contains
     n = n - 1
 
     call resize(pos,n,n)
+    call resize(ptype,n,n)
 
     write(*, "(A, F7.5, A, F7.5)") " # #      actual dx:   x1=", pspc1, "   x2=", pspc2
     print *, '# #         placed:', n

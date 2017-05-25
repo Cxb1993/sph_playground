@@ -49,11 +49,7 @@ contains
     call getdim(dim)
     call get_kerntype(ktp)
 
-    if ( ktp == 3 ) then
-      call getNeibListL2(nlista)
-    else
-      call getNeibListL1(nlista)
-    end if
+    call getNeibListL2(nlista)
 
     allowerror = 1e-8
     slnint(:) = h(:)
@@ -108,29 +104,29 @@ contains
           ! -------------------------------------------------------!
           !      There is no particle itself in neighbour list     !
           ! -------------------------------------------------------!
-          print*,'c1', 1
+          ! print*,'c1', 1
           call get_dw_dh(0., slnint(i), dwdh)
-          print*,'c1', 2
+          ! print*,'c1', 2
           call get_w(0., slnint(i), w)
-          ! print*,3
+          ! print*,'c1', 3
           den(i) = den(i) + mas(i) * w
           om(i) = om(i) + mas(i) * dwdh
           ! --------------------------------------------------------!
-          ! print*,4
+          ! print*,'c1', 4
           om(i) = 1. - om(i) * (- slnint(i) / (dim * den(i)))
-          ! print*,5
+          ! print*,'c1', 5
           if ( ktp == 3 ) then
             dfdx(:,:,i) = dfdx(:,:,i) / om(i) / den(i)
           end if
-          ! print*,6
+          ! print*,'c1', 6
           dfdh = - dim * den(i) * om(i) / slnint(i)
-          ! print*,7
+          ! print*,'c1', 7
           fh  = mas(i) * (sk / slnint(i)) ** dim - den(i)
           ! print*,8
           hn = slnint(i) - fh / dfdh
           ! print*,9
           resid(i) = abs(hn - slnint(i)) / h(i)
-          ! print*,10
+          ! print*,'c1', 10
           slnint(i) = hn
         end if
       end do

@@ -130,7 +130,6 @@ contains
     ! read *
     !
     n = size(x,dim=2)
-
     allocate(v(3,n))
     v(:,:) = 0.
     allocate(dv(3,n))

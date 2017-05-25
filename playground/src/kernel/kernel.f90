@@ -1,14 +1,14 @@
 module kernel
   use const
   use state
-  ! use cubic
+  use cubic
   ! use n2movedgaus
   ! use n2ext
   ! use n2fromfabcubic
   ! use n2fromWcubic
   ! use quintic
   ! use gaus
-  use sinc
+  ! use sinc
   ! use external
   implicit none
 
@@ -43,30 +43,39 @@ module kernel
   pure subroutine get_w(r, h, w)
     real, intent(in)  :: r, h
     real, intent(out) :: w
-    real              :: f
+    real              :: f, q
 
-    call kf(r, h, f)
+    q = r / h
+    call kf(q, f)
+
     w = wCv * f / h ** dim
   end subroutine get_w
 
   pure subroutine get_nw(rab, h, nw)
     real, intent(in)  :: rab(3), h
     real, intent(out) :: nw(3)
-    real              :: df
+    real              :: df, q
 
-    call kdf(sqrt(dot_product(rab(:),rab(:))), h, df)
+    q = sqrt(dot_product(rab(:),rab(:))) / h
+    call kdf(q, df)
 
-    nw(:) = wCv * df * rab(:) / h**(dim+2)
+    nw(:) = wCv * df * rab(:) / h**(dim+2) / q
   end subroutine get_nw
 
   pure subroutine get_dw_dh(r, h, dwdh)
     real, intent(in)  :: r, h
     real, intent(out) :: dwdh
-    real              :: f, df
+    real              :: f, df, q
 
-    call kf(r, h, f)
-    call kdf(r, h, df)
-    dwdh = - wCv * (dim * f + r * df / h) / h ** (dim + 1)
+    if ((r < epsilon(0.)).and.(r > -epsilon(0.))) then
+      dwdh = 0
+    else
+      q = r / h
+      call kf(q, f)
+      call kdf(q, df)
+
+      dwdh = - wCv * (dim * f + r * df / h / q) / h ** (dim + 1)
+    end if
   end subroutine get_dw_dh
 
   pure subroutine get_Fab(r, h, Fab)
@@ -76,17 +85,19 @@ module kernel
 
     call get_nw(r, h, nw)
     Fab = -2. * dot_product(r,nw)/dot_product(r,r)
-  end subroutine get_Fab
+  end subroutine
 
   pure subroutine get_on2w(r, h, n2w)
     real, intent(in)  :: r, h
     real, intent(out) :: n2w
-    real              :: df, ddf
+    real              :: df, ddf, q
 
-    call kddf(r, h, ddf)
-    call kdf(r, h, df)
-    n2w = wCv*(ddf + (dim - 1) * df)/h**(dim+2)
-  end subroutine get_on2w
+    q = r / h
+
+    call kddf(q, ddf)
+    call kdf(q, df)
+    n2w = wCv*(ddf + (dim - 1) * df / q)/h**(dim + 2)
+  end subroutine
 
   pure subroutine get_n2w(r, h, n2w)
     real, intent(in)  :: r(3), h
@@ -100,12 +111,12 @@ module kernel
     else if (ktype == 2) then
       call get_Fab(r, h, n2w)
     end if
-  end subroutine get_n2w
+  end subroutine
 
   pure subroutine get_hessian(r, h, Hes)
     real, intent(in)  :: r(3), h
     real, intent(out) :: Hes(3,3)
-    real              :: r2, dr, df, ddf, fab
+    real              :: r2, dr, df, ddf, fab, q
     integer :: ktype
 
     call get_kerntype(ktype)
@@ -114,19 +125,21 @@ module kernel
       r2 = dot_product(r,r)
       dr = sqrt(r2)
 
-      call kddf(dr, h, ddf)
-      call kdf(dr, h, df)
-      Hes(1,1) = wCv*(ddf*r(1)*r(1)/r2 + df*(1 - r(1)*r(1)/r2))/h**(dim+2)    ! d2/dx2   ! Wxx
-      Hes(1,2) = wCv*(ddf*r(2)*r(1)/r2 - df*r(2)*r(1)/r2)/h**(dim+2)          ! d2/dydx  ! Wxy
-      Hes(1,3) = wCv*(ddf*r(3)*r(1)/r2 - df*r(3)*r(1)/r2)/h**(dim+2)          ! d2/dzdx  ! Wxz
+      q = dr / h
 
-      Hes(2,1) = wCv*(ddf*r(1)*r(2)/r2 - df*r(1)*r(2)/r2)/h**(dim+2)          ! d2/dxdy  ! Wyx
-      Hes(2,2) = wCv*(ddf*r(2)*r(2)/r2 + df*(1 - r(2)*r(2)/r2))/h**(dim+2)    ! d2/dy2   ! Wyy
-      Hes(2,3) = wCv*(ddf*r(3)*r(2)/r2 - df*r(3)*r(2)/r2)/h**(dim+2)          ! d2/dxdz  ! Wyz
+      call kddf(q, ddf)
+      call kdf(q, df)
+      Hes(1,1) = wCv*(ddf*r(1)*r(1)/r2 + df*(1 - r(1)*r(1)/r2)/q)/h**(dim+2)    ! d2/dx2   ! Wxx
+      Hes(1,2) = wCv*(ddf*r(2)*r(1)/r2 - df*r(2)*r(1)/r2/q)/h**(dim+2)          ! d2/dydx  ! Wxy
+      Hes(1,3) = wCv*(ddf*r(3)*r(1)/r2 - df*r(3)*r(1)/r2/q)/h**(dim+2)          ! d2/dzdx  ! Wxz
 
-      Hes(3,1) = wCv*(ddf*r(1)*r(3)/r2 - df*r(1)*r(3)/r2)/h**(dim+2)          ! d2/dxdz  ! Wzx
-      Hes(3,2) = wCv*(ddf*r(2)*r(3)/r2 - df*r(2)*r(3)/r2)/h**(dim+2)          ! d2/dydz  ! Wzy
-      Hes(3,3) = wCv*(ddf*r(3)*r(3)/r2 + df*(1 - r(3)*r(3)/r2))/h**(dim+2)    ! d2/dz2   ! Wzz
+      Hes(2,1) = wCv*(ddf*r(1)*r(2)/r2 - df*r(1)*r(2)/r2/q)/h**(dim+2)          ! d2/dxdy  ! Wyx
+      Hes(2,2) = wCv*(ddf*r(2)*r(2)/r2 + df*(1 - r(2)*r(2)/r2)/q)/h**(dim+2)    ! d2/dy2   ! Wyy
+      Hes(2,3) = wCv*(ddf*r(3)*r(2)/r2 - df*r(3)*r(2)/r2/q)/h**(dim+2)          ! d2/dxdz  ! Wyz
+
+      Hes(3,1) = wCv*(ddf*r(1)*r(3)/r2 - df*r(1)*r(3)/r2/q)/h**(dim+2)          ! d2/dxdz  ! Wzx
+      Hes(3,2) = wCv*(ddf*r(2)*r(3)/r2 - df*r(2)*r(3)/r2/q)/h**(dim+2)          ! d2/dydz  ! Wzy
+      Hes(3,3) = wCv*(ddf*r(3)*r(3)/r2 + df*(1 - r(3)*r(3)/r2)/q)/h**(dim+2)    ! d2/dz2   ! Wzz
       if ( dim == 1 ) then
         Hes(1,2:3) = 0.
         Hes(2,:) = 0.
@@ -161,5 +174,5 @@ module kernel
         Hes(:,3) = 0.
       end if
     end if
-  end subroutine get_hessian
+  end subroutine
 end module kernel
