@@ -198,7 +198,9 @@ contains
       period = 1.
     case(9)
       ! soundwave
+      rho1 = 1.
       g = 5./3.
+      period = pi
     case default
       print *, 'Task type was not defined in IC.f90: line 200'
       stop

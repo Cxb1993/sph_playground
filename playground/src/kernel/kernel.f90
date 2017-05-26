@@ -60,7 +60,7 @@ module kernel
     call kdf(q, df)
 
     nw(:) = wCv * df * rab(:) / h**(dim+2) / q
-  end subroutine get_nw
+  end subroutine
 
   pure subroutine get_dw_dh(r, h, dwdh)
     real, intent(in)  :: r, h

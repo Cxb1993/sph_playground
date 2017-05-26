@@ -128,7 +128,7 @@ contains
       ! soundwave
       call findneighbours(ptype, pos, h)
       call c1(ptype, pos, mas, vel, sk, h, den, om, dfdx)
-      print*, 1
+      print*, 555
       call periodic1indims(den, dim)
       call periodic1indims(h, dim)
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)

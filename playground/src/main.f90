@@ -131,7 +131,6 @@ program main
     tdu(:) = du(:)
     tdh(:) = dh(:)
     tcf(:) = dcf(:)
-
     pos(:,:) = p(:,:) + dt * v(:,:) + 0.5 * dt * dt * a(:,:)
     vel(:,:) = v(:,:) + dt * a(:,:)
     iu(:)    = iu(:)  + dt * du(:)

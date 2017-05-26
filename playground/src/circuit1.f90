@@ -73,6 +73,7 @@ contains
           if ( ktp == 3 ) then
             dfdx(:,:,i) = 0.
           end if
+          ! print*, i
           call getneighbours(i, pos, h, nlistb, t0)
           tneib = tneib + t0
           do lb = 1, size(nlistb)
@@ -113,6 +114,9 @@ contains
           om(i) = om(i) + mas(i) * dwdh
           ! --------------------------------------------------------!
           ! print*,'c1', 4
+          ! if ( i == 5 ) then
+          !   print*, slnint(i)
+          ! end if
           om(i) = 1. - om(i) * (- slnint(i) / (dim * den(i)))
           ! print*,'c1', 5
           if ( ktp == 3 ) then

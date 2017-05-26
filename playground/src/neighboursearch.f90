@@ -82,15 +82,14 @@ contains
       do i=1,sn,stepsize
         if (ptype(i) /= 0) then
           if (allocated(neighbours(i)%list)) then
-            neighbours(i)%list = -1
-          ! deallocate(neighbours(i)%list)
+            deallocate(neighbours(i)%list)
           end if
         end if
       end do
-      ! deallocate(neighbours)
-    else
-      allocate(neighbours(sn))
+      deallocate(neighbours)
     end if
+
+    allocate(neighbours(sn))
 
     if (allocated(alllistlv1)) then
       deallocate(alllistlv1)
@@ -178,27 +177,28 @@ contains
     integer(8), intent(inout)           :: dt
     integer, allocatable, intent(inout) :: list(:)
     integer, intent(in)                 :: idx
-    integer                             :: sn
+    integer                             :: sn, snl
     call system_clock(start)
 
     sn = size(pos, dim=2)
-    if ( .not.allocated(neighbours) ) then
+
+    if (.not.allocated(neighbours)) then
       allocate(neighbours(sn))
     end if
     if (allocated(neighbours(idx)%list)) then
-      ! print*, 'Try to used old list', idx
+      snl = size(neighbours(idx)%list(:))
+
       if ( allocated(list) ) then
-        deallocate(list)
+        if (size(list) /= snl) then
+          call resize(list, size(list), snl)
+        end if
+      else
+        allocate(list(snl))
       end if
-      allocate(list(size(neighbours(idx)%list(:))))
       list(:) = neighbours(idx)%list(:)
-      ! print*, 'Used old list', idx
     else
-      ! print*, 'Try to added new list', idx
       call findneighboursonce(idx, pos, h, list)
-      ! print*, 'Added new list', idx
     end if
-    ! read*
     call system_clock(finish)
     dt = finish - start
     call addTime(' neibs', dt)

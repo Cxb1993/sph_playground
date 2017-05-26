@@ -87,15 +87,19 @@ contains
         vba(:) = v(:,j) - v(:,i)
         urab(:) = rab(:) / dr
         select case (ttp)
-        case (1)
-          ! hydroshock
+        case (1, 9)
+          ! hydroshock ! soundwave
           qa = 0.
           qb = 0.
           qc = 0.
           rhoa = den(i)
           rhob = den(j)
-
+          ! print*, 100
+          ! print*, i
+          ! print*, rab
+          ! print*, h(i)
           call get_nw(rab, h(i), nwa)
+          ! print*, 999
           call get_nw(rab, h(j), nwb)
           ! call get_n2w(r, h(i), n2w)
           call art_viscosity(rhoa, rhob, vab, urab, c(i), c(j), qa, qb)
@@ -238,7 +242,7 @@ contains
             stop
           end if
         case default
-          print *, 'Task type was not defined in circuit2 inside circle'
+          print *, 'Task type was not defined in circuit2.f90: line 240.'
           stop
         end select
       end do
