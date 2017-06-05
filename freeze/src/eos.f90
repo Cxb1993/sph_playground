@@ -1,6 +1,6 @@
 module eos
   use omp_lib
-  use kernel
+  use state,  only: get_tasktype
 
   public :: eos_adiabatic, eos_isothermal
   private

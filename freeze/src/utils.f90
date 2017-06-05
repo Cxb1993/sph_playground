@@ -14,15 +14,17 @@ contains
     integer, intent(in)                 :: newsize, oldsize
     integer, intent(inout), allocatable :: array(:)
     integer, allocatable                :: tmp(:)
-    integer                             :: i
+    integer                             :: i, iterlimit
 
+    iterlimit = min(newsize, oldsize)
     allocate(tmp(newsize))
-    do i=1,oldsize
+    do i=1,iterlimit
       tmp(i) = array(i)
     end do
     deallocate(array)
     allocate(array(newsize))
-    do i=1,oldsize
+    array(:) = 0
+    do i=1,iterlimit
       array(i) = tmp(i)
     end do
     ! deallocate(tmp)
@@ -32,15 +34,16 @@ contains
     integer, intent(in)                    :: newsize, oldsize
     integer(8), intent(inout), allocatable :: array(:)
     integer(8), allocatable                :: tmp(:)
-    integer                                :: i
+    integer                                :: i, iterlimit
 
+    iterlimit = min(newsize, oldsize)
     allocate(tmp(newsize))
-    do i=1,oldsize
+    do i=1,iterlimit
       tmp(i) = array(i)
     end do
     deallocate(array)
     allocate(array(newsize))
-    do i=1,oldsize
+    do i=1,iterlimit
       array(i) = tmp(i)
     end do
     ! deallocate(tmp)
@@ -50,15 +53,16 @@ contains
     integer, intent(in)              :: newsize, oldsize
     real, intent(inout), allocatable :: array(:)
     real, allocatable                :: tmp(:)
-    integer                          :: i
+    integer                          :: i, iterlimit
 
+    iterlimit = min(newsize, oldsize)
     allocate(tmp(newsize))
-    do i=1,oldsize
+    do i=1,iterlimit
       tmp(i) = array(i)
     end do
     deallocate(array)
     allocate(array(newsize))
-    do i=1,oldsize
+    do i=1,iterlimit
       array(i) = tmp(i)
     end do
     ! deallocate(tmp)
@@ -68,15 +72,16 @@ contains
     integer, intent(in)                          :: newsize, oldsize, chsz
     character(len=*), allocatable, intent(inout) :: array(:)
     character(len=chsz), allocatable             :: tmp(:)
-    integer                                      :: i
+    integer                                      :: i, iterlimit
 
+    iterlimit = min(newsize, oldsize)
     allocate(tmp(newsize))
-    do i=1,oldsize
+    do i=1,iterlimit
       tmp(i) = array(i)
     end do
     deallocate(array)
     allocate(array(newsize))
-    do i=1,oldsize
+    do i=1,iterlimit
       array(i) = tmp(i)
     end do
     ! deallocate(tmp)
@@ -86,15 +91,16 @@ contains
     integer, intent(in)              :: newsize, oldsize
     real, intent(inout), allocatable :: array(:,:)
     real, allocatable                :: tmp(:,:)
-    integer                          :: i
+    integer                          :: i, iterlimit
 
+    iterlimit = min(newsize, oldsize)
     allocate(tmp(3,newsize))
-    do i=1,oldsize
+    do i=1,iterlimit
       tmp(:,i) = array(:,i)
     end do
     deallocate(array)
     allocate(array(3,newsize))
-    do i=1,oldsize
+    do i=1,iterlimit
       array(:,i) = tmp(:,i)
     end do
     ! deallocate(tmp)

@@ -24,7 +24,7 @@ module quintic
       f = (3. - q)**5
     else if (q >= 1.) then
       f = (3. - q)**5 - 6. * (2. - q)**5
-    else if (q >= 0.) then
+    else if (q > 0. - epsilon(0.)) then
       f = (3. - q)**5 - 6. * (2. - q)**5 + 15. * (1. - q)**5
     else
       if (isnan(q)) then
@@ -47,9 +47,9 @@ module quintic
       df = -5. * (3. - q)**4 / q
     else if (q >= 1.) then
       df = (-5. * (3. - q)**4 + 30. * (2. - q)**4) / q
-    else if (q > 0.) then
+    else if (q > 0. + epsilon(0.)) then
       df = (-5. * (3. - q)**4 + 30. * (2. - q)**4 - 75. * (1. - q)**4) / q
-    else if (q == 0.) then
+    else if (q > 0. - epsilon(0.)) then
       df = 0.
     else
       if (isnan(q)) then
@@ -72,7 +72,7 @@ module quintic
       ddf = 20. * (3. - q)**3
     else if (q >= 1.) then
       ddf = 20. * (3. - q)**3 - 120. * (2. - q)**3
-    else if (q >= 0.) then
+    else if (q > 0. - epsilon(0.)) then
       ddf = 20. * (3. - q)**3 - 120. * (2. - q)**3 + 300. * (1. - q)**3
     else
       if (isnan(q)) then

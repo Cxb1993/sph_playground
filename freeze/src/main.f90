@@ -1,7 +1,7 @@
 program main
   use BC,               only: bcdestroy => destroy
   use IC,               only: setupIC
-  use kernel,           only: get_tasktype
+  use state,            only: get_tasktype
   use iterator,         only: iterate
   use printer,          only: Output, AppendLine
   use errcalc,          only: err_diff_laplace,&
@@ -47,12 +47,12 @@ program main
 
   call get_tasktype(tt)
   select case(tt)
-  case (1, 2, 3, 4)
+  case (1, 2, 3, 4, 9)
   case (5, 6, 7, 8)
     ! 'diff-laplass'      ! 'diff-graddiv'
     call set_stepping(10**dim)
   case default
-    print *, 'Task type time increment was not defined'
+    print *, 'Particle turn-off was not set main.f90: line 50.'
     stop
   end select
 
@@ -95,7 +95,7 @@ program main
     ! print *, '--0'
     ! print *, t
     select case(tt)
-    case(1)
+    case(1, 9)
       ! 'hydroshock'
       dt = .3 * minval(h) / maxval(c)
     case(2)
@@ -113,7 +113,7 @@ program main
       tfinish = -1.
       dt = 0.
     case default
-      print *, 'Task type time increment was not defined'
+      print *, 'Task type time increment was not set main.f90: line 115.'
       stop
     end select
     ! print *, 0, 0
@@ -131,7 +131,6 @@ program main
     tdu(:) = du(:)
     tdh(:) = dh(:)
     tcf(:) = dcf(:)
-
     pos(:,:) = p(:,:) + dt * v(:,:) + 0.5 * dt * dt * a(:,:)
     vel(:,:) = v(:,:) + dt * a(:,:)
     iu(:)    = iu(:)  + dt * du(:)

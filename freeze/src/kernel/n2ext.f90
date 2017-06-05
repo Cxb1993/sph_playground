@@ -6,7 +6,10 @@ module n2ext
 
   private
     ! real :: n2C(3) = (/ 0.123558082, 0.2994570731/pi, 0.236804709/pi /)
-    real :: n2C(3) = (/ 9.45261263832083, 7.29241786955192, 5.76692759942686 /)
+    ! sinc
+    ! real :: n2C(3) = (/ 9.45261263832083, 7.29241786955192, 5.76692759942686 /)
+    ! unit
+    real :: n2C(3) = [0.586533029501960, 0.436507677680717, 0.316192936870966]
     character (len=10) :: kernelname = ' genesis '
     real :: krad = 2.0, wCv
     integer :: dim
@@ -18,55 +21,70 @@ module n2ext
     wCv = n2C(dim)
   end subroutine
 
-  pure subroutine kf(r, h, f)
-    real, intent(in)  :: r, h
+  pure subroutine kf(q, f)
+  ! subroutine kf(q, f)
+    real, intent(in)  :: q
     real, intent(out) :: f
-    real              :: q
 
-    q = r / h
     if (q < 0.0) then
       if (isnan(q)) then
         error stop 'q is nan'
       else
-        error stop 'q is negative'
+        error stop 'q is negative in f'
       end if
     else
-      f = 4*sin(pi*q/2)**4/(pi**5*q**4)
+      ! sinc
+      ! f = 4*sin(pi*q/2)**4/(pi**5*q**4)
+      ! unit
+      if (q < 1.3333333333) then
+        f = q*(0.5*q - 1.75) + 1.5
+      else
+        f = q*(-0.25*q**2 + 1.5*q - 3.0) + 2.0
+      end if
     end if
   end subroutine
 
-  pure subroutine kdf(r, h, df)
-    real, intent(in)  :: r, h
+  pure subroutine kdf(q, df)
+    real, intent(in)  :: q
     real, intent(out) :: df
-    real              :: q
 
-    q = r / h
     if (q < 0.0) then
       if (isnan(q)) then
         error stop 'q is nan'
       else
-        error stop 'q is negative'
+        error stop 'q is negative in df'
       end if
     else
-      df = 8*(pi*q*cos(pi*q/2) - 2*sin(pi*q/2))*sin(pi*q/2)**3/(pi**5*q**5)
+      ! sinc
+      ! df = 8*(pi*q*cos(pi*q/2) - 2*sin(pi*q/2))*sin(pi*q/2)**3/(pi**5*q**5)
+      ! unit
+      if ( q < 1.333333333333 ) then
+        df = q - 1.75
+      else
+        df = q*(-0.75*q + 3.0) - 3.0
+      end if
     end if
-    df = df / q
   end subroutine
 
-  pure subroutine kddf(r, h, ddf)
-    real, intent(in)  :: r, h
+  pure subroutine kddf(q, ddf)
+    real, intent(in)  :: q
     real, intent(out) :: ddf
-    real              :: q
 
-    q = r / h
     if (q < 0.0) then
       if (isnan(q)) then
         error stop 'q is nan'
       else
-        error stop 'q is negative'
+        error stop 'q is negative in ddf'
       end if
     else
-      ddf  = 4*(2*pi**2*q**2*cos(pi*q) + pi**2*q**2 - 8*pi*q*sin(pi*q) - 10*cos(pi*q) + 10)*sin(pi*q/2)**2/(pi**5*q**6)
+      ! sinc
+      ! ddf  = 4*(2*pi**2*q**2*cos(pi*q) + pi**2*q**2 - 8*pi*q*sin(pi*q) - 10*cos(pi*q) + 10)*sin(pi*q/2)**2/(pi**5*q**6)
+      ! unit
+      if (q < 1.333333333333) then
+        ddf = 1
+      else
+        ddf = -1.5*q + 3.0
+      end if
     end if
   end subroutine
 end module n2ext

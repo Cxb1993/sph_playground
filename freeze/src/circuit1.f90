@@ -1,10 +1,15 @@
 module circuit1
   use omp_lib
-  use timing,          only: addTime
-  use kernel
-  use neighboursearch, only: getneighbours,&
-                             getNeibListL1,&
-                             getNeibListL2
+  use timing,           only: addTime
+  use state,            only: getdim, &
+                              get_kerntype
+  use kernel,           only: get_krad, &
+                              get_dw_dh, &
+                              get_nw, &
+                              get_w
+  use neighboursearch,  only: getneighbours,&
+                              getNeibListL1,&
+                              getNeibListL2
 
   implicit none
 
@@ -41,21 +46,16 @@ contains
 
     n = size(ptype)
 
-    call get_dim(dim)
+    call getdim(dim)
     call get_kerntype(ktp)
 
-    ! if ( ktp == 3 ) then
-      call getNeibListL2(nlista)
-    ! else
-    !   call getNeibListL1(nlista)
-    ! end if
+    call getNeibListL2(nlista)
 
     allowerror = 1e-8
     slnint(:) = h(:)
     resid(:)  = 1.
     iter = 0
     tneib = 0.
-
     do while ((maxval(resid, mask=(resid>0)) > allowerror) .and. (iter < 100))
       iter = iter + 1
       !$omp parallel do default(none)&
@@ -72,6 +72,7 @@ contains
           if ( ktp == 3 ) then
             dfdx(:,:,i) = 0.
           end if
+          ! print*, i
           call getneighbours(i, pos, h, nlistb, t0)
           tneib = tneib + t0
           do lb = 1, size(nlistb)
@@ -103,29 +104,35 @@ contains
           ! -------------------------------------------------------!
           !      There is no particle itself in neighbour list     !
           ! -------------------------------------------------------!
-          ! print*,1
+          ! print*,'c1', 1
           call get_dw_dh(0., slnint(i), dwdh)
-          ! print*,2
+          ! print*,'c1', 2
           call get_w(0., slnint(i), w)
-          ! print*,3
+          ! print*,'c1', 3
           den(i) = den(i) + mas(i) * w
           om(i) = om(i) + mas(i) * dwdh
           ! --------------------------------------------------------!
-          ! print*,4
+          ! print*,'c1', 4
+          ! if ( i == 5 ) then
+          !   print*, slnint(i)
+          ! end if
           om(i) = 1. - om(i) * (- slnint(i) / (dim * den(i)))
-          ! print*,5
+          ! print*,'c1', 5
           if ( ktp == 3 ) then
             dfdx(:,:,i) = dfdx(:,:,i) / om(i) / den(i)
           end if
-          ! print*,6
+          ! print*,'c1', 6
           dfdh = - dim * den(i) * om(i) / slnint(i)
-          ! print*,7
+          ! print*,'c1', 7
           fh  = mas(i) * (sk / slnint(i)) ** dim - den(i)
           ! print*,8
           hn = slnint(i) - fh / dfdh
+          if (hn < 0.) then
+            hn = slnint(i)
+          end if
           ! print*,9
           resid(i) = abs(hn - slnint(i)) / h(i)
-          ! print*,10
+          ! print*,'c1', 10
           slnint(i) = hn
         end if
       end do

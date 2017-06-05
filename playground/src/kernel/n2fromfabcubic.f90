@@ -2,14 +2,14 @@ module n2fromfabcubic
   use const
   implicit none
 
-  public :: n2f, n2df, n2ddf, n2R, n2Name, setdimbase, n2Cv
+  public :: kf, kdf, kddf, krad, kernelname, setdimbase, wCv
 
 
   private
     real, parameter :: n2C(3) = (/  2./3., 10./(7. * pi), 1./(pi) /)
 
-    character (len=10) :: n2Name=' genesis '
-    real               :: n2R = 2.0, n2Cv
+    character (len=10) :: kernelname = ' genesis '
+    real               :: krad = 2.0, wCv
     integer            :: dim
 
  contains
@@ -18,15 +18,13 @@ module n2fromfabcubic
     integer, intent(in) :: d
 
     dim = d
-    n2Cv = n2C(dim)
+    wCv = n2C(dim)
   end subroutine
 
-  pure subroutine n2f(r, h, f)
-    real, intent(in)  :: r, h
+  pure subroutine kf(q, f)
+    real, intent(in)  :: q
     real, intent(out) :: f
-    real              :: q
 
-    q = r / h
     if (dim == 1) then
       ! (0, q > 2),
       ! (0.25*q**3 - 3.0*q**2 + 6.0*q*log(q) - 1.15888308335967*q + 4.0, q > 1),
@@ -81,13 +79,10 @@ module n2fromfabcubic
     end if
   end subroutine
 
-  ! pure subroutine n2df(r, h, df)
-  pure subroutine n2df(r, h, df)
-    real, intent(in)  :: r, h
+  pure subroutine kdf(q, df)
+    real, intent(in)  :: q
     real, intent(out) :: df
-    real              :: q
 
-    q = r / h
     if (dim == 1) then
       ! (0, q > 2)
       ! (0.75*q**2 - 6.0*q + 6.0*log(q) + 4.84111691664033, q > 1)
@@ -140,16 +135,12 @@ module n2fromfabcubic
         df = .0
       end if
     end if
-    df = df / q
   end subroutine
 
-  ! pure subroutine n2ddf(r, h, ddf)
-  pure subroutine n2ddf(r, h, ddf)
-    real, intent(in)  :: r, h
+  pure subroutine kddf(q, ddf)
+    real, intent(in)  :: q
     real, intent(out) :: ddf
-    real              :: q
 
-    q = r / h
     if (dim == 1) then
       ! (0, q > 2)
       ! (1.5*q - 6.0 + 6.0/q, q > 1)

@@ -1,11 +1,11 @@
 module kernel
   use const
   use state
-  use cubic
+  ! use cubic
   ! use n2movedgaus
-  ! use n2ext
+  use n2ext
   ! use n2fromfabcubic
-  ! use n2fromWcubic
+  ! use n2fromwcubic
   ! use quintic
   ! use gaus
   ! use sinc
@@ -19,10 +19,10 @@ module kernel
   private
  contains
 
-  pure subroutine get_kernelname(kname)
-    character (len=*), intent(out) :: kname
-    kname = kernelname
-  end subroutine get_kernelname
+  ! pure subroutine get_kernelname(kname)
+  !   character (len=*), intent(out) :: kname
+  !   kname = kernelname
+  ! end subroutine get_kernelname
 
   pure subroutine get_krad(kr)
     real, intent(out) :: kr
@@ -41,11 +41,13 @@ module kernel
   !----------!
 
   pure subroutine get_w(r, h, w)
+  ! subroutine get_w(r, h, w)
     real, intent(in)  :: r, h
     real, intent(out) :: w
     real              :: f, q
 
     q = r / h
+
     call kf(q, f)
 
     w = wCv * f / h ** dim
@@ -63,14 +65,17 @@ module kernel
   end subroutine
 
   pure subroutine get_dw_dh(r, h, dwdh)
+  ! subroutine get_dw_dh(r, h, dwdh)
     real, intent(in)  :: r, h
     real, intent(out) :: dwdh
     real              :: f, df, q
+
 
     if ((r < epsilon(0.)).and.(r > -epsilon(0.))) then
       dwdh = 0
     else
       q = r / h
+
       call kf(q, f)
       call kdf(q, df)
 

@@ -19,12 +19,10 @@ module cubic
      wCv = knorm(dim)
    end subroutine
 
-  pure subroutine kf(r, h, f)
-    real, intent(in)  :: r, h
+  pure subroutine kf(q, f)
+    real, intent(in)  :: q
     real, intent(out) :: f
-    real              :: q
 
-    q = r / h
     if (q >= 2.) then
       f  = 0.
     else if (q >= 1.) then
@@ -40,19 +38,17 @@ module cubic
     end if
   end subroutine kf
 
-  pure subroutine kdf(r, h, df)
-    real, intent(in)  :: r, h
+  pure subroutine kdf(q, df)
+    real, intent(in)  :: q
     real, intent(out) :: df
-    real              :: q
     character(len=20) :: err
 
-    q = r / h
     if (q >= 2.) then
       df = 0.
     else if (q >= 1.) then
-      df = (- 0.75 * ((2. - q) ** 2)) / q
+      df = - 0.75 * ((2. - q) ** 2)
     else if (q >= 0.) then
-      df = -3. + 2.25 * q
+      df = -3. * q + 2.25 * q * q
     else
       if (isnan(q)) then
         error stop 'q is nan'
@@ -62,12 +58,10 @@ module cubic
     end if
   end subroutine kdf
 
-  pure subroutine kddf(r, h, ddf)
-    real, intent(in)  :: r, h
+  pure subroutine kddf(q, ddf)
+    real, intent(in)  :: q
     real, intent(out) :: ddf
-    real              :: q
 
-    q = r / h
     if (q >= 2.) then
       ddf = 0.
     else if (q >= 1.) then

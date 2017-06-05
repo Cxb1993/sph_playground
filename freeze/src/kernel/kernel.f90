@@ -1,5 +1,6 @@
 module kernel
   use const
+  use state
   ! use cubic
   ! use n2movedgaus
   use n2ext
@@ -11,97 +12,12 @@ module kernel
   ! use external
   implicit none
 
-  public :: set_dim, get_nw, get_dw_dh, get_w, get_dim,             &
-            set_tasktype, get_tasktype, set_kerntype, get_kerntype, &
-            get_n2w, get_krad, get_hessian, set_difftype, get_difftype!, PureKernel!, GradDivW!, get_n2y !, get_dphi_dh,
-
-  private
+  public :: get_nw, get_dw_dh, get_w, setdimkernel, &
+            get_n2w, get_krad, get_hessian!, PureKernel!, GradDivW!, get_n2y !, get_dphi_dh,
   save
-    integer :: dim = 1
-    integer :: ttype, ktype, dtype
+    integer :: dim
+  private
  contains
-   !
-   !-- GetterSetter access
-   !
-   subroutine set_dim(d)
-     integer, intent(in) :: d
-     dim = d
-     call setdimbase(dim)
-   end subroutine set_dim
-
-   pure subroutine get_dim(d)
-     integer, intent(out) :: d
-     d = dim
-   end subroutine get_dim
-
-   subroutine set_tasktype(itt)
-     character (len=*), intent(in) :: itt
-     select case(itt)
-     case('hydroshock')
-       ttype = 1
-     case('infslb')
-       ttype = 2
-     case('hc-sinx')
-       ttype = 3
-     case('pheva')
-       ttype = 4
-     case('diff-laplace')
-       ttype = 5
-     case('diff-graddiv')
-       ttype = 6
-     case('chi-laplace')
-       ttype = 7
-     case('chi-graddiv')
-       ttype = 8
-     case default
-       print *, 'Task type not set: ', itt
-       stop
-     end select
-   end subroutine set_tasktype
-
-   pure subroutine get_tasktype(ott)
-     integer, intent(out) :: ott
-     ott = ttype
-   end subroutine get_tasktype
-
-   subroutine set_kerntype(itt)
-     character (len=*), intent(in) :: itt
-     select case(itt)
-     case('n2w')
-       ktype = 1
-     case('fab')
-       ktype = 2
-     case('2nw')
-       ktype = 3
-     case default
-       print *, 'Kernel type not set: ', itt
-       stop
-     end select
-    !  call calc_params()
-   end subroutine set_kerntype
-
-   pure subroutine get_kerntype(ott)
-     integer, intent(out) :: ott
-     ott = ktype
-   end subroutine get_kerntype
-
-  subroutine set_difftype(idt)
-    character (len=*), intent(in) :: idt
-    select case(idt)
-    case('diff')
-      dtype = 1
-    case('symm')
-      dtype = 2
-    case default
-      print *, 'Differentiation type is not set: ', idt
-      stop
-    end select
-  end subroutine set_difftype
-
-  pure subroutine get_difftype(odt)
-    integer, intent(out) :: odt
-    odt = dtype
-  end subroutine get_difftype
 
   pure subroutine get_kernelname(kname)
     character (len=*), intent(out) :: kname
@@ -112,38 +28,59 @@ module kernel
     real, intent(out) :: kr
     kr = krad
   end subroutine get_krad
+
+  subroutine setdimkernel(indim)
+    integer, intent(in) :: indim
+    dim = indim
+    call setdimbase(dim)
+    call setdim(dim)
+  end subroutine
   !
   ! ---------!
   ! W kernel !------------------------------------------------------------------
   !----------!
 
   pure subroutine get_w(r, h, w)
+  ! subroutine get_w(r, h, w)
     real, intent(in)  :: r, h
     real, intent(out) :: w
-    real              :: f
+    real              :: f, q
 
-    call kf(r, h, f)
+    q = r / h
+
+    call kf(q, f)
+
     w = wCv * f / h ** dim
   end subroutine get_w
 
   pure subroutine get_nw(rab, h, nw)
     real, intent(in)  :: rab(3), h
     real, intent(out) :: nw(3)
-    real              :: df
+    real              :: df, q
 
-    call kdf(sqrt(dot_product(rab(:),rab(:))), h, df)
+    q = sqrt(dot_product(rab(:),rab(:))) / h
+    call kdf(q, df)
 
-    nw(:) = wCv * df * rab(:) / h**(dim+2)
-  end subroutine get_nw
+    nw(:) = wCv * df * rab(:) / h**(dim+2) / q
+  end subroutine
 
   pure subroutine get_dw_dh(r, h, dwdh)
+  ! subroutine get_dw_dh(r, h, dwdh)
     real, intent(in)  :: r, h
     real, intent(out) :: dwdh
-    real              :: f, df
+    real              :: f, df, q
 
-    call kf(r, h, f)
-    call kdf(r, h, df)
-    dwdh = - wCv * (dim * f + r * df / h) / h ** (dim + 1)
+
+    if ((r < epsilon(0.)).and.(r > -epsilon(0.))) then
+      dwdh = 0
+    else
+      q = r / h
+
+      call kf(q, f)
+      call kdf(q, df)
+
+      dwdh = - wCv * (dim * f + r * df / h / q) / h ** (dim + 1)
+    end if
   end subroutine get_dw_dh
 
   pure subroutine get_Fab(r, h, Fab)
@@ -153,51 +90,61 @@ module kernel
 
     call get_nw(r, h, nw)
     Fab = -2. * dot_product(r,nw)/dot_product(r,r)
-  end subroutine get_Fab
+  end subroutine
 
   pure subroutine get_on2w(r, h, n2w)
     real, intent(in)  :: r, h
     real, intent(out) :: n2w
-    real              :: df, ddf
+    real              :: df, ddf, q
 
-    call kddf(r, h, ddf)
-    call kdf(r, h, df)
-    n2w = wCv*(ddf + (dim - 1) * df)/h**(dim+2)
-  end subroutine get_on2w
+    q = r / h
+
+    call kddf(q, ddf)
+    call kdf(q, df)
+    n2w = wCv*(ddf + (dim - 1) * df / q)/h**(dim + 2)
+  end subroutine
 
   pure subroutine get_n2w(r, h, n2w)
     real, intent(in)  :: r(3), h
     real, intent(out) :: n2w
+    integer :: ktype
+
+    call get_kerntype(ktype)
 
     if (ktype == 1) then
       call get_on2w(sqrt(dot_product(r,r)), h, n2w)
     else if (ktype == 2) then
       call get_Fab(r, h, n2w)
     end if
-  end subroutine get_n2w
+  end subroutine
 
   pure subroutine get_hessian(r, h, Hes)
     real, intent(in)  :: r(3), h
     real, intent(out) :: Hes(3,3)
-    real              :: r2, dr, df, ddf, fab
+    real              :: r2, dr, df, ddf, fab, q
+    integer :: ktype
+
+    call get_kerntype(ktype)
 
     if (ktype == 1) then
       r2 = dot_product(r,r)
       dr = sqrt(r2)
 
-      call kddf(dr, h, ddf)
-      call kdf(dr, h, df)
-      Hes(1,1) = wCv*(ddf*r(1)*r(1)/r2 + df*(1 - r(1)*r(1)/r2))/h**(dim+2)    ! d2/dx2   ! Wxx
-      Hes(1,2) = wCv*(ddf*r(2)*r(1)/r2 - df*r(2)*r(1)/r2)/h**(dim+2)          ! d2/dydx  ! Wxy
-      Hes(1,3) = wCv*(ddf*r(3)*r(1)/r2 - df*r(3)*r(1)/r2)/h**(dim+2)          ! d2/dzdx  ! Wxz
+      q = dr / h
 
-      Hes(2,1) = wCv*(ddf*r(1)*r(2)/r2 - df*r(1)*r(2)/r2)/h**(dim+2)          ! d2/dxdy  ! Wyx
-      Hes(2,2) = wCv*(ddf*r(2)*r(2)/r2 + df*(1 - r(2)*r(2)/r2))/h**(dim+2)    ! d2/dy2   ! Wyy
-      Hes(2,3) = wCv*(ddf*r(3)*r(2)/r2 - df*r(3)*r(2)/r2)/h**(dim+2)          ! d2/dxdz  ! Wyz
+      call kddf(q, ddf)
+      call kdf(q, df)
+      Hes(1,1) = wCv*(ddf*r(1)*r(1)/r2 + df*(1 - r(1)*r(1)/r2)/q)/h**(dim+2)    ! d2/dx2   ! Wxx
+      Hes(1,2) = wCv*(ddf*r(2)*r(1)/r2 - df*r(2)*r(1)/r2/q)/h**(dim+2)          ! d2/dydx  ! Wxy
+      Hes(1,3) = wCv*(ddf*r(3)*r(1)/r2 - df*r(3)*r(1)/r2/q)/h**(dim+2)          ! d2/dzdx  ! Wxz
 
-      Hes(3,1) = wCv*(ddf*r(1)*r(3)/r2 - df*r(1)*r(3)/r2)/h**(dim+2)          ! d2/dxdz  ! Wzx
-      Hes(3,2) = wCv*(ddf*r(2)*r(3)/r2 - df*r(2)*r(3)/r2)/h**(dim+2)          ! d2/dydz  ! Wzy
-      Hes(3,3) = wCv*(ddf*r(3)*r(3)/r2 + df*(1 - r(3)*r(3)/r2))/h**(dim+2)    ! d2/dz2   ! Wzz
+      Hes(2,1) = wCv*(ddf*r(1)*r(2)/r2 - df*r(1)*r(2)/r2/q)/h**(dim+2)          ! d2/dxdy  ! Wyx
+      Hes(2,2) = wCv*(ddf*r(2)*r(2)/r2 + df*(1 - r(2)*r(2)/r2)/q)/h**(dim+2)    ! d2/dy2   ! Wyy
+      Hes(2,3) = wCv*(ddf*r(3)*r(2)/r2 - df*r(3)*r(2)/r2/q)/h**(dim+2)          ! d2/dxdz  ! Wyz
+
+      Hes(3,1) = wCv*(ddf*r(1)*r(3)/r2 - df*r(1)*r(3)/r2/q)/h**(dim+2)          ! d2/dxdz  ! Wzx
+      Hes(3,2) = wCv*(ddf*r(2)*r(3)/r2 - df*r(2)*r(3)/r2/q)/h**(dim+2)          ! d2/dydz  ! Wzy
+      Hes(3,3) = wCv*(ddf*r(3)*r(3)/r2 + df*(1 - r(3)*r(3)/r2)/q)/h**(dim+2)    ! d2/dz2   ! Wzz
       if ( dim == 1 ) then
         Hes(1,2:3) = 0.
         Hes(2,:) = 0.
@@ -232,5 +179,5 @@ module kernel
         Hes(:,3) = 0.
       end if
     end if
-  end subroutine get_hessian
+  end subroutine
 end module kernel

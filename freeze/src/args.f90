@@ -1,9 +1,9 @@
 module args
   use errteylor,  only: setInfluenceCalc
-  use kernel,     only: set_tasktype,&
+  use state,      only: set_tasktype,&
                         set_kerntype,&
-                        set_dim,&
                         set_difftype
+  use kernel,     only: setdimkernel
 
   implicit none
 
@@ -74,7 +74,7 @@ module args
         end do
       end if
 
-      call set_dim(dim)
+      call setdimkernel(dim)
       call set_tasktype(itype)
       pspc2 = pspc1
       call set_kerntype(ktype)

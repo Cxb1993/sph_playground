@@ -1,11 +1,18 @@
 module circuit2
   use omp_lib
-  use timing,          only: addTime
-  use kernel
+  use timing,           only: addTime
+  use kernel,           only: get_hessian, &
+                              get_krad, &
+                              get_n2w, &
+                              get_nw
+  use state,            only: get_difftype, &
+                              getdim, &
+                              get_tasktype, &
+                              get_kerntype
   use BC
-  use neighboursearch, only: getneighbours,&
-                             getNeibListL1,&
-                             getNeibListL2
+  use neighboursearch,  only: getneighbours,&
+                              getNeibListL1,&
+                              getNeibListL2
 
   implicit none
 
@@ -36,7 +43,7 @@ contains
     n = size(ptype)
     tneib = 0.
 
-    call get_dim(dim)
+    call getdim(dim)
     call get_krad(kr)
     call get_tasktype(ttp)
     call get_kerntype(ktp)
@@ -80,18 +87,21 @@ contains
         vba(:) = v(:,j) - v(:,i)
         urab(:) = rab(:) / dr
         select case (ttp)
-        case (1)
-          ! hydroshock
+        case (1, 9)
+          ! hydroshock ! soundwave
           qa = 0.
           qb = 0.
           qc = 0.
           rhoa = den(i)
           rhob = den(j)
-
+          ! print*, 100
+          ! print*, i
+          ! print*, rab
+          ! print*, h(i)
           call get_nw(rab, h(i), nwa)
+          ! print*, 999
           call get_nw(rab, h(j), nwb)
           ! call get_n2w(r, h(i), n2w)
-
           call art_viscosity(rhoa, rhob, vab, urab, c(i), c(j), qa, qb)
           call art_termcond(P(i), P(j), rhoa, rhob, qc)
           Pa(:) = (P(i) + qa) * nwa(:) / (rhoa**2 * om(i))
@@ -232,7 +242,7 @@ contains
             stop
           end if
         case default
-          print *, 'Task type was not defined in circuit2 inside circle'
+          print *, 'Task type was not defined in circuit2.f90: line 240.'
           stop
         end select
       end do

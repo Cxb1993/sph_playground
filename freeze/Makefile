@@ -4,10 +4,11 @@ SRC=\
 	utils.f90\
 	timing.f90\
 	const.f90\
+	state.f90\
 	kernel/base_cubic.f90\
 	kernel/base_quintic.f90\
 	kernel/base_external.f90\
-	kernel/base_sinq.f90\
+	kernel/base_sinc.f90\
 	kernel/n2ext.f90\
 	kernel/n2fromfabcubic.f90\
 	kernel/n2fromWcubic.f90\
@@ -53,8 +54,9 @@ endif
 ifndef taskcheck
 taskcheck=chi-laplace
 endif
-
-debug=yes
+ifndef debug
+debug=no
+endif
 
 FC=gfortran
 
@@ -107,58 +109,65 @@ memleakcheck:
 			--silent $(silent)
 
 hydroshock:
-	make debug=no && time ./execute --dim $(dim)\
+	make debug=$(debug) && time ./execute --dim $(dim)\
 			--tasktype hydroshock --spacing .001\
 			--errfilename runresult.info --kerneltype $(kt)\
 			--tfinish .2 --hfac $(hf) --difftype $(dtype)\
 			--silent $(silent)
 
+soundwave:
+	make debug=$(debug) && time ./execute --dim $(dim)\
+			--tasktype soundwave --spacing .1\
+			--errfilename runresult.info --kerneltype $(kt)\
+			--tfinish .2 --hfac $(hf) --difftype $(dtype)\
+			--silent $(silent)
+
 infslb:
-	make debug=no && time ./execute $(dim) infslb 0.1 runresult.info $(kt) 5 $(dtype) $(silent)
+	make debug=$(debug) && time ./execute $(dim) infslb 0.1 runresult.info $(kt) 5 $(dtype) $(silent)
 
 hc-sinx:
-	make debug=no && time ./execute --dim $(dim)\
+	make debug=$(debug) && time ./execute --dim $(dim)\
 			--tasktype hc-sinx --spacing .1\
 			--errfilename runresult.info --kerneltype $(kt)\
 			--tfinish 5. --hfac $(hf) --difftype $(dtype)\
 			--silent $(silent)
 
 pheva:
-	make debug=no && time ./execute $(dim) pheva 0.002 runresult.info $(kt) -1.5 $(hf) $(dtype) $(silent)
+	make debug=$(debug) && time ./execute $(dim) pheva 0.002 runresult.info $(kt) -1.5 $(hf) $(dtype) $(silent)
 
 diff-laplace:
-	make debug=no && time ./execute --dim $(dim)\
+	make debug=$(debug) && time ./execute --dim $(dim)\
 			--tasktype diff-laplace --spacing .06\
 			--errfilename runresult.info --kerneltype $(kt)\
 			--tfinish 100 --hfac $(hf) --difftype $(dtype)\
 			--silent $(silent)
 
 diff-graddiv:
-	make debug=no && time ./execute $(dim) diff-graddiv .05 runresult.info $(kt) 100 $(hf) $(dtype) $(silent)
+	make debug=$(debug) && time ./execute $(dim) diff-graddiv .05 runresult.info $(kt) 100 $(hf) $(dtype) $(silent)
 
 chi-laplace:
-	make debug=no && time ./execute --dim $(dim)\
+	make debug=$(debug) && time ./execute --dim $(dim)\
 			--tasktype chi-laplace --spacing .06\
 			--errfilename runresult.info --kerneltype $(kt)\
 			--tfinish -1 --hfac $(hf) --difftype $(dtype)\
 			--silent $(silent)
 
 chi-graddiv:
-	make debug=no && time ./execute --dim $(dim)\
+	make debug=$(debug) && time ./execute --dim $(dim)\
 			--tasktype chi-graddiv --spacing .06\
 			--errfilename runresult.info --kerneltype $(kt)\
 			--tfinish -1 --hfac $(hf) --difftype $(dtype)\
 			--silent $(silent)
 
 inflience-graddiv:
-	make debug=no && time ./execute --dim $(dim) \
+	make debug=$(debug) && time ./execute --dim $(dim) \
 			--tasktype chi-graddiv --spacing 0.06 \
 			--errfilename runresult.info --kerneltype $(kt)\
 			--tfinish 100 --hfac $(hf) --difftype $(dtype) \
 			--kerninfluencefile influence.info --silent $(silent)
 
 inflience-laplace:
-	make debug=no && time ./execute --dim $(dim) \
+	make debug=$(debug) && time ./execute --dim $(dim) \
 			--tasktype chi-laplace --spacing 0.06 \
 			--errfilename runresult.info --kerneltype $(kt)\
 			--tfinish 100 --hfac $(hf) --difftype $(dtype) \

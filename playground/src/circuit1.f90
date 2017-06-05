@@ -56,7 +56,6 @@ contains
     resid(:)  = 1.
     iter = 0
     tneib = 0.
-
     do while ((maxval(resid, mask=(resid>0)) > allowerror) .and. (iter < 100))
       iter = iter + 1
       !$omp parallel do default(none)&
@@ -94,17 +93,23 @@ contains
               call get_nw(r, h(i), nw)
               do ni = 1,dim
                 do nj = 1,dim
+                  ! ------------------------------------------------------------
+                  ! Symmetric operator
+                  ! ------------------------------------------------------------
                   ! diff without omega
                   ! dfdx(ni,nj,i) = dfdx(ni,nj,i) + mas(j)/den(j)*vba(ni)*nw(nj)
                   ! diff
+                  ! ---------------------------------------------------
+                  ! Differential operator
+                  ! ---------------------------------------------------
                   dfdx(ni,nj,i) = dfdx(ni,nj,i) + mas(j)*vba(ni)*nw(nj)
                 end do
               end do
             end if
           end do
-          ! -------------------------------------------------------!
-          !      There is no particle itself in neighbour list     !
-          ! -------------------------------------------------------!
+          ! ---------------------------------------------------------!
+          ! (**)   There is no particle itself in neighbour list     !
+          ! ---------------------------------------------------------!
           ! print*,'c1', 1
           call get_dw_dh(0., slnint(i), dwdh)
           ! print*,'c1', 2
@@ -112,7 +117,7 @@ contains
           ! print*,'c1', 3
           den(i) = den(i) + mas(i) * w
           om(i) = om(i) + mas(i) * dwdh
-          ! --------------------------------------------------------!
+          ! -(**)----------------------------------------------------!
           ! print*,'c1', 4
           ! if ( i == 5 ) then
           !   print*, slnint(i)
@@ -128,6 +133,9 @@ contains
           fh  = mas(i) * (sk / slnint(i)) ** dim - den(i)
           ! print*,8
           hn = slnint(i) - fh / dfdh
+          if (hn < 0.) then
+            hn = slnint(i)
+          end if
           ! print*,9
           resid(i) = abs(hn - slnint(i)) / h(i)
           ! print*,'c1', 10

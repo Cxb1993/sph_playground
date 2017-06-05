@@ -69,7 +69,7 @@ contains
     real, allocatable, intent(in)    :: pos(:,:), h(:)
     integer, allocatable, intent(in) :: ptype(:)
     integer, allocatable             :: tmp(:)
-    integer                          :: sn, i, j, k, kj, tsz, tix, dim, kt, al1, al2
+    integer                          :: sn, i, j, tsz, tix, dim, kt, al1, al2
     real                             :: r2, r(3), kr
     call system_clock(start)
 
@@ -115,7 +115,7 @@ contains
     !$omp parallel do default(none)&
     !$omp shared(pos, ptype, h, sn, kr, neighbours, dim, stepsize, kt)&
     !$omp shared(al1, al2, alllistlv1, alllistlv2)&
-    !$omp private(i, j, k, kj, tix, r, r2, tsz, tmp)
+    !$omp private(i, j, tix, r, r2, tsz, tmp)
     do i=1,sn,stepsize
       if (ptype(i) /= 0) then
         alllistlv2(i) = 1
