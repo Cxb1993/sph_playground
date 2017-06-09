@@ -1,9 +1,9 @@
 module kernel
   use const
   use state
-  ! use cubic
+  use cubic
   ! use n2movedgaus
-  use n2ext
+  ! use n2ext
   ! use n2fromfabcubic
   ! use n2fromwcubic
   ! use quintic

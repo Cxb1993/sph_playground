@@ -29,15 +29,15 @@ module n2fromWcubic
       ! (0, q > 2)
       ! (-0.0125*q**5 + 0.125*q**4 - 0.5*q**3 + 1.0*q**2 - 1.0*q + 0.4, q > 1)
       ! (0.0375*q**5 - 0.125*q**4 + 0.5*q**2 - 0.75*q + 0.35, q > 0)
-      if (q <= 0.0) then
+      if (q < 0.0) then
         if (isnan(q)) then
           error stop 'q is nan'
         else
-          error stop 'q is negative n2f'
+          error stop 'q is negative kf'
         end if
-      elseif ( q < 1.0 ) then
+      else if ( q <= 1.0 ) then
         f = 0.0375*q**5 - 0.125*q**4 + 0.5*q**2 - 0.75*q + 0.35
-      elseif ( q < 2.0 ) then
+      else if ( q <= 2.0 ) then
         f = -0.0125*q**5 + 0.125*q**4 - 0.5*q**3 + 1.0*q**2 - 1.0*q + 0.4
       else
         f = .0
@@ -46,15 +46,17 @@ module n2fromWcubic
       ! (0, q > 2)
       ! (-0.01*q**5 + 0.09375*q**4 - 0.333333333333333*q**3 + 0.5*q**2 - 0.4*log(q) - 0.236074461109355, q > 1)
       ! (0.03*q**5 - 0.09375*q**4 + 0.25*q**2 - 0.35*log(q) - 0.171907794442689, q > 0)
-      if (q <= 0.0) then
+      if (q < 0.0) then
         if (isnan(q)) then
           error stop 'q is nan'
         else
-          error stop 'q is negative n2f'
+          error stop 'q is negative kf'
         end if
-      elseif ( q < 1.0 ) then
+      else if ((q < epsilon(0.)).and.(q > -epsilon(0.))) then
+        f = 11.8
+      else if ( q <= 1.0 ) then
         f = 0.03*q**5 - 0.09375*q**4 + 0.25*q**2 - 0.35*log(q) - 0.171907794442689
-      elseif ( q < 2.0 ) then
+      else if ( q <= 2.0 ) then
         f = -0.01*q**5 + 0.09375*q**4 - 0.333333333333333*q**3 + 0.5*q**2 - 0.4*log(q) - 0.236074461109355
       else
         f = .0
@@ -63,15 +65,17 @@ module n2fromWcubic
       ! (0, q > 2)
       ! (-0.00833333333333333*q**5 + 0.075*q**4 - 0.25*q**3 + 0.333333333333333*q**2 - 0.4 + 0.266666666666667/q, q > 1)
       ! (0.025*q**5 - 0.075*q**4 + 0.166666666666667*q**2 - 0.35 + 0.25/q, q > 0)
-      if (q <= 0.0) then
+      if (q < 0.0) then
         if (isnan(q)) then
           error stop 'q is nan'
         else
-          error stop 'q is negative n2f'
+          error stop 'q is negative kf'
         end if
-      elseif ( q < 1.0 ) then
+      else if ((q < epsilon(0.)).and.(q > -epsilon(0.))) then
+        f = 2.5e13
+      else if ( q < 1.0 ) then
         f = 0.025*q**5 - 0.075*q**4 + 0.166666666666667*q**2 - 0.35 + 0.25/q
-      elseif ( q < 2.0 ) then
+      else if ( q < 2.0 ) then
         f = -0.00833333333333333*q**5 + 0.075*q**4 - 0.25*q**3 + 0.333333333333333*q**2 - 0.4 + 0.266666666666667/q
       else
         f = .0

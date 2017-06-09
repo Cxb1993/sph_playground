@@ -22,7 +22,7 @@ suppressprinter='yes'
 
 tfinish='100'
 spstart='1.'
-spend='1.5'
+spend='2.'
 # spend='3.'
 spstep='.01'
 tstep=$spstart
