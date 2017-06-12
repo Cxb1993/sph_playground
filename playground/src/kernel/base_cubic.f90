@@ -45,9 +45,9 @@ module cubic
     if (q >= 2.) then
       df = 0.
     else if (q >= 1.) then
-      df = - 0.75 * ((2. - q) ** 2)
+      df = -0.75 * ((2. - q) ** 2)
     else if (q >= 0.) then
-      df = -3. * q + 2.25 * q * q
+      df = -0.75 * (2. - q)**2 + 3 * (1. - q)**2
     else
       if (isnan(q)) then
         error stop 'q is nan'
@@ -64,9 +64,9 @@ module cubic
     if (q >= 2.) then
       ddf = 0.
     else if (q >= 1.) then
-      ddf = 3. - 1.5 * q
+      ddf = 1.5 * (2. - q)
     else if (q >= 0.) then
-      ddf = -3. + 4.5 * q
+      ddf = 1.5 * (2. - q) - 6 * (1. - q)
     else
       if (isnan(q)) then
         error stop 'q is nan'

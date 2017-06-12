@@ -22,6 +22,7 @@ module n2fromWcubic
   end subroutine
 
   pure subroutine kf(q, f)
+  ! subroutine kf(q, f)
     real, intent(in)  :: q
     real, intent(out) :: f
 
@@ -53,7 +54,7 @@ module n2fromWcubic
           error stop 'q is negative kf'
         end if
       else if ((q < epsilon(0.)).and.(q > -epsilon(0.))) then
-        f = 11.8
+        f = 0.
       else if ( q <= 1.0 ) then
         f = 0.03*q**5 - 0.09375*q**4 + 0.25*q**2 - 0.35*log(q) - 0.171907794442689
       else if ( q <= 2.0 ) then
@@ -72,7 +73,7 @@ module n2fromWcubic
           error stop 'q is negative kf'
         end if
       else if ((q < epsilon(0.)).and.(q > -epsilon(0.))) then
-        f = 2.5e13
+        f = 0.
       else if ( q < 1.0 ) then
         f = 0.025*q**5 - 0.075*q**4 + 0.166666666666667*q**2 - 0.35 + 0.25/q
       else if ( q < 2.0 ) then
@@ -91,15 +92,15 @@ module n2fromWcubic
       ! (0, q > 2)
       ! (-0.0625*q**4 + 0.5*q**3 - 1.5*q**2 + 2.0*q - 1.0, q > 1)
       ! (0.1875*q**4 - 0.5*q**3 + 1.0*q - 0.75, q > 0)
-      if (q <= 0.0) then
+      if (q < 0.0) then
         if (isnan(q)) then
           error stop 'q is nan'
         else
           error stop 'q is negative n2df'
         end if
-      elseif ( q < 1.0 ) then
+      elseif ( q <= 1.0 ) then
         df = 0.1875*q**4 - 0.5*q**3 + 1.0*q - 0.75
-      elseif ( q < 2.0 ) then
+      elseif ( q <= 2.0 ) then
         df = -0.0625*q**4 + 0.5*q**3 - 1.5*q**2 + 2.0*q - 1.0
       else
         df = .0
@@ -125,15 +126,15 @@ module n2fromWcubic
       ! (0, q > 2)
       ! (-0.0416666666666667*q**4 + 0.3*q**3 - 0.75*q**2 + 0.666666666666667*q - 0.266666666666667/q**2, q > 1)
       ! (0.125*q**4 - 0.3*q**3 + 0.333333333333333*q - 0.25/q**2, q > 0)
-      if (q <= 0.0) then
+      if (q < 0.0) then
         if (isnan(q)) then
           error stop 'q is nan'
         else
           error stop 'q is negative n2df'
         end if
-      elseif ( q < 1.0 ) then
+      elseif ( q <= 1.0 ) then
         df = 0.125*q**4 - 0.3*q**3 + 0.333333333333333*q - 0.25/q**2
-      elseif ( q < 2.0 ) then
+      elseif ( q <= 2.0 ) then
         df = -0.0416666666666667*q**4 + 0.3*q**3 - 0.75*q**2 + 0.666666666666667*q - 0.266666666666667/q**2
       else
         df = .0
@@ -149,15 +150,15 @@ module n2fromWcubic
       ! (0, q > 2)
       ! (-0.25*q**3 + 1.5*q**2 - 3.0*q + 2.0, q > 1)
       ! (0.75*q**3 - 1.5*q**2 + 1.0, q > 0)
-      if (q <= 0.0) then
+      if (q < 0.0) then
         if (isnan(q)) then
           error stop 'q is nan'
         else
           error stop 'q is negative n2ddf'
         end if
-      elseif ( q < 1.0 ) then
+      elseif ( q <= 1.0 ) then
         ddf = 0.75*q**3 - 1.5*q**2 + 1.0
-      elseif ( q < 2.0 ) then
+      elseif ( q <= 2.0 ) then
         ddf = -0.25*q**3 + 1.5*q**2 - 3.0*q + 2.0
       else
         ddf = .0

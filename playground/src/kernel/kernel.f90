@@ -1,19 +1,20 @@
 module kernel
   use const
   use state
-  use cubic
-  ! use n2movedgaus
+  ! use cubic
+  ! use n2movedgauss
   ! use n2ext
+  use n2q2m4
   ! use n2fromfabcubic
   ! use n2fromwcubic
   ! use quintic
   ! use gaus
   ! use sinc
-  ! use external
   implicit none
 
   public :: get_nw, get_dw_dh, get_w, setdimkernel, &
-            get_n2w, get_krad, get_hessian!, PureKernel!, GradDivW!, get_n2y !, get_dphi_dh,
+            get_n2w, get_krad, get_hessian
+            !, PureKernel!, GradDivW!, get_n2y !, get_dphi_dh,
   save
     integer :: dim
   private
@@ -65,22 +66,15 @@ module kernel
   end subroutine
 
   pure subroutine get_dw_dh(r, h, dwdh)
-  ! subroutine get_dw_dh(r, h, dwdh)
     real, intent(in)  :: r, h
     real, intent(out) :: dwdh
     real              :: f, df, q
+    q = r / h
 
+    call kf(q, f)
+    call kdf(q, df)
 
-    if ((r < epsilon(0.)).and.(r > -epsilon(0.))) then
-      dwdh = 0
-    else
-      q = r / h
-
-      call kf(q, f)
-      call kdf(q, df)
-
-      dwdh = - wCv * (dim * f + r * df / h / q) / h ** (dim + 1)
-    end if
+    dwdh = - wCv / h**(dim + 1) * (dim * f + q * df)
   end subroutine get_dw_dh
 
   pure subroutine get_Fab(r, h, Fab)

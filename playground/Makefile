@@ -12,6 +12,7 @@ SRC=\
 	kernel/n2ext.f90\
 	kernel/n2fromfabcubic.f90\
 	kernel/n2fromwcubic.f90\
+	kernel/n2movedgauss.f90\
 	kernel/kernel.f90\
 	neighboursearch.f90\
 	BC.f90\

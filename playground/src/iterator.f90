@@ -34,6 +34,7 @@ contains
       ! hydroshock
       call findneighbours(ptype, pos, h)
       call c1(ptype, pos, mas, vel, sk, h, den, om, dfdx)
+      ! call c1a(pos, mas, sk, h, den)
       call eos_adiabatic(n, den, uei, prs, c, cf, gamma)
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
       if ( dim > 0 ) then

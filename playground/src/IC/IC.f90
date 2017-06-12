@@ -206,9 +206,9 @@ contains
       stop
     end select
 
-    !-----------------
-    ! particles values
-    !-----------------
+    !-------------------------------!
+    !        particles values       !
+    !-------------------------------!
 
     !$omp parallel do default(none)&
     !$omp private(i, sp)&
