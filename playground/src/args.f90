@@ -3,7 +3,8 @@ module args
   use state,      only: set_tasktype,&
                         set_kerntype,&
                         set_difftype
-  use kernel,     only: setdimkernel
+  use kernel,     only: setdimkernel, &
+                        getkernelname
 
   implicit none
 
@@ -15,6 +16,7 @@ module args
       real, intent(inout)               :: pspc1, pspc2, dtout, npic, tfinish, sk
       integer, intent(inout)            :: dim, silent
       character (len=40), intent(inout) :: itype, ktype, errfname, dtype
+      character (len=40)                :: kname
 
       integer                           :: numargs, curargnum
       character (len=40)                :: argkey, argval, silentstr, kerninflname
@@ -24,6 +26,7 @@ module args
       pspc1 = 1.
       errfname = 'runresult.info'
       ktype = 'fab'
+      kname = ''
       tfinish = 1.
       npic = 200.
       sk = 1.2
@@ -89,6 +92,8 @@ module args
         print *, "# # kern infl name:   ", kerninflname
       end if
       print *, "# #       ker.type:   ", ktype
+      call getkernelname(kname)
+      print *, "# #       ker.name:   ", kname
       write(*, "(A, F9.7)") " # #       print dt:   ", dtout
       write(*, "(A, F7.5)") " # #              h:   ", sk
       write(*, "(A, A)") " # #       difftype:   ", dtype

@@ -3,27 +3,27 @@ module kernel
   use state
   ! use cubic
   ! use n2movedgauss
-  ! use n2ext
-  use n2q2m4
+  use n2ext
+  ! use n2q2m4
   ! use n2fromfabcubic
   ! use n2fromwcubic
   ! use quintic
   ! use gaus
-  ! use sinc
+  ! use sinc4
   implicit none
 
   public :: get_nw, get_dw_dh, get_w, setdimkernel, &
-            get_n2w, get_krad, get_hessian
+            get_n2w, get_krad, get_hessian, getkernelname
             !, PureKernel!, GradDivW!, get_n2y !, get_dphi_dh,
   save
     integer :: dim
   private
  contains
 
-  ! pure subroutine get_kernelname(kname)
-  !   character (len=*), intent(out) :: kname
-  !   kname = kernelname
-  ! end subroutine get_kernelname
+  pure subroutine getkernelname(kname)
+    character (len=*), intent(out) :: kname
+    kname = kernelname
+  end subroutine
 
   pure subroutine get_krad(kr)
     real, intent(out) :: kr
