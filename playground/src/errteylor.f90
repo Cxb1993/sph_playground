@@ -21,7 +21,7 @@ module errteylor
   save
   integer    :: stepsize = 1
   integer(8) :: start=0, finish=0
-  character (len=40) :: kinfname = ''
+  character (len=100) :: kinfname = ''
 
 contains
   subroutine setStepsize(i)
@@ -30,7 +30,7 @@ contains
   end subroutine
 
   subroutine setInfluenceCalc(fname)
-    character (len=40), intent(in) :: fname
+    character (len=*), intent(in) :: fname
     kinfname = adjustl(fname)
   end subroutine
 

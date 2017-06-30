@@ -7,7 +7,7 @@ module n2q2m4
   private
 
     real :: n2C(3) = (/ 6.61200174725079, 5.58719034631753, 4.60567114916346 /)
-    character (len=20) :: kernelname = ' Int(Int(q^{2.11}*M4)) '
+    character (len=40) :: kernelname = ' Int(Int(q^{2.11}*M4)) '
     real :: krad = 2.0, wCv
     integer :: dim
   contains

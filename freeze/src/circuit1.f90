@@ -93,17 +93,23 @@ contains
               call get_nw(r, h(i), nw)
               do ni = 1,dim
                 do nj = 1,dim
+                  ! ------------------------------------------------------------
+                  ! Symmetric operator
+                  ! ------------------------------------------------------------
                   ! diff without omega
                   ! dfdx(ni,nj,i) = dfdx(ni,nj,i) + mas(j)/den(j)*vba(ni)*nw(nj)
                   ! diff
+                  ! ---------------------------------------------------
+                  ! Differential operator
+                  ! ---------------------------------------------------
                   dfdx(ni,nj,i) = dfdx(ni,nj,i) + mas(j)*vba(ni)*nw(nj)
                 end do
               end do
             end if
           end do
-          ! -------------------------------------------------------!
-          !      There is no particle itself in neighbour list     !
-          ! -------------------------------------------------------!
+          ! ---------------------------------------------------------!
+          ! (**)   There is no particle itself in neighbour list     !
+          ! ---------------------------------------------------------!
           ! print*,'c1', 1
           call get_dw_dh(0., slnint(i), dwdh)
           ! print*,'c1', 2
@@ -111,7 +117,7 @@ contains
           ! print*,'c1', 3
           den(i) = den(i) + mas(i) * w
           om(i) = om(i) + mas(i) * dwdh
-          ! --------------------------------------------------------!
+          ! -(**)----------------------------------------------------!
           ! print*,'c1', 4
           ! if ( i == 5 ) then
           !   print*, slnint(i)
@@ -127,9 +133,9 @@ contains
           fh  = mas(i) * (sk / slnint(i)) ** dim - den(i)
           ! print*,8
           hn = slnint(i) - fh / dfdh
-          if (hn < 0.) then
-            hn = slnint(i)
-          end if
+          ! if (hn < 0.) then
+          !   hn = slnint(i)
+          ! end if
           ! print*,9
           resid(i) = abs(hn - slnint(i)) / h(i)
           ! print*,'c1', 10
@@ -144,23 +150,31 @@ contains
   end subroutine c1
 
 ! Direct density summation
-  subroutine c1a(n, pos, mas, sk, sln, den)
-    integer, intent(in) :: n
-    real, intent(in)    :: pos(3,n), mas(n), sk
-    real, intent(out)   :: den(n), sln(n)
-    real                :: w, r(3), dr
-    integer             :: i, j
+  subroutine c1a(pos, mas, sk, sln, den)
+    real, allocatable, intent(in)    :: pos(:,:), mas(:)
+    real,              intent(in)    :: sk
+    real, allocatable, intent(out)   :: den(:), sln(:)
+    real                             :: w, r(3), dr
+    integer                          :: i, j, la, lb
+    integer, allocatable             :: nlista(:), nlistb(:)
+    integer(8)                       :: t0
 
-    do i = 1, n
+
+    call getNeibListL2(nlista)
+
+    do la = 1, size(nlista)
+      i = nlista(la)
       den(i) = 0.
-      do j = 1, n
+      call getneighbours(i, pos, sln, nlistb, t0)
+      do lb = 1, size(nlistb)
+        j = nlistb(lb)
         r(:) = pos(:,i) - pos(:,j)
         dr = sqrt(dot_product(r(:),r(:)))
-        if (dr <= 2. * sln(i)) then
-          call get_w(dr, sln(i), w)
-          den(i) = den(i) + mas(j) * w
-        endif
+        call get_w(dr, sln(i), w)
+        den(i) = den(i) + mas(j) * w
       end do
+      call get_w(0., sln(i), w)
+      den(i) = den(i) + mas(i) * w
       sln(i) = sk * (mas(i) / den(i))
     end do
   end subroutine c1a

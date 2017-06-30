@@ -7,7 +7,7 @@ dimlist=$1
 # tasktype='diff-laplace'
 tasktype=$2
 # ktype='n2w fab'
-ktype='n2w'
+ktype=$3
 execnamelist='execute'
 storebase=`pwd`
 dtprefix=`date +%Y%m%d%H%M`
@@ -21,7 +21,7 @@ difftype='diff'
 suppressprinter='yes'
 
 tfinish='100'
-spstart='1.'
+spstart='1.2'
 spend='2.'
 # spend='3.'
 spstep='.05'
@@ -31,7 +31,7 @@ spacing=""
 while [[ $flag -eq "1" ]]; do
   spacing=$spacing" "$tstep
   tstep=`echo "$tstep + $spstep" | bc`
-  flag=`echo "$tstep < $spend" | bc`
+  flag=`echo "$tstep <= $spend" | bc`
 done
 # spacing='0.2 0.19 0.2 0.19'
 echo "Spacings: $spacing"

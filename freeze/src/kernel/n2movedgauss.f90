@@ -1,4 +1,4 @@
-module n2ext
+module n2movedgauss
   use const
   implicit none
 
@@ -6,8 +6,8 @@ module n2ext
 
   private
 
-    real :: n2C(3) = [0.0124999997029078, 0.0104882435025047, 0.00895246473927735]
-    character (len=10) :: kernelname = '  mmq0zipm6  '
+    real :: n2C(3) = (/ 0.0114685539154613, 0.00930942111372185, 0.00735105715323899 /)
+    character (len=10) :: kernelname = ' moved gauss '
     real :: krad = 2.0, wCv
     integer :: dim
   contains
@@ -28,14 +28,14 @@ module n2ext
       else
         error stop 'q is negative'
       end if
-    elseif (q < 0.666666666666667) then
-      f  = -4.5*q**2 - 69.0*q + 74.0
-    elseif (q < 1.33333333333333) then
-      f  = -6.0*(-1.5*q + 2.0)**5 + (-1.5*q + 3.0)**5
     elseif (q < 2.0) then
-      f  = (-1.5*q + 3.0)**5
+      f  = -0.55976281236227*q**3 + 2.16373843962652*q**2 - 46.8240032936104*q  &
+- (-45.2069218327059*q + 41.4282147429831)*erf(1.756941181815487*q  &
+- 1.6100838902591093)  &
++ 1.08647749179408*exp(q*(-3.0868423163592*q  &
++ 5.657645385947832)) + 40.4459781700414
     else
-      f  = 0
+      f = .0
     end if
   end subroutine
 
@@ -49,14 +49,12 @@ module n2ext
       else
         error stop 'q is negative'
       end if
-    elseif (q < 0.666666666666667) then
-      df  = -9.0*q - 69.0
-    elseif (q < 1.33333333333333) then
-      df  = -7.5*(1.5*q - 3.0)**4 + 45.0*(1.5*q - 2.0)**4
     elseif (q < 2.0) then
-      df  = -7.5*(1.5*q - 3.0)**4
+      df  = -1.67928843708681*q**2 + 4.32747687925304*q + 45.2069218327059*erf(1.756941181815487*q  &
+- 1.6100838902591093)  &
+- 46.8240032936104
     else
-      df  = 0
+      df = .0
     end if
   end subroutine
 
@@ -70,14 +68,11 @@ module n2ext
       else
         error stop 'q is negative'
       end if
-    elseif (q < 0.666666666666667) then
-      ddf  = -9.000000000000
-    else if (q < 1.33333333333333) then
-      ddf  = 759.375*q**3 - 2733.75*q**2 + 3037.5*q - 945.0
-    else if (q < 2.0) then
-      ddf  = -45.0*(1.5*q - 3.0)**3
+    elseif (q < 2.0) then
+      ddf  = -3.35857687417362*q + 4.32747687925304 + 89.6225339017062*exp(-3.0868423163592*(q  &
+- 0.916413085949396)**2)
     else
-      ddf  = 0
+      ddf = .0
     end if
   end subroutine
 end module

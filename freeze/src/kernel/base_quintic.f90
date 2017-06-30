@@ -2,22 +2,27 @@ module quintic
   use const
   implicit none
 
-  public :: kf, kdf, kddf, knorm, krad, kernelname
+  public :: kf, kdf, kddf, knorm, krad, kernelname, setdimbase, wCv
 
   private
 
     real :: knorm(3) = (/ 1./120., 7./(478. * pi), 1./(120. * pi) /)
-    real :: krad = 3.
+    real :: krad = 3., wCv
+    integer :: dim
     character (len=10) :: kernelname='quintic'
 
  contains
 
-  pure subroutine kf(r, h, f)
-    real, intent(in)  :: r, h
-    real, intent(out) :: f
-    real              :: q
+   subroutine setdimbase(d)
+     integer, intent(in) :: d
+     dim = d
+     wCv = knorm(dim)
+   end subroutine
 
-    q = r / h
+  pure subroutine kf(q, f)
+    real, intent(in)  :: q
+    real, intent(out) :: f
+
     if (q >= 3.) then
       f = 0.
     else if (q >= 2.) then
@@ -33,24 +38,20 @@ module quintic
         error stop 'q is negative'
       end if
     end if
-  end subroutine kf
+  end subroutine
 
-  pure subroutine kdf(r, h, df)
-    real, intent(in)  :: r, h
+  pure subroutine kdf(q, df)
+    real, intent(in)  :: q
     real, intent(out) :: df
-    real              :: q
 
-    q = r / h
     if (q >= 3.) then
       df = 0.
     else if (q >= 2.) then
-      df = -5. * (3. - q)**4 / q
+      df = -5. * (3. - q)**4
     else if (q >= 1.) then
-      df = (-5. * (3. - q)**4 + 30. * (2. - q)**4) / q
-    else if (q > 0.) then
-      df = (-5. * (3. - q)**4 + 30. * (2. - q)**4 - 75. * (1. - q)**4) / q
-    else if (q == 0.) then
-      df = 0.
+      df = -5. * (3. - q)**4 + 30. * (2. - q)**4
+    else if (q >= 0.) then
+      df = -5. * (3. - q)**4 + 30. * (2. - q)**4 - 75. * (1. - q)**4
     else
       if (isnan(q)) then
         error stop 'q is nan'
@@ -58,14 +59,12 @@ module quintic
         error stop 'q is negative'
       end if
     end if
-  end subroutine kdf
+  end subroutine
 
-  pure subroutine kddf(r, h, ddf)
-    real, intent(in)  :: r, h
+  pure subroutine kddf(q, ddf)
+    real, intent(in)  :: q
     real, intent(out) :: ddf
-    real              :: q
 
-    q = r / h
     if (q >= 3.) then
       ddf = 0.
     else if (q >= 2.) then
@@ -81,5 +80,5 @@ module quintic
         error stop 'q is negative'
       end if
     end if
-  end subroutine kddf
-end module quintic
+  end subroutine
+end module

@@ -19,7 +19,7 @@ module args
       character (len=40)                :: kname
 
       integer                           :: numargs, curargnum
-      character (len=40)                :: argkey, argval, silentstr, kerninflname
+      character (len=100)                :: argkey, argval, silentstr, kerninflname
 
       dim   = 1
       itype = 'chi-laplace'

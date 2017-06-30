@@ -10,8 +10,10 @@ SRC=\
 	kernel/base_external.f90\
 	kernel/base_sinc.f90\
 	kernel/n2ext.f90\
+	kernel/n2q2m4.f90\
 	kernel/n2fromfabcubic.f90\
-	kernel/n2fromWcubic.f90\
+	kernel/n2fromwcubic.f90\
+	kernel/n2movedgauss.f90\
 	kernel/kernel.f90\
 	neighboursearch.f90\
 	BC.f90\
