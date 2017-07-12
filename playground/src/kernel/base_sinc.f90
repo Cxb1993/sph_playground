@@ -22,16 +22,16 @@ module sinc4
     real, intent(in)  :: q
     real, intent(out) :: f
 
-    if (q < 0.0) then
+    if (q < -epsilon(0.)) then
       if (isnan(q)) then
         error stop 'q is nan'
       else
         error stop 'q is negative'
       end if
-    else if (q < 2.0) then
-      f  = 0.164*sin(pi*q/2)**4/q**4
     else if (( q < epsilon(0.)).and.( q > -epsilon(0.))) then
       f = 1.
+    else if (q < 2.0) then
+      f  = 0.164*sin(pi*q/2)**4/q**4
     else
       f = .0
     end if
@@ -41,12 +41,14 @@ module sinc4
     real, intent(in)  :: q
     real, intent(out) :: df
 
-    if (q < 0.0) then
+    if (q < -epsilon(0.)) then
       if (isnan(q)) then
         error stop 'q is nan'
       else
         error stop 'q is negative'
       end if
+    else if (( q < epsilon(0.)).and.( q > -epsilon(0.))) then
+      df = 0.
     else if (q < 2.0) then
       df  = 0.328*(3.14*q*cos(pi*q/2) - 2.0*sin(pi*q/2))*sin(pi*q/2)**3/q**5
     else
@@ -58,13 +60,15 @@ module sinc4
     real, intent(in)  :: q
     real, intent(out) :: ddf
 
-    if (q < 0.0) then
+    if (q < -epsilon(0.)) then
       if (isnan(q)) then
         error stop 'q is nan'
       else
         error stop 'q is negative'
       end if
-    elseif (q < 2.0) then
+    else if (( q < epsilon(0.)).and.( q > -epsilon(0.))) then
+      ddf = 1e16
+    else if (q < 2.0) then
       ddf  = 0.164*(19.7*q**2*cos(pi*q) + 9.87*q**2 - 25.1*q*sin(pi*q)  &
 - 10.0*cos(pi*q) + 10.0)*sin(pi*q/2)**2/q**6
     else

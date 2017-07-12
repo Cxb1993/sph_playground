@@ -3,13 +3,13 @@ module kernel
   use state
   ! use cubic
   ! use n2movedgauss
-  use n2ext
+  ! use n2ext
   ! use n2q2m4
   ! use n2fromfabcubic
   ! use n2fromwcubic
   ! use quintic
   ! use gaus
-  ! use sinc4
+  use sinc4
   implicit none
 
   public :: get_nw, get_dw_dh, get_w, setdimkernel, &
@@ -77,6 +77,18 @@ module kernel
     dwdh = - wCv / h**(dim + 1) * (dim * f + q * df)
   end subroutine get_dw_dh
 
+  pure subroutine get_F2(r, h, Fab)
+    real, intent(in)  :: r(3), h
+    real, intent(out) :: Fab
+    real              :: w, dr
+
+    dr = sqrt(dot_product(r,r))
+
+    call get_w(dr, h, w)
+
+    Fab = 10*(w**2)
+  end subroutine
+
   pure subroutine get_Fab(r, h, Fab)
     real, intent(in)  :: r(3), h
     real, intent(out) :: Fab
@@ -109,6 +121,8 @@ module kernel
       call get_on2w(sqrt(dot_product(r,r)), h, n2w)
     else if (ktype == 2) then
       call get_Fab(r, h, n2w)
+    else if (ktype == 4) then
+      call get_F2(r, h, n2w)
     end if
   end subroutine
 

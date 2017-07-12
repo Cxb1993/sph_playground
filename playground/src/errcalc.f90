@@ -9,11 +9,33 @@ module errcalc
   implicit none
 
   public :: err_T0sxsyet, err_infplate, err_sinxet,&
-            err_diff_laplace, err_diff_graddiv
+            err_diff_laplace, err_diff_graddiv, shockTube
 
   private
 
 contains
+
+subroutine shockTube(ptype, x, num, t, err)
+  use exactshocktube
+  integer, allocatable, intent(in) :: ptype(:)
+  real, allocatable, intent(in)    :: num(:), x(:,:)
+  real, allocatable, intent(inout) :: err(:)
+  real, intent(in)                 :: t
+
+  integer           :: i, n, dim
+  real, allocatable :: exact(:), xpass(:)
+
+  n = size(ptype)
+
+  allocate(xpass(n))
+  allocate(exact(n))
+  xpass(:) = x(1,:)
+  call exact_shock(1, t, 1.4, 0., 1., 1./8., 1., 0.1, 0., 0., xpass, exact)
+
+  do i = 1,n
+    err(i) = abs(num(i)-exact(i))
+  end do
+end subroutine
 
   subroutine err_T0sxsyet(n, pos, num, t, err)
     integer, intent(in) :: n

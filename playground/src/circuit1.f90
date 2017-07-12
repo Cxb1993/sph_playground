@@ -39,7 +39,7 @@ contains
     real, intent(in)     :: sk
     real                 :: w, dwdh, r(3), dr, r2, dfdh, fh, hn, vba(3), nw(3)
     real                 :: allowerror
-    integer              :: n, ni, nj, i, j, la, lb, dim, iter, ktp, tt
+    integer              :: n, ni, nj, i, j, la, lb, dim, iter, ktp
     integer(8)           :: t0, tneib
     integer, allocatable :: nlista(:), nlistb(:)
     call system_clock(start)

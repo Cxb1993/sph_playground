@@ -29,9 +29,9 @@ contains
                                         u(:), cf(:), kcf(:), om(:)
     integer, allocatable, intent(in) :: ptype(:)
     real, allocatable, intent(inout) :: dv(:,:), du(:), dh(:), dcf(:), dfdx(:,:,:)
-    real                 :: dr, rhoa, rhob, qa, qb, qc, n2wa, n2wb, kr, r2, &
+    real                 :: dr, rhoa, rhob, qa, qb, qc, n2wa, kr, r2, &
                             nwa(3), nwb(3), rab(3), vab(3), vba(3), urab(3), Pa(3), Pb(3), &
-                            projv, df, ddf, Hes(3,3), oddi, oddj, r(3)!, tau2
+                            Hes(3,3), oddi, oddj!, r(3)!, tau2
     integer, allocatable :: nlista(:), nlistb(:)
     integer              :: i, j, la, lb, n, dim, ttp, ktp, dtp !, usekorrection
     integer(8)           :: t0, tneib
@@ -50,14 +50,14 @@ contains
     call get_difftype(dtp)
 
     if (( ktp == 3 ).and.( dtp == 1 )) then
-      call gradf(dim, ptype, mas, den, pos, v, h, om, dfdx)
+      call gradf(dim, mas, den, pos, v, h, om, dfdx)
     end if
     call getNeibListL1(nlista)
 
     !$omp parallel do default(none)&
     !$omp private(rab, dr, vab, urab, rhoa, rhob, nwa, nwb, qa, qb, qc, Pa, Pb)&
-    !$omp private(n2wa, n2wb, j, i, r2, oddi ,oddj, la, lb)&
-    !$omp private(projv, df, ddf, nlistb, Hes, vba, t0) &
+    !$omp private(n2wa, j, i, r2, oddi ,oddj, la, lb)&
+    !$omp private(nlistb, Hes, vba, t0) &
     !$omp shared(dv, du, dh, dcf, n, pos, h, v, den, c, p, om, mas, u, kcf, cf)&
     !$omp shared(dim, kr, ktp, dtp, ttp, ptype, dfdx, nlista)&
     !$omp reduction(+:tneib)
@@ -302,17 +302,16 @@ contains
     end if
   end subroutine art_viscosity
 
-  subroutine gradf(dim, t, m, d, x, v, h, om, nv)
+  subroutine gradf(dim, m, d, x, v, h, om, nv)
     real, allocatable, intent(in)  :: m(:), d(:), x(:,:), v(:,:), h(:), om(:)
-    integer, allocatable, intent(in) :: t(:)
     real, allocatable, intent(inout) :: nv(:,:,:)
     integer, intent(in)            :: dim
 
     integer, allocatable :: nlista(:), nlistb(:)
-    integer              :: n, i, j, la, lb, ni, nj, li
+    integer              :: n, i, j, la, lb, ni, nj
     integer(8)           :: t0, tneib
 
-    real    :: vba(3), nw(3), rab(3), nwi(3), nwj(3), oddi, oddj
+    real    :: vba(3), rab(3), nwi(3), nwj(3), oddi, oddj
 
     n = size(m)
     ! if ( .not.allocated(nv) ) then
@@ -323,9 +322,9 @@ contains
     call getNeibListL1(nlista)
 
     !$omp parallel do default(none)&
-    !$omp private(rab, vba, nw, i, j, la, lb, ni, nj, li, nlistb, t0) &
+    !$omp private(rab, vba, i, j, la, lb, ni, nj, nlistb, t0) &
     !$omp private(nwi, nwj, oddi, oddj)&
-    !$omp shared(dim, t, m, d, x, v, h, om, nv, n, nlista)&
+    !$omp shared(dim, m, d, x, v, h, om, nv, n, nlista)&
     !$omp reduction(+:tneib)
     do la = 1,size(nlista)
       i = nlista(la)

@@ -7,7 +7,7 @@ module n2movedgauss
   private
 
     real :: n2C(3) = (/ 0.0114685539154613, 0.00930942111372185, 0.00735105715323899 /)
-    character (len=10) :: kernelname = ' moved gauss '
+    character (len=15) :: kernelname = ' moved gauss '
     real :: krad = 2.0, wCv
     integer :: dim
   contains

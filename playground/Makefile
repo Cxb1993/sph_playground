@@ -18,6 +18,7 @@ SRC=\
 	neighboursearch.f90\
 	BC.f90\
 	printer.f90\
+	err_shocktube.f90\
 	errteylor.f90\
 	args.f90\
 	eos.f90\

@@ -194,7 +194,7 @@ contains
     real, intent(in)     :: brdx1, brdx2, brdy1, brdy2, brdz1, brdz2
     real, intent(inout)  :: pspc1, pspc2
     integer, allocatable :: bX1(:), bY1(:), bZ1(:), bX2(:), bY2(:), bZ2(:)
-    integer              :: i, dim, nb, freeflag, freenumber, &
+    integer              :: dim, nb, freeflag, freenumber, &
                             n, nbnewX1, nbnewY1, nbnewZ1, nbnewX2, nbnewY2, nbnewZ2,&
                             ptsz
     real                 :: x, y, z, sp, eps

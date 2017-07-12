@@ -6,7 +6,8 @@ program main
   use printer,          only: Output, AppendLine
   use errcalc,          only: err_diff_laplace,&
                               err_diff_graddiv,&
-                              err_sinxet
+                              err_sinxet,&
+                              err_shockTube => shockTube
   use args,             only: fillargs
   use errteylor,        only: etlaplace => laplace,&
                               etgraddiv => graddiv
@@ -32,7 +33,7 @@ program main
                                          pspc1, pspc2, gamma,&
                                          sk, chi(81), cv = 1.
 
-  character (len=40)  :: itype, errfname, ktype, dtype
+  character (len=100)  :: itype, errfname, ktype, dtype
   integer             :: n, dim, iter, tt, nusedl1, nusedl2, printlen, silent!, i
 
   integer(8)          :: tprint
@@ -177,7 +178,9 @@ program main
   !         l2 error calc evaluatopn       !
   !----------------------------------------!
   select case(tt)
-  case(1, 2, 7, 8)
+  case(1)
+    call err_shockTube(ptype, pos, den, t, err)
+  case(2, 7, 8)
     ! 'hydroshock' ! chi-laplace ! 'infslb'
   case(3)
     ! 'hc-sinx'

@@ -15,8 +15,8 @@ module args
     subroutine fillargs(dim, pspc1, pspc2, itype, ktype, dtype, errfname, dtout, npic, tfinish, sk, silent)
       real, intent(inout)               :: pspc1, pspc2, dtout, npic, tfinish, sk
       integer, intent(inout)            :: dim, silent
-      character (len=40), intent(inout) :: itype, ktype, errfname, dtype
-      character (len=40)                :: kname
+      character (len=100), intent(inout) :: itype, ktype, errfname, dtype
+      character (len=100)                :: kname
 
       integer                           :: numargs, curargnum
       character (len=100)                :: argkey, argval, silentstr, kerninflname
@@ -80,6 +80,7 @@ module args
       call setdimkernel(dim)
       call set_tasktype(itype)
       pspc2 = pspc1
+      print *, ktype
       call set_kerntype(ktype)
       dtout = tfinish / npic
       call set_difftype(dtype)
