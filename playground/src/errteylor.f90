@@ -81,6 +81,7 @@ contains
       r13 = r(1)*r(3)
       r23 = r(2)*r(3)
       call get_n2w(r, h(i), n2w)
+
       ! call GradDivW(r, h(i), n2wa)
       ! call get_Hesobian(r, h(i), Hes)
       t(:) = t(:) + mas(j)/den(j) * r(:) * n2w
@@ -107,7 +108,12 @@ contains
         tneib = tneib + tprint
         ! print*, r(:), sqrt(dot_product(r,r)), dsum, osum
       end if
+
+      ! print*, n2w
+
     end do
+    ! print*,
+    ! stop
     ! print*, ' t: ', t
     call system_clock(finish)
     call addTime(' teylor err', finish - start - tneib)

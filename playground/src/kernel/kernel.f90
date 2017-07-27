@@ -3,13 +3,13 @@ module kernel
   use state
   ! use cubic
   ! use n2movedgauss
-  ! use n2ext
+  use n2ext
   ! use n2q2m4
   ! use n2fromfabcubic
   ! use n2fromwcubic
   ! use quintic
   ! use gaus
-  use sinc4
+  ! use sinc4
   implicit none
 
   public :: get_nw, get_dw_dh, get_w, setdimkernel, &
@@ -52,7 +52,7 @@ module kernel
     call kf(q, f)
 
     w = wCv * f / h ** dim
-  end subroutine get_w
+  end subroutine
 
   pure subroutine get_nw(rab, h, nw)
     real, intent(in)  :: rab(3), h
@@ -77,25 +77,27 @@ module kernel
     dwdh = - wCv / h**(dim + 1) * (dim * f + q * df)
   end subroutine get_dw_dh
 
-  pure subroutine get_F2(r, h, Fab)
+  ! pure
+  subroutine get_FW(r, h, fw)
     real, intent(in)  :: r(3), h
-    real, intent(out) :: Fab
-    real              :: w, dr
+    real, intent(out) :: fw
+    real              :: w, w0, f0, dr, q, r0(3), nw(3)
 
-    dr = sqrt(dot_product(r,r))
+    call get_w(sqrt(dot_product(r,r)), h, w)
 
-    call get_w(dr, h, w)
+    fw = w * fwc / h / h
 
-    Fab = 10*(w**2)
   end subroutine
 
   pure subroutine get_Fab(r, h, Fab)
     real, intent(in)  :: r(3), h
     real, intent(out) :: Fab
-    real              :: nw(3)
+    real              :: nw(3), q, df
 
-    call get_nw(r, h, nw)
-    Fab = -2. * dot_product(r,nw)/dot_product(r,r)
+    q = sqrt(dot_product(r,r)) / h
+    call kdf(q, df)
+    Fab = -2. * wCv * df / h**(dim+2) / q
+
   end subroutine
 
   pure subroutine get_on2w(r, h, n2w)
@@ -110,7 +112,8 @@ module kernel
     n2w = wCv*(ddf + (dim - 1) * df / q)/h**(dim + 2)
   end subroutine
 
-  pure subroutine get_n2w(r, h, n2w)
+  ! pure
+  subroutine get_n2w(r, h, n2w)
     real, intent(in)  :: r(3), h
     real, intent(out) :: n2w
     integer :: ktype
@@ -122,7 +125,7 @@ module kernel
     else if (ktype == 2) then
       call get_Fab(r, h, n2w)
     else if (ktype == 4) then
-      call get_F2(r, h, n2w)
+      call get_FW(r, h, n2w)
     end if
   end subroutine
 
@@ -142,6 +145,7 @@ module kernel
 
       call kddf(q, ddf)
       call kdf(q, df)
+
       Hes(1,1) = wCv*(ddf*r(1)*r(1)/r2 + df*(1 - r(1)*r(1)/r2)/q)/h**(dim+2)    ! d2/dx2   ! Wxx
       Hes(1,2) = wCv*(ddf*r(2)*r(1)/r2 - df*r(2)*r(1)/r2/q)/h**(dim+2)          ! d2/dydx  ! Wxy
       Hes(1,3) = wCv*(ddf*r(3)*r(1)/r2 - df*r(3)*r(1)/r2/q)/h**(dim+2)          ! d2/dzdx  ! Wxz
@@ -188,4 +192,4 @@ module kernel
       end if
     end if
   end subroutine
-end module kernel
+end module

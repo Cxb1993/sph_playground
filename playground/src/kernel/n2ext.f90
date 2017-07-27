@@ -2,20 +2,27 @@ module n2ext
   use const
   implicit none
 
-  public :: kf, kdf, kddf, wCv, krad, kernelname, setdimbase
+  public :: kf, kdf, kddf, wCv, krad, kernelname, setdimbase, fwc
 
   private
 
     real :: n2C(3) = (/ 0.0124999997029078, 0.0104882435025047, 0.00895246473927735 /)
+    real :: fwcl(3) = [9.000576010318687, 9.312577005786454, 9.644931900323585]
     character (len=10) :: kernelname = ' zipM6 '
-    real :: krad = 2.0, wCv
+    real :: krad = 2.0, wCv, fwc
     integer :: dim
   contains
+
+
+    ! F1[q_] = M6q[q, 1];
+    ! F2[q_] = -DDM6[q, 1];
+    ! F3[q_] = M6q[q, 1];
 
   subroutine setdimbase(d)
     integer, intent(in) :: d
     dim = d
     wCv = n2C(dim)
+    fwc = fwcl(dim)
   end subroutine
 
   pure subroutine kf(q, f)

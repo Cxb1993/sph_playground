@@ -113,7 +113,7 @@ memleakcheck:
 
 hydroshock:
 	make debug=$(debug) && time ./execute --dim $(dim)\
-			--tasktype hydroshock --spacing .001\
+			--tasktype hydroshock --spacing 0.001\
 			--errfilename runresult.info --kerneltype $(kt)\
 			--tfinish .2 --hfac $(hf) --difftype $(dtype)\
 			--silent $(silent)

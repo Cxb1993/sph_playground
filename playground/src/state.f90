@@ -59,7 +59,7 @@ module state
         ktype = 2
       case('2nw')
         ktype = 3
-      case('f2')
+      case('fw')
         ktype = 4
       case default
         print *, 'Kernel type not set: ', itt

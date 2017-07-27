@@ -66,7 +66,7 @@ contains
       end if
       ! pspc1 = 0.001
       pspc2 = pspc2 * 8
-      nb = int(kr * sk)*2
+      nb = int(kr * sk)*3
       call semiuniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
     case (2)
       ! infslb
