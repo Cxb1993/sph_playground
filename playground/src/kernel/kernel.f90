@@ -1,9 +1,9 @@
 module kernel
   use const
   use state
-  ! use cubic
+  use cubic
   ! use n2movedgauss
-  use n2ext
+  ! use n2ext
   ! use n2q2m4
   ! use n2fromfabcubic
   ! use n2fromwcubic
@@ -77,8 +77,7 @@ module kernel
     dwdh = - wCv / h**(dim + 1) * (dim * f + q * df)
   end subroutine get_dw_dh
 
-  ! pure
-  subroutine get_FW(r, h, fw)
+  pure subroutine get_FW(r, h, fw)
     real, intent(in)  :: r(3), h
     real, intent(out) :: fw
     real              :: w, w0, f0, dr, q, r0(3), nw(3)
@@ -182,6 +181,36 @@ module kernel
       Hes(3,2) = (dim+2)*r(3)*r(2)/r2*0.5*fab
       Hes(3,3) = ((dim+2)*r(3)*r(3)/r2-1)*0.5*fab
       ! H = 2./3. * H
+      if ( dim == 1 ) then
+        Hes(1,2:3) = 0.
+        Hes(2,:) = 0.
+        Hes(3,:) = 0.
+      elseif ( dim == 2 ) then
+        Hes(3,:) = 0.
+        Hes(:,3) = 0.
+      end if
+    elseif ( ktype == 4 ) then
+      r2 = dot_product(r,r)
+      dr = sqrt(r2)
+
+      q = dr / h
+
+      call kddf(q, ddf)
+      call kdf(q, df)
+      call get_FW(r, h, fab)
+
+      Hes(1,1) = ((dim+2)*r(1)*r(1)/r2 - 1)*0.5*fab
+      Hes(1,2) = wCv*(ddf*r(2)*r(1)/r2 - df*r(2)*r(1)/r2/q)/h**(dim+2)          ! d2/dydx  ! Wxy
+      Hes(1,3) = wCv*(ddf*r(3)*r(1)/r2 - df*r(3)*r(1)/r2/q)/h**(dim+2)          ! d2/dzdx  ! Wxz
+
+      Hes(2,1) = wCv*(ddf*r(1)*r(2)/r2 - df*r(1)*r(2)/r2/q)/h**(dim+2)          ! d2/dxdy  ! Wyx
+      Hes(2,2) = ((dim+2)*r(2)*r(2)/r2 - 1)*0.5*fab
+      Hes(2,3) = wCv*(ddf*r(3)*r(2)/r2 - df*r(3)*r(2)/r2/q)/h**(dim+2)          ! d2/dxdz  ! Wyz
+
+      Hes(3,1) = wCv*(ddf*r(1)*r(3)/r2 - df*r(1)*r(3)/r2/q)/h**(dim+2)          ! d2/dxdz  ! Wzx
+      Hes(3,2) = wCv*(ddf*r(2)*r(3)/r2 - df*r(2)*r(3)/r2/q)/h**(dim+2)          ! d2/dydz  ! Wzy
+      Hes(3,3) = ((dim+2)*r(3)*r(3)/r2 - 1)*0.5*fab
+
       if ( dim == 1 ) then
         Hes(1,2:3) = 0.
         Hes(2,:) = 0.

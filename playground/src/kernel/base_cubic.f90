@@ -3,12 +3,13 @@ module cubic
 
   implicit none
 
-  public :: kf, kdf, kddf, knorm, krad, kernelname, setdimbase, wCv
+  public :: kf, kdf, kddf, knorm, krad, kernelname, setdimbase, wCv, fwc
 
   private
 
     real :: knorm(3) = (/ 2./3., 10./(7. * pi), 1./(pi) /)
-    real :: krad = 2., wCv
+    real :: fwcl(3) = [6., 6.32299, 6.6688]
+    real :: krad = 2., wCv, fwc
     integer :: dim
     character (len=10) :: kernelname='cubic'
 
@@ -17,6 +18,7 @@ module cubic
      integer, intent(in) :: d
      dim = d
      wCv = knorm(dim)
+     fwc = fwcl(dim)
    end subroutine
 
   pure subroutine kf(q, f)

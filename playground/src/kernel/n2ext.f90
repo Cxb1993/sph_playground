@@ -7,7 +7,7 @@ module n2ext
   private
 
     real :: n2C(3) = (/ 0.0124999997029078, 0.0104882435025047, 0.00895246473927735 /)
-    real :: fwcl(3) = [9.000576010318687, 9.312577005786454, 9.644931900323585]
+    real :: fwcl(3) = [9., 9.3151, 9.6429]
     character (len=10) :: kernelname = ' zipM6 '
     real :: krad = 2.0, wCv, fwc
     integer :: dim
