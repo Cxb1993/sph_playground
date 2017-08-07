@@ -2,12 +2,13 @@ module quintic
   use const
   implicit none
 
-  public :: kf, kdf, kddf, knorm, krad, kernelname, setdimbase, wCv
+  public :: kf, kdf, kddf, knorm, krad, kernelname, setdimbase, wCv, fwc
 
   private
 
-    real :: knorm(3) = (/ 1./120., 7./(478. * pi), 1./(120. * pi) /)
-    real :: krad = 3., wCv
+    real :: knorm(3) = [ 1./120., 7./(478. * pi), 1./(120. * pi) ]
+    real :: fwcl(3) = [4., 9.31505/2.25, 9.6429/2.25]
+    real :: krad = 3., wCv, fwc
     integer :: dim
     character (len=10) :: kernelname='quintic'
 
@@ -17,6 +18,7 @@ module quintic
      integer, intent(in) :: d
      dim = d
      wCv = knorm(dim)
+     fwc = fwcl(dim)
    end subroutine
 
   pure subroutine kf(q, f)

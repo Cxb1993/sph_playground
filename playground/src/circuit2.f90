@@ -37,8 +37,6 @@ contains
     integer(8)           :: t0, tneib
 
 
-    ! usekorrection = 1
-    ! usekorrection = 0
     call system_clock(start)
     n = size(ptype)
     tneib = 0.
@@ -120,6 +118,9 @@ contains
 
           du(i) = du(i) - mas(j) / (den(i) * den(j)) * 2. * kcf(i) * kcf(j) &
                   / (kcf(i) + kcf(j)) * (cf(i) - cf(j)) * n2wa
+
+          ! print*, du(i)
+          ! read*
           ! if (usekorrection == 1) then
           !   call LaplaceCorrection(rab, mas(j), den(j), dim, n2wa, tau2)
           ! end if

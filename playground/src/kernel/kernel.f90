@@ -80,11 +80,14 @@ module kernel
   pure subroutine get_FW(r, h, fw)
     real, intent(in)  :: r(3), h
     real, intent(out) :: fw
-    real              :: w, w0, f0, dr, q, r0(3), nw(3)
+    real              :: w, w0, f0, dr, q
 
-    call get_w(sqrt(dot_product(r,r)), h, w)
+    dr = sqrt(dot_product(r,r))
+    q = sqrt(dot_product(r,r)) / h
 
-    fw = w * fwc / h / h
+    call get_w(dr, h, w)
+
+    fw = w * fwc /h /h
 
   end subroutine
 
