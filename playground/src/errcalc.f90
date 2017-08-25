@@ -104,7 +104,6 @@ end subroutine
     call getdim(dim)
     call getNeibListL1(nlista)
     err(:) = 0.
-    exact(:) = 0.
     !$omp parallel do default(none) &
     !$omp shared(x, num, err, dim, nlista) &
     !$omp private(exact, i, j)
@@ -135,11 +134,10 @@ end subroutine
     !$omp end parallel do
   end subroutine err_diff_laplace
 
-  subroutine err_diff_graddiv(ptype, x, num, err, count)
+  subroutine err_diff_graddiv(ptype, x, num, err)
     integer, allocatable, intent(in) :: ptype(:)
     real, allocatable, intent(in)    :: x(:,:), num(:,:)
     real, allocatable, intent(inout) :: err(:)
-    integer, intent(out)             :: count
 
     integer             :: n, i, dim, la
     real                :: exact(1:3), xk(3)
@@ -147,15 +145,13 @@ end subroutine
 
     call getdim(dim)
     n = size(ptype)
-    count = 0
     err(:) = 0.
 
     call getNeibListL1(nlista)
 
     !$omp parallel do default(none) &
     !$omp shared(n,ptype, x,num,err,dim, nlista) &
-    !$omp private(exact, i,xk, la) &
-    !$omp reduction(+:count)
+    !$omp private(exact, i,xk, la)
     do la = 1,size(nlista)
       i = nlista(la)
       ! print*, i, num(:,i)
@@ -164,9 +160,9 @@ end subroutine
         ! exact(1) = 0
         ! exact(1) = 2*Cos(x(1,i)) - (x(1,i))*Sin(x(1,i))
         ! sin
-        ! exact(1) = -sin(x(1,i))
+        exact(1) = -sin(x(1,i))
         ! grad only
-        exact(1) = cos(x(1,i))
+        ! exact(1) = cos(x(1,i))
       end if
       if (dim == 2) then
         ! exact(1) = 1
@@ -174,10 +170,10 @@ end subroutine
         ! exact(1) = Cos(x(2,i)) - x(2,i)*Sin(x(1,i))
         ! exact(2) = Cos(x(1,i)) - x(1,i)*Sin(x(2,i))
         ! sin
-        ! exact(1) = -sin(x(1,i))
-        ! exact(2) = -sin(x(2,i))
+        exact(1) = -sin(x(1,i))
+        exact(2) = -sin(x(2,i))
         ! grad only
-        exact(1) = cos(x(1,i))
+        ! exact(1) = cos(x(1,i))
         ! exact(2) = cos(x(2,i))
       end if
       if (dim == 3) then
@@ -188,20 +184,15 @@ end subroutine
         ! exact(2) = Cos(x(1,i)) - (x(3,i)*Sin(x(2,i)))
         ! exact(3) = Cos(x(2,i)) - (x(1,i)*Sin(x(3,i)))
         ! sin
-        ! exact(1) = -sin(x(1,i))
-        ! exact(2) = -sin(x(2,i))
-        ! exact(3) = -sin(x(3,i))
+        exact(1) = -sin(x(1,i))
+        exact(2) = -sin(x(2,i))
+        exact(3) = -sin(x(3,i))
         ! grad only
-        exact(1) = cos(x(1,i))
+        ! exact(1) = cos(x(1,i))
         ! exact(2) = cos(x(2,i))
         ! exact(3) = cos(x(3,i))
       end if
-      ! print*, exact
-      ! print*, num(:,i)
-      ! print*, '----------'
-      ! read*
       err(i) = dot_product(exact(:)-num(:,i),exact(:)-num(:,i))
-      count = count + 1
     end do
     !$omp end parallel do
   end subroutine err_diff_graddiv

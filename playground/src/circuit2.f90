@@ -207,21 +207,21 @@ contains
           ! diff-graddiv
           if (dtp == 1) then
             ! diff form
-            if (ktp /= 3) then
+            ! if (ktp /= 3) then
               ! n2w fab
               call get_hessian(rab, h(i), Hes)
               dv(1,i) = dv(1,i) + mas(j)/den(j) * (vba(1)*Hes(1,1) + vba(2)*Hes(1,2) + vba(3)*Hes(1,3))
               dv(2,i) = dv(2,i) + mas(j)/den(j) * (vba(1)*Hes(2,1) + vba(2)*Hes(2,2) + vba(3)*Hes(2,3))
               dv(3,i) = dv(3,i) + mas(j)/den(j) * (vba(1)*Hes(3,1) + vba(2)*Hes(3,2) + vba(3)*Hes(3,3))
-            else
-              ! 2nw
-              call get_nw(rab, h(i), nwa)
-              ! qa = dfdx(1,1,i) + dfdx(2,2,i) + dfdx(3,3,i)
-              ! qb = dfdx(1,1,j) + dfdx(2,2,j) + dfdx(3,3,j)
-              qa = v(1,i)
-              qb = v(1,j)
-              dv(:,i) = dv(:,i) + mas(j) * (qb - qa) * nwa(:)
-            end if
+            ! else
+            !   ! 2nw
+            !   call get_nw(rab, h(i), nwa)
+            !   ! qa = dfdx(1,1,i) + dfdx(2,2,i) + dfdx(3,3,i)
+            !   ! qb = dfdx(1,1,j) + dfdx(2,2,j) + dfdx(3,3,j)
+            !   qa = v(1,i)
+            !   qb = v(1,j)
+            !   dv(:,i) = dv(:,i) + mas(j) * (qb - qa) * nwa(:)
+            ! end if
           elseif (dtp == 2) then
             ! symm form
             if ( ktp /= 3 ) then

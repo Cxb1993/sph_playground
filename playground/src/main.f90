@@ -53,7 +53,7 @@ program main
     ! 'diff-laplass'      ! 'diff-graddiv'
     call set_stepping(10**dim)
   case default
-    print *, 'Particle turn-off was not set main.f90: line 50.'
+    print *, 'Particle turn-off was not set main.f90: line 56.'
     stop
   end select
 
@@ -190,14 +190,13 @@ program main
     call err_diff_laplace(ptype, pos, acc, err)
   case(6)
     ! 'diff-graddiv'
-    call err_diff_graddiv(ptype, pos, acc, err, nusedl2)
+    call err_diff_graddiv(ptype, pos, acc, err)
   case default
     print *, 'Task type was not sen in l2 error evaluation main.f90'
     stop
   end select
   call getNeibNumbers(nusedl1, nusedl2)
-
-  result(3) = merge(sqrt(sum(err)/n), 0., n > 0)
+  result(3) = merge(sqrt(sum(err)/nusedl1), 0., nusedl1 > 0)
   !----------------------------------------!
   !          teylor error evaluation       !
   !----------------------------------------!

@@ -1,9 +1,10 @@
 module kernel
   use const
   use state
-  use cubic
+  ! use cubic
+  ! use base_m61
   ! use n2movedgauss
-  ! use n2ext
+  use n2ext
   ! use n2q2m4
   ! use n2fromfabcubic
   ! use n2fromwcubic
@@ -134,7 +135,7 @@ module kernel
   pure subroutine get_hessian(r, h, Hes)
     real, intent(in)  :: r(3), h
     real, intent(out) :: Hes(3,3)
-    real              :: r2, dr, df, ddf, fab, q
+    real              :: r2, dr, f, df, ddf, fab, q
     integer :: ktype
 
     call get_kerntype(ktype)
@@ -159,6 +160,7 @@ module kernel
       Hes(3,1) = wCv*(ddf*r(1)*r(3)/r2 - df*r(1)*r(3)/r2/q)/h**(dim+2)          ! d2/dxdz  ! Wzx
       Hes(3,2) = wCv*(ddf*r(2)*r(3)/r2 - df*r(2)*r(3)/r2/q)/h**(dim+2)          ! d2/dydz  ! Wzy
       Hes(3,3) = wCv*(ddf*r(3)*r(3)/r2 + df*(1 - r(3)*r(3)/r2)/q)/h**(dim+2)    ! d2/dz2   ! Wzz
+
       if ( dim == 1 ) then
         Hes(1,2:3) = 0.
         Hes(2,:) = 0.
@@ -200,19 +202,32 @@ module kernel
 
       call kddf(q, ddf)
       call kdf(q, df)
+
       call get_FW(r, h, fab)
 
-      Hes(1,1) = ((dim+2)*r(1)*r(1)/r2 - 1)*0.5*fab
-      Hes(1,2) = wCv*(ddf*r(2)*r(1)/r2 - df*r(2)*r(1)/r2/q)/h**(dim+2)          ! d2/dydx  ! Wxy
-      Hes(1,3) = wCv*(ddf*r(3)*r(1)/r2 - df*r(3)*r(1)/r2/q)/h**(dim+2)          ! d2/dzdx  ! Wxz
+      Hes(1,1) = (2*r(1)*r(1)/r2-1)*fab
+      Hes(1,2) = r(1)*r(2)/r2*fab
+      Hes(1,3) = r(1)*r(3)/r2*fab
 
-      Hes(2,1) = wCv*(ddf*r(1)*r(2)/r2 - df*r(1)*r(2)/r2/q)/h**(dim+2)          ! d2/dxdy  ! Wyx
-      Hes(2,2) = ((dim+2)*r(2)*r(2)/r2 - 1)*0.5*fab
-      Hes(2,3) = wCv*(ddf*r(3)*r(2)/r2 - df*r(3)*r(2)/r2/q)/h**(dim+2)          ! d2/dxdz  ! Wyz
+      Hes(2,1) = r(2)*r(1)/r2*fab
+      Hes(2,2) = (2*r(2)*r(2)/r2-1)*fab
+      Hes(2,3) = r(2)*r(3)/r2*fab
 
-      Hes(3,1) = wCv*(ddf*r(1)*r(3)/r2 - df*r(1)*r(3)/r2/q)/h**(dim+2)          ! d2/dxdz  ! Wzx
-      Hes(3,2) = wCv*(ddf*r(2)*r(3)/r2 - df*r(2)*r(3)/r2/q)/h**(dim+2)          ! d2/dydz  ! Wzy
-      Hes(3,3) = ((dim+2)*r(3)*r(3)/r2 - 1)*0.5*fab
+      Hes(3,1) = r(3)*r(1)/r2*fab
+      Hes(3,2) = r(3)*r(2)/r2*fab
+      Hes(3,3) = (2*r(3)*r(3)/r2-1)*fab
+
+      ! Hes(1,1) = ((dim+2)*r(1)*r(1)/r2 - 1)*0.5*fab
+      ! Hes(1,2) = wCv*(ddf*r(2)*r(1)/r2 - df*r(2)*r(1)/r2/q)/h**(dim+2)          ! d2/dydx  ! Wxy
+      ! Hes(1,3) = wCv*(ddf*r(3)*r(1)/r2 - df*r(3)*r(1)/r2/q)/h**(dim+2)          ! d2/dzdx  ! Wxz
+      !
+      ! Hes(2,1) = wCv*(ddf*r(1)*r(2)/r2 - df*r(1)*r(2)/r2/q)/h**(dim+2)          ! d2/dxdy  ! Wyx
+      ! Hes(2,2) = ((dim+2)*r(2)*r(2)/r2 - 1)*0.5*fab
+      ! Hes(2,3) = wCv*(ddf*r(3)*r(2)/r2 - df*r(3)*r(2)/r2/q)/h**(dim+2)          ! d2/dxdz  ! Wyz
+      !
+      ! Hes(3,1) = wCv*(ddf*r(1)*r(3)/r2 - df*r(1)*r(3)/r2/q)/h**(dim+2)          ! d2/dxdz  ! Wzx
+      ! Hes(3,2) = wCv*(ddf*r(2)*r(3)/r2 - df*r(2)*r(3)/r2/q)/h**(dim+2)          ! d2/dydz  ! Wzy
+      ! Hes(3,3) = ((dim+2)*r(3)*r(3)/r2 - 1)*0.5*fab
 
       if ( dim == 1 ) then
         Hes(1,2:3) = 0.

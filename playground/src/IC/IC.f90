@@ -93,7 +93,7 @@ contains
         brdz2 = 0.
       end if
       ! nb = 1
-      nb = int(kr * sk) + 1
+      nb = int(kr * sk)*2
       call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
     case (4)
       ! pheva
@@ -252,7 +252,7 @@ contains
         prs(i) = prs1
         if ( ptype(i) == 0 ) then
           cf(i) = 0
-          ptype(i) = 1
+          ! ptype(i) = 1
         else
           if ( dim == 1) then
             cf(i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1))

@@ -9,6 +9,7 @@ SRC=\
 	kernel/base_quintic.f90\
 	kernel/base_external.f90\
 	kernel/base_sinc.f90\
+	kernel/base_m61.f90\
 	kernel/n2ext.f90\
 	kernel/n2q2m4.f90\
 	kernel/n2fromfabcubic.f90\
@@ -113,7 +114,7 @@ memleakcheck:
 
 hydroshock:
 	make debug=$(debug) && time ./execute --dim $(dim)\
-			--tasktype hydroshock --spacing 0.001\
+			--tasktype hydroshock --spacing 0.0005\
 			--errfilename runresult.info --kerneltype $(kt)\
 			--tfinish .2 --hfac $(hf) --difftype $(dtype)\
 			--silent $(silent)
