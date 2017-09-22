@@ -1,9 +1,9 @@
-module neighboursearch
-  use timing, only: addTime
+module NeighbourSearch
+  use Timing, only: addTime
   use kernel, only: get_krad
   use state,  only: getdim,&
                     get_kerntype
-  use utils,  only: resize
+  use ArrayResize,  only: resize
   use omp_lib
 
   implicit none
@@ -62,7 +62,7 @@ contains
     if (allocated(alllistlv2)) then
       ol2 = size(alllistlv2)
     end if
-  end subroutine getNeibNumbers
+  end subroutine
 
   ! simple list
   subroutine findneighbours(ptype, pos, h)
@@ -169,7 +169,7 @@ contains
 
     call system_clock(finish)
     call addTime(' neibs', finish - start)
-  end subroutine findneighbours
+  end subroutine
 
   subroutine getneighbours(idx, pos, h, list, dt)
     real, allocatable, intent(in)       :: pos(:,:), h(:)
@@ -180,7 +180,6 @@ contains
     call system_clock(start)
 
     sn = size(pos, dim=2)
-
     if (.not.allocated(neighbours)) then
       allocate(neighbours(sn))
     end if
@@ -201,7 +200,7 @@ contains
     call system_clock(finish)
     dt = finish - start
     call addTime(' neibs', dt)
-  end subroutine getneighbours
+  end subroutine
 
   subroutine findneighboursonce(idx, pos, h, nlist)
     real, allocatable, intent(in)       :: pos(:,:), h(:)
@@ -225,7 +224,6 @@ contains
       allocate(nlist(100))
     end if
     tix = 0
-
     do j = 1,sn
       if ( j /= idx ) then
         r(:) = pos(:,idx) - pos(:,j)
@@ -273,4 +271,4 @@ contains
       end if
     end if
   end subroutine
-end module neighboursearch
+end module

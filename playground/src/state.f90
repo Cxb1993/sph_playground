@@ -2,11 +2,12 @@ module state
   implicit none
 
   public :: set_difftype, get_difftype, set_tasktype, get_tasktype, &
-            set_kerntype, get_kerntype, getdim, setdim
+            set_kerntype, get_kerntype, getdim, setdim, sinitvar, &
+            ginitvar
   private
   save
     integer :: dim = 1
-    integer :: ttype, ktype, dtype
+    integer :: ttype, ktype, dtype, icvar=-1
   contains
     subroutine setdim(d)
       integer, intent(in) :: d
@@ -25,7 +26,7 @@ module state
         ttype = 1
       case('infslb')
         ttype = 2
-      case('hc-sinx')
+      case('heatconduction')
         ttype = 3
       case('pheva')
         ttype = 4
@@ -39,6 +40,8 @@ module state
         ttype = 8
       case('soundwave')
         ttype = 9
+      case('chi-artvisc')
+        ttype = 10
       case default
         print *, 'Task type not set: ', itt
         stop
@@ -90,4 +93,20 @@ module state
      integer, intent(out) :: odt
      odt = dtype
    end subroutine get_difftype
+
+   subroutine sinitvar(itt)
+     character (len=*), intent(in) :: itt
+     select case(itt)
+     case('cf-sinpixsinpiysinpiz')
+       icvar = 1
+     case default
+       print *, 'There is no such initial variable setting : ', itt
+       stop
+     end select
+   end subroutine
+
+   pure subroutine ginitvar(ott)
+     integer, intent(out) :: ott
+     ott = icvar
+   end subroutine
 end module

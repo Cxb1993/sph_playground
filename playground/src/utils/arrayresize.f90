@@ -1,4 +1,4 @@
-module utils
+module arrayresize
   implicit none
 
   public :: resize
@@ -105,4 +105,4 @@ contains
     end do
     ! deallocate(tmp)
   end subroutine
-end module utils
+end module

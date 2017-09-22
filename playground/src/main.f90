@@ -1,7 +1,8 @@
 program main
   use BC,               only: bcdestroy => destroy
   use IC,               only: setupIC
-  use state,            only: get_tasktype
+  use state,            only: get_tasktype,&
+                              ginitvar
   use iterator,         only: iterate
   use printer,          only: Output, AppendLine
   use errcalc,          only: err_diff_laplace,&
@@ -18,7 +19,10 @@ program main
                               timedestroy => destroy
   use neighboursearch,  only: getNeibNumbers,&
                               neibDestroy => destroy
-  use utils,            only: resize
+  use arrayresize,      only: resize
+  use map,              only: appendmap,&
+                              mapdestroy => destroy
+  use const
 
   implicit none
 
@@ -34,19 +38,21 @@ program main
                                          sk, chi(81), cv = 1.
 
   character (len=100)  :: itype, errfname, ktype, dtype
-  integer             :: n, dim, iter, tt, nusedl1, nusedl2, printlen, silent!, i
+  integer             :: n, dim, iter, tt, nusedl1, nusedl2, printlen, silent, ivt
 
   integer(8)          :: tprint
 
   print *, '##############################################'
   print *, '#####'
+
   call fillargs(dim, pspc1, pspc2,&
                 itype, ktype, dtype, errfname, dtout, npic, tfinish, sk, silent)
 
   call setupIC(n, sk, gamma, cv, pspc1, pspc2, pos, vel, acc, &
                 mas, den, h, prs, iu, du, cf, kcf, dcf, ptype)
-
   call get_tasktype(tt)
+  call ginitvar(ivt)
+
   select case(tt)
   case (1, 2, 3, 4, 9)
   case (5, 6, 7, 8)
@@ -161,8 +167,7 @@ program main
       ! 'hydroshock' ! 'diff-graddiv'
       cf(:) = cf(:) + 0.5 * dt * (dcf(:) - tcf(:))
     case( 2, 3)
-      ! 'infslb', 'hc-sinx'
-      ! print *, iu(1:4)
+      ! 'infslb', 'heatconduction'
       cf(:) = iu(:) / cv
     case( 7, 8)
     case default
@@ -183,8 +188,11 @@ program main
   case(2, 7, 8)
     ! 'hydroshock' ! chi-laplace ! 'infslb'
   case(3)
-    ! 'hc-sinx'
-    call err_sinxet(ptype, pos, cf, t, err)
+    ! 'heatconduction'
+    select case(ivt)
+    case(1)
+      call err_sinxet(ptype, pos, cf, t, err)
+    end select
   case(5)
     ! 'diff-laplace'
     call err_diff_laplace(ptype, pos, acc, err)
@@ -269,7 +277,8 @@ program main
   call c1destroy()
   call timedestroy()
   call bcdestroy()
-end program main
+  call mapdestroy()
+end program
 
 subroutine set_stepping(i)
   use neighboursearch, only: stnb  => setStepsize
@@ -278,4 +287,4 @@ subroutine set_stepping(i)
 
   call stnb(i)
   print *, '# #      step.size:', i
-end subroutine set_stepping
+end subroutine

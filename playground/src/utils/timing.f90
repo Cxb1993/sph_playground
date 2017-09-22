@@ -1,6 +1,6 @@
 module timing
 
-  use utils, only: resize
+  use arrayresize, only: resize
 
   implicit none
 
@@ -23,7 +23,7 @@ module timing
     call system_clock(count_rate=cr)
     call system_clock(count_max=cm)
     clockrate = real(cr)
-  end subroutine init
+  end subroutine
 
   subroutine destroy()
     deallocate(names)
@@ -58,7 +58,7 @@ module timing
       names(1)   = inkey
       timings(1) = inval
     end if
-  end subroutine addTime
+  end subroutine
 
   subroutine printTimes()
     integer :: i
@@ -76,5 +76,5 @@ module timing
       write(*, "(A, F15.6)") " # #  total time    : ", totaltime
       print *, '##############################################'
     end if
-  end subroutine printTimes
-end module timing
+  end subroutine
+end module

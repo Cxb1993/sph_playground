@@ -7,30 +7,28 @@ module base_kernel
 
   private
 
-    real :: knorm(3) = (/ 2./3., 10./(7. * pi), 1./(pi) /)
-    real :: fwcl(3) = [6., 6.32261, 6.6666666]
+    real :: knorm(3) = [ 1./sqrt(pi), 1./pi, 1./pi**(1.5) ]
+    real :: fwcl(3) = [4., 4., 4.]
     real :: krad = 2., wCv, fwc
     integer :: dim
-    character (len=10) :: kernelname='cubic'
+    character (len=10) :: kernelname='gauss'
 
  contains
-   subroutine setdimbase(d)
-     integer, intent(in) :: d
-     dim = d
-     wCv = knorm(dim)
-     fwc = fwcl(dim)
-   end subroutine
+
+  subroutine setdimbase(d)
+    integer, intent(in) :: d
+
+    dim = d
+    wCv = knorm(dim)
+    fwc = fwcl(dim)
+  end subroutine
 
   pure subroutine kf(q, f)
     real, intent(in)  :: q
     real, intent(out) :: f
 
-    if (q >= 2.) then
-      f  = 0.
-    else if (q >= 1.) then
-      f  = 0.25 * (2. - q)**3
-    else if (q >= 0.) then
-      f  = 0.25 * (2. - q)**3 - (1. - q)**3
+    if (q >= 0.) then
+      f  = exp(-q * q)
     else
       if (isnan(q)) then
         error stop 'q is nan'
@@ -44,12 +42,8 @@ module base_kernel
     real, intent(in)  :: q
     real, intent(out) :: df
 
-    if (q >= 2.) then
-      df = 0.
-    else if (q >= 1.) then
-      df = -0.75 * ((2. - q) ** 2)
-    else if (q >= 0.) then
-      df = -0.75 * (2. - q)**2 + 3 * (1. - q)**2
+    if (q >= 0.) then
+      df = -2. * exp(-q * q) * q
     else
       if (isnan(q)) then
         error stop 'q is nan'
@@ -63,12 +57,8 @@ module base_kernel
     real, intent(in)  :: q
     real, intent(out) :: ddf
 
-    if (q >= 2.) then
-      ddf = 0.
-    else if (q >= 1.) then
-      ddf = 1.5 * (2. - q)
-    else if (q >= 0.) then
-      ddf = 1.5 * (2. - q) - 6 * (1. - q)
+    if (q >= 0.) then
+      ddf = -2 * exp(-q*q) + 4 * exp(-q*q) * q * q
     else
       if (isnan(q)) then
         error stop 'q is nan'

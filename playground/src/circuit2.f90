@@ -297,7 +297,7 @@ contains
     betta = 2.
 
     dvr = dot_product(vab,urab)
-    if ( dvr < 0) then
+    if (dvr < 0) then
       qa = -0.5 * da * (alpha*ca - betta*dvr) * dvr
       qb = -0.5 * db * (alpha*cb - betta*dvr) * dvr
     end if

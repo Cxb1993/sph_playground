@@ -1,16 +1,7 @@
 module kernel
   use const
   use state
-  ! use cubic
-  ! use base_m61
-  ! use n2movedgauss
-  use n2ext
-  ! use n2q2m4
-  ! use n2fromfabcubic
-  ! use n2fromwcubic
-  ! use quintic
-  ! use gaus
-  ! use sinc4
+  use base_kernel
   implicit none
 
   public :: get_nw, get_dw_dh, get_w, setdimkernel, &
@@ -81,15 +72,21 @@ module kernel
   pure subroutine get_FW(r, h, fw)
     real, intent(in)  :: r(3), h
     real, intent(out) :: fw
-    real              :: w, w0, f0, dr, q
+    ! real              :: f, dr, q
+    real              :: w, dr
 
     dr = sqrt(dot_product(r,r))
-    q = sqrt(dot_product(r,r)) / h
 
     call get_w(dr, h, w)
 
-    fw = w * fwc /h /h
+    fw = fwc * w /h /h
 
+    ! dr = sqrt(dot_product(r,r))
+    ! q = dr / h
+    !
+    ! call kf(q, f)
+    !
+    ! fw = f * (q*q - dim/2.)/h**(dim + 2) * 10
   end subroutine
 
   pure subroutine get_Fab(r, h, Fab)
@@ -104,11 +101,11 @@ module kernel
   end subroutine
 
   pure subroutine get_on2w(r, h, n2w)
-    real, intent(in)  :: r, h
+    real, intent(in)  :: r(:), h
     real, intent(out) :: n2w
     real              :: df, ddf, q
 
-    q = r / h
+    q = sqrt(dot_product(r,r)) / h
 
     call kddf(q, ddf)
     call kdf(q, df)
@@ -124,7 +121,7 @@ module kernel
     call get_kerntype(ktype)
 
     if (ktype == 1) then
-      call get_on2w(sqrt(dot_product(r,r)), h, n2w)
+      call get_on2w(r, h, n2w)
     else if (ktype == 2) then
       call get_Fab(r, h, n2w)
     else if (ktype == 4) then
@@ -205,17 +202,17 @@ module kernel
 
       call get_FW(r, h, fab)
 
-      Hes(1,1) = (2*r(1)*r(1)/r2-1)*fab
-      Hes(1,2) = r(1)*r(2)/r2*fab
-      Hes(1,3) = r(1)*r(3)/r2*fab
+      Hes(1,1) = ((dim+2)*r(1)*r(1)/r2-1)*0.5*fab
+      Hes(1,2) = (dim+2)*r(1)*r(2)/r2*0.5*fab
+      Hes(1,3) = (dim+2)*r(1)*r(3)/r2*0.5*fab
 
-      Hes(2,1) = r(2)*r(1)/r2*fab
-      Hes(2,2) = (2*r(2)*r(2)/r2-1)*fab
-      Hes(2,3) = r(2)*r(3)/r2*fab
+      Hes(2,1) = (dim+2)*r(2)*r(1)/r2*0.5*fab
+      Hes(2,2) = ((dim+2)*r(2)*r(2)/r2-1)*0.5*fab
+      Hes(2,3) = (dim+2)*r(2)*r(3)/r2*0.5*fab
 
-      Hes(3,1) = r(3)*r(1)/r2*fab
-      Hes(3,2) = r(3)*r(2)/r2*fab
-      Hes(3,3) = (2*r(3)*r(3)/r2-1)*fab
+      Hes(3,1) = (dim+2)*r(3)*r(1)/r2*0.5*fab
+      Hes(3,2) = (dim+2)*r(3)*r(2)/r2*0.5*fab
+      Hes(3,3) = ((dim+2)*r(3)*r(3)/r2-1)*0.5*fab
 
       ! Hes(1,1) = ((dim+2)*r(1)*r(1)/r2 - 1)*0.5*fab
       ! Hes(1,2) = wCv*(ddf*r(2)*r(1)/r2 - df*r(2)*r(1)/r2/q)/h**(dim+2)          ! d2/dydx  ! Wxy

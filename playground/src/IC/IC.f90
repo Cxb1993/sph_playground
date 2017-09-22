@@ -1,13 +1,14 @@
 module IC
   use omp_lib
 
-  use timing, only: addTime
-  use utils
+  use timing,       only: addTime
+  use ArrayResize,  only: resize
   use const
-  use kernel, only: get_krad
-  use state,  only: get_tasktype,&
-                    get_kerntype,&
-                    getdim
+  use kernel,       only: get_krad
+  use state,        only: get_tasktype,&
+                          get_kerntype,&
+                          getdim,&
+                          ginitvar
   use BC
   use initpositions,  only: uniform,&
                             semiuniform,&
@@ -32,7 +33,7 @@ contains
 
     real                 :: kr, prs1, prs2, rho1, rho2, kcf1, kcf2, cf1, cf2, sp, v0, &
                             brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, period
-    integer              :: i, nb, tt, kt, dim, nptcs
+    integer              :: i, nb, tt, kt, dim, nptcs, ivt
 
     call system_clock(start)
 
@@ -40,6 +41,7 @@ contains
     call get_tasktype(tt)
     call get_krad(kr)
     call getdim(dim)
+    call ginitvar(ivt)
 
     if ( kt == 3 ) then
       kr = kr * 2
@@ -73,7 +75,7 @@ contains
       nb = 1
       call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
     case (3, 9)
-      ! hc-sinx ! soundwave
+      ! heatconduction ! soundwave
       brdx1 = -1.
       brdx2 =  1.
       nptcs = int((brdx2-brdx1)/pspc1)
@@ -92,7 +94,6 @@ contains
         brdz1 = 0.
         brdz2 = 0.
       end if
-      ! nb = 1
       nb = int(kr * sk)*2
       call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
     case (4)
@@ -126,9 +127,6 @@ contains
       stop
     end select
 
-    ! print *, brdy1, brdy2, pspc1, x(:,size(x,2))
-    ! read *
-    !
     n = size(x,dim=2)
     allocate(v(3,n))
     v(:,:) = 0.
@@ -180,8 +178,7 @@ contains
       cf1 = 0.
       cf2 = 1.
     case (3)
-      ! hc-sinx
-      ! ptype(:) = 1
+      ! heatconduction
       rho1 = 10.
       kcf1 = 1.
     case (4)
@@ -214,7 +211,8 @@ contains
     !$omp private(i, sp)&
     !$omp shared(n, pspc1, pspc2, x, sln, den, prs, mas, iu, g, rho1, rho2)&
     !$omp shared(cf, kcf, dim, sk, tt, prs1, prs2, cf1, cf2, kcf1, kcf2, cv)&
-    !$omp shared(brdx2, brdx1, brdy2, brdy1, brdz2, brdz1, v0, v, period, ptype)
+    !$omp shared(brdx2, brdx1, brdy2, brdy1, brdz2, brdz1, v0, v, period, ptype)&
+    !$omp shared(ivt)
     do i=1,n
       sp = merge(pspc1, pspc2, x(1,i) < 0)
       sln(i) = sk * sp
@@ -245,27 +243,10 @@ contains
         end if
         iu(i) = cf(i) / cv
       case (3)
-        ! hc-sinx
+        ! heatconduction
         mas(i) = (sp**dim) * rho1
         den(i) = rho1
-        kcf(i) = kcf1
         prs(i) = prs1
-        if ( ptype(i) == 0 ) then
-          cf(i) = 0
-          ! ptype(i) = 1
-        else
-          if ( dim == 1) then
-            cf(i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1))
-          elseif ( dim == 2 ) then
-            cf(i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1)) * &
-                     sin(pi * (x(2,i) - brdy1) / abs(brdy2-brdy1))
-          elseif ( dim == 3 ) then
-            cf(i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1)) * &
-                     sin(pi * (x(2,i) - brdy1) / abs(brdy2-brdy1)) * &
-                     sin(pi * (x(3,i) - brdz1) / abs(brdz2-brdz1))
-          end if
-        end if
-        iu(i) = cf(i) / cv
       case (4)
         ! pheva
         cf(i)  = cf1
@@ -314,6 +295,28 @@ contains
       case default
         print *, 'Task type was not defined in IC.f90: line 300'
         stop
+      end select
+
+      select case (ivt)
+      case(-1)
+      case(1)
+        ! cf-sinxsinysinz
+        kcf(i) = kcf1
+        if ( ptype(i) == 0 ) then
+          cf(i) = 0
+        else
+          if ( dim == 1) then
+            cf(i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1))
+          elseif ( dim == 2 ) then
+            cf(i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1)) * &
+                     sin(pi * (x(2,i) - brdy1) / abs(brdy2-brdy1))
+          elseif ( dim == 3 ) then
+            cf(i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1)) * &
+                     sin(pi * (x(2,i) - brdy1) / abs(brdy2-brdy1)) * &
+                     sin(pi * (x(3,i) - brdz1) / abs(brdz2-brdz1))
+          end if
+        end if
+        iu(i) = cf(i) / cv
       end select
     end do
     !$omp end parallel do

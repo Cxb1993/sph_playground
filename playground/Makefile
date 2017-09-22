@@ -1,22 +1,21 @@
 #! /usr/bin/make -f
 
-SRC=\
-	utils.f90\
-	timing.f90\
+ifndef kernel
+$(warning base kernel name not provided, `zipm6` will be used)
+kernel=zipm6
+endif
+
+SRC= \
+	utils/arrayresize.f90\
+	utils/timing.f90\
+	utils/map.f90\
 	const.f90\
-	state.f90\
-	kernel/base_cubic.f90\
-	kernel/base_quintic.f90\
-	kernel/base_external.f90\
-	kernel/base_sinc.f90\
-	kernel/base_m61.f90\
-	kernel/n2ext.f90\
-	kernel/n2q2m4.f90\
-	kernel/n2fromfabcubic.f90\
-	kernel/n2fromwcubic.f90\
-	kernel/n2movedgauss.f90\
-	kernel/kernel.f90\
-	neighboursearch.f90\
+	state.f90
+
+SRC+=kernel/base_$(kernel).f90
+
+SRC+=kernel/kernel.f90\
+	utils/neighboursearch.f90\
 	BC.f90\
 	printer.f90\
 	err_shocktube.f90\
@@ -25,6 +24,7 @@ SRC=\
 	eos.f90\
 	IC/initpositions.f90\
 	IC/IC.f90\
+	IC/initvariables.f90\
 	circuit1.f90\
 	circuit2.f90\
 	errcalc.f90\
@@ -34,6 +34,8 @@ SRC=\
 OBJ=$(SRC:.f90=.o)
 SUBSRC=$(addprefix src/, $(SRC))
 SUBOBJ=$(addprefix obj/, $(OBJ))
+
+# $(warning $(SRC))
 
 ifndef dim
 $(warning dimention is not set, `dim=1` will be used)
@@ -61,12 +63,14 @@ endif
 ifndef debug
 debug=no
 endif
+ifndef useomp
+useomp=f
+endif
 
 FC=gfortran
 
 FFLAGS=-fdefault-real-8 -fdefault-double-8\
- 				-O4\
-				-fopenmp
+ 				-O4
 
 ifeq ($(debug),yes)
 FFLAGS=-fdefault-real-8 -fdefault-double-8\
@@ -74,6 +78,12 @@ FFLAGS=-fdefault-real-8 -fdefault-double-8\
 				-Wall -Wextra -Warray-temporaries -Wconversion -fimplicit-none -fbacktrace\
 				-ffree-line-length-0 -fcheck=all -ffpe-trap=zero,overflow,underflow,invalid -finit-real=nan
 endif
+
+# ifeq ($(useomp),t)
+# 	FFLAGS+=-fopenmp
+# endif
+
+FFLAGS+=-fopenmp
 
 ifeq ($(FC),gfortran)
 modflagout=-J
@@ -95,6 +105,10 @@ IC/%.o : src/IC/%.f90
 
 kernel/%.o : src/kernel/%.f90
 	@mkdir -p obj/kernel
+	$(FC) $(FFLAGS) $(modflagout) mod/ -o obj/$@ -c $<
+
+utils/%.o : src/utils/%.f90
+	@mkdir -p obj/utils
 	$(FC) $(FFLAGS) $(modflagout) mod/ -o obj/$@ -c $<
 
 execute: $(OBJ)

@@ -1,7 +1,7 @@
-module initpositions
+module InitPositions
   use kernel
   use state,  only: getdim
-  use utils,  only: resize
+  use ArrayResize,  only: resize
   use BC
 
   implicit none
@@ -169,7 +169,7 @@ contains
     write(*, "(A, F7.5, A, F7.5)") " # #      actual dx:   dx1=", pspc1, "  dx2=", pspc2
     write(*, "(A, I5, A, I5, A, I5)") " # #     dir.layers:   nx=", ix+1, &
              "   ny=", iy+1, "   nz=", iz+1
-    write(*, "(A, I8, A, I8, A)") " # #       p.number:  ", n, &
+    write(*, "(A, I16, A, I16, A)") " # #       p.number:  ", n, &
               " total   ", freenumber, " real"
     print *, '# #       border-x:', brdx1, brdx2
     print *, '# #       border-y:', brdy1, brdy2
@@ -186,7 +186,7 @@ contains
     call set_border(31, nbnewZ1, bZ1)
     call set_border(32, nbnewZ2, bZ2)
 
-  end subroutine uniform
+  end subroutine
 
   subroutine semiuniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, pos, ptype)
     real, allocatable, intent(inout)    :: pos(:,:)
@@ -335,7 +335,7 @@ contains
     call set_border(22, nbnewY2, bY2)
     call set_border(31, nbnewZ1, bZ1)
     call set_border(32, nbnewZ2, bZ2)
-  end subroutine semiuniform
+  end subroutine
 
   subroutine place_close_packed_fcc(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, nb, pos)
     real, allocatable, intent(inout) :: pos(:,:)
@@ -530,5 +530,5 @@ contains
     call set_border(22, nbnewY2, bY2)
     call set_border(31, nbnewZ1, bZ1)
     call set_border(32, nbnewZ2, bZ2)
-  end subroutine place_close_packed_fcc
-end module initpositions
+  end subroutine
+end module

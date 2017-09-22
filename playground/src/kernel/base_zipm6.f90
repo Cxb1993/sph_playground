@@ -1,4 +1,4 @@
-module n2ext
+module base_kernel
   use const
   implicit none
 

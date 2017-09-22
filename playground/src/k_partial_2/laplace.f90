@@ -1,4 +1,4 @@
-module errteylor
+module kd2_laplace
   use omp_lib
 
   use timing,           only: addTime
@@ -15,7 +15,7 @@ module errteylor
 
   implicit none
 
-  public :: laplace, graddiv, setStepsize, setInfluenceCalc
+  public :: laplace, setStepsize, setInfluenceCalc
 
   private
   save
@@ -33,6 +33,7 @@ contains
     character (len=*), intent(in) :: fname
     kinfname = adjustl(fname)
   end subroutine
+
 
   subroutine laplace(pos, mas, den, h, chi)
     real, allocatable, intent(in)    :: mas(:), den(:), pos(:,:), h(:)
@@ -197,4 +198,4 @@ contains
     call system_clock(finish)
     call addTime(' teylor err', finish - start - tneib)
   end subroutine graddiv
-end module
+end module errteylor
