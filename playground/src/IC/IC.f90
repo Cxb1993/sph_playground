@@ -25,8 +25,8 @@ contains
   subroutine setupIC(n, sk, g, cv, pspc1, pspc2, &
     x, v, dv, mas, den, sln, prs, iu, du, cf, kcf, dcf, ptype)
     integer, allocatable, intent(inout) :: ptype(:)
-    real, allocatable, intent(inout) :: x(:,:), v(:,:), dv(:,:), mas(:), den(:), sln(:), &
-                                        prs(:), iu(:), du(:), cf(:), kcf(:), dcf(:)
+    real, allocatable, intent(inout), dimension(:,:)  :: x, v, dv, cf, kcf, dcf
+    real, allocatable, intent(inout), dimension(:)    :: mas, den, sln, prs, iu, du
     real, intent(in)     :: sk, cv
     real, intent(inout)  :: pspc1, pspc2, g
     integer, intent(out) :: n
@@ -144,12 +144,12 @@ contains
     iu(:) = 0.
     allocate(du(n))
     du(:) = 0.
-    allocate(cf(n))
-    cf(:) = 0.
-    allocate(kcf(n))
-    kcf(:) = 0.
-    allocate(dcf(n))
-    dcf(:) = 0.
+    allocate(cf(3,n))
+    cf(:,:) = 0.
+    allocate(kcf(3,n))
+    kcf(:,:) = 0.
+    allocate(dcf(3,n))
+    dcf(:,:) = 0.
 
     !--------------------
     ! common values
@@ -233,29 +233,16 @@ contains
       case (2)
         ! infslb
         if (x(1,i) < 0) then
-          cf(i)  = cf1
-          kcf(i) = kcf1
+          cf(:,i)  = cf1
+          kcf(:,i) = kcf1
           mas(i) = (sp**dim) * rho1
         else
-          cf(i)  = cf2
-          kcf(i) = kcf2
+          cf(:,i)  = cf2
+          kcf(:,i) = kcf2
           mas(i) = (sp**dim) * rho2
         end if
-        iu(i) = cf(i) / cv
       case (3)
-        ! heatconduction
-        mas(i) = (sp**dim) * rho1
-        den(i) = rho1
-        prs(i) = prs1
       case (4)
-        ! pheva
-        cf(i)  = cf1
-        den(i) = rho1 * (1 + v0 * sin(2 * pi * (x(1,i) - brdx2) / abs(brdx2-brdx1)))
-        mas(i) = (sp**dim) * den(i)
-        v(1,i) = v0 * sin(2 * pi * (x(1,i) - brdx2) / abs(brdx2-brdx1))
-        kcf(i) = kcf1
-        prs(i) = prs1
-        iu(i)  = prs1/(g-1)/(1-cf(i))/rho1
       case(5, 6, 7, 8, 9)
         ! diff-graddiv ! diff-laplace ! chi-laplace
         ! chi-graddiv  ! soundwave
@@ -300,23 +287,30 @@ contains
       select case (ivt)
       case(-1)
       case(1)
-        ! cf-sinxsinysinz
-        kcf(i) = kcf1
+        ! heatconduction-scalar-sinxsinysinz
+        mas(i) = (sp**dim) * rho1
+        den(i) = rho1
+        kcf(:,i) = kcf1
+        ! if (x(1,i) < 0) then
+        !   kcf(i) = 1
+        ! else
+        !   kcf(i) = 10
+        ! end if
         if ( ptype(i) == 0 ) then
-          cf(i) = 0
+          cf(:, i) = 0
         else
           if ( dim == 1) then
-            cf(i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1))
+            cf(:, i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1))
           elseif ( dim == 2 ) then
-            cf(i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1)) * &
+            cf(:, i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1)) * &
                      sin(pi * (x(2,i) - brdy1) / abs(brdy2-brdy1))
           elseif ( dim == 3 ) then
-            cf(i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1)) * &
+            cf(:, i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1)) * &
                      sin(pi * (x(2,i) - brdy1) / abs(brdy2-brdy1)) * &
                      sin(pi * (x(3,i) - brdz1) / abs(brdz2-brdz1))
           end if
+          ! cf(i) = 10
         end if
-        iu(i) = cf(i) / cv
       end select
     end do
     !$omp end parallel do

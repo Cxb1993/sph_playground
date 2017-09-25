@@ -26,9 +26,10 @@ contains
 
   subroutine c2(c, ptype, pos, v, dv, mas, den, h, om, P, u, du, dh, cf, dcf, kcf, dfdx)
     real, allocatable, intent(in)    :: pos(:,:), v(:,:), mas(:), h(:), den(:), P(:), c(:),&
-                                        u(:), cf(:), kcf(:), om(:)
+                                        u(:), cf(:,:), kcf(:,:), om(:)
     integer, allocatable, intent(in) :: ptype(:)
-    real, allocatable, intent(inout) :: dv(:,:), du(:), dh(:), dcf(:), dfdx(:,:,:)
+    real, allocatable, intent(inout) :: dv(:,:), du(:), dh(:), dcf(:,:), dfdx(:,:,:)
+
     real                 :: dr, rhoa, rhob, qa, qb, qc, n2wa, kr, r2, &
                             nwa(3), nwb(3), rab(3), vab(3), vba(3), urab(3), Pa(3), Pb(3), &
                             Hes(3,3), oddi, oddj!, r(3)!, tau2
@@ -65,14 +66,15 @@ contains
       dv(:,i) = 0.
       du(i) = 0.
       dh(i) = 0.
-      dcf(i) = 0.
+      dcf(:,i) = 0.
       ! print*, i
       ! print*, pos(:,i)
       ! print*, dfdx(1,:,i)
       ! print*, dfdx(2,:,i)
       ! print*, dfdx(3,:,i)
-      ! read*
       call getneighbours(i, pos, h, nlistb, t0)
+      ! print*, nlistb
+      ! read*
       tneib = tneib + t0
       do lb = 1, size(nlistb)
         ! print *, i, nlist
@@ -116,54 +118,9 @@ contains
           ! heatconduction
           call get_n2w(rab, h(i), n2wa)
 
-          du(i) = du(i) - mas(j) / (den(i) * den(j)) * 2. * kcf(i) * kcf(j) &
-                  / (kcf(i) + kcf(j)) * (cf(i) - cf(j)) * n2wa
-
-          ! print*, du(i)
-          ! read*
-          ! if (usekorrection == 1) then
-          !   call LaplaceCorrection(rab, mas(j), den(j), dim, n2wa, tau2)
-          ! end if
-          ! du(i) = du(i) - mas(j) / (den(i) * den(j)) * (kcf(i) + kcf(j)) / 2. &
-          !               * (cf(i) - cf(j)) * n2w
+          dcf(:,i) = dcf(:,i) - mas(j) / (den(i) * den(j)) * 2. * kcf(:,i) * kcf(:,j) &
+                  / (kcf(:,i) + kcf(:,j)) * (cf(:,i) - cf(:,j)) * n2wa
         case(4)
-          ! photoevaporation
-          ![ cf ~ eps ]![ dcf ~ deps/dt ]![ kcf ~ t_s]
-
-          qa = 0.
-          qb = 0.
-          qc = 0.
-          rhoa = den(i)
-          rhob = den(j)
-
-          call get_nw(rab, h(i), nwa)
-          call get_nw(rab, h(j), nwb)
-          call art_viscosity(rhoa, rhob, vab, urab, c(i), c(j), qa, qb)
-
-          qa = qa * (1 - cf(i))
-          qb = qb * (1 - cf(j))
-          qc = 1/(1 - cf(i)) * mas(j) *&
-          ( &
-             + 0.25 * rhoa * abs(dot_product(vab(:), urab(:))) * (u(i) - u(j))/om(i)/rhoa/rhoa &
-             * dot_product(urab,nwa)/dot_product(urab,urab) &
-             + 0.25 * rhob * abs(dot_product(vab(:), urab(:))) * (u(j) - u(i))/om(j)/rhob/rhob &
-             * dot_product(urab,nwb)/dot_product(urab,urab) &
-          )
-          ! dfgrhs is alerady sum, so it's not needed to sum it again.
-          ! dv(:,i) = dfgrhs(:,i) * (1 + 1/(1 - cf(i)))
-          !
-          ! dcf(i)  = dcf(i) - mas(j) * &
-          !         ( &
-          !           cf(i)*(1 - cf(i))*kcf(i)/om(i)/rhoa*dot_product(-dfgrhs(:,i)/(1 - cf(i)),nwa(:)) + &
-          !           cf(j)*(1 - cf(j))*kcf(j)/om(j)/rhob*dot_product(-dfgrhs(:,j)/(1 - cf(j)),nwb(:)) &
-          !         )
-          !
-          ! du(i)   = du(i) + 1/om(i)/(1 - cf(i))/rhoa/rhoa * mas(j) * (P(i) + qa) * dot_product(vab(:),nwa(:)) -&
-          !           cf(i) * kcf(i) / om(i) / rhoa * dot_product(-dfgrhs(:,i)/(1 - cf(i)), &
-          !           mas(j) * (u(i) - u(j)) * nwa &
-          !         + qc &
-          !         )
-          dh(i)   = dh(i) + mas(j) * dot_product(vab(:), nwa(:))
         case(5)
           ! 'diff-laplace'
           if (dtp == 1) then
@@ -247,6 +204,7 @@ contains
           stop
         end select
       end do
+
       select case (ttp)
       case(1,2,3,4)
         dh(i) =  (- h(i) / (dim * den(i))) * dh(i) / om(i)

@@ -27,9 +27,9 @@ program main
   implicit none
 
   real, allocatable, dimension(:,:,:) :: dfdx
-  real, allocatable, dimension(:,:)   :: p, v, a, pos, vel, acc
+  real, allocatable, dimension(:,:)   :: p, v, a, pos, vel, acc, cf, dcf, kcf, tcf
   real, allocatable, dimension(:)     :: den, prs, mas, iu, du, om, c, h, dh, &
-                                         cf, dcf, kcf, tdu, tdh, tcf, err, sqerr,&
+                                         tdh, err, sqerr, tdu,&
                                          result
   integer, allocatable, dimension(:)  :: ptype
 
@@ -87,7 +87,7 @@ program main
   allocate(dh(n))
   dh(:) = 0
   allocate(tdh(n))
-  allocate(tcf(n))
+  allocate(tcf(3,n))
   allocate(om(n))
   if ((dtype == 'symm') .or. (ktype == '2nw')) then
     allocate(dfdx(3,3,n))
@@ -98,9 +98,6 @@ program main
 
  print *, "Finish time = ", tfinish
   do while (t <= tfinish)
-    ! print *, 0, -1
-    ! print *, '--0'
-    ! print *, t
     select case(tt)
     case(1, 9)
       ! 'hydroshock'
@@ -111,7 +108,6 @@ program main
     case(3)
       ! 'hc-sinx'
       dt = .144 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
-      call err_sinxet(ptype, pos, cf, t, err)
     case(4)
       ! 'photoevaporation' 'pheva'
       dt = .3e-3 * minval(h)**2 / maxval(c)**2 / maxval(kcf) / maxval(cf)
@@ -137,14 +133,12 @@ program main
     a(:,:) = acc(:,:)
     tdu(:) = du(:)
     tdh(:) = dh(:)
-    tcf(:) = dcf(:)
-    pos(:,:) = p(:,:) + dt * v(:,:) + 0.5 * dt * dt * a(:,:)
-    vel(:,:) = v(:,:) + dt * a(:,:)
-    iu(:)    = iu(:)  + dt * du(:)
-    h(:)     = h(:)   + dt * dh(:)
-    if (tt == 4) then
-      cf(:)    = cf(:)  + dt * dcf(:)
-    end if
+    tcf(:,:) = dcf(:,:)
+    pos(:,:) = p(:,:)  + dt * v(:,:) + 0.5 * dt * dt * a(:,:)
+    vel(:,:) = v(:,:)  + dt * a(:,:)
+    iu(:)    = iu(:)   + dt * du(:)
+    h(:)     = h(:)    + dt * dh(:)
+    cf(:,:)  = cf(:,:) + dt * dcf(:,:)
     ! print *, 0, 1
     ! print *, maxval(abs(du))
     ! print *, 999
@@ -155,26 +149,11 @@ program main
     ! print *, maxval(abs(du))
     ! print *, 0, 2
     ! print *, maxval(cf)
-    vel(:,:) = vel(:,:) + 0.5 * dt * (acc(:,:) - a(:,:))
-    iu(:)    = iu(:)    + 0.5 * dt * (du(:) - tdu(:))
-    h(:)     = h(:)     + 0.5 * dt * (dh(:) - tdh(:))
-    ! print*, du(1:5)
-    ! print*, tdu(1:5)
-    ! stop
+    vel(:,:) = vel(:,:) + 0.5 * dt * (acc(:,:)  - a(:,:))
+    iu(:)    = iu(:)    + 0.5 * dt * (du(:)     - tdu(:))
+    h(:)     = h(:)     + 0.5 * dt * (dh(:)     - tdh(:))
+    cf(:,:)  = cf(:,:)  + 0.5 * dt * (dcf(:,:)  - tcf(:,:))
 
-    select case(tt)
-    case( 1, 4, 5, 6)
-      ! 'hydroshock' ! 'diff-graddiv'
-      cf(:) = cf(:) + 0.5 * dt * (dcf(:) - tcf(:))
-    case( 2, 3)
-      ! 'infslb', 'heatconduction'
-      cf(:) = iu(:) / cv
-    case( 7, 8)
-    case default
-      print *, 'Task type was not sen in coupled field integration'
-      stop
-    end select
-    ! print *, cf(1:5)
     t = t + dt
     iter = iter + 1
   end do
@@ -241,8 +220,8 @@ program main
 
   call printTimes()
   print *, '#####  Results:'
-  write(*, "(A, F10.5)") " # #   l2-error: ", result(3)
-  write(*, "(A, F10.5)") " # #  chi-error: ", result(4)
+  write(*, "(A, F20.10)") " # #   l2-error: ", result(3)
+  write(*, "(A, F20.10)") " # #  chi-error: ", result(4)
   print *, '##############################################'
 
   deallocate(result)

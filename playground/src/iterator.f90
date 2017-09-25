@@ -17,9 +17,9 @@ module iterator
 contains
   subroutine iterate(n, sk, gamma, ptype, pos, vel, acc, &
                     mas, den, h, dh, om, prs, c, uei, due, cf, dcf, kcf, dfdx)
-    real, allocatable, intent(inout) :: pos(:,:), vel(:,:), acc(:,:), mas(:), den(:), &
-                                        dh(:), prs(:), c(:), uei(:), due(:), om(:), &
-                                        cf(:), dcf(:), kcf(:),  h(:), dfdx(:,:,:)
+    real, allocatable, intent(inout), dimension(:,:)  :: pos, vel, acc, cf, dcf, kcf
+    real, allocatable, intent(inout), dimension(:)    :: mas, den, dh, prs, c, uei, due, om, h
+    real, allocatable, intent(inout), dimension(:,:,:):: dfdx
     integer, allocatable, intent(in) :: ptype(:)
     integer, intent(in) :: n
     real, intent(in)    :: sk, gamma
@@ -35,7 +35,7 @@ contains
       call findneighbours(ptype, pos, h)
       call c1(ptype, pos, mas, vel, sk, h, den, om, dfdx)
       ! call c1a(pos, mas, sk, h, den)
-      call eos_adiabatic(n, den, uei, prs, c, cf, gamma)
+      call eos_adiabatic(n, den, uei, prs, c, gamma)
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
       if ( dim > 0 ) then
         call fixed3(acc, 11, 1, 0.)
@@ -58,44 +58,17 @@ contains
       ! call periodic1indims(h, dim)
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
 
-      call fixed1(due, 11, 0.)
-      call fixed1(due, 12, 0.)
-      if (dim > 1) then
-        call fixed1(due, 21, 0.)
-        call fixed1(due, 22, 0.)
-        if (dim == 3) then
-          call fixed1(due, 31, 0.)
-          call fixed1(due, 32, 0.)
-        end if
-      end if
-    case(4)
-      ! print *, pos
-      ! print *, den
-      ! print *, h
-      ! read *
-      ! print *, '----- 0'
-      call findneighbours(ptype, pos, h)
-      call c1(ptype, pos, mas, vel, sk, h, den, om, dfdx)
-      call periodic1indims(den, dim)
-      call periodic1indims(h, dim)
-      ! print *, '----- 1'
-      call eos_adiabatic(n, den, uei, prs, c, cf, gamma)
-      call periodic1indims(prs, dim)
-      call periodic1indims(c, dim)
-      ! print *, '----- 2'
-      call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
-      ! call periodic3(acc, 10, 0)
-      ! call periodic3(due, 10, 0)
-      ! call periodic3(dcf, 10, 0)
-      ! print *, '----- 3'
-      ! if (dim.gt.0) then
-      !   call fixed3(acc, 11, 1, 0.)
-      !   call fixed3(acc, 12, 1, 0.)
-      !   if (dim.gt.1) then
-      !     call fixed3(acc, 21, 2, 0.)
-      !     call fixed3(acc, 22, 2, 0.)
+      ! call fixed1(dcf, 11, 0.)
+      ! call fixed1(dcf, 12, 0.)
+      ! if (dim > 1) then
+      !   call fixed1(dcf, 21, 0.)
+      !   call fixed1(dcf, 22, 0.)
+      !   if (dim == 3) then
+      !     call fixed1(dcf, 31, 0.)
+      !     call fixed1(dcf, 32, 0.)
       !   end if
       ! end if
+    case(4)
     case(5)
       ! 'diff-laplace'
       call findneighbours(ptype, pos, h)

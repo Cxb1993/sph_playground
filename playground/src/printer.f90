@@ -15,7 +15,7 @@ module printer
 contains
   subroutine Output(time, ptype, x, v, dv, m, den, slen, pres, ien, cf, err)
     real, allocatable, intent(in)    :: x(:,:), v(:,:), dv(:,:), m(:), err(:), &
-                                        den(:), slen(:), pres(:), ien(:), cf(:)
+                                        den(:), slen(:), pres(:), ien(:), cf(:,:)
     integer, allocatable, intent(in) :: ptype(:)
     real, intent(in)    :: time
     character (len=40)  :: fname
@@ -29,7 +29,7 @@ contains
     write(iu,*) time
     do j = 1, n
       ! if (ptype(j) == 1) then
-        write(iu, *) x(:,j), v(:,j), dv(:,j), m(j), den(j), slen(j), pres(j), ien(j), cf(j), err(j)
+        write(iu, *) x(:,j), v(:,j), dv(:,j), m(j), den(j), slen(j), pres(j), ien(j), cf(:,j), err(j)
       ! end if
     end do
     close(iu)

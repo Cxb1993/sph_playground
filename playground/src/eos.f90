@@ -6,8 +6,8 @@ module eos
   private
 contains
 
-  subroutine eos_adiabatic(n, den, u, P, c, eps, gamma)
-    real, allocatable, intent(in)    :: den(:), u(:), eps(:)
+  subroutine eos_adiabatic(n, den, u, P, c, gamma)
+    real, allocatable, intent(in)    :: den(:), u(:)
     real, allocatable, intent(inout) :: P(:), c(:)
     real, intent(in)    :: gamma
     integer, intent(in) :: n
@@ -16,17 +16,15 @@ contains
     call get_tasktype(t)
 
     !$omp parallel do default(none)&
-    !$omp shared(P, den, u, eps, c, n, gamma, t)&
+    !$omp shared(P, den, u, c, n, gamma, t)&
     !$omp private(i)
     do i = 1, n
       ! print *, '--------0'
       P(i) = (gamma - 1) * den(i) * u(i)
       if (t == 4) then
-        P(i) = P(i) * (1 - eps(i))
+        P(i) = P(i) * 1
       end if
-      ! print *, '--------1'
       c(i) = sqrt(gamma * P(i) / den(i))
-      ! print *, '--------2'
     end do
     !$omp end parallel do
   end subroutine eos_adiabatic

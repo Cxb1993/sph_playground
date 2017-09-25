@@ -59,35 +59,34 @@ end subroutine
 
   subroutine err_sinxet(ptype, x, num, t, err)
     integer, allocatable, intent(in) :: ptype(:)
-    real, allocatable, intent(in)    :: num(:), x(:,:)
+    real, allocatable, intent(in)    :: num(:,:), x(:,:)
     real, allocatable, intent(inout) :: err(:)
     real, intent(in)                 :: t
 
-    integer             :: i, n, dim
-    real                :: exact
+    integer, allocatable :: nlista(:)
+    integer             :: i, j, dim
+    real                :: exact(3)
 
     call getdim(dim)
-    n = size(ptype)
-    err(1:n) = 0.
+    call getNeibListL1(nlista)
+    err(:) = 0.
     !$omp parallel do default(none) &
-    !$omp shared(n,num,err,t,ptype, x, dim) &
-    !$omp private(exact, i)
-    do i=1,n
-      exact = 0.
-      if (ptype(i) /= 0) then
-        if ( dim == 1) then
-          exact = sin(pi * (x(1,i) + 1.) / 2.) * exp(-(pi/2.)**2 * 0.1 * t)
-        elseif ( dim == 2 ) then
-          exact = sin(pi * (x(1,i) + 1.) / 2.) * &
-                  sin(pi * (x(2,i) + 1.) / 2.) * exp(-2 * (pi/2.)**2 * 0.1 * t)
-        elseif ( dim == 3 ) then
-          exact = sin(pi * (x(1,i) + 1.) / 2.) * &
-                  sin(pi * (x(2,i) + 1.) / 2.) * &
-                  sin(pi * (x(3,i) + 1.) / 2.) * exp(-3 * (pi/2.)**2 * 0.1 * t)
-        end if
-
-        err(i) = (exact - num(i))**2
+    !$omp shared(x, num, err, dim, nlista, t) &
+    !$omp private(exact, i, j)
+    do j = 1,size(nlista)
+      i = nlista(j)
+      exact(:) = 0.
+      if ( dim == 1 ) then
+        exact(:) = sin(pi * (x(1,i) + 1.) / 2.) * exp(-(pi/2.)**2 * 0.1 * t)
+      elseif ( dim == 2 ) then
+        exact(:) = sin(pi * (x(1,i) + 1.) / 2.) * &
+                sin(pi * (x(2,i) + 1.) / 2.) * exp(-2 * (pi/2.)**2 * 0.1 * t)
+      elseif ( dim == 3 ) then
+        exact(:) = sin(pi * (x(1,i) + 1.) / 2.) * &
+                sin(pi * (x(2,i) + 1.) / 2.) * &
+                sin(pi * (x(3,i) + 1.) / 2.) * exp(-3 * (pi/2.)**2 * 0.1 * t)
       end if
+      err(i) = dot_product(exact(:) - num(:,i), exact(:) - num(:,i))
     end do
     !$omp end parallel do
   end subroutine err_sinxet
