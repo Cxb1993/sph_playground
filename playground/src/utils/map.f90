@@ -84,7 +84,7 @@ module map
 
     subroutine makemap(inname, inmaptype)
       character(len=*), intent(in) :: inname, inmaptype
-      integer :: n, i, f
+      integer :: n, i
 
       select case(inmaptype)
       case('charchar')

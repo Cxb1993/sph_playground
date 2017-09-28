@@ -32,7 +32,7 @@ contains
     integer, intent(out) :: n
 
     real                 :: kr, prs1, prs2, rho1, rho2, kcf1, kcf2, cf1, cf2, sp, v0, &
-                            brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, period
+                            brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, period, eA, ek
     integer              :: i, nb, tt, kt, dim, nptcs, ivt
 
     call system_clock(start)
@@ -179,7 +179,7 @@ contains
       cf2 = 1.
     case (3)
       ! heatconduction
-      rho1 = 10.
+      rho1 = 1.
       kcf1 = 1.
     case (4)
       ! pheva
@@ -197,7 +197,7 @@ contains
       ! soundwave
       rho1 = 1.
       g = 5./3.
-      period = pi
+      eA = 0.005
     case default
       print *, 'Task type was not defined in IC.f90: line 200'
       stop
@@ -212,7 +212,7 @@ contains
     !$omp shared(n, pspc1, pspc2, x, sln, den, prs, mas, iu, g, rho1, rho2)&
     !$omp shared(cf, kcf, dim, sk, tt, prs1, prs2, cf1, cf2, kcf1, kcf2, cv)&
     !$omp shared(brdx2, brdx1, brdy2, brdy1, brdz2, brdz1, v0, v, period, ptype)&
-    !$omp shared(ivt)
+    !$omp shared(ivt, ek, eA)
     do i=1,n
       sp = merge(pspc1, pspc2, x(1,i) < 0)
       sln(i) = sk * sp
@@ -243,7 +243,7 @@ contains
         end if
       case (3)
       case (4)
-      case(5, 6, 7, 8, 9)
+      case(5, 6, 7, 8)
         ! diff-graddiv ! diff-laplace ! chi-laplace
         ! chi-graddiv  ! soundwave
         g = 5./3.
@@ -279,6 +279,11 @@ contains
           v(2,i) = sin(period*x(2,i))
           v(3,i) = sin(period*x(3,i))
         end if
+      case(9)
+        den(i) = rho1 * (1. + eA * sin(pi * x(1,i)))
+        mas(i) = (sp**dim) * den(i)
+        v(:,i) = 0.
+        v(1,i) = eA*sin(pi*(x(1,i)))
       case default
         print *, 'Task type was not defined in IC.f90: line 300'
         stop
@@ -287,7 +292,7 @@ contains
       select case (ivt)
       case(-1)
       case(1)
-        ! heatconduction-scalar-sinxsinysinz
+        ! isotropic-sinxsinysinz
         mas(i) = (sp**dim) * rho1
         den(i) = rho1
         kcf(:,i) = kcf1
@@ -296,25 +301,43 @@ contains
         ! else
         !   kcf(i) = 10
         ! end if
-        if ( ptype(i) == 0 ) then
-          cf(:, i) = 0
-        else
+        cf(:, i) = 0
+        if (ptype(i) /= 0) then
           if ( dim == 1) then
-            cf(:, i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1))
+            cf(1, i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1))
           elseif ( dim == 2 ) then
-            cf(:, i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1)) * &
+            cf(1, i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1)) * &
                      sin(pi * (x(2,i) - brdy1) / abs(brdy2-brdy1))
           elseif ( dim == 3 ) then
-            cf(:, i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1)) * &
+            cf(1, i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1)) * &
                      sin(pi * (x(2,i) - brdy1) / abs(brdy2-brdy1)) * &
                      sin(pi * (x(3,i) - brdz1) / abs(brdz2-brdz1))
           end if
-          ! cf(i) = 10
+        end if
+      case(2)
+        ! anisotropic-sinxsinysinz
+        mas(i) = (sp**dim) * rho1
+        den(i) = rho1
+        kcf(1,i) = kcf1
+        kcf(2,i) = 1
+        kcf(3,i) = 0.0001
+        cf(:, i) = 0
+        if (ptype(i) /= 0) then
+          if ( dim == 1) then
+            cf(1, i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1))
+          elseif ( dim == 2 ) then
+            cf(1, i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1)) * &
+                     sin(pi * (x(2,i) - brdy1) / abs(brdy2-brdy1))
+          elseif ( dim == 3 ) then
+            cf(1, i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1)) * &
+                     sin(pi * (x(2,i) - brdy1) / abs(brdy2-brdy1)) * &
+                     sin(pi * (x(3,i) - brdz1) / abs(brdz2-brdz1))
+          end if
         end if
       end select
     end do
     !$omp end parallel do
     call system_clock(finish)
     call addTime(' ic', finish - start)
-  end subroutine setupIC
-end module IC
+  end subroutine
+end module

@@ -5,10 +5,12 @@ program main
                               ginitvar
   use iterator,         only: iterate
   use printer,          only: Output, AppendLine
-  use errcalc,          only: err_diff_laplace,&
-                              err_diff_graddiv,&
-                              err_sinxet,&
-                              err_shockTube => shockTube
+  use errcalc,          only: err_diff_laplace, &
+                              err_diff_graddiv, &
+                              err_sinxet, &
+                              err_shockTube => shockTube, &
+                              err_soundwave_d => soundwaveperturbation_density, &
+                              err_soundwave_v => soundwaveperturbation_velocity
   use args,             only: fillargs
   use errteylor,        only: etlaplace => laplace,&
                               etgraddiv => graddiv
@@ -75,6 +77,9 @@ program main
   dt = 0.
   ltout = 0.
   iter = 0.
+  allocate(p(3,n))
+  allocate(v(3,n))
+  allocate(a(3,n))
   p = pos
   v = vel
   a = acc
@@ -97,7 +102,7 @@ program main
   call c1_init(n)
 
  print *, "Finish time = ", tfinish
-  do while (t <= tfinish)
+  do while (t < tfinish - epsilon(0.))
     select case(tt)
     case(1, 9)
       ! 'hydroshock'
@@ -108,6 +113,7 @@ program main
     case(3)
       ! 'hc-sinx'
       dt = .144 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
+      ! print*, maxval(kcf), minval(den), minval(c), minval(h)
     case(4)
       ! 'photoevaporation' 'pheva'
       dt = .3e-3 * minval(h)**2 / maxval(c)**2 / maxval(kcf) / maxval(cf)
@@ -119,9 +125,12 @@ program main
       print *, 'Task type time increment was not set main.f90: line 115.'
       stop
     end select
+    if (t + dt > tfinish) then
+      dt = tfinish - t
+    end if
     ! print *, 0, 0
     if (t >= ltout) then
-      print *, iter, t, dt
+      print *, iter, t, dt, sum(iu)
       if ( silent == 0) then
         call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, err)
       end if
@@ -170,16 +179,20 @@ program main
     ! 'heatconduction'
     select case(ivt)
     case(1)
-      call err_sinxet(ptype, pos, cf, t, err)
+      call err_sinxet(pos, cf, t, err)
     end select
   case(5)
     ! 'diff-laplace'
-    call err_diff_laplace(ptype, pos, acc, err)
+    call err_diff_laplace(pos, acc, err)
   case(6)
     ! 'diff-graddiv'
     call err_diff_graddiv(ptype, pos, acc, err)
+  case(9)
+    ! call err_soundwave_v(pos, vel, t, err)
+    call err_soundwave_d(pos, den, t, err)
+    ! print*, err
   case default
-    print *, 'Task type was not sen in l2 error evaluation main.f90'
+    print *, 'Task type was not sen in l2 error evaluation main.f90: line 182'
     stop
   end select
   call getNeibNumbers(nusedl1, nusedl2)
@@ -201,15 +214,16 @@ program main
     result(4) = sum(chi)/dim/(2*dim - 1)
     result(6:86) = chi(1:81)
     printlen = 86
-  case(1, 2, 3)
+  case(1, 2, 3, 9)
     ! 'hc-sinx' ! 'diff-graddiv'
     printlen = 5
   case default
-    print *, 'Task type was not sen in taylor error evaluation main.f90'
+    print *, 'Task type was not sen in taylor error evaluation main.f90: line 208'
     stop
   end select
   if (nusedl1 /= 0) then
     sqerr(:) = sqrt(err(:))
+    print *, iter, t, 0.
     if (silent == 0) then
       call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, sqerr)
     end if

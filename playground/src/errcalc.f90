@@ -3,13 +3,16 @@ module errcalc
   use omp_lib
   use BC
   use state,            only: getdim,&
-                              get_tasktype
+                              get_tasktype,&
+                              ginitvar
   use neighboursearch,  only: getNeibListL1
 
   implicit none
 
   public :: err_T0sxsyet, err_infplate, err_sinxet,&
-            err_diff_laplace, err_diff_graddiv, shockTube
+            err_diff_laplace, err_diff_graddiv, shockTube,&
+            soundwaveperturbation_density, &
+            soundwaveperturbation_velocity
 
   private
 
@@ -22,7 +25,7 @@ subroutine shockTube(ptype, x, num, t, err)
   real, allocatable, intent(inout) :: err(:)
   real, intent(in)                 :: t
 
-  integer           :: i, n, dim
+  integer           :: i, n
   real, allocatable :: exact(:), xpass(:)
 
   n = size(ptype)
@@ -57,42 +60,104 @@ end subroutine
     !$OMP END PARALLEL
   end subroutine err_T0sxsyet
 
-  subroutine err_sinxet(ptype, x, num, t, err)
-    integer, allocatable, intent(in) :: ptype(:)
+  subroutine err_sinxet(x, num, t, err)
     real, allocatable, intent(in)    :: num(:,:), x(:,:)
     real, allocatable, intent(inout) :: err(:)
     real, intent(in)                 :: t
 
     integer, allocatable :: nlista(:)
-    integer             :: i, j, dim
+    integer             :: i, j, dim, ivt
     real                :: exact(3)
+
+    call getdim(dim)
+    call getNeibListL1(nlista)
+    call ginitvar(ivt)
+    err(:) = 0.
+    !$omp parallel do default(none) &
+    !$omp shared(x, num, err, dim, nlista, t, ivt) &
+    !$omp private(exact, i, j)
+    do j = 1,size(nlista)
+      i = nlista(j)
+      exact(:) = 0.
+      if (ivt == 1) then
+        if ( dim == 1 ) then
+          exact(1) = sin(pi * (x(1,i) + 1.) / 2.) * exp(-(pi/2.)**2 * t)
+        elseif ( dim == 2 ) then
+          exact(1) = sin(pi * (x(1,i) + 1.) / 2.) * &
+                  sin(pi * (x(2,i) + 1.) / 2.) * exp(-2 * (pi/2.)**2 * t)
+        elseif ( dim == 3 ) then
+          exact(1) = sin(pi * (x(1,i) + 1.) / 2.) * &
+                  sin(pi * (x(2,i) + 1.) / 2.) * &
+                  sin(pi * (x(3,i) + 1.) / 2.) * exp(-3 * (pi/2.)**2 * t)
+        end if
+        err(i) = (exact(1) - num(1,i))*(exact(1) - num(1,i))
+      end if
+      ! err(i) = dot_product(exact(1) - num(1,i), exact(1) - num(1,i))
+    end do
+    !$omp end parallel do
+  end subroutine err_sinxet
+
+  subroutine soundwaveperturbation_density(x, num, t, err)
+    real, allocatable, intent(in)    :: num(:), x(:,:)
+    real, allocatable, intent(inout) :: err(:)
+    real, intent(in)                 :: t
+
+    integer, allocatable :: nlista(:)
+    integer             :: i, j, dim, ivt
+    real                :: exact
 
     call getdim(dim)
     call getNeibListL1(nlista)
     err(:) = 0.
     !$omp parallel do default(none) &
-    !$omp shared(x, num, err, dim, nlista, t) &
+    !$omp shared(x, num, err, dim, nlista, t, ivt) &
     !$omp private(exact, i, j)
     do j = 1,size(nlista)
       i = nlista(j)
-      exact(:) = 0.
+      exact = 0.
       if ( dim == 1 ) then
-        exact(:) = sin(pi * (x(1,i) + 1.) / 2.) * exp(-(pi/2.)**2 * 0.1 * t)
-      elseif ( dim == 2 ) then
-        exact(:) = sin(pi * (x(1,i) + 1.) / 2.) * &
-                sin(pi * (x(2,i) + 1.) / 2.) * exp(-2 * (pi/2.)**2 * 0.1 * t)
-      elseif ( dim == 3 ) then
-        exact(:) = sin(pi * (x(1,i) + 1.) / 2.) * &
-                sin(pi * (x(2,i) + 1.) / 2.) * &
-                sin(pi * (x(3,i) + 1.) / 2.) * exp(-3 * (pi/2.)**2 * 0.1 * t)
+        ! den
+        ! exact = 1. + 0.005 * sin(pi * (x(1,i) - t))
+        ! vel
+        exact = 0.005 * sin(pi * (x(1,i) - t))
       end if
-      err(i) = dot_product(exact(:) - num(:,i), exact(:) - num(:,i))
+      err(i) = (exact - num(i))*(exact - num(i))
+      ! err(i) = dot_product(exact(1) - num(1,i), exact(1) - num(1,i))
     end do
     !$omp end parallel do
-  end subroutine err_sinxet
+  end subroutine
 
-  subroutine err_diff_laplace(ptype, x, num, err)
-    integer, allocatable, intent(in) :: ptype(:)
+  subroutine soundwaveperturbation_velocity(x, num, t, err)
+    real, allocatable, intent(in)    :: num(:,:), x(:,:)
+    real, allocatable, intent(inout) :: err(:)
+    real, intent(in)                 :: t
+
+    integer, allocatable :: nlista(:)
+    integer             :: i, j, dim, ivt
+    real                :: exact
+
+    call getdim(dim)
+    call getNeibListL1(nlista)
+    err(:) = 0.
+    !$omp parallel do default(none) &
+    !$omp shared(x, num, err, dim, nlista, t, ivt) &
+    !$omp private(exact, i, j)
+    do j = 1,size(nlista)
+      i = nlista(j)
+      exact = 0.
+      if ( dim == 1 ) then
+        ! den
+        ! exact = 1. + 0.005 * sin(pi * (x(1,i) - t))
+        ! vel
+        exact = 0.005 * sin(pi * (x(1,i) - t))
+      end if
+      err(i) = (exact - num(1,i))*(exact - num(1,i))
+      ! err(i) = dot_product(exact(1) - num(1,i), exact(1) - num(1,i))
+    end do
+    !$omp end parallel do
+  end subroutine
+
+  subroutine err_diff_laplace(x, num, err)
     real, allocatable, intent(in)    :: x(:,:), num(:,:)
     real, allocatable, intent(inout) :: err(:)
 
@@ -238,5 +303,5 @@ end subroutine
     !$omp end parallel do
     err = sqrt(err/n)
     return
-  end subroutine err_infplate
-end module errcalc
+  end subroutine
+end module

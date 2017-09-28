@@ -61,7 +61,7 @@ ifndef taskcheck
 taskcheck=chi-laplace
 endif
 ifndef debug
-debug=no
+debug=f
 endif
 ifndef useomp
 useomp=f
@@ -72,7 +72,7 @@ FC=gfortran
 FFLAGS=-fdefault-real-8 -fdefault-double-8\
  				-O4
 
-ifeq ($(debug),yes)
+ifeq ($(debug),t)
 FFLAGS=-fdefault-real-8 -fdefault-double-8\
  				-O0 -g \
 				-Wall -Wextra -Warray-temporaries -Wconversion -fimplicit-none -fbacktrace\

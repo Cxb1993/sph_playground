@@ -3,7 +3,9 @@ module args
   use state,      only: set_tasktype,&
                         set_kerntype,&
                         set_difftype,&
-                        sinitvar
+                        sinitvar,&
+                        setAdvancedDensity, &
+                        setArtificialTerms
   use kernel,     only: setdimkernel, &
                         getkernelname
 
@@ -19,7 +21,8 @@ module args
       character (len=100)                 :: kname
 
       integer                             :: numargs, curargnum
-      character (len=100)                 :: argkey, argval1, argval2, silentstr, kerninflname, initvart
+      character (len=100)                 :: argkey, argval1, silentstr, kerninflname, initvart,&
+                                             adden, artts
 
       dim   = 1
       itype = 'chi-laplace'
@@ -35,6 +38,8 @@ module args
       silentstr = 'no'
       kerninflname = ''
       initvart = ''
+      adden = 'yes'
+      artts = 'yes'
 
 
       numargs = command_argument_count()
@@ -72,6 +77,10 @@ module args
             silentstr = argval1
           case('--initvar')
             initvart = adjustl(argval1)
+          case('--useadvanceddensity')
+            adden = adjustl(argval1)
+          case('--useartificialterms')
+            artts = adjustl(argval1)
           case default
             print*, 'argument not found: ', argkey
             stop
@@ -87,24 +96,28 @@ module args
       dtout = tfinish / npic
       call set_difftype(dtype)
 
-      print *, "# #            dim:", dim
-      print *, "# #      task type:   ", itype
+      print *, "# #              dim:", dim
+      print *, "# #        task type:   ", itype
       if (initvart /= '') then
         call sinitvar(initvart)
-        print *, "# #  init var type:   ", initvart
+        print *, "# #    init var type:   ", initvart
       end if
-      print *, "# #       errfname:   ", errfname
+      call setAdvancedDensity(adden)
+      print *, "# # advanced density:   ", adden
+      call setArtificialTerms(artts)
+      print *, "# # artificail terms:   ", artts
+      print *, "# #         errfname:   ", errfname
       if (kerninflname /= '') then
         call setInfluenceCalc(kerninflname)
-        print *, "# # kern infl name:   ", kerninflname
+        print *, "# #   kern infl name:   ", kerninflname
       end if
-      print *, "# #       ker.type:   ", ktype
+      print *, "# #         ker.type:   ", ktype
       call getkernelname(kname)
-      print *, "# #       ker.name:   ", kname
-      write(*, "(A, F9.7)") " # #       print dt:   ", dtout
-      write(*, "(A, F7.5)") " # #              h:   ", sk
-      write(*, "(A, A)") " # #       difftype:   ", dtype
-      write(*, "(A, A)") " # #         silent:   ", silentstr
-      write(*, "(A, F7.5, A, F7.5)") " # #         set dx:   x1=", pspc1, "   x2=", pspc2
+      print *, "# #         ker.name:   ", kname
+      write(*, "(A, F9.7)") " # #         print dt:   ", dtout
+      write(*, "(A, F7.5)") " # #                h:   ", sk
+      write(*, "(A, A)") " # #         difftype:   ", dtype
+      write(*, "(A, A)") " # #           silent:   ", silentstr
+      write(*, "(A, F7.5, A, F7.5)") " # #           set dx:   x1=", pspc1, "   x2=", pspc2
     end subroutine fillargs
-end module args
+end module

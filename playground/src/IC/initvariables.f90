@@ -15,7 +15,7 @@ module InitVariables
   ! public :: setupIC
 
   private
-  integer(8) :: start=0, finish=0
+  ! integer(8) :: start=0, finish=0
 contains
 
   ! subroutine setupIC(n, sk, g, cv, pspc1, pspc2, &

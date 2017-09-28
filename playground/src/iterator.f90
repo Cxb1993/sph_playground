@@ -6,7 +6,8 @@ module iterator
   use state,            only: get_difftype,&
                               getdim,&
                               get_tasktype
-  use neighboursearch,  only: findneighbours
+  use neighboursearch,  only: findneighboursN2plus, &
+                              findneighboursN2
 
  implicit none
 
@@ -29,11 +30,14 @@ contains
     call get_tasktype(ttp)
     call get_difftype(dtp)
 
+    call findneighboursN2(ptype, pos, h)
+
+    ! call findneighboursN2plus(ptype, pos, h)
+
     select case (ttp)
     case (1)
       ! hydroshock
-      call findneighbours(ptype, pos, h)
-      call c1(ptype, pos, mas, vel, sk, h, den, om, dfdx)
+      call c1(pos, mas, vel, sk, h, den, om, dfdx)
       ! call c1a(pos, mas, sk, h, den)
       call eos_adiabatic(n, den, uei, prs, c, gamma)
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
@@ -47,13 +51,11 @@ contains
       end if
     case (2)
       ! infslb
-      call findneighbours(ptype, pos, h)
-      call c1(ptype, pos, mas, vel, sk, h, den, om, dfdx)
+      call c1(pos, mas, vel, sk, h, den, om, dfdx)
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
     case (3)
       ! hc-sinx
-      call findneighbours(ptype, pos, h)
-      call c1(ptype, pos, mas, vel, sk, h, den, om, dfdx)
+      call c1(pos, mas, vel, sk, h, den, om, dfdx)
       ! call periodic1indims(den, dim)
       ! call periodic1indims(h, dim)
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
@@ -71,12 +73,11 @@ contains
     case(4)
     case(5)
       ! 'diff-laplace'
-      call findneighbours(ptype, pos, h)
       select case(dtp)
       case(1)
         call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
       case(2)
-        call c1(ptype, pos, mas, vel, sk, h, den, om, dfdx)
+        call c1(pos, mas, vel, sk, h, den, om, dfdx)
         call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
       case default
         print *, 'Diff type is not set in iterator'
@@ -84,14 +85,13 @@ contains
       end select
     case(6)
       ! 'diff-graddiv'
-      call findneighbours(ptype, pos, h)
       select case(dtp)
       case(1)
-        call c1(ptype, pos, mas, vel, sk, h, den, om, dfdx)
+        call c1(pos, mas, vel, sk, h, den, om, dfdx)
         print*,11111
         call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
       case(2)
-        call c1(ptype, pos, mas, vel, sk, h, den, om, dfdx)
+        call c1(pos, mas, vel, sk, h, den, om, dfdx)
         call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
       case default
         print *, 'Diff type is not set in iterator'
@@ -100,11 +100,12 @@ contains
     case(7,8)
     case(9)
       ! soundwave
-      call findneighbours(ptype, pos, h)
-      call c1(ptype, pos, mas, vel, sk, h, den, om, dfdx)
-      print*, 555
+      call c1(pos, mas, vel, sk, h, den, om, dfdx)
       call periodic1indims(den, dim)
       call periodic1indims(h, dim)
+
+      call eos_isothermal(den, c(1), prs)
+
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
 
       call periodic3(acc, 00, dim)
@@ -125,5 +126,5 @@ contains
         call periodic1(arr, 3)
       end if
     end if
-  end subroutine periodic1indims
-end module iterator
+  end subroutine
+end module

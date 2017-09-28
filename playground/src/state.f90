@@ -3,11 +3,12 @@ module state
 
   public :: set_difftype, get_difftype, set_tasktype, get_tasktype, &
             set_kerntype, get_kerntype, getdim, setdim, sinitvar, &
-            ginitvar
+            ginitvar, setAdvancedDensity, getAdvancedDensity,&
+            setArtificialTerms, getArtificialTerms
   private
   save
     integer :: dim = 1
-    integer :: ttype, ktype, dtype, icvar=-1
+    integer :: ttype, ktype, dtype, icvar=-1, adden = 1, artts = 1
   contains
     subroutine setdim(d)
       integer, intent(in) :: d
@@ -97,8 +98,10 @@ module state
    subroutine sinitvar(itt)
      character (len=*), intent(in) :: itt
      select case(itt)
-     case('cf-sinpixsinpiysinpiz')
+     case('isotropic-sinxsinysinz')
        icvar = 1
+     case('anisotropic-sinxsinysinz')
+       icvar = 2
      case default
        print *, 'There is no such initial variable setting : ', itt
        stop
@@ -108,5 +111,41 @@ module state
    pure subroutine ginitvar(ott)
      integer, intent(out) :: ott
      ott = icvar
+   end subroutine
+
+   subroutine setAdvancedDensity(iad)
+     character (len=*), intent(in) :: iad
+     select case(iad)
+     case('yes')
+       adden = 1
+     case('no')
+       adden = 0
+     case default
+       print *, 'There is no such case for advanced density : ', iad
+       stop
+     end select
+   end subroutine
+
+   pure subroutine getAdvancedDensity(oad)
+     integer, intent(out) :: oad
+     oad = adden
+   end subroutine
+
+   subroutine setArtificialTerms(iat)
+     character (len=*), intent(in) :: iat
+     select case(iat)
+     case('yes')
+       artts = 1
+     case('no')
+       artts = 0
+     case default
+       print *, 'There is no such case for advanced density : ', iat
+       stop
+     end select
+   end subroutine
+
+   pure subroutine getArtificialTerms(oat)
+     integer, intent(out) :: oat
+     oat = artts
    end subroutine
 end module

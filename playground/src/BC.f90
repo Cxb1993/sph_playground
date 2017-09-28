@@ -88,6 +88,9 @@ contains
     case (1)
       ! A(borderX1) = A(borderX2 - (nbrd + 1) * ny * nz)
       ! A(borderX2) = A(borderX1 + (nbrd + 1) * ny * nz)
+      ! print*, borderX1, (borderX2 - (nbrd + 1) * ny * nz)
+      ! print*, borderX2, (borderX1 + (nbrd + 1) * ny * nz)
+      ! read*
       do i = 1, size(borderX1)
         A(borderX1(i)) = A(borderX2(i) - (nbrd + 1) * ny * nz)
         A(borderX2(i)) = A(borderX1(i) + (nbrd + 1) * ny * nz)

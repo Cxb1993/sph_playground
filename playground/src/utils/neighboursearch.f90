@@ -8,7 +8,7 @@ module NeighbourSearch
 
   implicit none
 
-public findneighbours, getneighbours, setStepsize, isInitialized,&
+public findneighboursN2, findneighboursN2plus, getneighbours, setStepsize, isInitialized,&
        getNeibListL1, getNeibListL2, getNeibNumbers, destroy
 
 private
@@ -65,14 +65,16 @@ contains
   end subroutine
 
   ! simple list
-  subroutine findneighbours(ptype, pos, h)
+  subroutine findneighboursN2(ptype, pos, h)
     real, allocatable, intent(in)    :: pos(:,:), h(:)
     integer, allocatable, intent(in) :: ptype(:)
     integer                          :: sn, i, j, tsz, tix, dim, kt, al1, al2
     real                             :: r2, r(3), kr
+
     call system_clock(start)
 
     sn = size(pos, dim=2)
+
     call get_krad(kr)
     call getdim(dim)
     call get_kerntype(kt)
@@ -171,6 +173,143 @@ contains
     call addTime(' neibs', finish - start)
   end subroutine
 
+  subroutine checkConsistentNeighbours(ptype, pos, h, needDeepCheck)
+    real, allocatable, intent(in)       :: pos(:,:), h(:)
+    integer, allocatable, intent(in)    :: ptype(:)
+    integer, allocatable, intent(inout) :: needDeepCheck(:)
+    integer                             :: sn, i, j, kt, al1, al2
+    real                                :: r2, r(3), kr
+
+    call get_krad(kr)
+
+    if(.not. allocated(neighbours)) then
+      needDeepCheck(:) = 1
+    else
+      needDeepCheck(:) = 0
+      sn = size(pos, dim=2)
+      !$omp parallel do default(none)&
+      !$omp shared(pos, ptype, h, sn, neighbours, stepsize, kt)&
+      !$omp shared(al1, al2, alllistlv1, alllistlv2, kr, needDeepCheck)&
+      !$omp private(i, j, r, r2)
+      do i = 1,sn,stepsize
+        if (ptype(i) /= 0) then
+          if (allocated(neighbours(i)%list)) then
+            do j = 1,size(neighbours(i)%list)
+              r(:) = pos(:,i) - pos(:,neighbours(i)%list(j))
+              r2 = dot_product(r(:),r(:))
+              if (r2 > ((kr * h(i))*(kr * h(i)) + eps)) then
+                needDeepCheck(i) = 1
+                exit
+              end if
+            end do
+          else
+            needDeepCheck(i) = 1
+          end if
+        end if
+      end do
+      !$omp end parallel do
+    end if
+    ! print*, needDeepCheck
+  end subroutine checkConsistentNeighbours
+
+  subroutine findneighboursN2plus(ptype, pos, h)
+    real, allocatable, intent(in)    :: pos(:,:), h(:)
+    integer, allocatable, intent(in) :: ptype(:)
+    integer, allocatable             :: needDeepCheck(:)
+    integer                          :: sn, i, j, tsz, tix, dim, kt, al1, al2
+    real                             :: r2, r(3), kr
+    call system_clock(start)
+
+    sn = size(pos, dim=2)
+
+    allocate(needDeepCheck(sn))
+    call checkConsistentNeighbours(ptype, pos, h, needDeepCheck)
+
+    call get_krad(kr)
+    call getdim(dim)
+    call get_kerntype(kt)
+
+    if (.not. allocated(neighbours)) then
+      allocate(neighbours(sn))
+    end if
+
+    if (allocated(alllistlv1)) then
+      deallocate(alllistlv1)
+      deallocate(alllistlv2)
+    end if
+    allocate(alllistlv1(sn))
+    allocate(alllistlv2(sn))
+
+    alllistlv1(:) = 0
+    alllistlv2(:) = 0
+    al1 = 1
+    al2 = 1
+
+    !$omp parallel do default(none)&
+    !$omp shared(pos, ptype, h, sn, kr, neighbours, dim, stepsize, kt)&
+    !$omp shared(al1, al2, alllistlv1, alllistlv2, needDeepCheck)&
+    !$omp private(i, j, tix, r, r2, tsz)
+    do i=1,sn,stepsize
+      if (ptype(i) /= 0) then
+        alllistlv1(i) = 1
+        alllistlv2(i) = 1
+        if (needDeepCheck(i) == 1) then
+          if (allocated(neighbours(i)%list)) then
+            deallocate(neighbours(i)%list)
+          end if
+          if (dim == 1) then
+            allocate(neighbours(i)%list(10))
+          else if (dim == 2) then
+            allocate(neighbours(i)%list(50))
+          else
+            allocate(neighbours(i)%list(100))
+          end if
+          tix = 0
+          do j=1,sn
+            if (i /= j) then
+              r(:) = pos(:,i) - pos(:,j)
+              r2 = dot_product(r(:),r(:))
+              if (r2 < ((kr * h(i))*(kr * h(i)) + eps)) then
+                tix = tix + 1
+                tsz = size(neighbours(i)%list)
+                if (tsz < tix) then
+                  call resize(neighbours(i)%list, tsz, tsz * 2)
+                end if
+                neighbours(i)%list(tix) = j
+                alllistlv2(j) = 1
+              end if
+            end if
+          end do
+          tsz = size(neighbours(i)%list)
+          if (tsz /= tix) then
+            call resize(neighbours(i)%list, tix, tix)
+          end if
+        end if
+      end if
+    end do
+    !$omp end parallel do
+
+    do i = 1,sn
+      if ( alllistlv1(i) == 1 ) then
+        alllistlv1(al1) = i
+        al1 = al1 + 1
+      end if
+      if ( alllistlv2(i) == 1 ) then
+        alllistlv2(al2) = i
+        al2 = al2 + 1
+      end if
+    end do
+
+    al1 = al1 - 1
+    call resize(alllistlv1, al1, al1)
+    al2 = al2 - 1
+    call resize(alllistlv2, al2, al2)
+
+    initialized = 1.
+    call system_clock(finish)
+    call addTime(' neibs', finish - start)
+  end subroutine findneighboursN2plus
+
   subroutine getneighbours(idx, pos, h, list, dt)
     real, allocatable, intent(in)       :: pos(:,:), h(:)
     integer(8), intent(inout)           :: dt
@@ -195,14 +334,14 @@ contains
       end if
       list(:) = neighbours(idx)%list(:)
     else
-      call findneighboursonce(idx, pos, h, list)
+      call findneighboursN2once(idx, pos, h, list)
     end if
     call system_clock(finish)
     dt = finish - start
     call addTime(' neibs', dt)
-  end subroutine
+  end subroutine getneighbours
 
-  subroutine findneighboursonce(idx, pos, h, nlist)
+  subroutine findneighboursN2once(idx, pos, h, nlist)
     real, allocatable, intent(in)       :: pos(:,:), h(:)
     integer, allocatable, intent(inout) :: nlist(:)
     integer, intent(in)                 :: idx
@@ -250,7 +389,7 @@ contains
       allocate(neighbours(idx)%list(size(nlist)))
     end if
     neighbours(idx)%list(:) = nlist(:)
-  end subroutine findneighboursonce
+  end subroutine findneighboursN2once
 
   subroutine destroy()
     integer :: i, sn

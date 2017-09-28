@@ -27,13 +27,15 @@ contains
       c(i) = sqrt(gamma * P(i) / den(i))
     end do
     !$omp end parallel do
-  end subroutine eos_adiabatic
+  end subroutine
 
-  subroutine eos_isothermal(n, den, P, c)
-    integer, intent(in) :: n
-    real, intent(in)    :: den(n), c
-    real, intent(out)   :: P(n)
-    integer             :: i
+  subroutine eos_isothermal(den, c, P)
+    real, allocatable, intent(in)    :: den(:)
+    real,              intent(in)    :: c
+    real, allocatable, intent(inout) :: P(:)
+    integer             :: i, n
+
+    n = size(P)
 
     !$omp parallel do default(none)&
     !$omp shared(P, den, c, n)&
@@ -42,5 +44,5 @@ contains
       P(i) = den(i) * c * c
     end do
     !$omp end parallel do
-  end subroutine eos_isothermal
-end module eos
+  end subroutine
+end module

@@ -5,10 +5,6 @@ module circuit2
                               get_krad, &
                               get_n2w, &
                               get_nw
-  use state,            only: get_difftype, &
-                              getdim, &
-                              get_tasktype, &
-                              get_kerntype
   use BC
   use neighboursearch,  only: getneighbours,&
                               getNeibListL1,&
@@ -16,13 +12,30 @@ module circuit2
 
   implicit none
 
-  public :: c2
+  public :: c2init, c2
 
   private
   save
-    integer(8) :: start=0, finish=0
-
+    integer(8)  :: start=0, finish=0
+    integer     :: s_dim, s_ttp, s_ktp, s_dtp, s_adden, s_artts, initdone = 0
+    real        :: s_kr
 contains
+
+  subroutine c2init()
+    use state,            only: get_difftype, getdim, &
+                                get_tasktype, get_kerntype, &
+                                getAdvancedDensity, &
+                                getArtificialTerms
+
+    call getdim(s_dim)
+    call get_krad(s_kr)
+    call get_tasktype(s_ttp)
+    call get_kerntype(s_ktp)
+    call get_difftype(s_dtp)
+    call getAdvancedDensity(s_adden)
+    call getArtificialTerms(s_artts)
+    initdone = 1
+  end subroutine
 
   subroutine c2(c, ptype, pos, v, dv, mas, den, h, om, P, u, du, dh, cf, dcf, kcf, dfdx)
     real, allocatable, intent(in)    :: pos(:,:), v(:,:), mas(:), h(:), den(:), P(:), c(:),&
@@ -30,35 +43,33 @@ contains
     integer, allocatable, intent(in) :: ptype(:)
     real, allocatable, intent(inout) :: dv(:,:), du(:), dh(:), dcf(:,:), dfdx(:,:,:)
 
-    real                 :: dr, rhoa, rhob, qa, qb, qc, n2wa, kr, r2, &
+    real                 :: dr, rhoa, rhob, qa, qb, qc, n2wa, r2, &
                             nwa(3), nwb(3), rab(3), vab(3), vba(3), urab(3), Pa(3), Pb(3), &
-                            Hes(3,3), oddi, oddj!, r(3)!, tau2
+                            Hes(3,3), oddi, oddj, kcfij(3)
     integer, allocatable :: nlista(:), nlistb(:)
-    integer              :: i, j, la, lb, n, dim, ttp, ktp, dtp !, usekorrection
+    integer              :: i, j, la, lb, n
     integer(8)           :: t0, tneib
 
-
+    if (initdone == 0) then
+      call c2init()
+    end if
     call system_clock(start)
     n = size(ptype)
     tneib = 0.
 
-    call getdim(dim)
-    call get_krad(kr)
-    call get_tasktype(ttp)
-    call get_kerntype(ktp)
-    call get_difftype(dtp)
 
-    if (( ktp == 3 ).and.( dtp == 1 )) then
-      call gradf(dim, mas, den, pos, v, h, om, dfdx)
+    if (( s_ktp == 3 ).and.( s_dtp == 1 )) then
+      call gradf(s_dim, mas, den, pos, v, h, om, dfdx)
     end if
     call getNeibListL1(nlista)
 
     !$omp parallel do default(none)&
     !$omp private(rab, dr, vab, urab, rhoa, rhob, nwa, nwb, qa, qb, qc, Pa, Pb)&
     !$omp private(n2wa, j, i, r2, oddi ,oddj, la, lb)&
-    !$omp private(nlistb, Hes, vba, t0) &
+    !$omp private(nlistb, Hes, vba, t0, kcfij) &
     !$omp shared(dv, du, dh, dcf, n, pos, h, v, den, c, p, om, mas, u, kcf, cf)&
-    !$omp shared(dim, kr, ktp, dtp, ttp, ptype, dfdx, nlista)&
+    !$omp shared(ptype, dfdx, nlista)&
+    !$omp shared(s_dim, s_kr, s_ktp, s_dtp, s_ttp, s_adden, s_artts)&
     !$omp reduction(+:tneib)
     do la = 1, size(nlista)
       i = nlista(la)
@@ -86,7 +97,7 @@ contains
         vab(:) = v(:,i) - v(:,j)
         vba(:) = v(:,j) - v(:,i)
         urab(:) = rab(:) / dr
-        select case (ttp)
+        select case (s_ttp)
         case (1, 9)
           ! hydroshock ! soundwave
           qa = 0.
@@ -94,16 +105,12 @@ contains
           qc = 0.
           rhoa = den(i)
           rhob = den(j)
-          ! print*, 100
-          ! print*, i
-          ! print*, rab
-          ! print*, h(i)
           call get_nw(rab, h(i), nwa)
-          ! print*, 999
           call get_nw(rab, h(j), nwb)
-          ! call get_n2w(r, h(i), n2w)
-          call art_viscosity(rhoa, rhob, vab, urab, c(i), c(j), qa, qb)
-          call art_termcond(P(i), P(j), rhoa, rhob, qc)
+          if (s_artts == 1) then
+            call art_viscosity(rhoa, rhob, vab, urab, c(i), c(j), qa, qb)
+            call art_termcond(P(i), P(j), rhoa, rhob, qc)
+          end if
           Pa(:) = (P(i) + qa) * nwa(:) / (rhoa**2 * om(i))
           Pb(:) = (P(j) + qb) * nwb(:) / (rhob**2 * om(j))
 
@@ -112,20 +119,23 @@ contains
           du(i)   = du(i) + mas(j) * dot_product(vab(:),Pa(:)) &
                         + mas(j) / (0.5 *(rhoa + rhob)) * qc * (u(i) - u(j)) * &
                         0.5 * dot_product((nwa(:) + nwb(:)),urab(:))
-
-          dh(i)   = dh(i) + mas(j) * dot_product(vab(:), nwa(:))
+          if ( s_adden == 1 ) then
+            dh(i)   = dh(i) + mas(j) * dot_product(vab(:), nwa(:))
+          end if
         case (2, 3)
           ! heatconduction
-          call get_n2w(rab, h(i), n2wa)
-
-          dcf(:,i) = dcf(:,i) - mas(j) / (den(i) * den(j)) * 2. * kcf(:,i) * kcf(:,j) &
-                  / (kcf(:,i) + kcf(:,j)) * (cf(:,i) - cf(:,j)) * n2wa
+          ! call get_n2w(rab, h(i), n2wa)
+          call get_hessian(rab, h(i), Hes)
+          kcfij(:) = 2. * kcf(:,i) * kcf(:,j) / (kcf(:,i) + kcf(:,j))
+          dcf(1,i) = dcf(1,i) - mas(j) / (den(i) * den(j)) * (cf(1,i) - cf(1,j)) * &
+                    (kcfij(1)*Hes(1,1) + kcfij(2)*Hes(2,2) + kcfij(3)*Hes(3,3))
+                  ! / (kcf(:,i) + kcf(:,j)) * (cf(:,i) - cf(:,j)) * n2wa
         case(4)
         case(5)
           ! 'diff-laplace'
-          if (dtp == 1) then
+          if (s_dtp == 1) then
             ! diff form
-            if ( ktp /= 3 ) then
+            if ( s_ktp /= 3 ) then
               ! n2w fab
               call get_n2w(rab, h(i), n2wa)
               ! if (usekorrection == 1) then
@@ -139,9 +149,9 @@ contains
               dv(2,i) = dv(2,i) + mas(j)/den(j) * ((dfdx(2,2,j) - dfdx(2,2,i))*nwa(2))
               dv(3,i) = dv(3,i) + mas(j)/den(j) * ((dfdx(3,3,j) - dfdx(3,3,i))*nwa(3))
             end if
-          elseif (dtp == 2) then
+          elseif ( s_dtp == 2) then
             ! symm form
-            if ( ktp /= 3 ) then
+            if ( s_ktp /= 3 ) then
               ! n2w fab
             else
               ! 2nw
@@ -162,7 +172,7 @@ contains
           end if
         case(6)
           ! diff-graddiv
-          if (dtp == 1) then
+          if ( s_dtp == 1) then
             ! diff form
             ! if (ktp /= 3) then
               ! n2w fab
@@ -179,9 +189,9 @@ contains
             !   qb = v(1,j)
             !   dv(:,i) = dv(:,i) + mas(j) * (qb - qa) * nwa(:)
             ! end if
-          elseif (dtp == 2) then
+          elseif ( s_dtp == 2) then
             ! symm form
-            if ( ktp /= 3 ) then
+            if ( s_ktp /= 3 ) then
               ! n2w fab
             else
               ! 2nw
@@ -205,24 +215,15 @@ contains
         end select
       end do
 
-      select case (ttp)
-      case(1,2,3,4)
-        dh(i) =  (- h(i) / (dim * den(i))) * dh(i) / om(i)
-        ! if ( usekorrection == 1 ) then
-        !   tau2 = tau2 / dim
-        !   ! print*, tau2
-        !   du(i) = du(i) / tau2
-        ! end if
+      select case (s_ttp)
+      case(1,2,3,4,9)
+        if ( s_adden == 1 ) then
+          dh(i) =  (- h(i) / (s_dim * den(i))) * dh(i) / om(i)
+        end if
       case(5,6)
         ! diff-graddiv ! diff-laplace
-        ! if ( usekorrection == 1 ) then
-        !   tau2 = tau2 / dim
-        !   print*, tau2
-        !   dv(:,i) = dv(:,i) / tau2
-        ! end if
-        if ( ktp == 3 ) then
+        if ( s_ktp == 3 ) then
           dv(:,i) = dv(:,i) * den(i)
-          ! print*, dv(:,i), den(i)
         end if
       case default
         print *, 'Task type was not set in circuit2 outside circle'
@@ -236,14 +237,14 @@ contains
     ! print*, du(1:5)
     call system_clock(finish)
     call addTime(' circuit2', finish - start - tneib)
-  end subroutine c2
+  end subroutine
 
   subroutine art_termcond(pa, pb, da, db, vsigu)
     real, intent(in)  :: pa, pb, da, db
     real, intent(out) :: vsigu
 
     vsigu = sqrt(abs(pa - pb)/(0.5 * (da + db)))
-  end subroutine art_termcond
+  end subroutine
 
   subroutine art_viscosity(da, db, vab, urab, ca, cb, qa, qb)
     real, intent(in)  :: da, db, vab(3), urab(3), ca, cb
@@ -259,7 +260,7 @@ contains
       qa = -0.5 * da * (alpha*ca - betta*dvr) * dvr
       qb = -0.5 * db * (alpha*cb - betta*dvr) * dvr
     end if
-  end subroutine art_viscosity
+  end subroutine
 
   subroutine gradf(dim, m, d, x, v, h, om, nv)
     real, allocatable, intent(in)  :: m(:), d(:), x(:,:), v(:,:), h(:), om(:)
@@ -309,25 +310,25 @@ contains
     end do
     !$omp end parallel do
     call addTime(' circuit2', -tneib)
-  end subroutine gradf
-
-  subroutine LaplaceCorrection(r, m, d, dim, n2w, tau2)
-    real, intent(in)    :: r(3), m, d, n2w
-    integer, intent(in) :: dim
-    real, intent(inout) :: tau2
-
-    tau2 = tau2 + 0.5 * m/d * r(1)*r(1) * n2w ! Hes(1,1)
-    if ( dim > 1 ) then
-      tau2 = tau2 + 0.5 * m/d * r(1)*r(2) * n2w ! Hes(1,2)
-      tau2 = tau2 + 0.5 * m/d * r(2)*r(2) * n2w ! Hes(2,2)
-      tau2 = tau2 + 0.5 * m/d * r(1)*r(2) * n2w ! Hes(1,2)
-    end if
-    if ( dim == 3 ) then
-      tau2 = tau2 + 0.5 * m/d * r(1)*r(3) * n2w ! Hes(1,3)
-      tau2 = tau2 + 0.5 * m/d * r(2)*r(3) * n2w ! Hes(2,3)
-      tau2 = tau2 + 0.5 * m/d * r(3)*r(3) * n2w ! Hes(3,3)
-      tau2 = tau2 + 0.5 * m/d * r(2)*r(3) * n2w ! Hes(2,3)
-      tau2 = tau2 + 0.5 * m/d * r(1)*r(3) * n2w ! Hes(1,3)
-    end if
   end subroutine
-end module circuit2
+
+  ! subroutine LaplaceCorrection(r, m, d, dim, n2w, tau2)
+  !   real, intent(in)    :: r(3), m, d, n2w
+  !   integer, intent(in) :: dim
+  !   real, intent(inout) :: tau2
+  !
+  !   tau2 = tau2 + 0.5 * m/d * r(1)*r(1) * n2w ! Hes(1,1)
+  !   if ( dim > 1 ) then
+  !     tau2 = tau2 + 0.5 * m/d * r(1)*r(2) * n2w ! Hes(1,2)
+  !     tau2 = tau2 + 0.5 * m/d * r(2)*r(2) * n2w ! Hes(2,2)
+  !     tau2 = tau2 + 0.5 * m/d * r(1)*r(2) * n2w ! Hes(1,2)
+  !   end if
+  !   if ( dim == 3 ) then
+  !     tau2 = tau2 + 0.5 * m/d * r(1)*r(3) * n2w ! Hes(1,3)
+  !     tau2 = tau2 + 0.5 * m/d * r(2)*r(3) * n2w ! Hes(2,3)
+  !     tau2 = tau2 + 0.5 * m/d * r(3)*r(3) * n2w ! Hes(3,3)
+  !     tau2 = tau2 + 0.5 * m/d * r(2)*r(3) * n2w ! Hes(2,3)
+  !     tau2 = tau2 + 0.5 * m/d * r(1)*r(3) * n2w ! Hes(1,3)
+  !   end if
+  ! end subroutine
+end module

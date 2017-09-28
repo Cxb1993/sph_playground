@@ -13,7 +13,7 @@ module circuit1
 
   implicit none
 
-  public :: c1_init, c1, c1a, destroy
+  public :: c1_init, c1, destroy
 
   private
   save
@@ -27,15 +27,33 @@ contains
     allocate(resid(n))
   end subroutine c1_init
 
+  subroutine c1(pos, mas, vel, hfac, h, den, om, dfdx)
+    use state, only: getAdvancedDensity
+
+    real, allocatable, intent(in)    :: pos(:,:), mas(:), vel(:,:)
+    real, allocatable, intent(inout) :: h(:), den(:), om(:), dfdx(:,:,:)
+    real, intent(in)                 :: hfac
+
+    integer :: ad
+
+    call getAdvancedDensity(ad)
+
+    if (ad == 1) then
+      call c1advanced(pos, mas, vel, hfac, h, den, om, dfdx)
+    else
+      call c1simple(pos, mas, hfac, h, den)
+      om(:) = 1.
+    end if
+  end subroutine
+
   subroutine destroy()
     deallocate(slnint)
     deallocate(resid)
   end subroutine
 
-  subroutine c1(ptype, pos, mas, vel, sk, h, den, om, dfdx)
+  subroutine c1advanced(pos, mas, vel, sk, h, den, om, dfdx)
     real, allocatable, intent(in)    :: pos(:,:), mas(:), vel(:,:)
     real, allocatable, intent(inout) :: h(:), den(:), om(:), dfdx(:,:,:)
-    integer, allocatable, intent(in) :: ptype(:)
     real, intent(in)     :: sk
     real                 :: w, dwdh, r(3), dr, r2, dfdh, fh, hn, vba(3), nw(3)
     real                 :: allowerror
@@ -44,7 +62,7 @@ contains
     integer, allocatable :: nlista(:), nlistb(:)
     call system_clock(start)
 
-    n = size(ptype)
+    n = size(den)
 
     call getdim(dim)
     call get_kerntype(ktp)
@@ -61,7 +79,7 @@ contains
       !$omp parallel do default(none)&
       !$omp private(r, dr, dwdh, w, dfdh, fh, hn, j, i, la, lb, r2, t0, nlistb)&
       !$omp private(ni, nj, nw, vba)&
-      !$omp shared(ptype, resid, allowerror, n, pos, mas, dim, sk, h, ktp)&
+      !$omp shared(resid, allowerror, n, pos, mas, dim, sk, h, ktp)&
       !$omp shared(nlista, den, om, slnint, dfdx, vel)&
       !$omp reduction(+:tneib)
       do la = 1, size(nlista)
@@ -147,25 +165,33 @@ contains
     h(:) = slnint(:)
     call system_clock(finish)
     call addTime(' circuit1', finish - start - tneib)
-  end subroutine c1
+  end subroutine
 
 ! Direct density summation
-  subroutine c1a(pos, mas, sk, sln, den)
+  subroutine c1simple(pos, mas, sk, sln, den)
     real, allocatable, intent(in)    :: pos(:,:), mas(:)
     real,              intent(in)    :: sk
-    real, allocatable, intent(out)   :: den(:), sln(:)
+    real, allocatable, intent(inout) :: den(:), sln(:)
     real                             :: w, r(3), dr
     integer                          :: i, j, la, lb
     integer, allocatable             :: nlista(:), nlistb(:)
-    integer(8)                       :: t0
+    integer(8)                       :: t0, tneib
 
 
-    call getNeibListL2(nlista)
-
+    call system_clock(start)
+    call getNeibListL1(nlista)
+    tneib = 0.
+    !$omp parallel do default(none)&
+    !$omp private(r, dr, w, j, i, la, lb, nlistb, t0)&
+    !$omp shared(pos, mas, sk, sln)&
+    !$omp shared(nlista, den)&
+    !$omp reduction(+:tneib)
     do la = 1, size(nlista)
       i = nlista(la)
       den(i) = 0.
+
       call getneighbours(i, pos, sln, nlistb, t0)
+      tneib = tneib + t0
       do lb = 1, size(nlistb)
         j = nlistb(lb)
         r(:) = pos(:,i) - pos(:,j)
@@ -177,5 +203,8 @@ contains
       den(i) = den(i) + mas(i) * w
       sln(i) = sk * (mas(i) / den(i))
     end do
-  end subroutine c1a
-end module circuit1
+    !$omp end parallel do
+    call system_clock(finish)
+    call addTime(' circuit1', finish - start - tneib)
+  end subroutine
+end module

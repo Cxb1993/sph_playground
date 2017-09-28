@@ -7,9 +7,7 @@ module errteylor
                               get_krad
   use state,            only: getdim
   use neighboursearch,  only: getneighbours,&
-                              isInitialized,&
-                              findneighbours,&
-                              getneighbours
+                              isInitialized
   use BC,               only: getSqaureBoxSides
   use printer,          only: AppendLine
 
@@ -45,7 +43,7 @@ contains
                             dsum, osum, dchi(9)
     real, allocatable    :: printres(:)
 
-    allocate(printres(4))
+    allocate(printres(6))
 
     call system_clock(start)
 
@@ -102,7 +100,10 @@ contains
       if ( kinfname /= '' ) then
         dsum = dchi(1) + dchi(5) + dchi(9)
         osum = dchi(2) + dchi(4) + dchi(3) + dchi(6) + dchi(8) + dchi(7)
-        printres = [r(:), sqrt(dot_product(r,r)), dsum, osum]
+        printres(1:3) = r(:)
+        printres(4) = sqrt(dot_product(r,r))
+        printres(5) = dsum
+        printres(6) = osum
         call AppendLine(printres, kinfname, tprint)
         tneib = tneib + tprint
         ! print*, r(:), sqrt(dot_product(r,r)), dsum, osum
@@ -128,7 +129,7 @@ contains
     real                 :: r(3), kr, t(3), dr, Hes(3,3), m, dchi(81), dsum, osum
     real, allocatable    :: printres(:)
 
-    allocate(printres(4))
+    allocate(printres(6))
 
 
     call system_clock(start)
@@ -189,7 +190,10 @@ contains
             end do
           end do
         end do
-        printres = [r(:), sqrt(dot_product(r,r)), dsum, osum]
+        printres(1:3) = r(:)
+        printres(4) = sqrt(dot_product(r,r))
+        printres(5) = dsum
+        printres(6) = osum
         call AppendLine(printres, kinfname, tprint)
         tneib = tneib + tprint
       end if

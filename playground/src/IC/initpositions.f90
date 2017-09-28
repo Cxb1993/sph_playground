@@ -81,7 +81,7 @@ contains
           z = brdz1 + k * spz
           ! if (x < brdx1 + ibx * spx - eps) then
           ! if (x < brdx1 - eps) then
-          if (x < brdx1 + eps) then
+          if (x < brdx1 - eps) then
             freeflag = 1.
             if (size(bX1) < nbnewX1) then
               call resize(bX1,size(bX1),size(bX1)*2)
@@ -90,7 +90,7 @@ contains
             nbnewX1 = nbnewX1 + 1
           ! else if (x > brdx2 - ibx * spx + eps) then
           ! else if (x > brdx2 + eps) then
-          else if (x > brdx2 - eps) then
+        else if (x > brdx2 + eps) then
             freeflag = 1.
             if (size(bX2) < nbnewX2) then
               call resize(bX2,size(bX2),size(bX2)*2)
@@ -101,7 +101,7 @@ contains
           if (dim > 1) then
             ! if (y < brdy1 + iby * spy - eps) then
             ! if (y < brdy1 - eps) then
-            if (y < brdy1 + eps) then
+            if (y < brdy1 - eps) then
               freeflag = 1.
               if (size(bY1) < nbnewY1) then
                 call resize(bY1,size(bY1),size(bY1)*2)
@@ -110,7 +110,7 @@ contains
               nbnewY1 = nbnewY1 + 1
             ! else if (y > brdy2 - iby * spy + eps) then
             ! else if (y > brdy2 + eps) then
-            else if (y > brdy2 - eps) then
+          else if (y > brdy2 + eps) then
               freeflag = 1.
               if (size(bY2) < nbnewY2) then
                 call resize(bY2,size(bY2),size(bY2)*2)
@@ -121,7 +121,7 @@ contains
             if (dim == 3) then
               ! if (z < brdz1 + ibz * spz - eps) then
               ! if (z < brdz1 - eps) then
-              if (z < brdz1 + eps) then
+              if (z < brdz1 - eps) then
                 freeflag = 1.
                 if (size(bZ1) < nbnewZ1) then
                   call resize(bZ1,size(bZ1),size(bZ1)*2)
@@ -130,7 +130,7 @@ contains
                 nbnewZ1 = nbnewZ1 + 1
               ! else if (z > brdz2 - ibz * spz + eps) then
               ! else if (z > brdz2 + eps) then
-              else if (z > brdz2 - eps) then
+            else if (z > brdz2 + eps) then
                 freeflag = 1.
                 if (size(bZ2) < nbnewZ2) then
                   call resize(bZ2,size(bZ2),size(bZ2)*2)
@@ -166,17 +166,17 @@ contains
 
     call resize(pos,n,n)
     call resize(ptype,n,n)
-    write(*, "(A, F7.5, A, F7.5)") " # #      actual dx:   dx1=", pspc1, "  dx2=", pspc2
-    write(*, "(A, I5, A, I5, A, I5)") " # #     dir.layers:   nx=", ix+1, &
+    write(*, "(A, F7.5, A, F7.5)") " # #        actual dx:   dx1=", pspc1, "  dx2=", pspc2
+    write(*, "(A, I5, A, I5, A, I5)") " # #       dir.layers:   nx=", ix+1, &
              "   ny=", iy+1, "   nz=", iz+1
-    write(*, "(A, I16, A, I16, A)") " # #       p.number:  ", n, &
+    write(*, "(A, I16, A, I16, A)") " # #         p.number:  ", n, &
               " total   ", freenumber, " real"
-    print *, '# #       border-x:', brdx1, brdx2
-    print *, '# #       border-y:', brdy1, brdy2
-    print *, '# #       border-z:', brdz1, brdz2
-    print *, '# #      № bd.pt X:', nbnewX1, nbnewX2
-    print *, '# #      № bd.pt Y:', nbnewY1, nbnewY2
-    print *, '# #      № bd.pt Z:', nbnewZ1, nbnewZ2
+    print *, '# #         border-x:', brdx1, brdx2
+    print *, '# #         border-y:', brdy1, brdy2
+    print *, '# #         border-z:', brdz1, brdz2
+    print *, '# #        № bd.pt X:', nbnewX1, nbnewX2
+    print *, '# #        № bd.pt Y:', nbnewY1, nbnewY2
+    print *, '# #        № bd.pt Z:', nbnewZ1, nbnewZ2
 
     call set_particles_numbers(n, abs(nb))
     call set_border(11, nbnewX1, bX1)
@@ -367,12 +367,12 @@ contains
     dx = merge(0., (brdx2-brdx1)/nx, nx == 0) ! Delta x
     dy = merge(0., sqrt(3./4.)*dx,   nx == 0) ! h
     cy = (brdy2+brdy1)/2
-    ny = merge(0, int((brdy2 - cy)/dy), dy == 0)
+    ny = merge(0, int((brdy2 - cy)/dy), nx == 0)
     brdy2 = cy + ny * dy
     brdy1 = cy - ny * dy
     ny = 2*ny
     dz = merge(0., sqrt(2./3.)*dx,   nx == 0) ! delta z
-    nz = merge(0, int((brdz2-brdz1)/dz), dz == 0)
+    nz = merge(0, int((brdz2-brdz1)/dz), nx == 0)
     pspc1 = dx
 
     sfxy = 0.5   * dx ! shift on 'x' for the next y_row
