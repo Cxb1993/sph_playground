@@ -112,8 +112,7 @@ program main
       dt = .144 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
     case(3)
       ! 'hc-sinx'
-      dt = .144 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
-      ! print*, maxval(kcf), minval(den), minval(c), minval(h)
+      dt = .1 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
     case(4)
       ! 'photoevaporation' 'pheva'
       dt = .3e-3 * minval(h)**2 / maxval(c)**2 / maxval(kcf) / maxval(cf)
@@ -131,6 +130,8 @@ program main
     end if
     ! print *, 0, 0
     if (t >= ltout) then
+      ! print*, maxval(kcf), minval(den), minval(c), minval(h)
+      ! read*
       print *, iter, t, dt, sum(iu)
       if ( silent == 0) then
         call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, err)
