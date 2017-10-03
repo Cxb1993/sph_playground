@@ -25,6 +25,7 @@ contains
     real                 :: spx, spy, spz, x, y, z, eps
 
     eps = 10*epsilon(0.)
+    ! eps = -eps
 
     call getdim(dim)
 
@@ -80,8 +81,8 @@ contains
           freeflag = 0
           z = brdz1 + k * spz
           ! if (x < brdx1 + ibx * spx - eps) then
+          if (x < brdx1 + eps) then
           ! if (x < brdx1 - eps) then
-          if (x < brdx1 - eps) then
             freeflag = 1.
             if (size(bX1) < nbnewX1) then
               call resize(bX1,size(bX1),size(bX1)*2)
@@ -89,8 +90,8 @@ contains
             bX1(nbnewX1) = n
             nbnewX1 = nbnewX1 + 1
           ! else if (x > brdx2 - ibx * spx + eps) then
+          else if (x > brdx2 - eps) then
           ! else if (x > brdx2 + eps) then
-        else if (x > brdx2 + eps) then
             freeflag = 1.
             if (size(bX2) < nbnewX2) then
               call resize(bX2,size(bX2),size(bX2)*2)
@@ -100,8 +101,8 @@ contains
           end if
           if (dim > 1) then
             ! if (y < brdy1 + iby * spy - eps) then
+            if (y < brdy1 + eps) then
             ! if (y < brdy1 - eps) then
-            if (y < brdy1 - eps) then
               freeflag = 1.
               if (size(bY1) < nbnewY1) then
                 call resize(bY1,size(bY1),size(bY1)*2)
@@ -109,8 +110,8 @@ contains
               bY1(nbnewY1) = n
               nbnewY1 = nbnewY1 + 1
             ! else if (y > brdy2 - iby * spy + eps) then
+            else if (y > brdy2 - eps) then
             ! else if (y > brdy2 + eps) then
-          else if (y > brdy2 + eps) then
               freeflag = 1.
               if (size(bY2) < nbnewY2) then
                 call resize(bY2,size(bY2),size(bY2)*2)
@@ -120,8 +121,8 @@ contains
             end if
             if (dim == 3) then
               ! if (z < brdz1 + ibz * spz - eps) then
+              if (z < brdz1 + eps) then
               ! if (z < brdz1 - eps) then
-              if (z < brdz1 - eps) then
                 freeflag = 1.
                 if (size(bZ1) < nbnewZ1) then
                   call resize(bZ1,size(bZ1),size(bZ1)*2)
@@ -129,8 +130,8 @@ contains
                 bZ1(nbnewZ1) = n
                 nbnewZ1 = nbnewZ1 + 1
               ! else if (z > brdz2 - ibz * spz + eps) then
+              else if (z > brdz2 - eps) then
               ! else if (z > brdz2 + eps) then
-            else if (z > brdz2 + eps) then
                 freeflag = 1.
                 if (size(bZ2) < nbnewZ2) then
                   call resize(bZ2,size(bZ2),size(bZ2)*2)
@@ -179,12 +180,12 @@ contains
     print *, '# #        № bd.pt Z:', nbnewZ1, nbnewZ2
 
     call set_particles_numbers(n, abs(nb))
-    call set_border(11, nbnewX1, bX1)
-    call set_border(12, nbnewX2, bX2)
-    call set_border(21, nbnewY1, bY1)
-    call set_border(22, nbnewY2, bY2)
-    call set_border(31, nbnewZ1, bZ1)
-    call set_border(32, nbnewZ2, bZ2)
+    call setBorder(11, nbnewX1, bX1)
+    call setBorder(12, nbnewX2, bX2)
+    call setBorder(21, nbnewY1, bY1)
+    call setBorder(22, nbnewY2, bY2)
+    call setBorder(31, nbnewZ1, bZ1)
+    call setBorder(32, nbnewZ2, bZ2)
 
   end subroutine
 
@@ -220,7 +221,8 @@ contains
 
     freenumber = 0
 
-    eps = 1e-5
+    ! eps = 1e-5
+    eps = -1e-5
 
     x = brdx1! - pspc1 * nbx
     ! do while ((x >= brdx1 - pspc1 * nbx).and.(x <= brdx2 + pspc2 * nbx))
@@ -329,12 +331,12 @@ contains
     print *, '# #       border-z:', nbnewZ1, nbnewZ2
 
     call set_particles_numbers(n, abs(nb))
-    call set_border(11, nbnewX1, bX1)
-    call set_border(12, nbnewX2, bX2)
-    call set_border(21, nbnewY1, bY1)
-    call set_border(22, nbnewY2, bY2)
-    call set_border(31, nbnewZ1, bZ1)
-    call set_border(32, nbnewZ2, bZ2)
+    call setBorder(11, nbnewX1, bX1)
+    call setBorder(12, nbnewX2, bX2)
+    call setBorder(21, nbnewY1, bY1)
+    call setBorder(22, nbnewY2, bY2)
+    call setBorder(31, nbnewZ1, bZ1)
+    call setBorder(32, nbnewZ2, bZ2)
   end subroutine
 
   subroutine place_close_packed_fcc(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, nb, pos)
@@ -524,11 +526,11 @@ contains
     print *, '# #    border-z:', nbnewZ1, nbnewZ2
 
     call set_particles_numbers(n, abs(nb))
-    call set_border(11, nbnewX1, bX1)
-    call set_border(12, nbnewX2, bX2)
-    call set_border(21, nbnewY1, bY1)
-    call set_border(22, nbnewY2, bY2)
-    call set_border(31, nbnewZ1, bZ1)
-    call set_border(32, nbnewZ2, bZ2)
+    call setBorder(11, nbnewX1, bX1)
+    call setBorder(12, nbnewX2, bX2)
+    call setBorder(21, nbnewY1, bY1)
+    call setBorder(22, nbnewY2, bY2)
+    call setBorder(31, nbnewZ1, bZ1)
+    call setBorder(32, nbnewZ2, bZ2)
   end subroutine
 end module

@@ -40,7 +40,7 @@ program main
                                          sk, chi(81), cv = 1.
 
   character (len=100)  :: itype, errfname, ktype, dtype
-  integer             :: n, dim, iter, tt, nusedl1, nusedl2, printlen, silent, ivt
+  integer             :: n, dim, iter, tt, nusedl1, nusedl2, printlen, silent, ivt, stopiter
 
   integer(8)          :: tprint
 
@@ -100,9 +100,9 @@ program main
 
   call tinit()
   call c1_init(n)
-
- print *, "Finish time = ", tfinish
-  do while (t < tfinish - epsilon(0.))
+  stopiter = 0
+  print *, "Finish time = ", tfinish
+  do while ((t < tfinish + epsilon(0.)).and.(stopiter==0))
     select case(tt)
     case(1, 9)
       ! 'hydroshock'
@@ -127,6 +127,7 @@ program main
     end select
     if (t + dt > tfinish) then
       dt = tfinish - t
+      stopiter = 1
     end if
     ! print *, 0, 0
     if (t >= ltout) then

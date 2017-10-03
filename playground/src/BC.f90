@@ -2,31 +2,39 @@ module BC
   implicit none
 
   public :: periodic1, periodic3, fixed1, fixed3, destroy
-  public :: set_particles_numbers, set_border, set_sqare_box_sides, getSqaureBoxSides
+  public :: set_particles_numbers, setBorder, set_sqare_box_sides, getSqaureBoxSides
 
   private
     integer, save              :: ns, nbrd, nx, ny, nz
-    integer, allocatable, save :: borderX1(:), borderY1(:), borderZ1(:), borderX2(:), borderY2(:), borderZ2(:)
+    integer, allocatable, save :: bX1exc(:), bY1exc(:), bZ1exc(:), bX2exc(:), bY2exc(:), bZ2exc(:)
+    ! borders including border particle (for periodic bc)
+    integer, allocatable, save :: bX1inc(:), bY1inc(:), bZ1inc(:), bX2inc(:), bY2inc(:), bZ2inc(:)
 
 contains
   subroutine destroy
-    if (allocated(borderX1)) then
-      deallocate(borderX1)
+    if (allocated(bX1exc)) then
+      deallocate(bX1exc)
+      ! deallocate(bX1inc)
     end if
-    if (allocated(borderX2)) then
-      deallocate(borderX2)
+    if (allocated(bX2exc)) then
+      deallocate(bX2exc)
+      ! deallocate(bX2inc)
     end if
-    if (allocated(borderY1)) then
-      deallocate(borderY1)
+    if (allocated(bY1exc)) then
+      deallocate(bY1exc)
+      ! deallocate(bY1inc)
     end if
-    if (allocated(borderY2)) then
-      deallocate(borderY2)
+    if (allocated(bY2exc)) then
+      deallocate(bY2exc)
+      ! deallocate(bY2inc)
     end if
-    if (allocated(borderZ1)) then
-      deallocate(borderZ1)
+    if (allocated(bZ1exc)) then
+      deallocate(bZ1exc)
+      ! deallocate(bZ1inc)
     end if
-    if (allocated(borderZ2)) then
-      deallocate(borderZ2)
+    if (allocated(bZ2exc)) then
+      deallocate(bZ2exc)
+      ! deallocate(bZ2inc)
     end if
   end subroutine
 
@@ -50,32 +58,33 @@ contains
     onz = nz
   end subroutine getSqaureBoxSides
 
-  subroutine set_border(itb, inp, A)
-    integer, intent(in) :: itb, inp, A(inp)
+  subroutine setBorder(itb, inp, Aexc)
+    integer, allocatable, intent(in) :: Aexc(:)
+    integer, intent(in) :: itb, inp
 
     if(inp.ne.0) then
       select case(itb)
       case (11)
-        allocate(borderX1(inp))
-        borderX1 = A
+        allocate(bX1exc(inp))
+        bX1exc(:) = Aexc(1:inp)
       case (12)
-        allocate(borderX2(inp))
-        borderX2 = A
+        allocate(bX2exc(inp))
+        bX2exc(:) = Aexc(1:inp)
       case (21)
-        allocate(borderY1(inp))
-        borderY1 = A
+        allocate(bY1exc(inp))
+        bY1exc(:) = Aexc(1:inp)
       case (22)
-        allocate(borderY2(inp))
-        borderY2 = A
+        allocate(bY2exc(inp))
+        bY2exc(:) = Aexc(1:inp)
       case (31)
-        allocate(borderZ1(inp))
-        borderZ1 = A
+        allocate(bZ1exc(inp))
+        bZ1exc(:) = Aexc(1:inp)
       case (32)
-        allocate(borderZ2(inp))
-        borderZ2 = A
+        allocate(bZ2exc(inp))
+        bZ2exc(:) = Aexc(1:inp)
       end select
     end if
-  end subroutine set_border
+  end subroutine
   !
   !-- See page 19
   !
@@ -86,28 +95,28 @@ contains
 
     select case(axis)
     case (1)
-      ! A(borderX1) = A(borderX2 - (nbrd + 1) * ny * nz)
-      ! A(borderX2) = A(borderX1 + (nbrd + 1) * ny * nz)
-      ! print*, borderX1, (borderX2 - (nbrd + 1) * ny * nz)
-      ! print*, borderX2, (borderX1 + (nbrd + 1) * ny * nz)
+      ! A(bX1exc) = A(bX2exc - (nbrd + 1) * ny * nz)
+      ! A(bX2exc) = A(bX1exc + (nbrd + 1) * ny * nz)
+      ! print*, bX1exc, (bX2exc - (nbrd + 1) * ny * nz)
+      ! print*, bX2exc, (bX1exc + (nbrd + 1) * ny * nz)
       ! read*
-      do i = 1, size(borderX1)
-        A(borderX1(i)) = A(borderX2(i) - (nbrd + 1) * ny * nz)
-        A(borderX2(i)) = A(borderX1(i) + (nbrd + 1) * ny * nz)
+      do i = 1, size(bX1exc)
+        A(bX1exc(i)) = A(bX2exc(i) - (nbrd + 1) * ny * nz)
+        A(bX2exc(i)) = A(bX1exc(i) + (nbrd + 1) * ny * nz)
       end do
     case (2)
-      ! A(borderY1) = A(borderY2 - (nbrd + 1) * nz)
-      ! A(borderY2) = A(borderY1 + (nbrd + 1) * nz)
-      do i = 1, size(borderY1)
-        A(borderY1(i)) = A(borderY2(i) - (nbrd + 1) * nz)
-        A(borderY2(i)) = A(borderY1(i) + (nbrd + 1) * nz)
+      ! A(bY1exc) = A(bY2exc - (nbrd + 1) * nz)
+      ! A(bY2exc) = A(bY1exc + (nbrd + 1) * nz)
+      do i = 1, size(bY1exc)
+        A(bY1exc(i)) = A(bY2exc(i) - (nbrd + 1) * nz)
+        A(bY2exc(i)) = A(bY1exc(i) + (nbrd + 1) * nz)
       end do
     case (3)
-      ! A(borderZ1) = A(borderZ2 - (nbrd + 1))
-      ! A(borderZ2) = A(borderZ1 + (nbrd + 1))
-      do i = 1, size(borderZ1)
-        A(borderZ1(i)) = A(borderZ2(i) - (nbrd + 1))
-        A(borderZ2(i)) = A(borderZ1(i) + (nbrd + 1))
+      ! A(bZ1exc) = A(bZ2exc - (nbrd + 1))
+      ! A(bZ2exc) = A(bZ1exc + (nbrd + 1))
+      do i = 1, size(bZ1exc)
+        A(bZ1exc(i)) = A(bZ2exc(i) - (nbrd + 1))
+        A(bZ2exc(i)) = A(bZ1exc(i) + (nbrd + 1))
       end do
     end select
   end subroutine periodic1
@@ -119,42 +128,42 @@ contains
 
     select case(axis)
     case (00)
-      if (size(borderX1) /= 1) then
-        do i = 1, size(borderX1)
-          A(:,borderX1(i)) = A(:,borderX2(i) - (nbrd + 1) * ny * nz)
-          A(:,borderX2(i)) = A(:,borderX1(i) + (nbrd + 1) * ny * nz)
+      if (size(bX1exc) /= 1) then
+        do i = 1, size(bX1exc)
+          A(:,bX1exc(i)) = A(:,bX2exc(i) - (nbrd + 1) * ny * nz)
+          A(:,bX2exc(i)) = A(:,bX1exc(i) + (nbrd + 1) * ny * nz)
         end do
       end if
       if (dim > 1) then
-        if (size(borderY1) /= 1) then
-          do i = 1, size(borderY1)
-            A(:,borderY1(i)) = A(:,borderY2(i) - (nbrd + 1) * nz)
-            A(:,borderY2(i)) = A(:,borderY1(i) + (nbrd + 1) * nz)
+        if (size(bY1exc) /= 1) then
+          do i = 1, size(bY1exc)
+            A(:,bY1exc(i)) = A(:,bY2exc(i) - (nbrd + 1) * nz)
+            A(:,bY2exc(i)) = A(:,bY1exc(i) + (nbrd + 1) * nz)
           end do
         end if
       end if
       if (dim == 3) then
-        if (size(borderZ1) /= 1) then
-          do i = 1, size(borderZ1)
-            A(:,borderZ1(i)) = A(:,borderZ2(i) - (nbrd + 1))
-            A(:,borderZ2(i)) = A(:,borderZ1(i) + (nbrd + 1))
+        if (size(bZ1exc) /= 1) then
+          do i = 1, size(bZ1exc)
+            A(:,bZ1exc(i)) = A(:,bZ2exc(i) - (nbrd + 1))
+            A(:,bZ2exc(i)) = A(:,bZ1exc(i) + (nbrd + 1))
           end do
         end if
       end if
     case (10)
-      do i = 1, size(borderX1)
-        A(:,borderX1(i)) = A(:,borderX2(i) - (nbrd + 1) * ny * nz)
-        A(:,borderX2(i)) = A(:,borderX1(i) + (nbrd + 1) * ny * nz)
+      do i = 1, size(bX1exc)
+        A(:,bX1exc(i)) = A(:,bX2exc(i) - (nbrd + 1) * ny * nz)
+        A(:,bX2exc(i)) = A(:,bX1exc(i) + (nbrd + 1) * ny * nz)
       end do
     case (20)
-      do i = 1, size(borderY1)
-        A(:,borderY1(i)) = A(:,borderY2(i) - (nbrd + 1) * nz)
-        A(:,borderY2(i)) = A(:,borderY1(i) + (nbrd + 1) * nz)
+      do i = 1, size(bY1exc)
+        A(:,bY1exc(i)) = A(:,bY2exc(i) - (nbrd + 1) * nz)
+        A(:,bY2exc(i)) = A(:,bY1exc(i) + (nbrd + 1) * nz)
       end do
     case (30)
-      do i = 1, size(borderZ1)
-        A(:,borderZ1(i)) = A(:,borderZ2(i) - (nbrd + 1))
-        A(:,borderZ2(i)) = A(:,borderZ1(i) + (nbrd + 1))
+      do i = 1, size(bZ1exc)
+        A(:,bZ1exc(i)) = A(:,bZ2exc(i) - (nbrd + 1))
+        A(:,bZ2exc(i)) = A(:,bZ1exc(i) + (nbrd + 1))
       end do
     end select
   end subroutine periodic3
@@ -166,24 +175,24 @@ contains
 
     select case(axeside)
     case (00)
-      A(borderX1) = k
-      A(borderX2) = k
-      A(borderY1) = k
-      A(borderY2) = k
-      A(borderZ1) = k
-      A(borderZ2) = k
+      A(bX1exc) = k
+      A(bX2exc) = k
+      A(bY1exc) = k
+      A(bY2exc) = k
+      A(bZ1exc) = k
+      A(bZ2exc) = k
     case (11)
-      A(borderX1) = k
+      A(bX1exc) = k
     case (12)
-      A(borderX2) = k
+      A(bX2exc) = k
     case (21)
-      A(borderY1) = k
+      A(bY1exc) = k
     case (22)
-      A(borderY2) = k
+      A(bY2exc) = k
     case (31)
-      A(borderZ1) = k
+      A(bZ1exc) = k
     case (32)
-      A(borderZ2) = k
+      A(bZ2exc) = k
     end select
   end subroutine fixed1
 
@@ -194,24 +203,24 @@ contains
 
     select case(axeside)
     case (00)
-      A(dim,borderX1) = k
-      A(dim,borderX2) = k
-      A(dim,borderY1) = k
-      A(dim,borderY2) = k
-      A(dim,borderZ1) = k
-      A(dim,borderZ2) = k
+      A(dim,bX1exc) = k
+      A(dim,bX2exc) = k
+      A(dim,bY1exc) = k
+      A(dim,bY2exc) = k
+      A(dim,bZ1exc) = k
+      A(dim,bZ2exc) = k
     case (11)
-      A(dim,borderX1) = k
+      A(dim,bX1exc) = k
     case (12)
-      A(dim,borderX2) = k
+      A(dim,bX2exc) = k
     case (21)
-      A(dim,borderY1) = k
+      A(dim,bY1exc) = k
     case (22)
-      A(dim,borderY2) = k
+      A(dim,bY2exc) = k
     case (31)
-      A(dim,borderZ1) = k
+      A(dim,bZ1exc) = k
     case (32)
-      A(dim,borderZ2) = k
+      A(dim,bZ2exc) = k
     end select
   end subroutine fixed3
 end module BC

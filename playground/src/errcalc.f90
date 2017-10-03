@@ -114,15 +114,8 @@ end subroutine
     !$omp private(exact, i, j)
     do j = 1,size(nlista)
       i = nlista(j)
-      exact = 0.
-      if ( dim == 1 ) then
-        ! den
-        ! exact = 1. + 0.005 * sin(pi * (x(1,i) - t))
-        ! vel
-        exact = 0.005 * sin(pi * (x(1,i) - t))
-      end if
+      exact = 1. + 0.005 * sin(pi * (x(1,i) - t))
       err(i) = (exact - num(i))*(exact - num(i))
-      ! err(i) = dot_product(exact(1) - num(1,i), exact(1) - num(1,i))
     end do
     !$omp end parallel do
   end subroutine
