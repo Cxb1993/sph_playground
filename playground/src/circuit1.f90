@@ -71,9 +71,11 @@ contains
 
     allowerror = 1e-8
     slnint(:) = h(:)
-    resid(:)  = 1.
+    resid(:)  = 0.
+    resid(nlista) = 1.
     iter = 0
     tneib = 0.
+
     do while ((maxval(resid, mask=(resid>0)) > allowerror) .and. (iter < 100))
       iter = iter + 1
       !$omp parallel do default(none)&
@@ -156,12 +158,14 @@ contains
           ! end if
           ! print*,9
           resid(i) = abs(hn - slnint(i)) / h(i)
-          ! print*,'c1', 10
           slnint(i) = hn
         end if
       end do
       !$omp end parallel do
     end do
+    if (iter > 10) then
+      print*, "Warn: density NR solution took ", iter, "iterations, with max norm error", maxval(resid, mask=(resid>0))
+    end if
     h(:) = slnint(:)
     call system_clock(finish)
     call addTime(' circuit1', finish - start - tneib)
