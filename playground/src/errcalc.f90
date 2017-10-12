@@ -104,14 +104,14 @@ end subroutine
     real, intent(in)                 :: t
 
     integer, allocatable :: nlista(:)
-    integer             :: i, j, dim, ivt
+    integer             :: i, j, dim
     real                :: exact
 
     call getdim(dim)
     call getNeibListL1(nlista)
     err(:) = 0.
     !$omp parallel do default(none) &
-    !$omp shared(x, num, err, dim, nlista, t, ivt) &
+    !$omp shared(x, num, err, dim, nlista, t) &
     !$omp private(exact, i, j)
     do j = 1,size(nlista)
       i = nlista(j)
@@ -127,14 +127,14 @@ end subroutine
     real, intent(in)                 :: t
 
     integer, allocatable :: nlista(:)
-    integer             :: i, j, dim, ivt
+    integer             :: i, j, dim
     real                :: exact
 
     call getdim(dim)
     call getNeibListL1(nlista)
     err(:) = 0.
     !$omp parallel do default(none) &
-    !$omp shared(x, num, err, dim, nlista, t, ivt) &
+    !$omp shared(x, num, err, dim, nlista, t) &
     !$omp private(exact, i, j)
     do j = 1,size(nlista)
       i = nlista(j)
@@ -198,7 +198,7 @@ end subroutine
     real, allocatable, intent(inout) :: err(:)
 
     integer             :: n, i, dim, la
-    real                :: exact(1:3), xk(3)
+    real                :: exact(1:3)
     integer, allocatable :: nlista(:)
 
     call getdim(dim)
@@ -209,7 +209,7 @@ end subroutine
 
     !$omp parallel do default(none) &
     !$omp shared(n,ptype, x,num,err,dim, nlista) &
-    !$omp private(exact, i,xk, la)
+    !$omp private(exact, i, la)
     do la = 1,size(nlista)
       i = nlista(la)
       ! print*, i, num(:,i)

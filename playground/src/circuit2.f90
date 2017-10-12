@@ -1,4 +1,5 @@
 module circuit2
+  use const
   use omp_lib
   use timing,           only: addTime
   use kernel,           only: get_hessian, &
@@ -45,9 +46,9 @@ contains
 
     real                 :: dr, rhoa, rhob, qa, qb, qc, n2wa, r2, &
                             nwa(3), nwb(3), rab(3), vab(3), vba(3), urab(3), Pa(3), Pb(3), &
-                            Hes(3,3), oddi, oddj, kcfij(3,3)
+                            Hes(3,3), oddi, oddj, kcfij(3,3), ktmp
     integer, allocatable :: nlista(:), nlistb(:)
-    integer              :: i, j, k, la, lb, n
+    integer              :: i, j, la, lb, n
     integer(8)           :: t0, tneib
 
     if (initdone == 0) then
@@ -65,7 +66,7 @@ contains
     !$omp parallel do default(none)&
     !$omp private(rab, dr, vab, urab, rhoa, rhob, nwa, nwb, qa, qb, qc, Pa, Pb)&
     !$omp private(n2wa, j, i, r2, oddi ,oddj, la, lb)&
-    !$omp private(nlistb, Hes, vba, t0, kcfij) &
+    !$omp private(nlistb, Hes, vba, t0, kcfij, ktmp) &
     !$omp shared(dv, du, dh, dcf, n, pos, h, v, den, c, p, om, mas, u, kcf, cf)&
     !$omp shared(ptype, dfdx, nlista)&
     !$omp shared(s_dim, s_kr, s_ktp, s_dtp, s_ttp, s_adden, s_artts)&
@@ -79,8 +80,6 @@ contains
       call getneighbours(i, pos, h, nlistb, t0)
       tneib = tneib + t0
       do lb = 1, size(nlistb)
-        ! print *, i, nlist
-        ! read *
         j = nlistb(lb)
         rab(:) = pos(:,i) - pos(:,j)
         r2 = dot_product(rab(:),rab(:))
@@ -122,22 +121,37 @@ contains
 
           ! kcfij(:,:) = 2. * kcf(:,:,i) * kcf(:,:,j) / (kcf(:,:,i) + kcf(:,:,j))
           call get_hessian(rab, h(i), Hes)
-          do k = 1,3
-            kcfij(k,1) = merge( &
-                  2. * kcf(k,1,i) * kcf(k,1,j) / (kcf(k,1,i) + kcf(k,1,j)), &
-                  0., &
-                  abs(kcf(k,1,i) + kcf(k,1,j)) > epsilon(0.))
-            kcfij(k,2) = merge( &
-                  2. * kcf(k,2,i) * kcf(k,2,j) / (kcf(k,2,i) + kcf(k,2,j)), &
-                  0., &
-                  abs(kcf(k,2,i) + kcf(k,2,j)) > epsilon(0.))
-            kcfij(k,3) = merge( &
-                  2. * kcf(k,3,i) * kcf(k,3,j) / (kcf(k,3,i) + kcf(k,3,j)), &
-                  0., &
-                  abs(kcf(k,3,i) + kcf(k,3,j)) > epsilon(0.))
-          end do
+          kcfij(:,:) = 0.
+          ktmp = kcf(1,1,i) + kcf(1,1,j)
+          if (abs(ktmp) > eps0) then
+            kcfij(1,1) = kcf(1,1,i) * kcf(1,1,j) / ktmp
+          end if
+          ktmp = kcf(1,2,i) + kcf(1,2,j)
+          if (abs(ktmp) > eps0) then
+            kcfij(1,2) = kcf(1,2,i) * kcf(1,2,j) / ktmp
+          end if
+          ktmp = kcf(1,3,i) + kcf(1,3,j)
+          if (abs(ktmp) > eps0) then
+            kcfij(1,3) = kcf(1,3,i) * kcf(1,3,j) / ktmp
+          end if
+          kcfij(2,1) = kcfij(1,2)
+          ktmp = kcf(2,2,i) + kcf(2,2,j)
+          if (abs(ktmp) > eps0) then
+            kcfij(2,2) = kcf(2,2,i) * kcf(2,2,j) / ktmp
+          end if
+          ktmp = kcf(2,3,i) + kcf(2,3,j)
+          if (abs(ktmp) > eps0) then
+            kcfij(2,3) = kcf(2,3,i) * kcf(2,3,j) / ktmp
+          end if
+          kcfij(3,1) = kcfij(1,3)
+          kcfij(3,2) = kcfij(3,2)
+          ktmp = kcf(3,3,i) + kcf(3,3,j)
+          if (abs(ktmp) > eps0) then
+            kcfij(3,3) = kcf(3,3,i) * kcf(3,3,j) / ktmp
+          end if
+          kcfij(:,:) = 2. * kcfij(:,:)
 
-          dcf(1,i) = dcf(1,i) - mas(j) / (den(i) * den(j)) * (cf(1,i) - cf(1,j)) * &
+          dcf(1,i) = dcf(1,i) + mas(j) / (den(i) * den(j)) * (cf(1,j) - cf(1,i)) * &
             (kcfij(1,1)*Hes(1,1) + kcfij(1,2)*Hes(1,2) + kcfij(1,3)*Hes(1,3) + &
               kcfij(2,1)*Hes(2,1) + kcfij(2,2)*Hes(2,2) + kcfij(2,3)*Hes(2,3) + &
               kcfij(3,1)*Hes(3,1) + kcfij(3,2)*Hes(3,2) + kcfij(3,3)*Hes(3,3))

@@ -8,7 +8,7 @@ module BC
     integer, save              :: ns, nbrd, nx, ny, nz
     integer, allocatable, save :: bX1exc(:), bY1exc(:), bZ1exc(:), bX2exc(:), bY2exc(:), bZ2exc(:)
     ! borders including border particle (for periodic bc)
-    integer, allocatable, save :: bX1inc(:), bY1inc(:), bZ1inc(:), bX2inc(:), bY2inc(:), bZ2inc(:)
+    ! integer, allocatable, save :: bX1inc(:), bY1inc(:), bZ1inc(:), bX2inc(:), bY2inc(:), bZ2inc(:)
 
 contains
   subroutine destroy

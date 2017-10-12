@@ -72,7 +72,7 @@ module kernel
   pure subroutine get_FW(r, h, fw)
     real, intent(in)  :: r(3), h
     real, intent(out) :: fw
-    real              :: f, dr, q, w
+    real              :: f, dr, q
 
     dr = sqrt(dot_product(r,r))
     q = dr / h
@@ -123,12 +123,23 @@ module kernel
     real, intent(in)  :: r(3), h
     real, intent(out) :: Hes(3,3)
     real              :: r2, dr, df, ddf, fab, q
+    real              :: r11, r12, r13, r22, r23, r33, cstart, dfq
     integer :: ktype
 
     call get_kerntype(ktype)
 
+    r2 = dot_product(r,r)
+
+    r11 = r(1)*r(1)/r2
+    r12 = r(1)*r(2)/r2
+    r13 = r(1)*r(3)/r2
+    r22 = r(2)*r(2)/r2
+    r23 = r(2)*r(3)/r2
+    r33 = r(3)*r(3)/r2
+    cstart = wCv/h**(dim+2)
+    Hes(:,:) = 0.
+
     if (ktype == 1) then
-      r2 = dot_product(r,r)
       dr = sqrt(r2)
 
       q = dr / h
@@ -136,59 +147,83 @@ module kernel
       call kddf(q, ddf)
       call kdf(q, df)
 
-      Hes(1,1) = wCv*(ddf*r(1)*r(1)/r2 + df*(1 - r(1)*r(1)/r2)/q)/h**(dim+2)    ! d2/dx2   ! Wxx
-      Hes(1,2) = wCv*(ddf*r(2)*r(1)/r2 - df*r(2)*r(1)/r2/q)/h**(dim+2)          ! d2/dydx  ! Wxy
-      Hes(1,3) = wCv*(ddf*r(3)*r(1)/r2 - df*r(3)*r(1)/r2/q)/h**(dim+2)          ! d2/dzdx  ! Wxz
+      dfq = df/q
 
-      Hes(2,1) = wCv*(ddf*r(1)*r(2)/r2 - df*r(1)*r(2)/r2/q)/h**(dim+2)          ! d2/dxdy  ! Wyx
-      Hes(2,2) = wCv*(ddf*r(2)*r(2)/r2 + df*(1 - r(2)*r(2)/r2)/q)/h**(dim+2)    ! d2/dy2   ! Wyy
-      Hes(2,3) = wCv*(ddf*r(3)*r(2)/r2 - df*r(3)*r(2)/r2/q)/h**(dim+2)          ! d2/dxdz  ! Wyz
+      ! Hes(1,1) = wCv*(ddf*r(1)*r(1)/r2 + df*(1 - r(1)*r(1)/r2)/q)/h**(dim+2)    ! d2/dx2   ! Wxx
+      ! Hes(1,2) = wCv*(ddf*r(2)*r(1)/r2 - df*r(2)*r(1)/r2/q)/h**(dim+2)          ! d2/dydx  ! Wxy
+      ! Hes(1,3) = wCv*(ddf*r(3)*r(1)/r2 - df*r(3)*r(1)/r2/q)/h**(dim+2)          ! d2/dzdx  ! Wxz
+      !
+      ! Hes(2,1) = wCv*(ddf*r(1)*r(2)/r2 - df*r(1)*r(2)/r2/q)/h**(dim+2)          ! d2/dxdy  ! Wyx
+      ! Hes(2,2) = wCv*(ddf*r(2)*r(2)/r2 + df*(1 - r(2)*r(2)/r2)/q)/h**(dim+2)    ! d2/dy2   ! Wyy
+      ! Hes(2,3) = wCv*(ddf*r(3)*r(2)/r2 - df*r(3)*r(2)/r2/q)/h**(dim+2)          ! d2/dxdz  ! Wyz
+      !
+      ! Hes(3,1) = wCv*(ddf*r(1)*r(3)/r2 - df*r(1)*r(3)/r2/q)/h**(dim+2)          ! d2/dxdz  ! Wzx
+      ! Hes(3,2) = wCv*(ddf*r(2)*r(3)/r2 - df*r(2)*r(3)/r2/q)/h**(dim+2)          ! d2/dydz  ! Wzy
+      ! Hes(3,3) = wCv*(ddf*r(3)*r(3)/r2 + df*(1 - r(3)*r(3)/r2)/q)/h**(dim+2)    ! d2/dz2   ! Wzz
 
-      Hes(3,1) = wCv*(ddf*r(1)*r(3)/r2 - df*r(1)*r(3)/r2/q)/h**(dim+2)          ! d2/dxdz  ! Wzx
-      Hes(3,2) = wCv*(ddf*r(2)*r(3)/r2 - df*r(2)*r(3)/r2/q)/h**(dim+2)          ! d2/dydz  ! Wzy
-      Hes(3,3) = wCv*(ddf*r(3)*r(3)/r2 + df*(1 - r(3)*r(3)/r2)/q)/h**(dim+2)    ! d2/dz2   ! Wzz
+      Hes(1,1) = cstart*(ddf*r11 + dfq*(1 - r11))    ! d2/dx2   ! Wxx
+
+      if ( dim /= 1 ) then
+        Hes(1,2) = cstart*(ddf*r12 - dfq*r12)          ! d2/dydx  ! Wxy
+        Hes(2,1) = Hes(1,2)                            ! d2/dxdy  ! Wyx
+        Hes(2,2) = cstart*(ddf*r22 + dfq*(1 - r22))    ! d2/dy2   ! Wyy
+        if ( dim == 3 ) then
+          Hes(1,3) = cstart*(ddf*r13 - dfq*r13)          ! d2/dzdx  ! Wxz
+          Hes(3,1) = Hes(1,3)                            ! d2/dxdz  ! Wzx
+          Hes(2,3) = cstart*(ddf*r23 - dfq*r23)          ! d2/dxdz  ! Wyz
+          Hes(3,2) = Hes(2,3)                            ! d2/dydz  ! Wzy
+          Hes(3,3) = cstart*(ddf*r33 + dfq*(1 - r33))    ! d2/dz2   ! Wzz
+        end if
+      end if
     elseif ( ktype == 2 ) then
-      r2 = dot_product(r,r)
       dr = sqrt(r2)
-
       call get_Fab(r, h, fab)
+      fab = 0.5*fab
 
-      Hes(1,1) = ((dim+2)*r(1)*r(1)/r2-1)*0.5*fab
-      Hes(1,2) = (dim+2)*r(1)*r(2)/r2*0.5*fab
-      Hes(1,3) = (dim+2)*r(1)*r(3)/r2*0.5*fab
-
-      Hes(2,1) = (dim+2)*r(2)*r(1)/r2*0.5*fab
-      Hes(2,2) = ((dim+2)*r(2)*r(2)/r2-1)*0.5*fab
-      Hes(2,3) = (dim+2)*r(2)*r(3)/r2*0.5*fab
-
-      Hes(3,1) = (dim+2)*r(3)*r(1)/r2*0.5*fab
-      Hes(3,2) = (dim+2)*r(3)*r(2)/r2*0.5*fab
-      Hes(3,3) = ((dim+2)*r(3)*r(3)/r2-1)*0.5*fab
+      ! Hes(1,1) = ((dim+2)*r11 - 1)*fab
+      ! if ( dim /= 1 ) then
+      !   Hes(1,2) = (dim+2)*r12*fab
+      !   Hes(2,1) = Hes(1,2)
+      !   Hes(2,2) = ((dim+2)*r22 - 1)*fab
+      !   if ( dim == 3 ) then
+      !     Hes(1,3) = (dim+2)*r13*fab
+      !     Hes(3,1) = Hes(1,3)
+      !     Hes(2,3) = (dim+2)*r23*fab
+      !     Hes(3,2) = Hes(2,3)
+      !     Hes(3,3) = ((dim+2)*r33 - 1)*fab
+      !   end if
+      ! end if
+      Hes(1,1) = ((dim+2)*r11 - 1)*fab
+      if ( dim /= 1 ) then
+        Hes(1,2) = (dim+2)*r12*fab
+        Hes(2,1) = Hes(1,2)
+        Hes(2,2) = ((dim+2)*r22 - 1)*fab
+        if ( dim == 3 ) then
+          Hes(1,3) = (dim+2)*r13*fab
+          Hes(3,1) = Hes(1,3)
+          Hes(2,3) = (dim+2)*r23*fab
+          Hes(3,2) = Hes(2,3)
+          Hes(3,3) = ((dim+2)*r33 - 1)*fab
+        end if
+      end if
     elseif ( ktype == 4 ) then
-      r2 = dot_product(r,r)
       dr = sqrt(r2)
-
       call get_FW(r, h, fab)
+      fab = 0.5*fab
 
-      Hes(1,1) = ((dim+2)*r(1)*r(1)/r2-1)*0.5*fab
-      Hes(1,2) = (dim+2)*r(1)*r(2)/r2*0.5*fab
-      Hes(1,3) = (dim+2)*r(1)*r(3)/r2*0.5*fab
-
-      Hes(2,1) = (dim+2)*r(2)*r(1)/r2*0.5*fab
-      Hes(2,2) = ((dim+2)*r(2)*r(2)/r2-1)*0.5*fab
-      Hes(2,3) = (dim+2)*r(2)*r(3)/r2*0.5*fab
-
-      Hes(3,1) = (dim+2)*r(3)*r(1)/r2*0.5*fab
-      Hes(3,2) = (dim+2)*r(3)*r(2)/r2*0.5*fab
-      Hes(3,3) = ((dim+2)*r(3)*r(3)/r2-1)*0.5*fab
-    end if
-    if ( dim == 1 ) then
-      Hes(1,2:3) = 0.
-      Hes(2,:) = 0.
-      Hes(3,:) = 0.
-    elseif ( dim == 2 ) then
-      Hes(3,:) = 0.
-      Hes(:,3) = 0.
+      Hes(1,1) = ((dim+2)*r11 - 1)*fab
+      if ( dim /= 1 ) then
+        Hes(1,2) = (dim+2)*r12*fab
+        Hes(2,1) = Hes(1,2)
+        Hes(2,2) = ((dim+2)*r22 - 1)*fab
+        if ( dim == 3 ) then
+          Hes(1,3) = (dim+2)*r13*fab
+          Hes(3,1) = Hes(1,3)
+          Hes(2,3) = (dim+2)*r23*fab
+          Hes(3,2) = Hes(2,3)
+          Hes(3,3) = ((dim+2)*r33 - 1)*fab
+        end if
+      end if
     end if
   end subroutine
 end module

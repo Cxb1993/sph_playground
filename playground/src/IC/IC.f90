@@ -22,18 +22,18 @@ module IC
   integer(8) :: start=0, finish=0
 contains
 
-  subroutine setupIC(n, sk, g, cv, pspc1, pspc2, &
+  subroutine setupIC(n, sk, g, pspc1, pspc2, &
     x, v, dv, mas, den, sln, prs, iu, du, cf, kcf, dcf, ptype)
     integer, allocatable, intent(inout) :: ptype(:)
     real, allocatable, intent(inout), dimension(:,:)  :: x, v, dv, cf, dcf
     real, allocatable, intent(inout), dimension(:,:,:):: kcf
     real, allocatable, intent(inout), dimension(:)    :: mas, den, sln, prs, iu, du
-    real, intent(in)     :: sk, cv
+    real, intent(in)     :: sk
     real, intent(inout)  :: pspc1, pspc2, g
     integer, intent(out) :: n
 
     real                 :: kr, prs1, prs2, rho1, rho2, kcf1, kcf2, cf1, cf2, sp, v0, &
-                            brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, period, eA, ek
+                            brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, period, eA
     integer              :: i, nb, tt, kt, dim, nptcs, ivt
 
     call system_clock(start)
@@ -95,7 +95,7 @@ contains
         brdz1 = 0.
         brdz2 = 0.
       end if
-      nb = int(kr * sk)
+      nb = int(kr * sk)*2
       call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
     case (4)
       ! pheva
@@ -216,9 +216,9 @@ contains
     !$omp parallel do default(none)&
     !$omp private(i, sp)&
     !$omp shared(n, pspc1, pspc2, x, sln, den, prs, mas, iu, g, rho1, rho2)&
-    !$omp shared(cf, kcf, dim, sk, tt, prs1, prs2, cf1, cf2, kcf1, kcf2, cv)&
+    !$omp shared(cf, kcf, dim, sk, tt, prs1, prs2, cf1, cf2, kcf1, kcf2)&
     !$omp shared(brdx2, brdx1, brdy2, brdy1, brdz2, brdz1, v0, v, period, ptype)&
-    !$omp shared(ivt, ek, eA)
+    !$omp shared(ivt, eA)
     do i=1,n
       sp = merge(pspc1, pspc2, x(1,i) < 0)
       sln(i) = sk * sp

@@ -54,7 +54,7 @@ program main
   call fillargs(dim, pspc1, pspc2,&
                 itype, ktype, dtype, errfname, dtout, npic, tfinish, sk, silent)
 
-  call setupIC(n, sk, gamma, cv, pspc1, pspc2, pos, vel, acc, &
+  call setupIC(n, sk, gamma, pspc1, pspc2, pos, vel, acc, &
                 mas, den, h, prs, iu, du, cf, kcf, dcf, ptype)
   call get_tasktype(tt)
   call ginitvar(ivt)
@@ -133,7 +133,7 @@ program main
       dt = .1 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
     case(3)
       ! 'hc-sinx'
-      dt = .1 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
+      dt = .001 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
     case(4)
       ! 'photoevaporation' 'pheva'
       dt = .3e-3 * minval(h)**2 / maxval(c)**2 / maxval(kcf) / maxval(cf)

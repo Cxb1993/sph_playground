@@ -9,7 +9,6 @@ SRC= \
 	utils/arrayresize.f90\
 	utils/timing.f90\
 	utils/map.f90\
-	utils/clfortran.f90\
 	const.f90\
 	state.f90
 
@@ -30,8 +29,10 @@ SRC+=kernel/kernel.f90\
 	circuit2.f90\
 	errcalc.f90\
 	iterator.f90\
-	cltest.f90\
 	main.f90
+
+	# utils/clfortran.f90\
+	# cltest.f90\
 
 OBJ=$(SRC:.f90=.o)
 SUBSRC=$(addprefix src/, $(SRC))
