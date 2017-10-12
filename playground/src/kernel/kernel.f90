@@ -77,8 +77,7 @@ module kernel
     dr = sqrt(dot_product(r,r))
     q = dr / h
     call kf(q, f)
-    w = wCv * f / h ** dim
-    fw = fwc * w /h /h
+    fw = fwc * wCv * f / h ** (dim + 2)
   end subroutine
 
   pure subroutine get_Fab(r, h, Fab)
@@ -89,7 +88,6 @@ module kernel
     q = sqrt(dot_product(r,r)) / h
     call kdf(q, df)
     Fab = -2. * wCv * df / h**(dim+2) / q
-
   end subroutine
 
   pure subroutine get_on2w(r, h, n2w)
@@ -169,8 +167,6 @@ module kernel
     elseif ( ktype == 4 ) then
       r2 = dot_product(r,r)
       dr = sqrt(r2)
-
-      q = dr / h
 
       call get_FW(r, h, fab)
 

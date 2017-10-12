@@ -102,6 +102,8 @@ module state
        icvar = 1
      case('anisotropic-sinxsinysinz')
        icvar = 2
+     case('anisotropic-12')
+       icvar = 3
      case default
        print *, 'There is no such initial variable setting : ', itt
        stop

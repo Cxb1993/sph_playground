@@ -177,7 +177,7 @@ contains
     real, allocatable, intent(in)       :: pos(:,:), h(:)
     integer, allocatable, intent(in)    :: ptype(:)
     integer, allocatable, intent(inout) :: needDeepCheck(:)
-    integer                             :: sn, i, j, kt, al1, al2
+    integer                             :: sn, i, j
     real                                :: r2, r(3), kr
 
     call get_krad(kr)
@@ -188,8 +188,8 @@ contains
       needDeepCheck(:) = 0
       sn = size(pos, dim=2)
       !$omp parallel do default(none)&
-      !$omp shared(pos, ptype, h, sn, neighbours, stepsize, kt)&
-      !$omp shared(al1, al2, alllistlv1, alllistlv2, kr, needDeepCheck)&
+      !$omp shared(pos, ptype, h, sn, neighbours, stepsize)&
+      !$omp shared(kr, needDeepCheck)&
       !$omp private(i, j, r, r2)
       do i = 1,sn,stepsize
         if (ptype(i) /= 0) then
@@ -269,7 +269,8 @@ contains
             if (i /= j) then
               r(:) = pos(:,i) - pos(:,j)
               r2 = dot_product(r(:),r(:))
-              if (r2 < ((kr * h(i))*(kr * h(i)) + eps)) then
+              ! if (r2 < ((kr * h(i))*(kr * h(i)) + eps)) then
+              if (sqrt(r2) < (kr*h(i) + eps)) then
                 tix = tix + 1
                 tsz = size(neighbours(i)%list)
                 if (tsz < tix) then

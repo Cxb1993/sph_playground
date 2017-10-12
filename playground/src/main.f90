@@ -26,10 +26,12 @@ program main
                               mapdestroy => destroy
   use const
 
+  use cltest,           only: runcltest
+
   implicit none
 
-  real, allocatable, dimension(:,:,:) :: dfdx
-  real, allocatable, dimension(:,:)   :: p, v, a, pos, vel, acc, cf, dcf, kcf, tcf
+  real, allocatable, dimension(:,:,:) :: dfdx, kcf
+  real, allocatable, dimension(:,:)   :: p, v, a, pos, vel, acc, cf, dcf, tcf
   real, allocatable, dimension(:)     :: den, prs, mas, iu, du, om, c, h, dh, &
                                          tdh, err, sqerr, tdu,&
                                          result
@@ -43,6 +45,8 @@ program main
   integer             :: n, dim, iter, tt, nusedl1, nusedl2, printlen, silent, ivt, stopiter
 
   integer(8)          :: tprint
+
+  ! call runcltest()
 
   print *, '##############################################'
   print *, '#####'
@@ -102,6 +106,23 @@ program main
   call c1_init(n)
   stopiter = 0
   print *, "Finish time = ", tfinish
+
+  call iterate(n, sk, gamma, &
+              ptype, pos, vel, acc, &
+              mas, den, h, dh, om, prs, c, iu, du, &
+              cf, dcf, kcf, dfdx)
+
+  select case(tt)
+  case(1, 2, 3, 7, 8, 9)
+    ! 'hydroshock' ! 'heatconduction' ! chi-laplace ! 'infslb'
+  case(5, 6)
+    ! 'diff-laplace' ! 'diff-graddiv'
+    stopiter = 1
+  case default
+    print *, 'Task type was not sen in l2 error evaluation main.f90: line 182'
+    stop
+  end select
+
   do while ((t < tfinish + epsilon(0.)).and.(stopiter==0))
     select case(tt)
     case(1, 9)
@@ -109,7 +130,7 @@ program main
       dt = .3 * minval(h) / maxval(c)
     case(2)
       ! 'infslb'
-      dt = .144 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
+      dt = .1 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
     case(3)
       ! 'hc-sinx'
       dt = .1 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
@@ -118,7 +139,7 @@ program main
       dt = .3e-3 * minval(h)**2 / maxval(c)**2 / maxval(kcf) / maxval(cf)
     case (5,6,7,8)
       ! 'diff-laplass'      ! 'diff-graddiv'
-      tfinish = -1.
+      stopiter = 1
       dt = 0.
     case default
       print *, 'Task type time increment was not set main.f90: line 115.'

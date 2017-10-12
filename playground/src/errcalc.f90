@@ -91,6 +91,7 @@ end subroutine
                   sin(pi * (x(3,i) + 1.) / 2.) * exp(-3 * (pi/2.)**2 * t)
         end if
         err(i) = (exact(1) - num(1,i))*(exact(1) - num(1,i))
+        ! print*, err(i), exact(1), num(1,i)
       end if
       ! err(i) = dot_product(exact(1) - num(1,i), exact(1) - num(1,i))
     end do

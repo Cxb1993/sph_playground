@@ -22,10 +22,10 @@ module circuit2
 contains
 
   subroutine c2init()
-    use state,            only: get_difftype, getdim, &
-                                get_tasktype, get_kerntype, &
-                                getAdvancedDensity, &
-                                getArtificialTerms
+    use state,  only: get_difftype, getdim, &
+                      get_tasktype, get_kerntype, &
+                      getAdvancedDensity, &
+                      getArtificialTerms
 
     call getdim(s_dim)
     call get_krad(s_kr)
@@ -39,15 +39,15 @@ contains
 
   subroutine c2(c, ptype, pos, v, dv, mas, den, h, om, P, u, du, dh, cf, dcf, kcf, dfdx)
     real, allocatable, intent(in)    :: pos(:,:), v(:,:), mas(:), h(:), den(:), P(:), c(:),&
-                                        u(:), cf(:,:), kcf(:,:), om(:)
+                                        u(:), cf(:,:), kcf(:,:,:), om(:)
     integer, allocatable, intent(in) :: ptype(:)
     real, allocatable, intent(inout) :: dv(:,:), du(:), dh(:), dcf(:,:), dfdx(:,:,:)
 
     real                 :: dr, rhoa, rhob, qa, qb, qc, n2wa, r2, &
                             nwa(3), nwb(3), rab(3), vab(3), vba(3), urab(3), Pa(3), Pb(3), &
-                            Hes(3,3), oddi, oddj, kcfij(3)
+                            Hes(3,3), oddi, oddj, kcfij(3,3)
     integer, allocatable :: nlista(:), nlistb(:)
-    integer              :: i, j, la, lb, n
+    integer              :: i, j, k, la, lb, n
     integer(8)           :: t0, tneib
 
     if (initdone == 0) then
@@ -62,7 +62,6 @@ contains
       call gradf(s_dim, mas, den, pos, v, h, om, dfdx)
     end if
     call getNeibListL1(nlista)
-
     !$omp parallel do default(none)&
     !$omp private(rab, dr, vab, urab, rhoa, rhob, nwa, nwb, qa, qb, qc, Pa, Pb)&
     !$omp private(n2wa, j, i, r2, oddi ,oddj, la, lb)&
@@ -73,19 +72,11 @@ contains
     !$omp reduction(+:tneib)
     do la = 1, size(nlista)
       i = nlista(la)
-      ! tau2 = 0.
       dv(:,i) = 0.
       du(i) = 0.
       dh(i) = 0.
       dcf(:,i) = 0.
-      ! print*, i
-      ! print*, pos(:,i)
-      ! print*, dfdx(1,:,i)
-      ! print*, dfdx(2,:,i)
-      ! print*, dfdx(3,:,i)
       call getneighbours(i, pos, h, nlistb, t0)
-      ! print*, nlistb
-      ! read*
       tneib = tneib + t0
       do lb = 1, size(nlistb)
         ! print *, i, nlist
@@ -125,51 +116,56 @@ contains
         case (2, 3)
           ! heatconduction
           ! call get_n2w(rab, h(i), n2wa)
+          ! dcf(:,i) = dcf(:,i) - mas(j) / (den(i) * den(j)) * &
+          !             2. * kcf(:,i) * kcf(:,j) / (kcf(:,i) + kcf(:,j)) * &
+          !             (cf(:,i) - cf(:,j)) * n2wa
+
+          ! kcfij(:,:) = 2. * kcf(:,:,i) * kcf(:,:,j) / (kcf(:,:,i) + kcf(:,:,j))
           call get_hessian(rab, h(i), Hes)
-          kcfij(:) = 2. * kcf(:,i) * kcf(:,j) / (kcf(:,i) + kcf(:,j))
+          do k = 1,3
+            kcfij(k,1) = merge( &
+                  2. * kcf(k,1,i) * kcf(k,1,j) / (kcf(k,1,i) + kcf(k,1,j)), &
+                  0., &
+                  abs(kcf(k,1,i) + kcf(k,1,j)) > epsilon(0.))
+            kcfij(k,2) = merge( &
+                  2. * kcf(k,2,i) * kcf(k,2,j) / (kcf(k,2,i) + kcf(k,2,j)), &
+                  0., &
+                  abs(kcf(k,2,i) + kcf(k,2,j)) > epsilon(0.))
+            kcfij(k,3) = merge( &
+                  2. * kcf(k,3,i) * kcf(k,3,j) / (kcf(k,3,i) + kcf(k,3,j)), &
+                  0., &
+                  abs(kcf(k,3,i) + kcf(k,3,j)) > epsilon(0.))
+          end do
+
           dcf(1,i) = dcf(1,i) - mas(j) / (den(i) * den(j)) * (cf(1,i) - cf(1,j)) * &
-                    (kcfij(1)*Hes(1,1) + kcfij(2)*Hes(2,2) + kcfij(3)*Hes(3,3))
-                  ! / (kcf(:,i) + kcf(:,j)) * (cf(:,i) - cf(:,j)) * n2wa
+            (kcfij(1,1)*Hes(1,1) + kcfij(1,2)*Hes(1,2) + kcfij(1,3)*Hes(1,3) + &
+              kcfij(2,1)*Hes(2,1) + kcfij(2,2)*Hes(2,2) + kcfij(2,3)*Hes(2,3) + &
+              kcfij(3,1)*Hes(3,1) + kcfij(3,2)*Hes(3,2) + kcfij(3,3)*Hes(3,3))
+
+          ! if (abs(cf(1,i) - cf(1,j)) > epsilon(0.)) then
+          !   print*,'--------------'
+          !   print*, kcfij(1,:)
+          !   print*, kcfij(2,:)
+          !   print*, kcfij(3,:)
+          !   print*,'--------------'
+          !   print*, Hes(1,:)
+          !   print*, Hes(2,:)
+          !   print*, Hes(3,:)
+          !   print*,'--------------'
+          !   print*, 'T_', i, ' = ',  dcf(1,i)
+          !   print*,'--------------'
+          !   read*
+          ! end if
         case(4)
         case(5)
           ! 'diff-laplace'
-          if (s_dtp == 1) then
-            ! diff form
-            if ( s_ktp /= 3 ) then
-              ! n2w fab
-              call get_n2w(rab, h(i), n2wa)
-              ! if (usekorrection == 1) then
-              !   call LaplaceCorrection(rab, mas(j), den(j), dim, n2wa, tau2)
-              ! end if
-              dv(:,i)  = dv(:,i) + mas(j)/den(j) * vba(:) * n2wa
-            else
-              ! 2nw
-              call get_nw(rab, h(i), nwa)
-              dv(1,i) = dv(1,i) + mas(j)/den(j) * ((dfdx(1,1,j) - dfdx(1,1,i))*nwa(1))
-              dv(2,i) = dv(2,i) + mas(j)/den(j) * ((dfdx(2,2,j) - dfdx(2,2,i))*nwa(2))
-              dv(3,i) = dv(3,i) + mas(j)/den(j) * ((dfdx(3,3,j) - dfdx(3,3,i))*nwa(3))
-            end if
-          elseif ( s_dtp == 2) then
-            ! symm form
-            if ( s_ktp /= 3 ) then
-              ! n2w fab
-            else
-              ! 2nw
-              call get_nw(rab, h(i), nwa)
-              call get_nw(rab, h(j), nwb)
-              oddi = 1./om(i)/den(i)/den(i)
-              oddj = 1./om(j)/den(j)/den(j)
-              dv(1,i) = dv(1,i) + mas(j) * (dfdx(1,1,i)*nwa(1)*oddi + &
-                                            dfdx(1,1,j)*nwb(1)*oddj)
-              dv(2,i) = dv(2,i) + mas(j) * (dfdx(2,2,i)*nwa(2)*oddi + &
-                                            dfdx(2,2,j)*nwb(2)*oddj)
-              dv(3,i) = dv(3,i) + mas(j) * (dfdx(3,3,i)*nwa(3)*oddi + &
-                                            dfdx(3,3,j)*nwb(3)*oddj)
-            end if
-          else
-            print *, 'Diff type is not set in circuit2'
-            stop
-          end if
+          call get_n2w(rab, h(i), n2wa)
+          dv(:,i)  = dv(:,i) + mas(j)/den(j) * vba(:) * n2wa
+
+          ! call get_hessian(rab, h(i), Hes)
+          ! kcfij(:) = 2. * kcf(:,i) * kcf(:,j) / (kcf(:,i) + kcf(:,j))
+          ! dcf(1,i) = dcf(1,i) - mas(j) / (den(i) * den(j)) * (cf(1,i) - cf(1,j)) * &
+          !           (kcfij(1)*Hes(1,1) + kcfij(2)*Hes(2,2) + kcfij(3)*Hes(3,3))
         case(6)
           ! diff-graddiv
           if ( s_dtp == 1) then
@@ -229,8 +225,6 @@ contains
         print *, 'Task type was not set in circuit2 outside circle'
         stop
       end select
-      ! print*, i, dv(:,i)
-      ! read*
       ! print*, i, den(i)
     end do
     !$omp end parallel do

@@ -25,7 +25,8 @@ contains
   subroutine setupIC(n, sk, g, cv, pspc1, pspc2, &
     x, v, dv, mas, den, sln, prs, iu, du, cf, kcf, dcf, ptype)
     integer, allocatable, intent(inout) :: ptype(:)
-    real, allocatable, intent(inout), dimension(:,:)  :: x, v, dv, cf, kcf, dcf
+    real, allocatable, intent(inout), dimension(:,:)  :: x, v, dv, cf, dcf
+    real, allocatable, intent(inout), dimension(:,:,:):: kcf
     real, allocatable, intent(inout), dimension(:)    :: mas, den, sln, prs, iu, du
     real, intent(in)     :: sk, cv
     real, intent(inout)  :: pspc1, pspc2, g
@@ -94,7 +95,7 @@ contains
         brdz1 = 0.
         brdz2 = 0.
       end if
-      nb = int(kr * sk)*2
+      nb = int(kr * sk)
       call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
     case (4)
       ! pheva
@@ -146,10 +147,15 @@ contains
     du(:) = 0.
     allocate(cf(3,n))
     cf(:,:) = 0.
-    allocate(kcf(3,n))
-    kcf(:,:) = 0.
     allocate(dcf(3,n))
     dcf(:,:) = 0.
+
+    select case (tt)
+    case (2, 3)
+      allocate(kcf(3,3,n))
+      kcf(:,:,:) = 0.
+    end select
+
 
     !--------------------
     ! common values
@@ -234,11 +240,15 @@ contains
         ! infslb
         if (x(1,i) < 0) then
           cf(:,i)  = cf1
-          kcf(:,i) = kcf1
+          kcf(1,1,i) = kcf1
+          kcf(2,2,i) = kcf1
+          kcf(3,3,i) = kcf1
           mas(i) = (sp**dim) * rho1
         else
           cf(:,i)  = cf2
-          kcf(:,i) = kcf2
+          kcf(1,1,i) = kcf2
+          kcf(2,2,i) = kcf2
+          kcf(3,3,i) = kcf2
           mas(i) = (sp**dim) * rho2
         end if
       case (3)
@@ -295,7 +305,9 @@ contains
         ! isotropic-sinxsinysinz
         mas(i) = (sp**dim) * rho1
         den(i) = rho1
-        kcf(:,i) = kcf1
+        kcf(1,1,i) = kcf1
+        kcf(2,2,i) = kcf1
+        kcf(3,3,i) = kcf1
         ! if (x(1,i) < 0) then
         !   kcf(i) = 1
         ! else
@@ -315,12 +327,12 @@ contains
           end if
         end if
       case(2)
-        ! anisotropic-sinxsinysinz
+        ! orthotropic-sinxsinysinz
         mas(i) = (sp**dim) * rho1
         den(i) = rho1
-        kcf(1,i) = kcf1
-        kcf(2,i) = 1
-        kcf(3,i) = 0.0001
+        kcf(1,1,i) = 10
+        kcf(2,2,i) = 1
+        kcf(3,3,i) = 0.1
         cf(:, i) = 0
         if (ptype(i) /= 0) then
           if ( dim == 1) then
@@ -333,6 +345,34 @@ contains
                      sin(pi * (x(2,i) - brdy1) / abs(brdy2-brdy1)) * &
                      sin(pi * (x(3,i) - brdz1) / abs(brdz2-brdz1))
           end if
+        end if
+      case(3)
+        ! anisotropic-12
+        mas(i) = (sp**dim) * rho1
+        den(i) = rho1
+        ! kcf(1,1,i) = 0.
+        ! kcf(1,2,i) = 1.
+        ! kcf(1,3,i) = -1.
+        ! kcf(2,1,i) = -1.
+        ! kcf(2,2,i) = 0.
+        ! kcf(2,3,i) = 1.
+        ! kcf(3,1,i) = 1.
+        ! kcf(3,2,i) = -1.
+        ! kcf(3,3,i) = 0.
+        kcf(1,1,i) = 0.
+        kcf(1,2,i) = 0.
+        kcf(1,3,i) = 0.
+        kcf(2,1,i) = 0.
+        kcf(2,2,i) = 1.
+        kcf(2,3,i) = 0.
+        kcf(3,1,i) = 0.
+        kcf(3,2,i) = 0.
+        kcf(3,3,i) = 0.
+        cf(:, i) = 0
+        if (x(1,i) <= 0) then
+          cf(1,i) = 1
+        else
+          cf(1,i) = 2
         end if
       end select
     end do

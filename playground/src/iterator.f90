@@ -1,11 +1,13 @@
 module iterator
   use eos
   use circuit1
+  use timing,           only: addTime
   use circuit2,         only:  c2
   use BC
   use state,            only: get_difftype,&
                               getdim,&
-                              get_tasktype
+                              get_tasktype, &
+                              ginitvar
   use neighboursearch,  only: findneighboursN2plus, &
                               findneighboursN2
 
@@ -14,25 +16,28 @@ module iterator
  public :: iterate
 
  private
+ save
+ integer(8)  :: start=0, finish=0
 
 contains
   subroutine iterate(n, sk, gamma, ptype, pos, vel, acc, &
                     mas, den, h, dh, om, prs, c, uei, due, cf, dcf, kcf, dfdx)
-    real, allocatable, intent(inout), dimension(:,:)  :: pos, vel, acc, cf, dcf, kcf
+    real, allocatable, intent(inout), dimension(:,:)  :: pos, vel, acc, cf, dcf
     real, allocatable, intent(inout), dimension(:)    :: mas, den, dh, prs, c, uei, due, om, h
-    real, allocatable, intent(inout), dimension(:,:,:):: dfdx
+    real, allocatable, intent(inout), dimension(:,:,:):: dfdx, kcf
     integer, allocatable, intent(in) :: ptype(:)
     integer, intent(in) :: n
     real, intent(in)    :: sk, gamma
-    integer             :: dim, ttp, dtp
+    integer             :: dim, ttp, dtp, ivr
 
     call getdim(dim)
     call get_tasktype(ttp)
     call get_difftype(dtp)
+    call ginitvar(ivr)
 
-    call findneighboursN2(ptype, pos, h)
+    ! call findneighboursN2(ptype, pos, h)
 
-    ! call findneighboursN2plus(ptype, pos, h)
+    call findneighboursN2plus(ptype, pos, h)
 
     select case (ttp)
     case (1)
@@ -54,12 +59,22 @@ contains
       call c1(pos, mas, vel, sk, h, den, om, dfdx)
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
     case (3)
-      ! hc-sinx
+      ! heatconduction
       call c1(pos, mas, vel, sk, h, den, om, dfdx)
       ! call periodic1indims(den, dim)
       ! call periodic1indims(h, dim)
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
-
+      if (ivr == 3) then
+        if (dim > 1) then
+          call system_clock(start)
+          call periodic3(cf, 20, dim)
+          if ( dim == 3) then
+            call periodic3(cf, 30, dim)
+          end if
+          call system_clock(finish)
+          call addTime(' BC', finish - start)
+        end if
+      end if
       ! call fixed1(dcf, 11, 0.)
       ! call fixed1(dcf, 12, 0.)
       ! if (dim > 1) then
@@ -88,7 +103,6 @@ contains
       select case(dtp)
       case(1)
         call c1(pos, mas, vel, sk, h, den, om, dfdx)
-        print*,11111
         call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
       case(2)
         call c1(pos, mas, vel, sk, h, den, om, dfdx)
