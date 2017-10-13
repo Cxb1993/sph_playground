@@ -359,7 +359,7 @@ contains
         ! kcf(3,1,i) = 1.
         ! kcf(3,2,i) = -1.
         ! kcf(3,3,i) = 0.
-        kcf(1,1,i) = 0.
+        kcf(1,1,i) = 1.
         kcf(1,2,i) = 0.
         kcf(1,3,i) = 0.
         kcf(2,1,i) = 0.
@@ -367,12 +367,14 @@ contains
         kcf(2,3,i) = 0.
         kcf(3,1,i) = 0.
         kcf(3,2,i) = 0.
-        kcf(3,3,i) = 0.
+        kcf(3,3,i) = 1.
         cf(:, i) = 0
-        if (x(1,i) <= 0) then
+        if (x(1,i) < 0.) then
           cf(1,i) = 1
-        else
+        else if (x(1,i) > 0.) then
           cf(1,i) = 2
+        else
+          cf(1,i) = 1.5
         end if
       end select
     end do

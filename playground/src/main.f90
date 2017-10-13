@@ -26,7 +26,7 @@ program main
                               mapdestroy => destroy
   use const
 
-  use cltest,           only: runcltest
+  ! use cltest,           only: runcltest
 
   implicit none
 
@@ -133,7 +133,7 @@ program main
       dt = .1 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
     case(3)
       ! 'hc-sinx'
-      dt = .001 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
+      dt = .05 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
     case(4)
       ! 'photoevaporation' 'pheva'
       dt = .3e-3 * minval(h)**2 / maxval(c)**2 / maxval(kcf) / maxval(cf)
