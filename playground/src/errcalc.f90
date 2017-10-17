@@ -12,7 +12,8 @@ module errcalc
   public :: err_T0sxsyet, err_infplate, err_sinxet,&
             err_diff_laplace, err_diff_graddiv, shockTube,&
             soundwaveperturbation_density, &
-            soundwaveperturbation_velocity
+            soundwaveperturbation_velocity, &
+            diff_artvisc
 
   private
 
@@ -254,6 +255,47 @@ end subroutine
     end do
     !$omp end parallel do
   end subroutine err_diff_graddiv
+
+  subroutine diff_artvisc(x, num, err)
+    real, allocatable, intent(in)    :: x(:,:), num(:,:)
+    real, allocatable, intent(inout) :: err(:)
+
+    integer, allocatable :: nlista(:)
+    integer              :: i, j, dim
+    real                 :: exact(1:3)
+
+    call getdim(dim)
+    call getNeibListL1(nlista)
+    err(:) = 0.
+    !$omp parallel do default(none) &
+    !$omp shared(x, num, err, dim, nlista) &
+    !$omp private(exact, i, j)
+    do j = 1,size(nlista)
+      i = nlista(j)
+      exact(:) = 0.
+      if ( dim == 1 ) then
+        ! exact(1) = 2*Cos(x(1,i)) - x(1,i)*Sin(x(1,i))
+        ! sin
+        exact(1) = -3./2.*sin(x(1,i))
+      elseif ( dim == 2 ) then
+        ! exact(1) = -x(2,i)*Sin(x(1,i))
+        ! exact(2) = -x(1,i)*Sin(x(2,i))
+        ! sin
+        exact(1) = -3./2.*sin(x(1,i))
+        exact(2) = -3./2.*sin(x(2,i))
+      elseif ( dim == 3 ) then
+        ! exact(1) = -(x(2,i)*Sin(x(1,i)))
+        ! exact(2) = -(x(3,i)*Sin(x(2,i)))
+        ! exact(3) = -(x(1,i)*Sin(x(3,i)))
+        ! sin
+        exact(1) = -3./2.*sin(x(1,i))
+        exact(2) = -3./2.*sin(x(2,i))
+        exact(3) = -3./2.*sin(x(3,i))
+      end if
+      err(i) = dot_product(exact(:) - num(:,i),exact(:) - num(:,i))
+    end do
+    !$omp end parallel do
+  end subroutine
 
   subroutine err_infplate(n, pos, num, t, err)
     integer, intent(in) :: n

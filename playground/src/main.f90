@@ -10,7 +10,8 @@ program main
                               err_sinxet, &
                               err_shockTube => shockTube, &
                               err_soundwave_d => soundwaveperturbation_density, &
-                              err_soundwave_v => soundwaveperturbation_velocity
+                              err_soundwave_v => soundwaveperturbation_velocity, &
+                              err_diff_artvisc => diff_artvisc
   use args,             only: fillargs
   use errteylor,        only: etlaplace => laplace,&
                               etgraddiv => graddiv
@@ -61,11 +62,12 @@ program main
 
   select case(tt)
   case (1, 2, 3, 4, 9)
-  case (5, 6, 7, 8)
-    ! 'diff-laplass'      ! 'diff-graddiv'
+    ! diff-artvisc
+  case (5, 6, 7, 8, 10)
+    ! 'diff-laplass' ! 'diff-graddiv' ! diff-artvisc
     call set_stepping(10**dim)
   case default
-    print *, 'Particle turn-off was not set main.f90: line 56.'
+    print *, 'Particle turn-off was not set main.f90: line 68.'
     stop
   end select
 
@@ -115,8 +117,8 @@ program main
   select case(tt)
   case(1, 2, 3, 7, 8, 9)
     ! 'hydroshock' ! 'heatconduction' ! chi-laplace ! 'infslb'
-  case(5, 6)
-    ! 'diff-laplace' ! 'diff-graddiv'
+  case(5, 6, 10)
+    ! 'diff-laplace' ! 'diff-graddiv' ! diff-artvisc
     stopiter = 1
   case default
     print *, 'Task type was not sen in l2 error evaluation main.f90: line 182'
@@ -213,9 +215,11 @@ program main
   case(9)
     ! call err_soundwave_v(pos, vel, t, err)
     call err_soundwave_d(pos, den, t, err)
-    ! print*, err
+  case(10)
+    ! diff-artvisc
+    call err_diff_artvisc(pos, acc, err)
   case default
-    print *, 'Task type was not sen in l2 error evaluation main.f90: line 182'
+    print *, 'Task type was not sen in l2 error evaluation main.f90: line 219'
     stop
   end select
   call getNeibNumbers(nusedl1, nusedl2)
@@ -237,11 +241,11 @@ program main
     result(4) = sum(chi)/dim/(2*dim - 1)
     result(6:86) = chi(1:81)
     printlen = 86
-  case(1, 2, 3, 9)
-    ! 'hc-sinx' ! 'diff-graddiv'
+  case(1, 2, 3, 9, 10)
+    ! 'hc-sinx' ! 'diff-graddiv' ! diff-artvisc
     printlen = 5
   case default
-    print *, 'Task type was not sen in taylor error evaluation main.f90: line 208'
+    print *, 'Task type was not sen in taylor error evaluation main.f90: line 248'
     stop
   end select
   if (nusedl1 /= 0) then
@@ -273,7 +277,9 @@ program main
   deallocate(iu)
   deallocate(du)
   deallocate(cf)
-  deallocate(kcf)
+  if ((tt == 2).or.(tt == 3)) then
+    deallocate(kcf)
+  end if
   deallocate(dcf)
   deallocate(err)
   deallocate(sqerr)

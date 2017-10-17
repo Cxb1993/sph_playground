@@ -101,8 +101,8 @@ contains
       ! pheva
       nb = int(kr * sk) + 1
       call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
-    case(5, 6, 7, 8)
-      ! diff-laplace ! diff-graddiv
+    case(5, 6, 7, 8, 10)
+      ! diff-laplace ! diff-graddiv ! diff-artvisc
       period = pi
       brdx1 = -1.*period
       brdx2 = 1.*period
@@ -195,8 +195,8 @@ contains
       kcf1 = 1e-1
       v0   = 1e-4
       prs1 = 1.
-    case(5, 6, 7, 8)
-      ! diff-laplace ! diff-graddiv ! chi-laplace ! chi-graddiv
+    case(5, 6, 7, 8, 10)
+      ! diff-laplace ! diff-graddiv ! chi-laplace ! chi-graddiv ! diff-artvisc
       rho1 = 1.
       period = 1.
     case(9)
@@ -251,11 +251,10 @@ contains
           kcf(3,3,i) = kcf2
           mas(i) = (sp**dim) * rho2
         end if
-      case (3)
-      case (4)
-      case(5, 6, 7, 8)
+      case (3, 4)
+      case(5, 6, 7, 8, 10)
         ! diff-graddiv ! diff-laplace ! chi-laplace
-        ! chi-graddiv  ! soundwave
+        ! chi-graddiv  ! soundwave ! diff-artvisc
         g = 5./3.
         den(i) = rho1
         mas(i) = (sp**dim) * rho1
@@ -350,16 +349,7 @@ contains
         ! anisotropic-12
         mas(i) = (sp**dim) * rho1
         den(i) = rho1
-        ! kcf(1,1,i) = 0.
-        ! kcf(1,2,i) = 1.
-        ! kcf(1,3,i) = -1.
-        ! kcf(2,1,i) = -1.
-        ! kcf(2,2,i) = 0.
-        ! kcf(2,3,i) = 1.
-        ! kcf(3,1,i) = 1.
-        ! kcf(3,2,i) = -1.
-        ! kcf(3,3,i) = 0.
-        kcf(1,1,i) = 1.
+        kcf(1,1,i) = 0.
         kcf(1,2,i) = 0.
         kcf(1,3,i) = 0.
         kcf(2,1,i) = 0.
@@ -367,7 +357,7 @@ contains
         kcf(2,3,i) = 0.
         kcf(3,1,i) = 0.
         kcf(3,2,i) = 0.
-        kcf(3,3,i) = 1.
+        kcf(3,3,i) = 0.
         cf(:, i) = 0
         if (x(1,i) < 0.) then
           cf(1,i) = 1

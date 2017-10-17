@@ -5,7 +5,7 @@ module kernel
   implicit none
 
   public :: get_nw, get_dw_dh, get_w, setdimkernel, &
-            get_n2w, get_krad, get_hessian, getkernelname
+            get_n2w, get_krad, get_hessian, getkernelname, get_hessian_rr
             !, PureKernel!, GradDivW!, get_n2y !, get_dphi_dh,
   save
     integer :: dim
@@ -120,6 +120,7 @@ module kernel
   end subroutine
 
   pure subroutine get_hessian(r, h, Hes)
+  ! subroutine get_hessian(r, h, Hes)
     real, intent(in)  :: r(3), h
     real, intent(out) :: Hes(3,3)
     real              :: r2, dr, df, ddf, fab, q
@@ -148,7 +149,6 @@ module kernel
       call kdf(q, df)
 
       dfq = df/q
-
       ! Hes(1,1) = wCv*(ddf*r(1)*r(1)/r2 + df*(1 - r(1)*r(1)/r2)/q)/h**(dim+2)    ! d2/dx2   ! Wxx
       ! Hes(1,2) = wCv*(ddf*r(2)*r(1)/r2 - df*r(2)*r(1)/r2/q)/h**(dim+2)          ! d2/dydx  ! Wxy
       ! Hes(1,3) = wCv*(ddf*r(3)*r(1)/r2 - df*r(3)*r(1)/r2/q)/h**(dim+2)          ! d2/dzdx  ! Wxz
@@ -222,6 +222,93 @@ module kernel
           Hes(2,3) = (dim+2)*r23*fab
           Hes(3,2) = Hes(2,3)
           Hes(3,3) = ((dim+2)*r33 - 1)*fab
+        end if
+      end if
+    end if
+  end subroutine
+
+  ! pure subroutine get_hessian_rr(r, h, Hes)
+  subroutine get_hessian_rr(r, h, Hes)
+! Hessian for artificial viscosity term
+! H^* = H - F_{ab}/|r_{ab}| I_3       // for momentum methods
+! H^* = H - f'/ q I_3                 // for direct derivatives
+! same as original hessian, but without diagonal matrix,
+! that corresponds to Laplacian term
+    real, intent(in)  :: r(3), h
+    real, intent(out) :: Hes(3,3)
+    real              :: r2, dr, df, ddf, fab, q
+    real              :: r11, r12, r13, r22, r23, r33, cstart, dfq
+    integer :: ktype
+
+    call get_kerntype(ktype)
+
+    r2 = dot_product(r,r)
+
+    r11 = r(1)*r(1)/r2
+    r12 = r(1)*r(2)/r2
+    r13 = r(1)*r(3)/r2
+    r22 = r(2)*r(2)/r2
+    r23 = r(2)*r(3)/r2
+    r33 = r(3)*r(3)/r2
+    cstart = wCv/h**(dim+2)
+    Hes(:,:) = 0.
+
+    if (ktype == 1) then
+      ! print*, 'Calc with using of dw/dxdy'
+      dr = sqrt(r2)
+      q = dr / h
+      call kddf(q, ddf)
+      call kdf(q, df)
+      dfq = df/q
+
+      Hes(1,1) = cstart*(ddf - dfq)*r11
+      if ( dim /= 1 ) then
+        Hes(1,2) = cstart*(ddf - dfq)*r12
+        Hes(2,1) = Hes(1,2)
+        Hes(2,2) = cstart*(ddf - dfq)*r22
+        if ( dim == 3 ) then
+          Hes(1,3) = cstart*(ddf - dfq)*r13
+          Hes(3,1) = Hes(1,3)
+          Hes(2,3) = cstart*(ddf - dfq)*r23
+          Hes(3,2) = Hes(2,3)
+          Hes(3,3) = cstart*(ddf - dfq)*r33
+        end if
+      end if
+    elseif ( ktype == 2 ) then
+      ! print*, 'Calc with using of F_{ab}'
+      dr = sqrt(r2)
+      call get_Fab(r, h, fab)
+      fab = 0.5*fab
+
+      Hes(1,1) = (dim+2)*r11*fab
+      if ( dim /= 1 ) then
+        Hes(1,2) = (dim+2)*r12*fab
+        Hes(2,1) = Hes(1,2)
+        Hes(2,2) = (dim+2)*r22*fab
+        if ( dim == 3 ) then
+          Hes(1,3) = (dim+2)*r13*fab
+          Hes(3,1) = Hes(1,3)
+          Hes(2,3) = (dim+2)*r23*fab
+          Hes(3,2) = Hes(2,3)
+          Hes(3,3) = (dim+2)*r33*fab
+        end if
+      end if
+    elseif ( ktype == 4 ) then
+      dr = sqrt(r2)
+      call get_FW(r, h, fab)
+      fab = 0.5*fab
+
+      Hes(1,1) = (dim+2)*r11*fab
+      if ( dim /= 1 ) then
+        Hes(1,2) = (dim+2)*r12*fab
+        Hes(2,1) = Hes(1,2)
+        Hes(2,2) = (dim+2)*r22*fab
+        if ( dim == 3 ) then
+          Hes(1,3) = (dim+2)*r13*fab
+          Hes(3,1) = Hes(1,3)
+          Hes(2,3) = (dim+2)*r23*fab
+          Hes(3,2) = Hes(2,3)
+          Hes(3,3) = (dim+2)*r33*fab
         end if
       end if
     end if

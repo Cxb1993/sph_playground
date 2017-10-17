@@ -41,7 +41,7 @@ module state
         ttype = 8
       case('soundwave')
         ttype = 9
-      case('chi-artvisc')
+      case('diff-artvisc')
         ttype = 10
       case default
         print *, 'Task type not set: ', itt

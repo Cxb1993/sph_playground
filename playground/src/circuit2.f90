@@ -5,7 +5,8 @@ module circuit2
   use kernel,           only: get_hessian, &
                               get_krad, &
                               get_n2w, &
-                              get_nw
+                              get_nw, &
+                              get_hessian_rr
   use BC
   use neighboursearch,  only: getneighbours,&
                               getNeibListL1,&
@@ -46,7 +47,7 @@ contains
 
     real                 :: dr, rhoa, rhob, qa, qb, qc, n2wa, r2, &
                             nwa(3), nwb(3), rab(3), vab(3), vba(3), urab(3), Pa(3), Pb(3), &
-                            Hes(3,3), oddi, oddj, kcfij(3,3), ktmp
+                            Hesa(3,3), Hesb(3,3), oddi, oddj, kcfij(3,3), ktmp
     integer, allocatable :: nlista(:), nlistb(:)
     integer              :: i, j, la, lb, n
     integer(8)           :: t0, tneib
@@ -66,7 +67,7 @@ contains
     !$omp parallel do default(none)&
     !$omp private(rab, dr, vab, urab, rhoa, rhob, nwa, nwb, qa, qb, qc, Pa, Pb)&
     !$omp private(n2wa, j, i, r2, oddi ,oddj, la, lb)&
-    !$omp private(nlistb, Hes, vba, t0, kcfij, ktmp) &
+    !$omp private(nlistb, Hesa, Hesb, vba, t0, kcfij, ktmp) &
     !$omp shared(dv, du, dh, dcf, n, pos, h, v, den, c, p, om, mas, u, kcf, cf)&
     !$omp shared(ptype, dfdx, nlista)&
     !$omp shared(s_dim, s_kr, s_ktp, s_dtp, s_ttp, s_adden, s_artts)&
@@ -120,7 +121,8 @@ contains
           !             (cf(:,i) - cf(:,j)) * n2wa
 
           ! kcfij(:,:) = 2. * kcf(:,:,i) * kcf(:,:,j) / (kcf(:,:,i) + kcf(:,:,j))
-          call get_hessian(rab, h(i), Hes)
+          call get_hessian(rab, h(i), Hesa)
+          ! call get_hessian(-rab, h(j), Hesb)
           kcfij(:,:) = 0.
           ktmp = kcf(1,1,i) + kcf(1,1,j)
           if (abs(ktmp) > eps0) then
@@ -151,12 +153,18 @@ contains
           end if
           kcfij(:,:) = 2. * kcfij(:,:)
 
-          dcf(1,i) = dcf(1,i) + mas(j) / (den(i) * den(j)) * (cf(1,j) - cf(1,i)) * &
-            (kcfij(1,1)*Hes(1,1) + kcfij(1,2)*Hes(1,2) + kcfij(1,3)*Hes(1,3) + &
-              kcfij(2,1)*Hes(2,1) + kcfij(2,2)*Hes(2,2) + kcfij(2,3)*Hes(2,3) + &
-              kcfij(3,1)*Hes(3,1) + kcfij(3,2)*Hes(3,2) + kcfij(3,3)*Hes(3,3))
+          ! Hesa(:,:) = 0.5*(Hesa(:,:)/den(i) + Hesb(:,:)/den(j))
 
+          dcf(1,i) = dcf(1,i) + mas(j)/den(j) * (cf(1,j) - cf(1,i)) * &
+            (kcfij(1,1)*Hesa(1,1) + kcfij(1,2)*Hesa(1,2) + kcfij(1,3)*Hesa(1,3) + &
+              kcfij(2,1)*Hesa(2,1) + kcfij(2,2)*Hesa(2,2) + kcfij(2,3)*Hesa(2,3) + &
+              kcfij(3,1)*Hesa(3,1) + kcfij(3,2)*Hesa(3,2) + kcfij(3,3)*Hesa(3,3))
+          ! dcf(1,i) = dcf(1,i) + mas(j) / (den(i) * den(j)) * (cf(1,j) - cf(1,i)) * &
+          !   (kcfij(1,1)*Hesa(1,1) + kcfij(1,2)*Hesa(1,2) + kcfij(1,3)*Hesa(1,3) + &
+          !     kcfij(2,1)*Hesa(2,1) + kcfij(2,2)*Hesa(2,2) + kcfij(2,3)*Hesa(2,3) + &
+          !     kcfij(3,1)*Hesa(3,1) + kcfij(3,2)*Hesa(3,2) + kcfij(3,3)*Hesa(3,3))
           ! if (abs(cf(1,i) - cf(1,j)) > epsilon(0.)) then
+          !   print*, dr, h(i), mas(j)/(den(i) * den(j))
           !   print*,'--------------'
           !   print*, kcfij(1,:)
           !   print*, kcfij(2,:)
@@ -166,7 +174,7 @@ contains
           !   print*, Hes(2,:)
           !   print*, Hes(3,:)
           !   print*,'--------------'
-          !   print*, 'T_', i, ' = ',  dcf(1,i)
+          !   print*, 'dT_', i, ' = ',  dcf(1,i)
           !   print*,'--------------'
           !   read*
           ! end if
@@ -186,10 +194,10 @@ contains
             ! diff form
             ! if (ktp /= 3) then
               ! n2w fab
-              call get_hessian(rab, h(i), Hes)
-              dv(1,i) = dv(1,i) + mas(j)/den(j) * (vba(1)*Hes(1,1) + vba(2)*Hes(1,2) + vba(3)*Hes(1,3))
-              dv(2,i) = dv(2,i) + mas(j)/den(j) * (vba(1)*Hes(2,1) + vba(2)*Hes(2,2) + vba(3)*Hes(2,3))
-              dv(3,i) = dv(3,i) + mas(j)/den(j) * (vba(1)*Hes(3,1) + vba(2)*Hes(3,2) + vba(3)*Hes(3,3))
+              call get_hessian(rab, h(i), Hesa)
+              dv(1,i) = dv(1,i) + mas(j)/den(j) * (vba(1)*Hesa(1,1) + vba(2)*Hesa(1,2) + vba(3)*Hesa(1,3))
+              dv(2,i) = dv(2,i) + mas(j)/den(j) * (vba(1)*Hesa(2,1) + vba(2)*Hesa(2,2) + vba(3)*Hesa(2,3))
+              dv(3,i) = dv(3,i) + mas(j)/den(j) * (vba(1)*Hesa(3,1) + vba(2)*Hesa(3,2) + vba(3)*Hesa(3,3))
             ! else
             !   ! 2nw
             !   call get_nw(rab, h(i), nwa)
@@ -219,6 +227,12 @@ contains
             print *, 'Diff type is not set in circuit2'
             stop
           end if
+        case(10)
+          ! diff-artvisc
+          call get_hessian_rr(rab, h(i), Hesa)
+          dv(1,i) = dv(1,i) - mas(j)/den(j) * dot_product(vab, Hesa(:,1))
+          dv(2,i) = dv(2,i) - mas(j)/den(j) * dot_product(vab, Hesa(:,2))
+          dv(3,i) = dv(3,i) - mas(j)/den(j) * dot_product(vab, Hesa(:,3))
         case default
           print *, 'Task type was not defined in circuit2.f90: line 240.'
           stop
@@ -230,8 +244,8 @@ contains
         if ( s_adden == 1 ) then
           dh(i) =  (- h(i) / (s_dim * den(i))) * dh(i) / om(i)
         end if
-      case(5,6)
-        ! diff-graddiv ! diff-laplace
+      case(5,6, 10)
+        ! diff-graddiv ! diff-laplace ! diff-artvisc
         if ( s_ktp == 3 ) then
           dv(:,i) = dv(:,i) * den(i)
         end if
@@ -319,24 +333,4 @@ contains
     !$omp end parallel do
     call addTime(' circuit2', -tneib)
   end subroutine
-
-  ! subroutine LaplaceCorrection(r, m, d, dim, n2w, tau2)
-  !   real, intent(in)    :: r(3), m, d, n2w
-  !   integer, intent(in) :: dim
-  !   real, intent(inout) :: tau2
-  !
-  !   tau2 = tau2 + 0.5 * m/d * r(1)*r(1) * n2w ! Hes(1,1)
-  !   if ( dim > 1 ) then
-  !     tau2 = tau2 + 0.5 * m/d * r(1)*r(2) * n2w ! Hes(1,2)
-  !     tau2 = tau2 + 0.5 * m/d * r(2)*r(2) * n2w ! Hes(2,2)
-  !     tau2 = tau2 + 0.5 * m/d * r(1)*r(2) * n2w ! Hes(1,2)
-  !   end if
-  !   if ( dim == 3 ) then
-  !     tau2 = tau2 + 0.5 * m/d * r(1)*r(3) * n2w ! Hes(1,3)
-  !     tau2 = tau2 + 0.5 * m/d * r(2)*r(3) * n2w ! Hes(2,3)
-  !     tau2 = tau2 + 0.5 * m/d * r(3)*r(3) * n2w ! Hes(3,3)
-  !     tau2 = tau2 + 0.5 * m/d * r(2)*r(3) * n2w ! Hes(2,3)
-  !     tau2 = tau2 + 0.5 * m/d * r(1)*r(3) * n2w ! Hes(1,3)
-  !   end if
-  ! end subroutine
 end module

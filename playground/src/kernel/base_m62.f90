@@ -13,11 +13,6 @@ module base_kernel
     integer :: dim
   contains
 
-
-    ! F1[q_] = M6q[q, 1];
-    ! F2[q_] = -DDM6[q, 1];
-    ! F3[q_] = M6q[q, 1];
-
   subroutine setdimbase(d)
     integer, intent(in) :: d
     dim = d

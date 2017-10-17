@@ -151,14 +151,15 @@ contains
           dfdh = - dim * den(i) * om(i) / slnint(i)
           ! print*,'c1', 7
           fh  = mas(i) * (sk / slnint(i)) ** dim - den(i)
-          ! print*,8
+          ! print*,'c1', 8
           hn = slnint(i) - fh / dfdh
           ! if (hn < 0.) then
           !   hn = slnint(i)
           ! end if
-          ! print*,9
+          ! print*,'c1', 9
           resid(i) = abs(hn - slnint(i)) / h(i)
           slnint(i) = hn
+          ! print*,'c1', 10
         end if
       end do
       !$omp end parallel do
@@ -177,17 +178,19 @@ contains
     real,              intent(in)    :: sk
     real, allocatable, intent(inout) :: den(:), sln(:)
     real                             :: w, r(3), dr
-    integer                          :: i, j, la, lb
+    integer                          :: i, j, la, lb, dim
     integer, allocatable             :: nlista(:), nlistb(:)
     integer(8)                       :: t0, tneib
 
 
     call system_clock(start)
     call getNeibListL1(nlista)
+    call getdim(dim)
+
     tneib = 0.
     !$omp parallel do default(none)&
     !$omp private(r, dr, w, j, i, la, lb, nlistb, t0)&
-    !$omp shared(pos, mas, sk, sln)&
+    !$omp shared(pos, mas, sk, sln, dim)&
     !$omp shared(nlista, den)&
     !$omp reduction(+:tneib)
     do la = 1, size(nlista)
@@ -205,7 +208,7 @@ contains
       end do
       call get_w(0., sln(i), w)
       den(i) = den(i) + mas(i) * w
-      sln(i) = sk * (mas(i) / den(i))
+      sln(i) = sk * (mas(i) / den(i))**(1./dim)
     end do
     !$omp end parallel do
     call system_clock(finish)

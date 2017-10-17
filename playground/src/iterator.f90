@@ -100,18 +100,12 @@ contains
       end select
     case(6)
       ! 'diff-graddiv'
-      select case(dtp)
-      case(1)
-        call c1(pos, mas, vel, sk, h, den, om, dfdx)
-        call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
-      case(2)
-        call c1(pos, mas, vel, sk, h, den, om, dfdx)
-        call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
-      case default
-        print *, 'Diff type is not set in iterator'
-        stop
-      end select
+      call c1(pos, mas, vel, sk, h, den, om, dfdx)
+      call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
     case(7,8)
+    case(10)
+      ! diff-artvisc
+      call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
     case(9)
       ! soundwave
       call c1(pos, mas, vel, sk, h, den, om, dfdx)
