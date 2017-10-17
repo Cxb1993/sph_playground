@@ -262,31 +262,30 @@ contains
         v(:,i) = 0.
         if (dim == 1) then
           ! x sinx
-          ! v(1,i) = sin(period*x(1,i)) * x(1,i)
+          ! v(1,i) = sin(x(1,i)) * x(1,i)
           ! sin
-          v(1,i) = sin(period*x(1,i))
-          ! v(1,i) = x(1,i)
+          v(1,i) = sin(x(1,i))
         elseif ( dim == 2 ) then
           ! v(1,i) = x(1,i)*x(2,i)
           ! v(2,i) = x(1,i)*x(2,i)
-          ! ysix xsiny
-          ! v(1,i) = sin(period*x(1,i))* x(2,i)
-          ! v(2,i) = sin(period*x(2,i))* x(1,i)
+          ! (y six, x^2 siny)
+          ! v(1,i) = sin(x(1,i)) * x(2,i)
+          ! v(2,i) = sin(x(2,i)) * x(1,i) * x(1,i)
           ! sin
-          v(1,i) = sin(period*x(1,i))
-          v(2,i) = sin(period*x(2,i))
+          v(1,i) = sin(x(1,i))
+          v(2,i) = sin(x(2,i))
         elseif ( dim == 3 ) then
           ! v(1,i) = x(1,i)*x(2,i)*x(3,i)
           ! v(2,i) = x(1,i)*x(2,i)*x(3,i)
           ! v(3,i) = x(1,i)*x(2,i)*x(3,i)
-          ! ysix zsiny xsinz
-          ! v(1,i) = sin(period*x(1,i))* x(2,i)
-          ! v(2,i) = sin(period*x(2,i))* x(3,i)
-          ! v(3,i) = sin(period*x(3,i))* x(1,i)
+          ! (y six, z^2 siny, x^3 sinz)
+          ! v(1,i) = sin(x(1,i)) * x(2,i)
+          ! v(2,i) = sin(x(2,i)) * x(3,i) * x(3,i)
+          ! v(3,i) = sin(x(3,i)) * x(1,i) * x(1,i) * x(1,i)
           ! sin
-          v(1,i) = sin(period*x(1,i))
-          v(2,i) = sin(period*x(2,i))
-          v(3,i) = sin(period*x(3,i))
+          v(1,i) = sin(x(1,i))
+          v(2,i) = sin(x(2,i))
+          v(3,i) = sin(x(3,i))
         end if
       case(9)
         den(i) = rho1 * (1. + eA * sin(pi * x(1,i)))
