@@ -9,6 +9,7 @@ SRC= \
 	utils/arrayresize.f90\
 	utils/timing.f90\
 	utils/map.f90\
+	utils/list.f90\
 	const.f90\
 	state.f90
 
