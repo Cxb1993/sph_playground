@@ -35,24 +35,26 @@ contains
     call get_difftype(dtp)
     call ginitvar(ivr)
 
-    ! call findneighboursN2(ptype, pos, h)
-
-    call findneighboursN2plus(ptype, pos, h)
-
     select case (ttp)
     case (1)
       ! hydroshock
+      call findneighboursN2(ptype, pos, h)
       call c1(pos, mas, vel, sk, h, den, om, dfdx)
-      ! call c1a(pos, mas, sk, h, den)
+      if ( dim > 1 ) then
+        call periodic1v2(den, 20)
+        call periodic1v2(h,   20)
+        call periodic1v2(om,  20)
+      end if
       call eos_adiabatic(n, den, uei, prs, c, gamma)
+      if ( dim > 1 ) then
+        call periodic1v2(prs, 20)
+        call periodic1v2(c,   20)
+      end if
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
-      if ( dim > 0 ) then
-        call fixed3(acc, 11, 1, 0.)
-        call fixed3(acc, 12, 1, 0.)
-        if ( dim > 1 ) then
-          call fixed3(acc, 21, 2, 0.)
-          call fixed3(acc, 22, 2, 0.)
-        end if
+      if ( dim > 1 ) then
+        call periodic3v2(acc, 20)
+        call periodic1v2(due, 20)
+        call periodic1v2(dh, 20)
       end if
     case (2)
       ! infslb
@@ -60,6 +62,7 @@ contains
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
     case (3)
       ! heatconduction
+      call findneighboursN2plus(ptype, pos, h)
       call c1(pos, mas, vel, sk, h, den, om, dfdx)
       ! call periodic1indims(den, dim)
       ! call periodic1indims(h, dim)
@@ -88,6 +91,7 @@ contains
     case(4)
     case(5)
       ! 'diff-laplace'
+      call findneighboursN2plus(ptype, pos, h)
       select case(dtp)
       case(1)
         call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
@@ -100,14 +104,17 @@ contains
       end select
     case(6)
       ! 'diff-graddiv'
+      call findneighboursN2plus(ptype, pos, h)
       call c1(pos, mas, vel, sk, h, den, om, dfdx)
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
     case(7,8)
     case(10)
       ! diff-artvisc
+      call findneighboursN2plus(ptype, pos, h)
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
     case(9)
       ! soundwave
+      call findneighboursN2(ptype, pos, h)
       call c1(pos, mas, vel, sk, h, den, om, dfdx)
       call periodic1indims(den, dim)
       call periodic1indims(h, dim)

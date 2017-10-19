@@ -23,9 +23,9 @@ program main
   use neighboursearch,  only: getNeibNumbers,&
                               neibDestroy => destroy
   use arrayresize,      only: resize
-  use map,              only: appendmap,&
-                              mapdestroy => destroy
+
   use const
+  use list
 
   ! use cltest,           only: runcltest
 
@@ -48,7 +48,6 @@ program main
   integer(8)          :: tprint
 
   ! call runcltest()
-
   print *, '##############################################'
   print *, '#####'
 
@@ -57,6 +56,7 @@ program main
 
   call setupIC(n, sk, gamma, pspc1, pspc2, pos, vel, acc, &
                 mas, den, h, prs, iu, du, cf, kcf, dcf, ptype)
+
   call get_tasktype(tt)
   call ginitvar(ivt)
 
@@ -109,6 +109,11 @@ program main
   stopiter = 0
   print *, "Finish time = ", tfinish
 
+  if (silent == 0) then
+    print *, 'Initial setup printed'
+    call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, sqerr)
+  end if
+
   call iterate(n, sk, gamma, &
               ptype, pos, vel, acc, &
               mas, den, h, dh, om, prs, c, iu, du, &
@@ -125,7 +130,7 @@ program main
     stop
   end select
 
-  do while ((t < tfinish + epsilon(0.)).and.(stopiter==0))
+  do while ((t < tfinish + eps0).and.(stopiter==0))
     select case(tt)
     case(1, 9)
       ! 'hydroshock'
@@ -299,7 +304,6 @@ program main
   call c1destroy()
   call timedestroy()
   call bcdestroy()
-  call mapdestroy()
 end program
 
 subroutine set_stepping(i)

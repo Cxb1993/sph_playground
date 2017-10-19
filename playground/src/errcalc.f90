@@ -275,25 +275,29 @@ end subroutine
       x(:) = xin(:,i)
       exact(:) = 0.
       if ( dim == 1 ) then
-        ! exact(1) = 2*Cos(x(1)) - x(1)*Sin(x(1)) + (2*Cos(x(1)) - x(1)*Sin(x(1)))/2.
+        exact(1) = 2*Cos(x(1)) - x(1)*Sin(x(1)) + (2*Cos(x(1)) - x(1)*Sin(x(1)))/2.
         ! sin
-        exact(1) = -3./2.*sin(x(1))
+        ! exact(1) = -3./2.*sin(x(1))
       elseif ( dim == 2 ) then
-        ! exact(1) = 2*x(1)*Cos(x(2)) - (3*x(2)*Sin(x(1)))/2.
-        ! exact(2) = Cos(x(1)) - x(1)**2*Sin(x(2)) + (2*Sin(x(2)) - x(1)**2*Sin(x(2)))/2.
+        exact(1) = 2*x(1)*Cos(x(2)) - (3*x(2)*Sin(x(1)))/2.
+        exact(2) = Cos(x(1)) - x(1)**2*Sin(x(2)) + (2*Sin(x(2)) - x(1)**2*Sin(x(2)))/2.
         ! sin
-        exact(1) = -3./2.*sin(x(1))
-        exact(2) = -3./2.*sin(x(2))
+        ! exact(1) = -3./2.*sin(x(1))
+        ! exact(2) = -3./2.*sin(x(2))
       elseif ( dim == 3 ) then
-        ! exact(1) = 3*x(1)**2*Cos(x(3)) - (3*x(2)*Sin(x(1)))/2.
-        ! exact(2) = Cos(x(1)) - x(3)**2*Sin(x(2)) + (2*Sin(x(2)) - x(3)**2*Sin(x(2)))/2.
-        ! exact(3) = 2*x(3)*Cos(x(2)) - x(1)**3*Sin(x(3)) + (6*x(1)*Sin(x(3)) - x(1)**3*Sin(x(3)))/2.
+        exact(1) = 3*x(1)**2*Cos(x(3)) - (3*x(2)*Sin(x(1)))/2.
+        exact(2) = Cos(x(1)) - x(3)**2*Sin(x(2)) + (2*Sin(x(2)) - x(3)**2*Sin(x(2)))/2.
+        exact(3) = 2*x(3)*Cos(x(2)) - x(1)**3*Sin(x(3)) + (6*x(1)*Sin(x(3)) - x(1)**3*Sin(x(3)))/2.
         ! sin
-        exact(1) = -3./2.*sin(x(1))
-        exact(2) = -3./2.*sin(x(2))
-        exact(3) = -3./2.*sin(x(3))
+        ! exact(1) = -3./2.*sin(x(1))
+        ! exact(2) = -3./2.*sin(x(2))
+        ! exact(3) = -3./2.*sin(x(3))
       end if
       err(i) = dot_product(exact(:) - num(:,i),exact(:) - num(:,i))
+      ! print*, err(i)
+      ! print*, num(:,i)
+      ! print*, exact
+      ! read*
     end do
     !$omp end parallel do
   end subroutine

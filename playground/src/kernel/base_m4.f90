@@ -33,9 +33,9 @@ module base_kernel
       f  = 0.25 * (2. - q)**3 - (1. - q)**3
     else
       if (isnan(q)) then
-        error stop 'q is nan'
+        error stop 'q is nan in kf'
       else
-        error stop 'q is negative'
+        error stop 'q is negative in kf'
       end if
     end if
   end subroutine kf
@@ -52,9 +52,9 @@ module base_kernel
       df = -0.75 * (2. - q)**2 + 3 * (1. - q)**2
     else
       if (isnan(q)) then
-        error stop 'q is nan'
+        error stop 'q is nan in kdf'
       else
-        error stop 'q is negative'
+        error stop 'q is negative in kdf'
       end if
     end if
   end subroutine kdf
@@ -71,9 +71,9 @@ module base_kernel
       ddf = 1.5 * (2. - q) - 6 * (1. - q)
     else
       if (isnan(q)) then
-        error stop 'q is nan'
+        error stop 'q is nan in kddf'
       else
-        error stop 'q is negative'
+        error stop 'q is negative in kddf'
       end if
     end if
   end subroutine kddf

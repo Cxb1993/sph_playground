@@ -269,7 +269,6 @@ contains
             if (i /= j) then
               r(:) = pos(:,i) - pos(:,j)
               r2 = dot_product(r(:),r(:))
-              ! if (r2 < ((kr * h(i))*(kr * h(i)) + eps)) then
               if (sqrt(r2) < (kr*h(i) + eps)) then
                 tix = tix + 1
                 tsz = size(neighbours(i)%list)

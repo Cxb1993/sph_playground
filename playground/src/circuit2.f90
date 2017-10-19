@@ -111,7 +111,7 @@ contains
                         + mas(j) / (0.5 *(rhoa + rhob)) * qc * (u(i) - u(j)) * &
                         0.5 * dot_product((nwa(:) + nwb(:)),urab(:))
           if ( s_adden == 1 ) then
-            dh(i)   = dh(i) + mas(j) * dot_product(vab(:), nwa(:))
+            dh(i) = dh(i) + mas(j) * dot_product(vab(:), nwa(:))
           end if
         case (2, 3)
           ! heatconduction
@@ -156,13 +156,9 @@ contains
           ! Hesa(:,:) = 0.5*(Hesa(:,:)/den(i) + Hesb(:,:)/den(j))
 
           dcf(1,i) = dcf(1,i) + mas(j)/den(j) * (cf(1,j) - cf(1,i)) * &
-            (kcfij(1,1)*Hesa(1,1) + kcfij(1,2)*Hesa(1,2) + kcfij(1,3)*Hesa(1,3) + &
-              kcfij(2,1)*Hesa(2,1) + kcfij(2,2)*Hesa(2,2) + kcfij(2,3)*Hesa(2,3) + &
-              kcfij(3,1)*Hesa(3,1) + kcfij(3,2)*Hesa(3,2) + kcfij(3,3)*Hesa(3,3))
-          ! dcf(1,i) = dcf(1,i) + mas(j) / (den(i) * den(j)) * (cf(1,j) - cf(1,i)) * &
-          !   (kcfij(1,1)*Hesa(1,1) + kcfij(1,2)*Hesa(1,2) + kcfij(1,3)*Hesa(1,3) + &
-          !     kcfij(2,1)*Hesa(2,1) + kcfij(2,2)*Hesa(2,2) + kcfij(2,3)*Hesa(2,3) + &
-          !     kcfij(3,1)*Hesa(3,1) + kcfij(3,2)*Hesa(3,2) + kcfij(3,3)*Hesa(3,3))
+            ( dot_product(kcfij(1,:),Hesa(1,:)) + &
+              dot_product(kcfij(2,:),Hesa(2,:)) + &
+              dot_product(kcfij(3,:),Hesa(3,:)) )
           ! if (abs(cf(1,i) - cf(1,j)) > epsilon(0.)) then
           !   print*, dr, h(i), mas(j)/(den(i) * den(j))
           !   print*,'--------------'
@@ -195,9 +191,9 @@ contains
             ! if (ktp /= 3) then
               ! n2w fab
               call get_hessian(rab, h(i), Hesa)
-              dv(1,i) = dv(1,i) + mas(j)/den(j) * (vba(1)*Hesa(1,1) + vba(2)*Hesa(1,2) + vba(3)*Hesa(1,3))
-              dv(2,i) = dv(2,i) + mas(j)/den(j) * (vba(1)*Hesa(2,1) + vba(2)*Hesa(2,2) + vba(3)*Hesa(2,3))
-              dv(3,i) = dv(3,i) + mas(j)/den(j) * (vba(1)*Hesa(3,1) + vba(2)*Hesa(3,2) + vba(3)*Hesa(3,3))
+              dv(1,i) = dv(1,i) + mas(j)/den(j) * dot_product(vba,Hesa(:,1))
+              dv(2,i) = dv(2,i) + mas(j)/den(j) * dot_product(vba,Hesa(:,2))
+              dv(3,i) = dv(3,i) + mas(j)/den(j) * dot_product(vba,Hesa(:,3))
             ! else
             !   ! 2nw
             !   call get_nw(rab, h(i), nwa)

@@ -1,40 +1,54 @@
 module BC
   implicit none
 
-  public :: periodic1, periodic3, fixed1, fixed3, destroy
-  public :: set_particles_numbers, setBorder, set_sqare_box_sides, getSqaureBoxSides
+  public :: periodic1, periodic3, fixed1, fixed3, destroy, &
+            set_particles_numbers, setBorder, set_sqare_box_sides,&
+            getSqaureBoxSides, setBorderInside, periodic3v2, periodic1v2
 
   private
-    integer, save              :: ns, nbrd, nx, ny, nz
-    integer, allocatable, save :: bX1exc(:), bY1exc(:), bZ1exc(:), bX2exc(:), bY2exc(:), bZ2exc(:)
-    ! borders including border particle (for periodic bc)
-    ! integer, allocatable, save :: bX1inc(:), bY1inc(:), bZ1inc(:), bX2inc(:), bY2inc(:), bZ2inc(:)
+  save
+    integer              :: ns, nbrd, nx, ny, nz
+    integer, allocatable :: bX1exc(:), bY1exc(:), bZ1exc(:), bX2exc(:), bY2exc(:), bZ2exc(:)
+    integer, allocatable :: bX1ins(:), bY1ins(:), bZ1ins(:), bX2ins(:), bY2ins(:), bZ2ins(:)
 
 contains
   subroutine destroy
     if (allocated(bX1exc)) then
       deallocate(bX1exc)
-      ! deallocate(bX1inc)
     end if
     if (allocated(bX2exc)) then
       deallocate(bX2exc)
-      ! deallocate(bX2inc)
     end if
     if (allocated(bY1exc)) then
       deallocate(bY1exc)
-      ! deallocate(bY1inc)
     end if
     if (allocated(bY2exc)) then
       deallocate(bY2exc)
-      ! deallocate(bY2inc)
     end if
     if (allocated(bZ1exc)) then
       deallocate(bZ1exc)
-      ! deallocate(bZ1inc)
     end if
     if (allocated(bZ2exc)) then
       deallocate(bZ2exc)
-      ! deallocate(bZ2inc)
+    end if
+
+    if (allocated(bX1ins)) then
+      deallocate(bX1ins)
+    end if
+    if (allocated(bX2ins)) then
+      deallocate(bX2ins)
+    end if
+    if (allocated(bY1ins)) then
+      deallocate(bY1ins)
+    end if
+    if (allocated(bY2ins)) then
+      deallocate(bY2ins)
+    end if
+    if (allocated(bZ1ins)) then
+      deallocate(bZ1ins)
+    end if
+    if (allocated(bZ2ins)) then
+      deallocate(bZ2ins)
     end if
   end subroutine
 
@@ -58,32 +72,62 @@ contains
     onz = nz
   end subroutine getSqaureBoxSides
 
-  subroutine setBorder(itb, inp, Aexc)
+  subroutine setBorder(itb, Aexc)
     integer, allocatable, intent(in) :: Aexc(:)
-    integer, intent(in) :: itb, inp
+    integer, intent(in) :: itb
+    integer             :: inp
 
-    if(inp.ne.0) then
-      select case(itb)
-      case (11)
-        allocate(bX1exc(inp))
-        bX1exc(:) = Aexc(1:inp)
-      case (12)
-        allocate(bX2exc(inp))
-        bX2exc(:) = Aexc(1:inp)
-      case (21)
-        allocate(bY1exc(inp))
-        bY1exc(:) = Aexc(1:inp)
-      case (22)
-        allocate(bY2exc(inp))
-        bY2exc(:) = Aexc(1:inp)
-      case (31)
-        allocate(bZ1exc(inp))
-        bZ1exc(:) = Aexc(1:inp)
-      case (32)
-        allocate(bZ2exc(inp))
-        bZ2exc(:) = Aexc(1:inp)
-      end select
-    end if
+    inp = size(Aexc)
+
+    select case(itb)
+    case (11)
+      allocate(bX1exc(inp))
+      bX1exc(:) = Aexc(1:inp)
+    case (12)
+      allocate(bX2exc(inp))
+      bX2exc(:) = Aexc(1:inp)
+    case (21)
+      allocate(bY1exc(inp))
+      bY1exc(:) = Aexc(1:inp)
+    case (22)
+      allocate(bY2exc(inp))
+      bY2exc(:) = Aexc(1:inp)
+    case (31)
+      allocate(bZ1exc(inp))
+      bZ1exc(:) = Aexc(1:inp)
+    case (32)
+      allocate(bZ2exc(inp))
+      bZ2exc(:) = Aexc(1:inp)
+    end select
+  end subroutine
+
+  subroutine setBorderInside(itb, Aexc)
+    integer, allocatable, intent(in) :: Aexc(:)
+    integer, intent(in) :: itb
+    integer             :: inp
+
+    inp = size(Aexc)
+
+    select case(itb)
+    case (11)
+      allocate(bX1ins(inp))
+      bX1ins(:) = Aexc(1:inp)
+    case (12)
+      allocate(bX2ins(inp))
+      bX2ins(:) = Aexc(1:inp)
+    case (21)
+      allocate(bY1ins(inp))
+      bY1ins(:) = Aexc(1:inp)
+    case (22)
+      allocate(bY2ins(inp))
+      bY2ins(:) = Aexc(1:inp)
+    case (31)
+      allocate(bZ1ins(inp))
+      bZ1ins(:) = Aexc(1:inp)
+    case (32)
+      allocate(bZ2ins(inp))
+      bZ2ins(:) = Aexc(1:inp)
+    end select
   end subroutine
   !
   !-- See page 19
@@ -167,6 +211,50 @@ contains
       end do
     end select
   end subroutine periodic3
+
+  subroutine periodic1v2(A, axis)
+    integer, intent(in)              :: axis
+    real, allocatable, intent(inout) :: A(:)
+    integer                          :: i
+
+    select case(axis)
+    case (00)
+      error stop "not implemented"
+    case (10)
+      error stop "not implemented"
+    case (20)
+      do i = 1, size(bY1ins)
+        A(bY2exc(i)) = A(bY1ins(i))
+      end do
+      do i = 1, size(bY2ins)
+        A(bY1exc(i)) = A(bY2ins(i))
+      end do
+    case (30)
+      error stop "not implemented"
+    end select
+  end subroutine periodic1v2
+
+  subroutine periodic3v2(A, axis)
+    integer, intent(in)              :: axis
+    real, allocatable, intent(inout) :: A(:,:)
+    integer                          :: i
+
+    select case(axis)
+    case (00)
+      error stop "not implemented"
+    case (10)
+      error stop "not implemented"
+    case (20)
+      do i = 1, size(bY1ins)
+        A(:,bY2exc(i)) = A(:,bY1ins(i))
+      end do
+      do i = 1, size(bY2ins)
+        A(:,bY1exc(i)) = A(:,bY2ins(i))
+      end do
+    case (30)
+      error stop "not implemented"
+    end select
+  end subroutine periodic3v2
 
   subroutine fixed1(A, axeside, k)
     integer, intent(in) :: axeside

@@ -28,9 +28,9 @@ contains
     open(newunit=iu, file=fname, status='replace', form='formatted')
     write(iu, *) time
     do j = 1, n
-      if (ptype(j) /= 0) then
+      ! if (ptype(j) /= 0) then
         write(iu, *) x(:,j), v(:,j), dv(:,j), m(j), den(j), slen(j), pres(j), ien(j), cf(:,j), err(j)
-      end if
+      ! end if
     end do
     close(iu)
     ifile = ifile + 1

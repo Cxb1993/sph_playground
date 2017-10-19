@@ -138,18 +138,18 @@ contains
           den(i) = den(i) + mas(i) * w
           om(i) = om(i) + mas(i) * dwdh
           ! -(**)----------------------------------------------------!
-          ! print*,'c1', 4
+          ! print*,'c1', 4, om(i), mas(i), dwdh
           ! if ( i == 5 ) then
           !   print*, slnint(i)
           ! end if
           om(i) = 1. - om(i) * (- slnint(i) / (dim * den(i)))
-          ! print*,'c1', 5
+          ! print*,'c1', 5, om(i), slnint(i), dim, den(i)
           if ( ktp == 3 ) then
             dfdx(:,:,i) = dfdx(:,:,i) / om(i) / den(i)
           end if
           ! print*,'c1', 6
           dfdh = - dim * den(i) * om(i) / slnint(i)
-          ! print*,'c1', 7
+          ! print*,'c1', 7, den(i), om(i), slnint(i)
           fh  = mas(i) * (sk / slnint(i)) ** dim - den(i)
           ! print*,'c1', 8
           hn = slnint(i) - fh / dfdh

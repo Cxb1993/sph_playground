@@ -51,25 +51,25 @@ contains
     select case (tt)
     case (1)
       ! hydroshock
+      ! pspc1 = 0.001
+      pspc2 = pspc2 * 8
+      nb = int(kr * sk * 1.5)
       brdx1 = -.5
       brdx2 = .5
       if ( dim > 1) then
-        brdy1 = -.5
-        brdy2 = .5
+        brdy1 = -pspc2*nb*3
+        brdy2 = pspc2*nb*3
       else
         brdy1 = 0.
         brdy2 = 0.
       end if
       if ( dim == 3 ) then
-        brdz1 = -.5
-        brdz2 = .5
+        brdz1 = -pspc2*nb
+        brdz2 = pspc2*nb
       else
         brdz1 = 0.
         brdz2 = 0.
       end if
-      ! pspc1 = 0.001
-      pspc2 = pspc2 * 8
-      nb = int(kr * sk)*3
       call semiuniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
     case (2)
       ! infslb
@@ -120,7 +120,7 @@ contains
         brdz1 = 0.
         brdz2 = 0.
       end if
-      nb = int(kr * sk) + 1
+      nb = int(kr * sk)
       call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
       ! call place_close_packed_fcc(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, nb, x)
     case default
@@ -129,6 +129,10 @@ contains
     end select
 
     n = size(x,dim=2)
+    if (n < 2) then
+      error stop 'There is only ' // char(n+48) // ' particles in the domain'
+    end if
+
     allocate(v(3,n))
     v(:,:) = 0.
     allocate(dv(3,n))
@@ -198,7 +202,6 @@ contains
     case(5, 6, 7, 8, 10)
       ! diff-laplace ! diff-graddiv ! chi-laplace ! chi-graddiv ! diff-artvisc
       rho1 = 1.
-      period = 1.
     case(9)
       ! soundwave
       rho1 = 1.
@@ -227,15 +230,18 @@ contains
       case (1)
         ! hydroshock
         if (x(1,i) < 0) then
+          sln(i) = sk * pspc1
           den(i) = rho1
           prs(i) = prs1
-          mas(i) = (sp**dim) * rho1
+          mas(i) = (pspc1**dim) * rho1
+          iu(i)  = prs1/(g-1)/rho1
         else
+          sln(i) = sk * pspc2
           den(i) = rho2
           prs(i) = prs2
-          mas(i) = (sp**dim) * rho2
+          mas(i) = (pspc2**dim) * rho2
+          iu(i)  = prs2/(g-1)/rho2
         end if
-        iu(i) = merge(prs1/(g-1)/rho1, prs2/(g-1)/rho2, x(1,i) < 0)
       case (2)
         ! infslb
         if (x(1,i) < 0) then
@@ -261,31 +267,33 @@ contains
         ! v(:,i)  = sin(period*x(:,i))*cos(period*x(:,i)**2)
         v(:,i) = 0.
         if (dim == 1) then
+          ! x
+          ! v(1,i) = x(1,i)
           ! x sinx
-          ! v(1,i) = sin(x(1,i)) * x(1,i)
+          v(1,i) = sin(x(1,i)) * x(1,i)
           ! sin
-          v(1,i) = sin(x(1,i))
+          ! v(1,i) = sin(x(1,i))
         elseif ( dim == 2 ) then
           ! v(1,i) = x(1,i)*x(2,i)
           ! v(2,i) = x(1,i)*x(2,i)
           ! (y six, x^2 siny)
-          ! v(1,i) = sin(x(1,i)) * x(2,i)
-          ! v(2,i) = sin(x(2,i)) * x(1,i) * x(1,i)
+          v(1,i) = sin(x(1,i)) * x(2,i)
+          v(2,i) = sin(x(2,i)) * x(1,i) * x(1,i)
           ! sin
-          v(1,i) = sin(x(1,i))
-          v(2,i) = sin(x(2,i))
+          ! v(1,i) = sin(x(1,i))
+          ! v(2,i) = sin(x(2,i))
         elseif ( dim == 3 ) then
           ! v(1,i) = x(1,i)*x(2,i)*x(3,i)
           ! v(2,i) = x(1,i)*x(2,i)*x(3,i)
           ! v(3,i) = x(1,i)*x(2,i)*x(3,i)
           ! (y six, z^2 siny, x^3 sinz)
-          ! v(1,i) = sin(x(1,i)) * x(2,i)
-          ! v(2,i) = sin(x(2,i)) * x(3,i) * x(3,i)
-          ! v(3,i) = sin(x(3,i)) * x(1,i) * x(1,i) * x(1,i)
+          v(1,i) = sin(x(1,i)) * x(2,i)
+          v(2,i) = sin(x(2,i)) * x(3,i) * x(3,i)
+          v(3,i) = sin(x(3,i)) * x(1,i) * x(1,i) * x(1,i)
           ! sin
-          v(1,i) = sin(x(1,i))
-          v(2,i) = sin(x(2,i))
-          v(3,i) = sin(x(3,i))
+          ! v(1,i) = sin(x(1,i))
+          ! v(2,i) = sin(x(2,i))
+          ! v(3,i) = sin(x(3,i))
         end if
       case(9)
         den(i) = rho1 * (1. + eA * sin(pi * x(1,i)))
