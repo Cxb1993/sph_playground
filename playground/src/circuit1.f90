@@ -147,11 +147,11 @@ contains
           if ( ktp == 3 ) then
             dfdx(:,:,i) = dfdx(:,:,i) / om(i) / den(i)
           end if
-          ! print*,'c1', 6
+          ! print*,'c1', 6, den(i), om(i)
           dfdh = - dim * den(i) * om(i) / slnint(i)
           ! print*,'c1', 7, den(i), om(i), slnint(i)
           fh  = mas(i) * (sk / slnint(i)) ** dim - den(i)
-          ! print*,'c1', 8
+          ! print*,'c1', 8, dfdh
           hn = slnint(i) - fh / dfdh
           ! if (hn < 0.) then
           !   hn = slnint(i)

@@ -25,8 +25,6 @@ program main
   use arrayresize,      only: resize
 
   use const
-  use list
-
   ! use cltest,           only: runcltest
 
   implicit none

@@ -10,6 +10,7 @@ module arrayresize
   end interface
 
 contains
+  ! subroutine i4resize(array, oldsize, newsize)
   pure subroutine i4resize(array, oldsize, newsize)
     integer, intent(in)                 :: newsize, oldsize
     integer, intent(inout), allocatable :: array(:)
@@ -18,6 +19,7 @@ contains
 
     iterlimit = min(newsize, oldsize)
     allocate(tmp(newsize))
+    ! print*, size(array), iterlimit
     do i=1,iterlimit
       tmp(i) = array(i)
     end do

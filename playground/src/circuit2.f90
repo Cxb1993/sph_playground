@@ -45,7 +45,7 @@ contains
     integer, allocatable, intent(in) :: ptype(:)
     real, allocatable, intent(inout) :: dv(:,:), du(:), dh(:), dcf(:,:), dfdx(:,:,:)
 
-    real                 :: dr, rhoa, rhob, qa, qb, qc, n2wa, r2, &
+    real                 :: dr, rhoa, rhob, qa(3), qb(3), qc, n2wa, r2, &
                             nwa(3), nwb(3), rab(3), vab(3), vba(3), urab(3), Pa(3), Pb(3), &
                             Hesa(3,3), Hesb(3,3), oddi, oddj, kcfij(3,3), ktmp
     integer, allocatable :: nlista(:), nlistb(:)
@@ -91,25 +91,33 @@ contains
         select case (s_ttp)
         case (1, 9)
           ! hydroshock ! soundwave
-          qa = 0.
-          qb = 0.
+          qa(:) = 0.
+          qb(:) = 0.
           qc = 0.
           rhoa = den(i)
           rhob = den(j)
           call get_nw(rab, h(i), nwa)
           call get_nw(rab, h(j), nwb)
           if (s_artts == 1) then
-            call art_viscosity(rhoa, rhob, vab, urab, c(i), c(j), qa, qb)
-            call art_termcond(P(i), P(j), rhoa, rhob, qc)
+            call art_viscosity(rhoa, rhob, vab, urab, rab, dr, c(i), c(j), om(i), om(j), h(i), h(j), qa, qb)
+            call art_termcond(nwa, nwb, urab, P(i), P(j), u(i), u(j), rhoa, rhob, qc)
           end if
-          Pa(:) = (P(i) + qa) * nwa(:) / (rhoa**2 * om(i))
-          Pb(:) = (P(j) + qb) * nwb(:) / (rhob**2 * om(j))
+          ! Pa(:) = (P(i) + qa) * nwa(:) / (rhoa**2 * om(i))
+          ! Pb(:) = (P(j) + qb) * nwb(:) / (rhob**2 * om(j))
 
-          dv(:,i) = dv(:,i) - mas(j) * (Pa(:) + Pb(:))
+          dv(:,i) = dv(:,i) - mas(j) * ( &
+                      P(i) * nwa(:) / (rhoa**2 * om(i)) &
+                      + P(j) * nwb(:) / (rhob**2 * om(j)) &
+                      + qa(:) &
+                      + qb(:) &
+                    )
 
-          du(i)   = du(i) + mas(j) * dot_product(vab(:),Pa(:)) &
-                        + mas(j) / (0.5 *(rhoa + rhob)) * qc * (u(i) - u(j)) * &
-                        0.5 * dot_product((nwa(:) + nwb(:)),urab(:))
+          du(i)   = du(i) + mas(j) * ( &
+                      dot_product(vab(:), P(i) * nwa(:) / (rhoa**2 * om(i))) &
+                      + dot_product(vab(:),qa(:)) &
+                      + qc &
+                    )
+
           if ( s_adden == 1 ) then
             dh(i) = dh(i) + mas(j) * dot_product(vab(:), nwa(:))
           end if
@@ -179,7 +187,6 @@ contains
           ! 'diff-laplace'
           call get_n2w(rab, h(i), n2wa)
           dv(:,i)  = dv(:,i) + mas(j)/den(j) * vba(:) * n2wa
-
           ! call get_hessian(rab, h(i), Hes)
           ! kcfij(:) = 2. * kcf(:,i) * kcf(:,j) / (kcf(:,i) + kcf(:,j))
           ! dcf(1,i) = dcf(1,i) - mas(j) / (den(i) * den(j)) * (cf(1,i) - cf(1,j)) * &
@@ -240,7 +247,7 @@ contains
         if ( s_adden == 1 ) then
           dh(i) =  (- h(i) / (s_dim * den(i))) * dh(i) / om(i)
         end if
-      case(5,6, 10)
+      case(5, 6, 10)
         ! diff-graddiv ! diff-laplace ! diff-artvisc
         if ( s_ktp == 3 ) then
           dv(:,i) = dv(:,i) * den(i)
@@ -257,26 +264,52 @@ contains
     call addTime(' circuit2', finish - start - tneib)
   end subroutine
 
-  subroutine art_termcond(pa, pb, da, db, vsigu)
-    real, intent(in)  :: pa, pb, da, db
-    real, intent(out) :: vsigu
+  pure subroutine art_termcond(nwa, nwb, urab, pa, pb, ua, ub, da, db, qc)
+    real, intent(in)  :: pa, pb, da, db, ua, ub, &
+                          nwa(3), nwb(3), urab(3)
+    real, intent(out) :: qc
+    real              :: vsigu
 
-    vsigu = sqrt(abs(pa - pb)/(0.5 * (da + db)))
+    vsigu = sqrt(abs(pa - pb)/(0.5*(da + db)))
+    qc = vsigu * (ua - ub) / (0.5*(da + db)) * 0.5 * dot_product((nwa(:) + nwb(:)),urab(:))
   end subroutine
 
-  subroutine art_viscosity(da, db, vab, urab, ca, cb, qa, qb)
-    real, intent(in)  :: da, db, vab(3), urab(3), ca, cb
-    real, intent(out) :: qa, qb
-    real              :: alpha, betta, dvr
-    qa = 0.
-    qb = 0.
+  pure subroutine art_viscosity(da, db, vab, &
+      urab, rab, dr, &
+      ca, cb, oa, ob, ha, hb, &
+      qa, qb)
+    real, intent(in)  :: da, db, vab(3), urab(3), rab(3),&
+                         dr, ca, cb, oa, ob, ha, hb
+    real, intent(out) :: qa(3), qb(3)
+    real              :: alpha, betta, dvr, Hesrr(3,3), n2w(3)
+    qa(:) = 0.
+    qb(:) = 0.
     alpha = 1.
     betta = 2.
 
+    ! qa * nwa(:) / (rhoa**2 * om(i))
+
     dvr = dot_product(vab,urab)
-    if (dvr < 0) then
-      qa = -0.5 * da * (alpha*ca - betta*dvr) * dvr
-      qb = -0.5 * db * (alpha*cb - betta*dvr) * dvr
+    if (dvr <= 0) then
+      ! call get_n2w(rab, ha, n2w(1))
+      call get_hessian_rr(rab, ha, Hesrr)
+      qa(1) = -0.5 * (alpha*ca - betta*dvr) * &
+          dot_product(vab, Hesrr(:,1)) * dr / (-2) / (da * oa)
+      qa(2) = -0.5 * (alpha*ca - betta*dvr) * &
+          dot_product(vab, Hesrr(:,2)) * dr / (-2) / (da * oa)
+      qa(3) = -0.5 * (alpha*ca - betta*dvr) * &
+          dot_product(vab, Hesrr(:,3)) * dr / (-2) / (da * oa)
+
+      call get_hessian_rr(rab, hb, Hesrr)
+      qb(1) = -0.5 * (alpha*cb - betta*dvr) * &
+          dot_product(vab, Hesrr(:,1)) * dr / (-2) / (db * ob)
+      qb(2) = -0.5 * (alpha*cb - betta*dvr) * &
+          dot_product(vab, Hesrr(:,2)) * dr / (-2) / (db * ob)
+      qb(3) = -0.5 * (alpha*cb - betta*dvr) * &
+          dot_product(vab, Hesrr(:,3)) * dr / (-2) / (db * ob)
+      ! call get_n2w(rab, hb, n2w(1))
+      ! qb(:) = -0.5 * (alpha*cb - betta*dvr) * &
+      !     vab(:) * n2w(1) * dr / (-2) / (db * ob)
     end if
   end subroutine
 

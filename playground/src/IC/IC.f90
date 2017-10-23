@@ -52,13 +52,16 @@ contains
     case (1)
       ! hydroshock
       ! pspc1 = 0.001
-      pspc2 = pspc2 * 8
-      nb = int(kr * sk * 1.5)
+      pspc2 = pspc1*8.
+      if (dim == 1) then
+        pspc2 = pspc1 * 8.
+      end if
+      nb = int(kr * sk * 3)
       brdx1 = -.5
       brdx2 = .5
       if ( dim > 1) then
-        brdy1 = -pspc2*nb*3
-        brdy2 = pspc2*nb*3
+        brdy1 = -pspc2*nb*2
+        brdy2 = pspc2*nb*2
       else
         brdy1 = 0.
         brdy2 = 0.
@@ -229,7 +232,7 @@ contains
       select case (tt)
       case (1)
         ! hydroshock
-        if (x(1,i) < 0) then
+        if (x(1,i) <= 0.) then
           sln(i) = sk * pspc1
           den(i) = rho1
           prs(i) = prs1

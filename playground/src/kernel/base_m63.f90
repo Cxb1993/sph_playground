@@ -1,25 +1,31 @@
-module quintic
+module base_kernel
   use const
   implicit none
 
-  public :: kf, kdf, kddf, knorm, krad, kernelname, setdimbase, wCv, fwc
+  public :: kf, kdf, kddf, knorm, krad, kernelname, setdimbase, wCv, fwc, returnneibnum
 
   private
 
+    character (len=10) :: kernelname=' M6/3 '
+
     real :: knorm(3) = [ 1./120., 7./(478. * pi), 1./(120. * pi) ]
     real :: fwcl(3) = [4., 9.31505/2.25, 9.6429/2.25]
-    real :: krad = 3., wCv, fwc
-    integer :: dim
-    character (len=10) :: kernelname='quintic'
+    integer :: maxneibnum(3) = [1, 600, 1]
+    real :: krad = 3.
+
+    real :: wCv, fwc
+    integer :: dim, returnneibnum
 
  contains
 
-   subroutine setdimbase(d)
-     integer, intent(in) :: d
-     dim = d
-     wCv = knorm(dim)
-     fwc = fwcl(dim)
-   end subroutine
+  subroutine setdimbase(d)
+    integer, intent(in) :: d
+
+    dim = d
+    wCv = knorm(dim)
+    fwc = fwcl(dim)
+    returnneibnum = maxneibnum(dim)
+  end subroutine
 
   pure subroutine kf(q, f)
     real, intent(in)  :: q

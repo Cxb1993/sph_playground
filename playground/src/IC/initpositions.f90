@@ -208,8 +208,8 @@ contains
     type(intlist)       :: bx1, bx2, by1, by2, bz1, bz2
     type(intlist)       :: inbx1, inbx2, inby1, inby2, inbz1, inbz2
     integer             :: dim, nb, isborder, freenumber, n, ptsz, &
-                            ix1, ix2, iy1, iy2, iz1, iz2, bx, by, bz, i, j, k
-    real                :: x, y, z, sp, eps, dp1, dp2, cby1, cby2, cbz1, cbz2
+                            ix1, ix2, iy1, iz1, bx, by, bz, i, j, k
+    real                :: sp, eps
 
     ! eps = -eps0
     eps = eps0
@@ -225,19 +225,20 @@ contains
 
     ix1 = int(-brdx1/pspc1)
     ix2 = int(brdx2/pspc2)
-    dp1 = merge(0.,(brdx2-brdx1)/ix1, ix1 == 0)
-    dp2 = merge(0.,(brdx2-brdx1)/ix2, ix2 == 0)
-    pspc1 = dp1
-    pspc2 = dp2
+    ! dp1 = merge(0.,(-brdx1)/ix1, ix1 == 0)
+    ! dp2 = merge(0.,(brdx2)/ix2, ix2 == 0)
+    ! pspc1 = dp1
+    ! pspc2 = dp2
     bx = nb
     by = merge(0, nb, abs(brdy1-brdy2) < eps)
     bz = merge(0, nb, abs(brdz1-brdz2) < eps)
-
+    ! print*, (-bx -ix1), (ix2 +bx), dp1*(-bx -ix1), dp2*(ix2 +bx)
+    ! read*
     do i = (-bx -ix1), (ix2 +bx)
       if (i <= 0) then
-        sp = dp1
+        sp = pspc1
       else
-        sp = dp2
+        sp = pspc2
       end if
       iy1 = int((brdy2-brdy1)/sp/2)
       iz1 = int((brdz2-brdz1)/sp/2)
@@ -321,12 +322,12 @@ contains
     write(*, "(A, F7.5, A, F7.5)") " # #        actual dx:   x1=", pspc1, "   x2=", pspc2
     write(*, "(A, I16, A, I16, A)") " # #         p.number:  ", n, &
               " total   ", freenumber, " real"
-    print *, '# #       border x:', bx1%len(), bx2%len()
-    print *, '# # inner border x:', inbx1%len(), inbx2%len()
-    print *, '# #       border y:', by1%len(), by2%len()
-    print *, '# # inner border y:', inby1%len(), inby2%len()
-    print *, '# #       border z:', bz1%len(), bz2%len()
-    print *, '# # inner border z:', inbz1%len(), inbz2%len()
+    print *, '# #       border x:', bx1%llen(), bx2%llen()
+    print *, '# # inner border x:', inbx1%llen(), inbx2%llen()
+    print *, '# #       border y:', by1%llen(), by2%llen()
+    print *, '# # inner border y:', inby1%llen(), inby2%llen()
+    print *, '# #       border z:', bz1%llen(), bz2%llen()
+    print *, '# # inner border z:', inbz1%llen(), inbz2%llen()
 
     call set_particles_numbers(n, abs(nb))
 

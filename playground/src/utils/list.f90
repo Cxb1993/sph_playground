@@ -7,7 +7,7 @@ module list
     integer               :: length = 0
     integer               :: size = 0
   contains
-    procedure :: append, toarr, print, e, xe, len
+    procedure :: append, toarr, print, e, xe, llen
   end type
 
 contains
@@ -66,7 +66,7 @@ contains
     element = list%elements(idx)
   end subroutine
 
-  pure function len(list) result(length)
+  pure function llen(list) result(length)
     class(intlist), intent(in)  :: list
     integer                     :: length
 

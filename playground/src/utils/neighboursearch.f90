@@ -1,15 +1,18 @@
 module NeighbourSearch
+  use const
   use Timing, only: addTime
   use kernel, only: get_krad
   use state,  only: getdim,&
                     get_kerntype
   use ArrayResize,  only: resize
   use omp_lib
+  use kdtree2_module
 
   implicit none
 
-public findneighboursN2, findneighboursN2plus, getneighbours, setStepsize, isInitialized,&
-       getNeibListL1, getNeibListL2, getNeibNumbers, destroy
+public findneighboursN2, findneighboursN2plus, findneighboursKDT, &
+        getneighbours, getNeibNumbers, destroy, &
+        setStepsize, isInitialized, getNeibListL1, getNeibListL2
 
 private
 save
@@ -22,7 +25,7 @@ save
   integer    :: stepsize = 1
   integer    :: initialized = 0
   integer(8) :: start = 0, finish = 0
-  real, parameter :: eps = epsilon(1.)
+  real, parameter :: eps = eps0
 contains
 
   subroutine setStepsize(i)
@@ -62,6 +65,88 @@ contains
     if (allocated(alllistlv2)) then
       ol2 = size(alllistlv2)
     end if
+  end subroutine
+
+  subroutine findneighboursKDT(ptype, pos, h)
+    use kernel, only: getkernelnn => getneibnumber
+
+    real, allocatable, intent(in)    :: pos(:,:), h(:)
+    integer, allocatable, intent(in) :: ptype(:)
+    type(kdtree2), pointer            :: kdtree
+    type(kdtree2_result), allocatable :: kdtree_res(:)
+    integer :: maxresultnum, sn, nfound, nlsz, i, j, al1, al2, tx
+    real    :: kr
+
+    call system_clock(start)
+    call get_krad(kr)
+    call getkernelnn(maxresultnum)
+    kdtree => kdtree2_create(pos)
+
+    sn = size(pos, dim=2)
+    allocate(kdtree_res(maxresultnum))
+
+    if (.not.allocated(neighbours)) then
+      allocate(neighbours(sn))
+    end if
+
+    if (allocated(alllistlv1)) then
+      deallocate(alllistlv1)
+      deallocate(alllistlv2)
+    end if
+    allocate(alllistlv1(sn))
+    allocate(alllistlv2(sn))
+
+    alllistlv1(:) = 0
+    alllistlv2(:) = 0
+    al1 = 1
+    al2 = 1
+
+    do i=1,sn,stepsize
+      if (ptype(i) /= 0) then
+        alllistlv1(al1) = i
+        alllistlv2(i) = 1
+        al1 = al1 + 1
+        tx = 1
+        call kdtree2_r_nearest_around_point(kdtree, i, 0, (kr * h(i))**2, nfound, maxresultnum, kdtree_res)
+        if (maxresultnum < nfound) then
+          print*, "Need at least ", nfound, " particles."
+          error stop "KDTree neibsearch result was truncated."
+        end if
+        if (.not.(allocated(neighbours(i)%list))) then
+          allocate(neighbours(i)%list(nfound-1))
+        end if
+        nlsz = size(neighbours(i)%list)
+        if (nlsz /= (nfound-1)) then
+          call resize(neighbours(i)%list, 1, nfound-1)
+        end if
+        do j = 1,nfound
+          if (kdtree_res(j)%idx /= i) then
+            neighbours(i)%list(tx) = kdtree_res(j)%idx
+            alllistlv2(kdtree_res(j)%idx) = 1
+            tx = tx + 1
+          end if
+        end do
+      end if
+    end do
+
+    al1 = al1 - 1
+    call resize(alllistlv1, al1, al1)
+    do i = 1,sn
+      if ( alllistlv2(i) == 1 ) then
+        alllistlv2(al2) = i
+        al2 = al2 + 1
+      end if
+    end do
+    al2 = al2 - 1
+    call resize(alllistlv2, al2, al2)
+
+    initialized = 1.
+
+    ! call kdtree2_destroy(kdtree)
+    ! deallocate(kdtree_res)
+
+    call system_clock(finish)
+    call addTime(' neibs', finish - start)
   end subroutine
 
   ! simple list

@@ -2,14 +2,15 @@ module iterator
   use eos
   use circuit1
   use timing,           only: addTime
-  use circuit2,         only:  c2
+  use circuit2,         only: c2
   use BC
   use state,            only: get_difftype,&
                               getdim,&
                               get_tasktype, &
                               ginitvar
   use neighboursearch,  only: findneighboursN2plus, &
-                              findneighboursN2
+                              findneighboursN2, &
+                              findneighboursKDT
 
  implicit none
 
@@ -38,23 +39,32 @@ contains
     select case (ttp)
     case (1)
       ! hydroshock
-      call findneighboursN2(ptype, pos, h)
+      call findneighboursKDT(ptype, pos, h)
       call c1(pos, mas, vel, sk, h, den, om, dfdx)
       if ( dim > 1 ) then
+        call system_clock(start)
         call periodic1v2(den, 20)
         call periodic1v2(h,   20)
         call periodic1v2(om,  20)
+        call system_clock(finish)
+        call addTime(' bc', finish - start)
       end if
       call eos_adiabatic(n, den, uei, prs, c, gamma)
       if ( dim > 1 ) then
+        call system_clock(start)
         call periodic1v2(prs, 20)
         call periodic1v2(c,   20)
+        call system_clock(finish)
+        call addTime(' bc', finish - start)
       end if
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
       if ( dim > 1 ) then
+        call system_clock(start)
         call periodic3v2(acc, 20)
         call periodic1v2(due, 20)
         call periodic1v2(dh, 20)
+        call system_clock(finish)
+        call addTime(' bc', finish - start)
       end if
     case (2)
       ! infslb

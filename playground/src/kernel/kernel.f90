@@ -5,7 +5,7 @@ module kernel
   implicit none
 
   public :: get_nw, get_dw_dh, get_w, setdimkernel, &
-            get_n2w, get_krad, get_hessian, getkernelname, get_hessian_rr
+            get_n2w, get_krad, get_hessian, getkernelname, get_hessian_rr, getneibnumber
             !, PureKernel!, GradDivW!, get_n2y !, get_dphi_dh,
   save
     integer :: dim
@@ -22,13 +22,19 @@ module kernel
     kr = krad
   end subroutine get_krad
 
+  subroutine getneibnumber(nn)
+    integer, intent(out) :: nn
+
+    nn = returnneibnum
+  end subroutine
+
   subroutine setdimkernel(indim)
     integer, intent(in) :: indim
     dim = indim
     call setdimbase(dim)
     call setdim(dim)
   end subroutine
-  !
+
   ! ---------!
   ! W kernel !------------------------------------------------------------------
   !----------!
@@ -103,7 +109,7 @@ module kernel
   end subroutine
 
   ! pure
-  subroutine get_n2w(r, h, n2w)
+  pure subroutine get_n2w(r, h, n2w)
     real, intent(in)  :: r(3), h
     real, intent(out) :: n2w
     integer :: ktype
@@ -227,13 +233,13 @@ module kernel
     end if
   end subroutine
 
-  ! pure subroutine get_hessian_rr(r, h, Hes)
-  subroutine get_hessian_rr(r, h, Hes)
-! Hessian for artificial viscosity term
-! H^* = H - F_{ab}/|r_{ab}| I_3       // for momentum methods
-! H^* = H - f'/ q I_3                 // for direct derivatives
-! same as original hessian, but without diagonal matrix,
-! that corresponds to Laplacian term
+  pure subroutine get_hessian_rr(r, h, Hes)
+  ! subroutine get_hessian_rr(r, h, Hes)
+  ! Hessian for artificial viscosity term
+  ! H^* = H - F_{ab}/|r_{ab}| I_3       // for momentum methods
+  ! H^* = H - f'/ q I_3                 // for direct derivatives
+  ! same as original hessian, but without diagonal matrix,
+  ! that corresponds to Laplacian term
     real, intent(in)  :: r(3), h
     real, intent(out) :: Hes(3,3)
     real              :: r2, dr, df, ddf, fab, q
