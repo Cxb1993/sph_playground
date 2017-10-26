@@ -183,10 +183,10 @@ contains
 
     call set_particles_numbers(n, abs(nb))
     call resize(bx1,nbnewX1,nbnewX1)
-    call resize(bx2,nbnewY1,nbnewY1)
-    call resize(by1,nbnewZ1,nbnewZ1)
-    call resize(by2,nbnewX2,nbnewX2)
-    call resize(bz1,nbnewY2,nbnewY2)
+    call resize(bx2,nbnewX2,nbnewX2)
+    call resize(by1,nbnewY1,nbnewY1)
+    call resize(by2,nbnewY2,nbnewY2)
+    call resize(bz1,nbnewZ1,nbnewZ1)
     call resize(bz2,nbnewZ2,nbnewZ2)
     call setBorder(11, bX1)
     call setBorder(12, bX2)
@@ -348,7 +348,6 @@ contains
     ! print*, bY1
     ! read*
   end subroutine
-
   subroutine place_close_packed_fcc(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, nb, pos)
     real, allocatable, intent(inout) :: pos(:,:)
     real, intent(inout)  :: pspc1, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2

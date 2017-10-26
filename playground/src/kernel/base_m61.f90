@@ -2,15 +2,17 @@ module base_m61
   use const
   implicit none
 
-  public :: kf, kdf, kddf, wCv, krad, kernelname, setdimbase, fwc
+  public :: kf, kdf, kddf, wCv, krad, kernelname, setdimbase, fwc, returnneibnum
 
   private
+    character (len=10) :: kernelname = ' M6/1 '
 
     real :: n2C(3) = (/ 0.0250000245894439, 0.0419531421032309, 0.0716202677260738 /)
     real :: fwcl(3) = [4.*9., 4.*9.3125, 4.*9.6441]
-    character (len=10) :: kernelname = ' M6/1 '
+    integer :: maxneibnum(3) = [1, 1, 1]
+
     real :: krad = 1.0, wCv, fwc
-    integer :: dim
+    integer :: dim, returnneibnum
   contains
 
   subroutine setdimbase(d)
@@ -18,6 +20,7 @@ module base_m61
     dim = d
     wCv = n2C(dim)
     fwc = fwcl(dim)
+    returnneibnum = maxneibnum(dim)
   end subroutine
 
   pure subroutine kf(q, f)

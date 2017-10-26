@@ -46,8 +46,8 @@ contains
     real, allocatable, intent(inout) :: dv(:,:), du(:), dh(:), dcf(:,:), dfdx(:,:,:)
 
     real                 :: dr, rhoa, rhob, qa(3), qb(3), qc, n2wa, r2, &
-                            nwa(3), nwb(3), rab(3), vab(3), vba(3), urab(3), Pa(3), Pb(3), &
-                            Hesa(3,3), Hesb(3,3), oddi, oddj, kcfij(3,3), ktmp
+                            nwa(3), nwb(3), rab(3), vab(3), vba(3), urab(3), &
+                            Hesa(3,3), oddi, oddj, kcfij(3,3), ktmp
     integer, allocatable :: nlista(:), nlistb(:)
     integer              :: i, j, la, lb, n
     integer(8)           :: t0, tneib
@@ -65,9 +65,9 @@ contains
     end if
     call getNeibListL1(nlista)
     !$omp parallel do default(none)&
-    !$omp private(rab, dr, vab, urab, rhoa, rhob, nwa, nwb, qa, qb, qc, Pa, Pb)&
+    !$omp private(rab, dr, vab, urab, rhoa, rhob, nwa, nwb, qa, qb, qc)&
     !$omp private(n2wa, j, i, r2, oddi ,oddj, la, lb)&
-    !$omp private(nlistb, Hesa, Hesb, vba, t0, kcfij, ktmp) &
+    !$omp private(nlistb, Hesa, vba, t0, kcfij, ktmp) &
     !$omp shared(dv, du, dh, dcf, n, pos, h, v, den, c, p, om, mas, u, kcf, cf)&
     !$omp shared(ptype, dfdx, nlista)&
     !$omp shared(s_dim, s_kr, s_ktp, s_dtp, s_ttp, s_adden, s_artts)&
@@ -281,35 +281,26 @@ contains
     real, intent(in)  :: da, db, vab(3), urab(3), rab(3),&
                          dr, ca, cb, oa, ob, ha, hb
     real, intent(out) :: qa(3), qb(3)
-    real              :: alpha, betta, dvr, Hesrr(3,3), n2w(3)
+    real              :: alpha, beta, dvr, Hesrr(3,3), vsigu
+
     qa(:) = 0.
     qb(:) = 0.
     alpha = 1.
-    betta = 2.
-
-    ! qa * nwa(:) / (rhoa**2 * om(i))
+    beta = 2.
 
     dvr = dot_product(vab,urab)
     if (dvr <= 0) then
-      ! call get_n2w(rab, ha, n2w(1))
+      vsigu = -0.5 * (alpha*ca - beta*dvr)
       call get_hessian_rr(rab, ha, Hesrr)
-      qa(1) = -0.5 * (alpha*ca - betta*dvr) * &
-          dot_product(vab, Hesrr(:,1)) * dr / (-2) / (da * oa)
-      qa(2) = -0.5 * (alpha*ca - betta*dvr) * &
-          dot_product(vab, Hesrr(:,2)) * dr / (-2) / (da * oa)
-      qa(3) = -0.5 * (alpha*ca - betta*dvr) * &
-          dot_product(vab, Hesrr(:,3)) * dr / (-2) / (da * oa)
+      qa(1) = vsigu * dot_product(vab, Hesrr(:,1)) * dr / (-2.) / (da * oa)
+      qa(2) = vsigu * dot_product(vab, Hesrr(:,2)) * dr / (-2.) / (da * oa)
+      qa(3) = vsigu * dot_product(vab, Hesrr(:,3)) * dr / (-2.) / (da * oa)
 
+      vsigu = -0.5 * (alpha*cb - beta*dvr)
       call get_hessian_rr(rab, hb, Hesrr)
-      qb(1) = -0.5 * (alpha*cb - betta*dvr) * &
-          dot_product(vab, Hesrr(:,1)) * dr / (-2) / (db * ob)
-      qb(2) = -0.5 * (alpha*cb - betta*dvr) * &
-          dot_product(vab, Hesrr(:,2)) * dr / (-2) / (db * ob)
-      qb(3) = -0.5 * (alpha*cb - betta*dvr) * &
-          dot_product(vab, Hesrr(:,3)) * dr / (-2) / (db * ob)
-      ! call get_n2w(rab, hb, n2w(1))
-      ! qb(:) = -0.5 * (alpha*cb - betta*dvr) * &
-      !     vab(:) * n2w(1) * dr / (-2) / (db * ob)
+      qb(1) = vsigu * dot_product(vab, Hesrr(:,1)) * dr / (-2.) / (db * ob)
+      qb(2) = vsigu * dot_product(vab, Hesrr(:,2)) * dr / (-2.) / (db * ob)
+      qb(3) = vsigu * dot_product(vab, Hesrr(:,3)) * dr / (-2.) / (db * ob)
     end if
   end subroutine
 

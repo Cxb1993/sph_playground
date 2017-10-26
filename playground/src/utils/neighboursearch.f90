@@ -101,11 +101,14 @@ contains
     al1 = 1
     al2 = 1
 
+    !$omp parallel do default(none)&
+    !$omp shared(pos, ptype, h, kr, neighbours, stepsize)&
+    !$omp shared(alllistlv1, alllistlv2, maxresultnum, kdtree)&
+    !$omp private(i, j, tx, nlsz, nfound, kdtree_res)
     do i=1,sn,stepsize
       if (ptype(i) /= 0) then
-        alllistlv1(al1) = i
+        alllistlv1(i) = 1
         alllistlv2(i) = 1
-        al1 = al1 + 1
         tx = 1
         call kdtree2_r_nearest_around_point(kdtree, i, 0, (kr * h(i))**2, nfound, maxresultnum, kdtree_res)
         if (maxresultnum < nfound) then
@@ -128,15 +131,20 @@ contains
         end do
       end if
     end do
+    !$omp end parallel do
 
-    al1 = al1 - 1
-    call resize(alllistlv1, al1, al1)
     do i = 1,sn
+      if ( alllistlv1(i) == 1 ) then
+        alllistlv1(al1) = i
+        al1 = al1 + 1
+      end if
       if ( alllistlv2(i) == 1 ) then
         alllistlv2(al2) = i
         al2 = al2 + 1
       end if
     end do
+    al1 = al1 - 1
+    call resize(alllistlv1, al1, al1)
     al2 = al2 - 1
     call resize(alllistlv2, al2, al2)
 

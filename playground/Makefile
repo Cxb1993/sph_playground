@@ -10,6 +10,7 @@ SRC= \
 	utils/timing.f90\
 	utils/map.f90\
 	utils/list.f90\
+	utils/kdtree2.f90\
 	const.f90\
 	state.f90
 
@@ -126,9 +127,8 @@ memleakcheck:
 			--gen-suppressions=all \
 			./execute --dim $(dim)\
 			--tasktype $(taskcheck) --spacing .01\
-			--errfilename runresult.info --kerneltype $(kt)\
-			--tfinish .2 --hfac $(hf) --difftype $(dtype)\
-			--silent $(silent)
+			--errfilename result.info --kerneltype $(kt) \
+			--tfinish .05 --hfac 1.2 --difftype diff --silent no
 
 hydroshock:
 	make debug=$(debug) && time ./execute --dim $(dim)\

@@ -52,7 +52,7 @@ contains
     case (1)
       ! hydroshock
       ! pspc1 = 0.001
-      pspc2 = pspc1*8.
+      pspc2 = pspc1*4.
       if (dim == 1) then
         pspc2 = pspc1 * 8.
       end if

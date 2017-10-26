@@ -3,14 +3,16 @@ module base_kernel
 
   implicit none
 
-  public :: kf, kdf, kddf, knorm, krad, kernelname, setdimbase, wCv, fwc
+  public :: kf, kdf, kddf, knorm, krad, kernelname, setdimbase, wCv, fwc, returnneibnum
 
   private
 
     real :: knorm(3) = [ 1./sqrt(pi), 1./pi, 1./pi**(1.5) ]
     real :: fwcl(3) = [4., 4., 4.]
+    integer :: maxneibnum(3) = [1, 1, 1]
+
     real :: krad = 2., wCv, fwc
-    integer :: dim
+    integer :: dim, returnneibnum
     character (len=10) :: kernelname='gauss'
 
  contains
@@ -21,6 +23,7 @@ module base_kernel
     dim = d
     wCv = knorm(dim)
     fwc = fwcl(dim)
+    returnneibnum = maxneibnum(dim)
   end subroutine
 
   pure subroutine kf(q, f)

@@ -120,7 +120,8 @@ contains
     case(7,8)
     case(10)
       ! diff-artvisc
-      call findneighboursN2plus(ptype, pos, h)
+      ! call findneighboursN2plus(ptype, pos, h)
+      call findneighboursKDT(ptype, pos, h)
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf, dfdx)
     case(9)
       ! soundwave
