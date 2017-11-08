@@ -114,7 +114,7 @@ module kernel
     real, intent(out) :: n2w
     integer :: ktype
 
-    call get_kerntype(ktype)
+    call getkerntype(ktype)
 
     if (ktype == 1) then
       call get_on2w(r, h, n2w)
@@ -133,7 +133,7 @@ module kernel
     real              :: r11, r12, r13, r22, r23, r33, cstart, dfq
     integer :: ktype
 
-    call get_kerntype(ktype)
+    call getkerntype(ktype)
 
     r2 = dot_product(r,r)
 
@@ -246,7 +246,7 @@ module kernel
     real              :: r11, r12, r13, r22, r23, r33, cstart, dfq
     integer :: ktype
 
-    call get_kerntype(ktype)
+    call getkerntype(ktype)
 
     r2 = dot_product(r,r)
 

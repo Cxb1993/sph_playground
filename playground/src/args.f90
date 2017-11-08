@@ -1,7 +1,7 @@
 module args
   use errteylor,  only: setInfluenceCalc
   use state,      only: set_tasktype,&
-                        set_kerntype,&
+                        setkerntype,&
                         set_difftype,&
                         sinitvar,&
                         setAdvancedDensity, &
@@ -92,7 +92,7 @@ module args
       call setdimkernel(dim)
       call set_tasktype(itype)
       pspc2 = pspc1
-      call set_kerntype(ktype)
+      call setkerntype(ktype)
       dtout = tfinish / npic
       call set_difftype(dtype)
 

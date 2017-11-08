@@ -2,12 +2,13 @@ module state
   implicit none
 
   public :: set_difftype, get_difftype, set_tasktype, get_tasktype, &
-            set_kerntype, get_kerntype, getdim, setdim, sinitvar, &
+            setkerntype, getkerntype, getdim, setdim, sinitvar, &
             ginitvar, setAdvancedDensity, getAdvancedDensity,&
-            setArtificialTerms, getArtificialTerms
+            setArtificialTerms, getArtificialTerms,&
+            setpartnum, getpartnum
   private
   save
-    integer :: dim = 1
+    integer :: dim = 1, partnumber=-1
     integer :: ttype, ktype, dtype, icvar=-1, adden = 1, artts = 1
   contains
     subroutine setdim(d)
@@ -18,6 +19,16 @@ module state
     pure subroutine getdim(d)
       integer, intent(out) :: d
       d = dim
+    end subroutine
+
+    subroutine setpartnum(d)
+      integer, intent(in) :: d
+      partnumber = d
+    end subroutine
+
+    pure subroutine getpartnum(d)
+      integer, intent(out) :: d
+      d = partnumber
     end subroutine
 
     subroutine set_tasktype(itt)
@@ -54,7 +65,7 @@ module state
       ott = ttype
     end subroutine get_tasktype
 
-    subroutine set_kerntype(itt)
+    subroutine setkerntype(itt)
       character (len=*), intent(in) :: itt
       select case(itt)
       case('n2w')
@@ -70,12 +81,12 @@ module state
         stop
       end select
      !  call calc_params()
-    end subroutine set_kerntype
+    end subroutine setkerntype
 
-    pure subroutine get_kerntype(ott)
+    pure subroutine getkerntype(ott)
       integer, intent(out) :: ott
       ott = ktype
-    end subroutine get_kerntype
+    end subroutine getkerntype
 
    subroutine set_difftype(idt)
      character (len=*), intent(in) :: idt

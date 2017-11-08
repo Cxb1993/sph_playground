@@ -6,7 +6,7 @@ module InitVariables
   use const
   use kernel,       only: get_krad
   use state,        only: get_tasktype,&
-                          get_kerntype,&
+                          getkerntype,&
                           getdim
   use BC
 
@@ -33,7 +33,7 @@ contains
   !
   !   call system_clock(start)
   !
-  !   call get_kerntype(kt)
+  !   call getkerntype(kt)
   !   call get_tasktype(tt)
   !   call get_krad(kr)
   !   call getdim(dim)

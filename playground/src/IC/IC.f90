@@ -6,12 +6,11 @@ module IC
   use const
   use kernel,       only: get_krad
   use state,        only: get_tasktype,&
-                          get_kerntype,&
+                          getkerntype,&
                           getdim,&
                           ginitvar
   use BC
   use initpositions,  only: uniform,&
-                            semiuniform,&
                             place_close_packed_fcc
 
   implicit none
@@ -38,7 +37,7 @@ contains
 
     call system_clock(start)
 
-    call get_kerntype(kt)
+    call getkerntype(kt)
     call get_tasktype(tt)
     call get_krad(kr)
     call getdim(dim)
@@ -52,7 +51,7 @@ contains
     case (1)
       ! hydroshock
       ! pspc1 = 0.001
-      pspc2 = pspc1*4.
+      pspc2 = pspc1*2.
       if (dim == 1) then
         pspc2 = pspc1 * 8.
       end if
@@ -73,7 +72,7 @@ contains
         brdz1 = 0.
         brdz2 = 0.
       end if
-      call semiuniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
+      call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
     case (2)
       ! infslb
       nb = 1
@@ -84,21 +83,22 @@ contains
       brdx2 =  1.
       nptcs = int((brdx2-brdx1)/pspc1)
       pspc1 = merge(0.,(brdx2-brdx1)/nptcs, nptcs == 0)
+      pspc1 = pspc2
+      nb = int(kr * sk)*2
       if (dim > 1) then
-        brdy1 = -1.
-        brdy2 =  1.
+        brdy1 = -pspc1*nb*2
+        brdy2 =  pspc1*nb*2
       else
         brdy1 = 0.
         brdy2 = 0.
       end if
       if (dim == 3) then
-        brdz1 = -1.
-        brdz2 =  1.
+        brdz1 = -pspc1*nb*2
+        brdz2 =  pspc1*nb*2
       else
         brdz1 = 0.
         brdz2 = 0.
       end if
-      nb = int(kr * sk)*2
       call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
     case (4)
       ! pheva
@@ -359,16 +359,16 @@ contains
         ! anisotropic-12
         mas(i) = (sp**dim) * rho1
         den(i) = rho1
-        kcf(1,1,i) = 0.
+        kcf(1,1,i) = 1.
         kcf(1,2,i) = 0.
         kcf(1,3,i) = 0.
         kcf(2,1,i) = 0.
-        kcf(2,2,i) = 1.
+        kcf(2,2,i) = 0.
         kcf(2,3,i) = 0.
         kcf(3,1,i) = 0.
         kcf(3,2,i) = 0.
         kcf(3,3,i) = 0.
-        cf(:, i) = 0
+        ! cf(:, i) = sin(x(:,i))
         if (x(1,i) < 0.) then
           cf(1,i) = 1
         else if (x(1,i) > 0.) then

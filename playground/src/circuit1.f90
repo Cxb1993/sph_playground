@@ -2,7 +2,7 @@ module circuit1
   use omp_lib
   use timing,           only: addTime
   use state,            only: getdim, &
-                              get_kerntype
+                              getkerntype
   use kernel,           only: get_krad, &
                               get_dw_dh, &
                               get_nw, &
@@ -27,11 +27,12 @@ contains
     allocate(resid(n))
   end subroutine c1_init
 
-  subroutine c1(pos, mas, vel, hfac, h, den, om, dfdx)
+  subroutine c1(ptype, pos, mas, hfac, h, den, om, cf, dcf, kcf)
     use state, only: getAdvancedDensity
 
-    real, allocatable, intent(in)    :: pos(:,:), mas(:), vel(:,:)
-    real, allocatable, intent(inout) :: h(:), den(:), om(:), dfdx(:,:,:)
+    integer, allocatable, intent(in) :: ptype(:)
+    real, allocatable, intent(in)    :: pos(:,:), mas(:), cf(:,:)
+    real, allocatable, intent(inout) :: h(:), den(:), om(:), dcf(:,:), kcf(:,:,:)
     real, intent(in)                 :: hfac
 
     integer :: ad
@@ -39,9 +40,9 @@ contains
     call getAdvancedDensity(ad)
 
     if (ad == 1) then
-      call c1advanced(pos, mas, vel, hfac, h, den, om, dfdx)
+      call c1advanced(ptype, pos, mas, hfac, h, den, om, cf, dcf, kcf)
     else
-      call c1simple(pos, mas, hfac, h, den)
+      call c1simple(ptype, pos, mas, hfac, h, den, cf, dcf, kcf)
       om(:) = 1.
     end if
   end subroutine
@@ -51,11 +52,14 @@ contains
     deallocate(resid)
   end subroutine
 
-  subroutine c1advanced(pos, mas, vel, sk, h, den, om, dfdx)
-    real, allocatable, intent(in)    :: pos(:,:), mas(:), vel(:,:)
-    real, allocatable, intent(inout) :: h(:), den(:), om(:), dfdx(:,:,:)
+  subroutine c1advanced(ptype, pos, mas, sk, h, den, om, cf, dcf, kcf)
+    use neighboursearch,  only: findneighboursKDT
+
+    integer, allocatable, intent(in) :: ptype(:)
+    real, allocatable, intent(in)    :: pos(:,:), mas(:), cf(:,:), kcf(:,:,:)
+    real, allocatable, intent(inout) :: h(:), den(:), om(:), dcf(:,:)
     real, intent(in)     :: sk
-    real                 :: w, dwdh, r(3), dr, r2, dfdh, fh, hn, vba(3), nw(3)
+    real                 :: w, dwdh, r(3), dr, r2, dfdh, fh, hn, vba(3), nwa(3), nwb(3)
     real                 :: allowerror
     integer              :: n, ni, nj, i, j, la, lb, dim, iter, ktp
     integer(8)           :: t0, tneib
@@ -65,7 +69,7 @@ contains
     n = size(den)
 
     call getdim(dim)
-    call get_kerntype(ktp)
+    call getkerntype(ktp)
 
     call getNeibListL2(nlista)
 
@@ -80,18 +84,15 @@ contains
       iter = iter + 1
       !$omp parallel do default(none)&
       !$omp private(r, dr, dwdh, w, dfdh, fh, hn, j, i, la, lb, r2, t0, nlistb)&
-      !$omp private(ni, nj, nw, vba)&
+      !$omp private(ni, nj, nwa, nwb, vba)&
       !$omp shared(resid, allowerror, n, pos, mas, dim, sk, h, ktp)&
-      !$omp shared(nlista, den, om, slnint, dfdx, vel)&
+      !$omp shared(nlista, den, om, slnint, dcf, cf)&
       !$omp reduction(+:tneib)
       do la = 1, size(nlista)
         i = nlista(la)
         if (resid(i) > allowerror) then
           den(i)  = 0.
           om(i)   = 0.
-          if ( ktp == 3 ) then
-            dfdx(:,:,i) = 0.
-          end if
           ! print*, i
           call getneighbours(i, pos, h, nlistb, t0)
           tneib = tneib + t0
@@ -108,27 +109,9 @@ contains
             ! print*,0
             den(i) = den(i) + mas(j) * w
             om(i) = om(i) + mas(j) * dwdh
-            if ( ktp == 3 ) then
-              vba(:) = vel(:,j) - vel(:,i)
-              call get_nw(r, h(i), nw)
-              do ni = 1,dim
-                do nj = 1,dim
-                  ! ------------------------------------------------------------
-                  ! Symmetric operator
-                  ! ------------------------------------------------------------
-                  ! diff without omega
-                  ! dfdx(ni,nj,i) = dfdx(ni,nj,i) + mas(j)/den(j)*vba(ni)*nw(nj)
-                  ! diff
-                  ! ---------------------------------------------------
-                  ! Differential operator
-                  ! ---------------------------------------------------
-                  dfdx(ni,nj,i) = dfdx(ni,nj,i) + mas(j)*vba(ni)*nw(nj)
-                end do
-              end do
-            end if
           end do
           ! ---------------------------------------------------------!
-          ! (**)   There is no particle itself in neighbour list     !
+          !      There is no particle itself in neighbour list       !
           ! ---------------------------------------------------------!
           ! print*,'c1', 1
           call get_dw_dh(0., slnint(i), dwdh)
@@ -139,44 +122,51 @@ contains
           om(i) = om(i) + mas(i) * dwdh
           ! -(**)----------------------------------------------------!
           ! print*,'c1', 4, om(i), mas(i), dwdh
-          ! if ( i == 5 ) then
-          !   print*, slnint(i)
-          ! end if
           om(i) = 1. - om(i) * (- slnint(i) / (dim * den(i)))
           ! print*,'c1', 5, om(i), slnint(i), dim, den(i)
-          if ( ktp == 3 ) then
-            dfdx(:,:,i) = dfdx(:,:,i) / om(i) / den(i)
-          end if
-          ! print*,'c1', 6, den(i), om(i)
           dfdh = - dim * den(i) * om(i) / slnint(i)
           ! print*,'c1', 7, den(i), om(i), slnint(i)
           fh  = mas(i) * (sk / slnint(i)) ** dim - den(i)
           ! print*,'c1', 8, dfdh
           hn = slnint(i) - fh / dfdh
-          ! if (hn < 0.) then
-          !   hn = slnint(i)
-          ! end if
           ! print*,'c1', 9
           resid(i) = abs(hn - slnint(i)) / h(i)
           slnint(i) = hn
           ! print*,'c1', 10
+          if (ktp == 3) then
+            dcf(:,i) = 0.
+            call getneighbours(i, pos, slnint, nlistb, t0)
+            tneib = tneib + t0
+            do lb = 1, size(nlistb)
+              j = nlistb(lb)
+              r(:) = pos(:,i) - pos(:,j)
+              call get_nw(r, slnint(i), nwa)
+              dcf(:,i) = dcf(:,i) + mas(j)*(cf(1,j) - cf(1,i))*nwa(:)
+            end do
+          end if
         end if
       end do
       !$omp end parallel do
+
+      ! call findneighboursKDT(ptype, pos, h)
+      ! call getNeibListL2(nlista)
     end do
+
     if (iter > 10) then
       print*, "Warn: density NR solution took ", iter, "iterations, with max norm error", maxval(resid, mask=(resid>0))
     end if
+
     h(:) = slnint(:)
     call system_clock(finish)
     call addTime(' circuit1', finish - start - tneib)
   end subroutine
 
 ! Direct density summation
-  subroutine c1simple(pos, mas, sk, sln, den)
-    real, allocatable, intent(in)    :: pos(:,:), mas(:)
+  subroutine c1simple(ptype, pos, mas, sk, sln, den, cf, dcf, kcf)
+    integer, allocatable, intent(in) :: ptype(:)
+    real, allocatable, intent(in)    :: pos(:,:), mas(:), cf(:,:), kcf(:,:,:)
     real,              intent(in)    :: sk
-    real, allocatable, intent(inout) :: den(:), sln(:)
+    real, allocatable, intent(inout) :: den(:), sln(:), dcf(:,:)
     real                             :: w, r(3), dr
     integer                          :: i, j, la, lb, dim
     integer, allocatable             :: nlista(:), nlistb(:)

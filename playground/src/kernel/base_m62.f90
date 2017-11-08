@@ -8,7 +8,7 @@ module base_kernel
 
     real :: n2C(3) = (/ 0.0124999997029078, 0.0104882435025047, 0.00895246473927735 /)
     real :: fwcl(3) = [9., 9.3151, 9.6429]
-    integer :: maxneibnum(3) = [1, 25, 90]
+    integer :: maxneibnum(3) = [1, 60, 90]
 
     character (len=10) :: kernelname = ' M6/2 '
     real :: krad = 2.0, wCv, fwc

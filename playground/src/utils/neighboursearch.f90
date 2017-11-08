@@ -3,14 +3,14 @@ module NeighbourSearch
   use Timing, only: addTime
   use kernel, only: get_krad
   use state,  only: getdim,&
-                    get_kerntype
+                    getkerntype
   use ArrayResize,  only: resize
   use omp_lib
   use kdtree2_module
 
   implicit none
 
-public findneighboursN2, findneighboursN2plus, findneighboursKDT, &
+public findneighboursN2, findneighboursN2plusStatic, findneighboursKDT, &
         getneighbours, getNeibNumbers, destroy, &
         setStepsize, isInitialized, getNeibListL1, getNeibListL2
 
@@ -69,17 +69,20 @@ contains
 
   subroutine findneighboursKDT(ptype, pos, h)
     use kernel, only: getkernelnn => getneibnumber
+    use state,  only: getkerntype
 
     real, allocatable, intent(in)    :: pos(:,:), h(:)
     integer, allocatable, intent(in) :: ptype(:)
     type(kdtree2), pointer            :: kdtree
     type(kdtree2_result), allocatable :: kdtree_res(:)
-    integer :: maxresultnum, sn, nfound, nlsz, i, j, al1, al2, tx
+    integer :: maxresultnum, sn, nfound, nlsz, i, j, al1, al2, tx, ktp
     real    :: kr
 
     call system_clock(start)
     call get_krad(kr)
     call getkernelnn(maxresultnum)
+    call getkerntype(ktp)
+
     kdtree => kdtree2_create(pos)
 
     sn = size(pos, dim=2)
@@ -102,7 +105,7 @@ contains
     al2 = 1
 
     !$omp parallel do default(none)&
-    !$omp shared(pos, ptype, h, kr, neighbours, stepsize)&
+    !$omp shared(pos, ptype, h, kr, neighbours, stepsize, ktp)&
     !$omp shared(alllistlv1, alllistlv2, maxresultnum, kdtree)&
     !$omp private(i, j, tx, nlsz, nfound, kdtree_res)
     do i=1,sn,stepsize
@@ -170,7 +173,7 @@ contains
 
     call get_krad(kr)
     call getdim(dim)
-    call get_kerntype(kt)
+    call getkerntype(kt)
 
     if(allocated(neighbours)) then
       do i=1,sn,stepsize
@@ -305,7 +308,7 @@ contains
     ! print*, needDeepCheck
   end subroutine checkConsistentNeighbours
 
-  subroutine findneighboursN2plus(ptype, pos, h)
+  subroutine findneighboursN2plusStatic(ptype, pos, h)
     real, allocatable, intent(in)    :: pos(:,:), h(:)
     integer, allocatable, intent(in) :: ptype(:)
     integer, allocatable             :: needDeepCheck(:)
@@ -320,7 +323,7 @@ contains
 
     call get_krad(kr)
     call getdim(dim)
-    call get_kerntype(kt)
+    call getkerntype(kt)
 
     if (.not. allocated(neighbours)) then
       allocate(neighbours(sn))
@@ -401,7 +404,7 @@ contains
     initialized = 1.
     call system_clock(finish)
     call addTime(' neibs', finish - start)
-  end subroutine findneighboursN2plus
+  end subroutine
 
   subroutine getneighbours(idx, pos, h, list, dt)
     real, allocatable, intent(in)       :: pos(:,:), h(:)
