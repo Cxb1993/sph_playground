@@ -6,7 +6,8 @@ module circuit1
   use kernel,           only: get_krad, &
                               get_dw_dh, &
                               get_nw, &
-                              get_w
+                              get_w, &
+                              get_nw_cyl
   use neighboursearch,  only: getneighbours,&
                               getNeibListL1,&
                               getNeibListL2
@@ -54,6 +55,7 @@ contains
 
   subroutine c1advanced(ptype, pos, mas, sk, h, den, om, cf, dcf, kcf)
     use neighboursearch,  only: findneighboursKDT
+    use state,            only: ginitvar
 
     integer, allocatable, intent(in) :: ptype(:)
     real, allocatable, intent(in)    :: pos(:,:), mas(:), cf(:,:), kcf(:,:,:)
@@ -61,15 +63,17 @@ contains
     real, intent(in)     :: sk
     real                 :: w, dwdh, r(3), dr, r2, dfdh, fh, hn, vba(3), nwa(3), nwb(3)
     real                 :: allowerror
-    integer              :: n, ni, nj, i, j, la, lb, dim, iter, ktp
+    integer              :: n, ni, nj, i, j, la, lb, dim, iter, ktp, ivt
     integer(8)           :: t0, tneib
     integer, allocatable :: nlista(:), nlistb(:)
+
     call system_clock(start)
 
     n = size(den)
 
     call getdim(dim)
     call getkerntype(ktp)
+    call ginitvar(ivt)
 
     call getNeibListL2(nlista)
 
@@ -86,7 +90,7 @@ contains
       !$omp private(r, dr, dwdh, w, dfdh, fh, hn, j, i, la, lb, r2, t0, nlistb)&
       !$omp private(ni, nj, nwa, nwb, vba)&
       !$omp shared(resid, allowerror, n, pos, mas, dim, sk, h, ktp)&
-      !$omp shared(nlista, den, om, slnint, dcf, cf)&
+      !$omp shared(nlista, den, om, slnint, dcf, cf, ivt)&
       !$omp reduction(+:tneib)
       do la = 1, size(nlista)
         i = nlista(la)
@@ -122,7 +126,7 @@ contains
           om(i) = om(i) + mas(i) * dwdh
           ! -(**)----------------------------------------------------!
           ! print*,'c1', 4, om(i), mas(i), dwdh
-          om(i) = 1. - om(i) * (- slnint(i) / (dim * den(i)))
+          om(i) = 1. - om(i) * (-slnint(i) / (dim * den(i)))
           ! print*,'c1', 5, om(i), slnint(i), dim, den(i)
           dfdh = - dim * den(i) * om(i) / slnint(i)
           ! print*,'c1', 7, den(i), om(i), slnint(i)
@@ -140,7 +144,12 @@ contains
             do lb = 1, size(nlistb)
               j = nlistb(lb)
               r(:) = pos(:,i) - pos(:,j)
-              call get_nw(r, slnint(i), nwa)
+              if (ivt == 5) then
+                ! gaussian-ring in cylindrical coordinates
+                call get_nw_cyl(pos(:,i), pos(:,j), slnint(i), nwa)
+              else
+                call get_nw(r, slnint(i), nwa)
+              end if
               dcf(:,i) = dcf(:,i) + mas(j)*(cf(1,j) - cf(1,i))*nwa(:)
             end do
           end if

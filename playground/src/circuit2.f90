@@ -6,7 +6,9 @@ module circuit2
                               get_krad, &
                               get_n2w, &
                               get_nw, &
-                              get_hessian_rr
+                              get_hessian_rr, &
+                              get_nw_cyl
+
   use BC
   use neighboursearch,  only: getneighbours,&
                               getNeibListL1,&
@@ -19,7 +21,7 @@ module circuit2
   private
   save
     integer(8)  :: start=0, finish=0
-    integer     :: s_dim, s_ttp, s_ktp, s_adden, s_artts, initdone = 0
+    integer     :: s_dim, s_ttp, s_ktp, s_adden, s_artts, s_ivt, initdone = 0
     real        :: s_kr
     real, allocatable :: dcftmp(:,:)
 
@@ -30,7 +32,8 @@ contains
                       get_tasktype, getkerntype, &
                       getAdvancedDensity, &
                       getArtificialTerms, &
-                      getpartnum
+                      getpartnum, &
+                      ginitvar
     integer :: n
 
     call getdim(s_dim)
@@ -39,6 +42,8 @@ contains
     call getkerntype(s_ktp)
     call getAdvancedDensity(s_adden)
     call getArtificialTerms(s_artts)
+    call ginitvar(s_ivt)
+
     if (s_ktp == 3) then
       call getpartnum(n)
       allocate(dcftmp(3,n))
@@ -80,7 +85,7 @@ contains
     !$omp private(nlistb, Hesa, vba, t0, kcfij, ktmp) &
     !$omp shared(dv, du, dh, dcf, n, pos, h, v, den, c, p, om, mas, u, kcf, cf)&
     !$omp shared(ptype, nlista, dcftmp)&
-    !$omp shared(s_dim, s_kr, s_ktp, s_ttp, s_adden, s_artts)&
+    !$omp shared(s_dim, s_kr, s_ktp, s_ttp, s_adden, s_artts, s_ivt)&
     !$omp reduction(+:tneib)
     do la = 1, size(nlista)
       i = nlista(la)
@@ -167,15 +172,23 @@ contains
                 dot_product(kcfij(2,:),Hesa(2,:)) + &
                 dot_product(kcfij(3,:),Hesa(3,:)))
           else
+            ! symm-difff case
             ! call get_nw(rab, h(i), nwa)
             ! qa(1) = dot_product(kcfij(1,:),(dcftmp(:,j) - dcftmp(:,i)))
             ! qa(2) = dot_product(kcfij(2,:),(dcftmp(:,j) - dcftmp(:,i)))
             ! qa(3) = dot_product(kcfij(3,:),(dcftmp(:,j) - dcftmp(:,i)))
             ! dcf(1,i) = dcf(1,i) + mas(j)/den(j) * dot_product(qa(:),nwa(:))
-            ! the third den is from c1
-            call get_nw(rab, h(i), nwa)
-            call get_nw(rab, h(j), nwb)
 
+            ! diff-symm case
+            if (s_ivt == 5) then
+              ! gaussian-ring in cylindrical coordinates
+              call get_nw_cyl(pos(:,i), pos(:,j), h(i), nwa)
+              call get_nw_cyl(pos(:,i), pos(:,j), h(j), nwb)
+            else
+              call get_nw(rab, h(i), nwa)
+              call get_nw(rab, h(j), nwb)
+            end if
+            ! the third den is from c1
             odda = 1./om(i)/den(i)/den(i)/den(i)
             oddb = 1./om(j)/den(j)/den(j)/den(j)
 

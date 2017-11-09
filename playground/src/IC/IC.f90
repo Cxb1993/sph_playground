@@ -32,7 +32,8 @@ contains
     integer, intent(out) :: n
 
     real                 :: kr, prs1, prs2, rho1, rho2, kcf1, kcf2, cf1, cf2, sp, v0, &
-                            brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, period, eA
+                            brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, period, eA, &
+                            cca(3)
     integer              :: i, nb, tt, kt, dim, nptcs, ivt
 
     call system_clock(start)
@@ -86,15 +87,25 @@ contains
       pspc1 = pspc2
       nb = int(kr * sk)*2
       if (dim > 1) then
-        brdy1 = -pspc1*nb*2
-        brdy2 =  pspc1*nb*2
+        if (ivt == 4) then
+          brdy1 = -1.
+          brdy2 =  1.
+        else
+          brdy1 = -pspc1*nb*2
+          brdy2 =  pspc1*nb*2
+        end if
       else
         brdy1 = 0.
         brdy2 = 0.
       end if
       if (dim == 3) then
-        brdz1 = -pspc1*nb*2
-        brdz2 =  pspc1*nb*2
+        if (ivt == 4) then
+          brdz1 = -1.
+          brdz2 =  1.
+        else
+          brdz1 = -pspc1*nb*2
+          brdz2 =  pspc1*nb*2
+        end if
       else
         brdz1 = 0.
         brdz2 = 0.
@@ -220,7 +231,7 @@ contains
     !-------------------------------!
 
     !$omp parallel do default(none)&
-    !$omp private(i, sp)&
+    !$omp private(i, sp, cca)&
     !$omp shared(n, pspc1, pspc2, x, sln, den, prs, mas, iu, g, rho1, rho2)&
     !$omp shared(cf, kcf, dim, sk, tt, prs1, prs2, cf1, cf2, kcf1, kcf2)&
     !$omp shared(brdx2, brdx1, brdy2, brdy1, brdz2, brdz1, v0, v, period, ptype)&
@@ -261,6 +272,8 @@ contains
           mas(i) = (sp**dim) * rho2
         end if
       case (3, 4)
+        mas(i) = (sp**dim) * rho1
+        den(i) = rho1
       case(5, 6, 7, 8, 10)
         ! diff-graddiv ! diff-laplace ! chi-laplace
         ! chi-graddiv  ! soundwave ! diff-artvisc
@@ -312,8 +325,6 @@ contains
       case(-1)
       case(1)
         ! isotropic-sinxsinysinz
-        mas(i) = (sp**dim) * rho1
-        den(i) = rho1
         kcf(1,1,i) = kcf1
         kcf(2,2,i) = kcf1
         kcf(3,3,i) = kcf1
@@ -337,8 +348,6 @@ contains
         end if
       case(2)
         ! orthotropic-sinxsinysinz
-        mas(i) = (sp**dim) * rho1
-        den(i) = rho1
         kcf(1,1,i) = 10
         kcf(2,2,i) = 1
         kcf(3,3,i) = 0.1
@@ -356,9 +365,7 @@ contains
           end if
         end if
       case(3)
-        ! anisotropic-12
-        mas(i) = (sp**dim) * rho1
-        den(i) = rho1
+        ! shock12
         kcf(1,1,i) = 1.
         kcf(1,2,i) = 0.
         kcf(1,3,i) = 0.
@@ -376,6 +383,41 @@ contains
         else
           cf(1,i) = 1.5
         end if
+      case(4)
+        ! gaussian-pulse
+        kcf(1,1,i) = 1.
+        kcf(1,2,i) = 0.
+        kcf(1,3,i) = 0.
+        kcf(2,1,i) = 0.
+        kcf(2,2,i) = 0.
+        kcf(2,3,i) = 0.
+        kcf(3,1,i) = 0.
+        kcf(3,2,i) = 0.
+        kcf(3,3,i) = 0.
+        ! cf(:, i) = sin(x(:,i))
+        cf(1,i) = (2.*pi)**(-dim/2.)/(0.05**2)**(dim/2.)*&
+                  exp(-0.5*(x(1,i)*x(1,i) + x(2,i)*x(2,i) + x(3,i)*x(3,i))/(0.05**2))
+      case(5)
+        ! gaussian-ring
+        kcf(1,1,i) = 0.
+        kcf(1,2,i) = 0.
+        kcf(1,3,i) = 0.
+        kcf(2,1,i) = 0.
+        kcf(2,2,i) = 1.
+        kcf(2,3,i) = 0.
+        kcf(3,1,i) = 0.
+        kcf(3,2,i) = 0.
+        kcf(3,3,i) = 0.
+
+        cca(1) = sqrt(x(1,i)*x(1,i) + x(2,i)*x(2,i))
+        cca(2) = atan(x(2,i),x(1,i))
+        cca(3) = x(3,i)
+
+        ! exp[−(1/2)[(r−r0)^2/δr0^2 + φ^2/δφ0^2]]
+        ! δr0 = 0.05 and r0 = 0.3 define a Gaussian ring
+        !  at radius r0 of width δr, and δφ0 = 0.5
+        ! is an initial Gaussian spread about φ=0intheφˆdirection
+        cf(1,i) = exp(-0.5*((cca(1) - 0.3)**2/(0.05*0.05) + cca(2)*cca(2)/(0.5*0.5)))
       end select
     end do
     !$omp end parallel do

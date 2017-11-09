@@ -5,6 +5,7 @@ module kernel
   implicit none
 
   public :: get_nw, get_dw_dh, get_w, setdimkernel, &
+            get_nw_cyl, &
             get_n2w, get_krad, get_hessian, getkernelname, get_hessian_rr, getneibnumber
             !, PureKernel!, GradDivW!, get_n2y !, get_dphi_dh,
   save
@@ -62,6 +63,29 @@ module kernel
 
     nw(:) = wCv * df * rab(:) / h**(dim+2) / q
   end subroutine
+
+  pure subroutine get_nw_cyl(ra, rb, h, nw)
+    ! get cylindrical nabla kernel for cartesian input
+    real, intent(in)  :: ra(3), rb(3), h
+    real, intent(out) :: nw(3)
+    real              :: df, q, rab(3), cca(3), ccb(3)
+
+    cca(1) = sqrt(ra(1)*ra(1) + ra(2)*ra(2))
+    cca(2) = atan(ra(2),ra(1))
+    cca(3) = ra(3)
+
+    ccb(1) = sqrt(rb(1)*rb(1) + rb(2)*rb(2))
+    ccb(2) = atan(rb(2),rb(1))
+    ccb(3) = rb(3)
+
+    rab(:) = ra(:) - rb(:)
+    q = sqrt(dot_product(rab(:),rab(:))) / h
+    call kdf(q, df)
+
+    nw(1) = wCv / h**(dim+2) / q * df * (cca(1)-ccb(1)+ccb(1)*(1-cos(cca(2)-ccb(2))))
+    nw(2) = wCv / h**(dim+2) / q * df * (cca(1)*ccb(1)*sin(cca(2)-ccb(2)))
+    nw(3) = wCv / h**(dim+2) / q * df * (cca(3)-ccb(3))
+  end subroutine get_nw_cyl
 
   pure subroutine get_dw_dh(r, h, dwdh)
     real, intent(in)  :: r, h
