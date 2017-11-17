@@ -8,7 +8,8 @@ module IC
   use state,        only: get_tasktype,&
                           getkerntype,&
                           getdim,&
-                          ginitvar
+                          ginitvar,&
+                          gcoordsys
   use BC
   use initpositions,  only: uniform,&
                             place_close_packed_fcc
@@ -33,8 +34,8 @@ contains
 
     real                 :: kr, prs1, prs2, rho1, rho2, kcf1, kcf2, cf1, cf2, sp, v0, &
                             brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, period, eA, &
-                            cca(3)
-    integer              :: i, nb, tt, kt, dim, nptcs, ivt
+                            cca(3), qmatr(3,3), qtmatr(3,3)
+    integer              :: i, nb, tt, kt, dim, nptcs, ivt, cs
 
     call system_clock(start)
 
@@ -43,6 +44,7 @@ contains
     call get_krad(kr)
     call getdim(dim)
     call ginitvar(ivt)
+    call gcoordsys(cs)
 
     if ( kt == 3 ) then
       kr = kr * 2
@@ -87,7 +89,7 @@ contains
       pspc1 = pspc2
       nb = int(kr * sk)*2
       if (dim > 1) then
-        if (ivt == 4) then
+        if ((ivt == 4).or.(ivt == 5)) then
           brdy1 = -1.
           brdy2 =  1.
         else
@@ -99,7 +101,7 @@ contains
         brdy2 = 0.
       end if
       if (dim == 3) then
-        if (ivt == 4) then
+        if ((ivt == 4).or.(ivt == 5)) then
           brdz1 = -1.
           brdz2 =  1.
         else
@@ -231,11 +233,11 @@ contains
     !-------------------------------!
 
     !$omp parallel do default(none)&
-    !$omp private(i, sp, cca)&
+    !$omp private(i, sp, cca, qmatr, qtmatr)&
     !$omp shared(n, pspc1, pspc2, x, sln, den, prs, mas, iu, g, rho1, rho2)&
     !$omp shared(cf, kcf, dim, sk, tt, prs1, prs2, cf1, cf2, kcf1, kcf2)&
     !$omp shared(brdx2, brdx1, brdy2, brdy1, brdz2, brdz1, v0, v, period, ptype)&
-    !$omp shared(ivt, eA)
+    !$omp shared(ivt, eA, kt, cs)
     do i=1,n
       sp = merge(pspc1, pspc2, x(1,i) < 0)
       sln(i) = sk * sp
@@ -366,11 +368,11 @@ contains
         end if
       case(3)
         ! shock12
-        kcf(1,1,i) = 1.
+        kcf(1,1,i) = 0.
         kcf(1,2,i) = 0.
         kcf(1,3,i) = 0.
         kcf(2,1,i) = 0.
-        kcf(2,2,i) = 0.
+        kcf(2,2,i) = 1.
         kcf(2,3,i) = 0.
         kcf(3,1,i) = 0.
         kcf(3,2,i) = 0.
@@ -399,6 +401,7 @@ contains
                   exp(-0.5*(x(1,i)*x(1,i) + x(2,i)*x(2,i) + x(3,i)*x(3,i))/(0.05**2))
       case(5)
         ! gaussian-ring
+        ! initially in cylindric CS, but will be transphered in other system fewlines lower
         kcf(1,1,i) = 0.
         kcf(1,2,i) = 0.
         kcf(1,3,i) = 0.
@@ -412,6 +415,24 @@ contains
         cca(1) = sqrt(x(1,i)*x(1,i) + x(2,i)*x(2,i))
         cca(2) = atan(x(2,i),x(1,i))
         cca(3) = x(3,i)
+
+        if ( cs == 1 ) then
+          ! if do all in cartesian system
+          qmatr(1,1) = cos(cca(2))
+          qmatr(1,2) = -sin(cca(2))
+          qmatr(1,3) = 0.
+          qmatr(2,1) = sin(cca(2))
+          qmatr(2,2) = cos(cca(2))
+          qmatr(2,3) = 0.
+          qmatr(3,1) = 0.
+          qmatr(3,2) = 0.
+          qmatr(3,3) = 1.
+
+          qtmatr = transpose(qmatr)
+
+          kcf(:,:,i) = matmul(qmatr(:,:), kcf(:,:,i))
+          kcf(:,:,i) = matmul(kcf(:,:,i), qtmatr(:,:))
+        end if
 
         ! exp[−(1/2)[(r−r0)^2/δr0^2 + φ^2/δφ0^2]]
         ! δr0 = 0.05 and r0 = 0.3 define a Gaussian ring

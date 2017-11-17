@@ -1,18 +1,26 @@
 module kernel
   use const
-  use state
+  use state, only:  gcoordsys, &
+                    getkerntype, &
+                    setdim
   use base_kernel
   implicit none
 
-  public :: get_nw, get_dw_dh, get_w, setdimkernel, &
-            get_nw_cyl, &
-            get_n2w, get_krad, get_hessian, getkernelname, get_hessian_rr, getneibnumber
-            !, PureKernel!, GradDivW!, get_n2y !, get_dphi_dh,
+  public :: nw, get_dw_dh, get_w, initkernel, &
+            n2w, get_krad, get_hessian, getkernelname, get_hessian_rr, getneibnumber
   save
     integer :: dim
-  private
- contains
+    procedure (ainw), pointer :: nw => null()
 
+  private
+  abstract interface
+    subroutine ainw(rab, ra, rb, h, onw)
+      real, intent(out) :: onw(3)
+      real, intent (in) :: rab(3), ra(3), rb(3), h
+    end subroutine ainw
+  end interface
+
+contains
   pure subroutine getkernelname(kname)
     character (len=*), intent(out) :: kname
     kname = kernelname
@@ -29,11 +37,22 @@ module kernel
     nn = returnneibnum
   end subroutine
 
-  subroutine setdimkernel(indim)
+  subroutine initkernel(indim)
     integer, intent(in) :: indim
+    integer :: cs
+    ! init dimentions
     dim = indim
     call setdimbase(dim)
     call setdim(dim)
+    ! init coord system
+    call gcoordsys(cs)
+    if (cs == 1) then
+      nw => nw_cart
+    else if (cs == 2) then
+      nw => nw_cyl
+    else
+      error stop "Wrong CS in kernel."
+    end if
   end subroutine
 
   ! ---------!
@@ -53,22 +72,28 @@ module kernel
     w = wCv * f / h ** dim
   end subroutine
 
-  pure subroutine get_nw(rab, h, nw)
-    real, intent(in)  :: rab(3), h
-    real, intent(out) :: nw(3)
+  ! pure subroutine nw(rab, ra, rb, h, onw)
+  !   real, intent(in)  :: rab(3), ra(3), rb(3), h
+  !   real, intent(out) :: onw(3)
+  !
+  ! end subroutine nw
+
+  pure subroutine nw_cart(rab, ra, rb, h, onw)
+    real, intent(in)  :: rab(3), ra(3), rb(3), h
+    real, intent(out) :: onw(3)
     real              :: df, q
 
     q = sqrt(dot_product(rab(:),rab(:))) / h
     call kdf(q, df)
 
-    nw(:) = wCv * df * rab(:) / h**(dim+2) / q
-  end subroutine
+    onw(:) = wCv * df * rab(:) / h**(dim+2) / q
+  end subroutine nw_cart
 
-  pure subroutine get_nw_cyl(ra, rb, h, nw)
+  pure subroutine nw_cyl(rab, ra, rb, h, onw)
     ! get cylindrical nabla kernel for cartesian input
-    real, intent(in)  :: ra(3), rb(3), h
-    real, intent(out) :: nw(3)
-    real              :: df, q, rab(3), cca(3), ccb(3)
+    real, intent(in)  :: rab(3), ra(3), rb(3), h
+    real, intent(out) :: onw(3)
+    real              :: df, q, cca(3), ccb(3)
 
     cca(1) = sqrt(ra(1)*ra(1) + ra(2)*ra(2))
     cca(2) = atan(ra(2),ra(1))
@@ -78,14 +103,13 @@ module kernel
     ccb(2) = atan(rb(2),rb(1))
     ccb(3) = rb(3)
 
-    rab(:) = ra(:) - rb(:)
     q = sqrt(dot_product(rab(:),rab(:))) / h
     call kdf(q, df)
 
-    nw(1) = wCv / h**(dim+2) / q * df * (cca(1)-ccb(1)+ccb(1)*(1-cos(cca(2)-ccb(2))))
-    nw(2) = wCv / h**(dim+2) / q * df * (cca(1)*ccb(1)*sin(cca(2)-ccb(2)))
-    nw(3) = wCv / h**(dim+2) / q * df * (cca(3)-ccb(3))
-  end subroutine get_nw_cyl
+    onw(1) = wCv / h**(dim+2) / q * df * (cca(1)-ccb(1)+ccb(1)*(1-cos(cca(2)-ccb(2))))
+    onw(2) = wCv / h**(dim+2) / q * df * (cca(1)*ccb(1)*sin(cca(2)-ccb(2)))
+    onw(3) = wCv / h**(dim+2) / q * df * (cca(3)-ccb(3))
+  end subroutine nw_cyl
 
   pure subroutine get_dw_dh(r, h, dwdh)
     real, intent(in)  :: r, h
@@ -99,7 +123,7 @@ module kernel
     dwdh = - wCv / h**(dim + 1) * (dim * f + q * df)
   end subroutine get_dw_dh
 
-  pure subroutine get_FW(r, h, fw)
+  pure subroutine FW_cart(r, h, fw)
     real, intent(in)  :: r(3), h
     real, intent(out) :: fw
     real              :: f, dr, q
@@ -108,9 +132,9 @@ module kernel
     q = dr / h
     call kf(q, f)
     fw = fwc * wCv * f / h ** (dim + 2)
-  end subroutine
+  end subroutine FW_cart
 
-  pure subroutine get_Fab(r, h, Fab)
+  pure subroutine Fab_cart(r, h, Fab)
     real, intent(in)  :: r(3), h
     real, intent(out) :: Fab
     real              :: q, df
@@ -118,9 +142,9 @@ module kernel
     q = sqrt(dot_product(r,r)) / h
     call kdf(q, df)
     Fab = -2. * wCv * df / h**(dim+2) / q
-  end subroutine
+  end subroutine Fab_cart
 
-  pure subroutine get_on2w(r, h, n2w)
+  pure subroutine n2w_cart(r, h, n2w)
     real, intent(in)  :: r(:), h
     real, intent(out) :: n2w
     real              :: df, ddf, q
@@ -130,24 +154,42 @@ module kernel
     call kddf(q, ddf)
     call kdf(q, df)
     n2w = wCv*(ddf + (dim - 1) * df / q)/h**(dim + 2)
-  end subroutine
+  end subroutine n2w_cart
 
   ! pure
-  pure subroutine get_n2w(r, h, n2w)
+  pure subroutine n2w(r, h, on2w)
     real, intent(in)  :: r(3), h
-    real, intent(out) :: n2w
+    real, intent(out) :: on2w
     integer :: ktype
 
+    integer :: cs
+    call gcoordsys(cs)
     call getkerntype(ktype)
 
-    if (ktype == 1) then
-      call get_on2w(r, h, n2w)
-    else if (ktype == 2) then
-      call get_Fab(r, h, n2w)
-    else if (ktype == 4) then
-      call get_FW(r, h, n2w)
+    if (cs == 1) then
+      if (ktype == 1) then
+        call n2w_cart(r, h, on2w)
+      else if (ktype == 2) then
+        call Fab_cart(r, h, on2w)
+      else if (ktype == 4) then
+        call FW_cart(r, h, on2w)
+      else
+        error stop "Wrong kernel type in n2w"
+      end if
+    else if (cs == 2) then
+      ! if (ktype == 1) then
+      !   call get_on2w(r, h, n2w)
+      ! else if (ktype == 2) then
+      !   call get_Fab(r, h, n2w)
+      ! else if (ktype == 4) then
+      !   call get_FW(r, h, n2w)
+      ! else
+      !   error stop "Wrong kernel type in n2w"
+      ! end if
+    else
+      error stop "Wrong CS in \nabla W"
     end if
-  end subroutine
+  end subroutine n2w
 
   pure subroutine get_hessian(r, h, Hes)
   ! subroutine get_hessian(r, h, Hes)
@@ -207,7 +249,7 @@ module kernel
       end if
     elseif ( ktype == 2 ) then
       dr = sqrt(r2)
-      call get_Fab(r, h, fab)
+      call Fab_cart(r, h, fab)
       fab = 0.5*fab
 
       ! Hes(1,1) = ((dim+2)*r11 - 1)*fab
@@ -238,7 +280,7 @@ module kernel
       end if
     elseif ( ktype == 4 ) then
       dr = sqrt(r2)
-      call get_FW(r, h, fab)
+      call FW_cart(r, h, fab)
       fab = 0.5*fab
 
       Hes(1,1) = ((dim+2)*r11 - 1)*fab
@@ -307,7 +349,7 @@ module kernel
     elseif ( ktype == 2 ) then
       ! print*, 'Calc with using of F_{ab}'
       dr = sqrt(r2)
-      call get_Fab(r, h, fab)
+      call Fab_cart(r, h, fab)
       fab = 0.5*fab
 
       Hes(1,1) = (dim+2)*r11*fab
@@ -325,7 +367,7 @@ module kernel
       end if
     elseif ( ktype == 4 ) then
       dr = sqrt(r2)
-      call get_FW(r, h, fab)
+      call FW_cart(r, h, fab)
       fab = 0.5*fab
 
       Hes(1,1) = (dim+2)*r11*fab

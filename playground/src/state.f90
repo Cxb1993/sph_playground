@@ -4,12 +4,12 @@ module state
   public :: set_difftype, get_difftype, set_tasktype, get_tasktype, &
             setkerntype, getkerntype, getdim, setdim, sinitvar, &
             ginitvar, setAdvancedDensity, getAdvancedDensity,&
-            setArtificialTerms, getArtificialTerms,&
-            setpartnum, getpartnum
+            setArtificialTerms, getArtificialTerms, &
+            setpartnum, getpartnum, scoordsys, gcoordsys
   private
   save
     integer :: dim = 1, partnumber=-1
-    integer :: ttype, ktype, dtype, icvar=-1, adden = 1, artts = 1
+    integer :: ttype, ktype, dtype, icvar=-1, adden = 1, artts = 1, coordsys = 1
   contains
     subroutine setdim(d)
       integer, intent(in) :: d
@@ -164,5 +164,23 @@ module state
    pure subroutine getArtificialTerms(oat)
      integer, intent(out) :: oat
      oat = artts
+   end subroutine
+
+   subroutine scoordsys(ics)
+     character (len=*), intent(in) :: ics
+     select case(ics)
+     case('cartesian')
+       coordsys = 1
+     case('cylindric')
+       coordsys = 2
+     case default
+       print *, 'There is no such coordinate system setting : ', ics
+       stop
+     end select
+   end subroutine
+
+   pure subroutine gcoordsys(ocs)
+     integer, intent(out) :: ocs
+     ocs = coordsys
    end subroutine
 end module

@@ -2,12 +2,12 @@ module circuit1
   use omp_lib
   use timing,           only: addTime
   use state,            only: getdim, &
-                              getkerntype
+                              getkerntype, &
+                              gcoordsys
   use kernel,           only: get_krad, &
                               get_dw_dh, &
-                              get_nw, &
-                              get_w, &
-                              get_nw_cyl
+                              nw, &
+                              get_w
   use neighboursearch,  only: getneighbours,&
                               getNeibListL1,&
                               getNeibListL2
@@ -90,7 +90,7 @@ contains
       !$omp private(r, dr, dwdh, w, dfdh, fh, hn, j, i, la, lb, r2, t0, nlistb)&
       !$omp private(ni, nj, nwa, nwb, vba)&
       !$omp shared(resid, allowerror, n, pos, mas, dim, sk, h, ktp)&
-      !$omp shared(nlista, den, om, slnint, dcf, cf, ivt)&
+      !$omp shared(nlista, den, om, slnint, dcf, cf, ivt, nw)&
       !$omp reduction(+:tneib)
       do la = 1, size(nlista)
         i = nlista(la)
@@ -144,12 +144,7 @@ contains
             do lb = 1, size(nlistb)
               j = nlistb(lb)
               r(:) = pos(:,i) - pos(:,j)
-              if (ivt == 5) then
-                ! gaussian-ring in cylindrical coordinates
-                call get_nw_cyl(pos(:,i), pos(:,j), slnint(i), nwa)
-              else
-                call get_nw(r, slnint(i), nwa)
-              end if
+              call nw(r(:), pos(:,i), pos(:,j), slnint(i), nwa)
               dcf(:,i) = dcf(:,i) + mas(j)*(cf(1,j) - cf(1,i))*nwa(:)
             end do
           end if

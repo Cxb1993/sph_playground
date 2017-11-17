@@ -2,7 +2,7 @@ module errteylor
   use omp_lib
 
   use timing,           only: addTime
-  use kernel,           only: get_n2w, &
+  use kernel,           only: n2w, &
                               get_hessian, &
                               get_krad
   use state,            only: getdim
@@ -39,7 +39,7 @@ contains
     integer, allocatable :: nlist(:)
     integer              :: i, j, l, kd, nx, ny, nz, idx
     integer(8)           :: tneib, tprint
-    real                 :: n2w, r(3), r11, r22, r33, r12, r13, r23, kr, t(3),&
+    real                 :: n2wa, r(3), r11, r22, r33, r12, r13, r23, kr, t(3),&
                             dsum, osum, dchi(9)
     real, allocatable    :: printres(:)
 
@@ -77,24 +77,24 @@ contains
       r12 = r(1)*r(2)
       r13 = r(1)*r(3)
       r23 = r(2)*r(3)
-      call get_n2w(r, h(i), n2w)
+      call n2w(r, h(i), n2wa)
 
       ! call GradDivW(r, h(i), n2wa)
       ! call get_Hesobian(r, h(i), Hes)
-      t(:) = t(:) + mas(j)/den(j) * r(:) * n2w
+      t(:) = t(:) + mas(j)/den(j) * r(:) * n2wa
 
-      dchi(1) = 0.5 * mas(j)/den(j) * r11 * n2w ! Hes(1,1)
+      dchi(1) = 0.5 * mas(j)/den(j) * r11 * n2wa ! Hes(1,1)
       if ( kd > 1 ) then
-        dchi(2) = 0.5 * mas(j)/den(j) * r12 * n2w ! Hes(1,2)
-        dchi(5) = 0.5 * mas(j)/den(j) * r22 * n2w ! Hes(2,2)
-        dchi(4) = 0.5 * mas(j)/den(j) * r12 * n2w ! Hes(1,2)
+        dchi(2) = 0.5 * mas(j)/den(j) * r12 * n2wa ! Hes(1,2)
+        dchi(5) = 0.5 * mas(j)/den(j) * r22 * n2wa ! Hes(2,2)
+        dchi(4) = 0.5 * mas(j)/den(j) * r12 * n2wa ! Hes(1,2)
       end if
       if ( kd == 3 ) then
-        dchi(3) = 0.5 * mas(j)/den(j) * r13 * n2w ! Hes(1,3)
-        dchi(6) = 0.5 * mas(j)/den(j) * r23 * n2w ! Hes(2,3)
-        dchi(9) = 0.5 * mas(j)/den(j) * r33 * n2w ! Hes(3,3)
-        dchi(8) = 0.5 * mas(j)/den(j) * r23 * n2w ! Hes(2,3)
-        dchi(7) = 0.5 * mas(j)/den(j) * r13 * n2w ! Hes(1,3)
+        dchi(3) = 0.5 * mas(j)/den(j) * r13 * n2wa ! Hes(1,3)
+        dchi(6) = 0.5 * mas(j)/den(j) * r23 * n2wa ! Hes(2,3)
+        dchi(9) = 0.5 * mas(j)/den(j) * r33 * n2wa ! Hes(3,3)
+        dchi(8) = 0.5 * mas(j)/den(j) * r23 * n2wa ! Hes(2,3)
+        dchi(7) = 0.5 * mas(j)/den(j) * r13 * n2wa ! Hes(1,3)
       end if
       chi(:) = chi(:) + dchi(:)
       if ( kinfname /= '' ) then

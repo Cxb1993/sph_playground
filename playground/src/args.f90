@@ -5,8 +5,9 @@ module args
                         set_difftype,&
                         sinitvar,&
                         setAdvancedDensity, &
-                        setArtificialTerms
-  use kernel,     only: setdimkernel, &
+                        setArtificialTerms, &
+                        scoordsys
+  use kernel,     only: initkernel, &
                         getkernelname
 
   implicit none
@@ -22,7 +23,7 @@ module args
 
       integer                             :: numargs, curargnum
       character (len=100)                 :: argkey, argval1, silentstr, kerninflname, initvart,&
-                                             adden, artts
+                                             adden, artts, coordsysstr
 
       dim   = 1
       itype = 'chi-laplace'
@@ -40,6 +41,7 @@ module args
       initvart = ''
       adden = 'yes'
       artts = 'yes'
+      coordsysstr = 'cartesian'
 
 
       numargs = command_argument_count()
@@ -81,6 +83,8 @@ module args
             adden = adjustl(argval1)
           case('--useartificialterms')
             artts = adjustl(argval1)
+          case('--coordsys')
+            coordsysstr = adjustl(argval1)
           case default
             print*, 'argument not found: ', argkey
             stop
@@ -89,18 +93,20 @@ module args
         end do
       end if
 
-      call setdimkernel(dim)
+      call scoordsys(coordsysstr)
+      call initkernel(dim)
       call set_tasktype(itype)
       pspc2 = pspc1
       call setkerntype(ktype)
       dtout = tfinish / npic
       call set_difftype(dtype)
 
-      print *, "# #              dim:", dim
-      print *, "# #        task type:   ", itype
+      print *, "# #               dim:   ", dim
+      print *, "# # coordinate system:   ", coordsysstr
+      print *, "# #         task type:   ", itype
       if (initvart /= '') then
         call sinitvar(initvart)
-        print *, "# #    init var type:   ", initvart
+        print *, "# #     init var type:   ", initvart
       end if
       call setAdvancedDensity(adden)
       print *, "# # advanced density:   ", adden

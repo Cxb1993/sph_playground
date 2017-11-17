@@ -4,10 +4,9 @@ module circuit2
   use timing,           only: addTime
   use kernel,           only: get_hessian, &
                               get_krad, &
-                              get_n2w, &
-                              get_nw, &
-                              get_hessian_rr, &
-                              get_nw_cyl
+                              n2w, &
+                              nw, &
+                              get_hessian_rr
 
   use BC
   use neighboursearch,  only: getneighbours,&
@@ -59,7 +58,7 @@ contains
 
     real                 :: dr, rhoa, rhob, qa(3), qb(3), qc, n2wa, r2, &
                             nwa(3), nwb(3), rab(3), vab(3), vba(3), urab(3), &
-                            Hesa(3,3), odda, oddb, kcfij(3,3), ktmp
+                            Hesa(3,3), odda, oddb, kcfij(3,3), ktmp, phi
 
     integer, allocatable :: nlista(:), nlistb(:)
     integer              :: i, j, la, lb, n
@@ -82,10 +81,11 @@ contains
     !$omp parallel do default(none)&
     !$omp private(rab, dr, vab, urab, rhoa, rhob, nwa, nwb, qa, qb, qc)&
     !$omp private(n2wa, j, i, r2, odda ,oddb, la, lb)&
-    !$omp private(nlistb, Hesa, vba, t0, kcfij, ktmp) &
+    !$omp private(nlistb, Hesa, vba, t0, kcfij, ktmp, phi) &
     !$omp shared(dv, du, dh, dcf, n, pos, h, v, den, c, p, om, mas, u, kcf, cf)&
     !$omp shared(ptype, nlista, dcftmp)&
     !$omp shared(s_dim, s_kr, s_ktp, s_ttp, s_adden, s_artts, s_ivt)&
+    !$omp shared(nw)&
     !$omp reduction(+:tneib)
     do la = 1, size(nlista)
       i = nlista(la)
@@ -111,8 +111,8 @@ contains
           qc = 0.
           rhoa = den(i)
           rhob = den(j)
-          call get_nw(rab, h(i), nwa)
-          call get_nw(rab, h(j), nwb)
+          call nw(rab, pos(:,i), pos(:,j), h(i), nwa)
+          call nw(rab, pos(:,i), pos(:,j), h(j), nwb)
           if (s_artts == 1) then
             call art_viscosity(rhoa, rhob, vab, urab, rab, dr, s_dim, c(i), c(j), om(i), om(j), h(i), h(j), qa, qb)
             call art_termcond(nwa, nwb, urab, P(i), P(j), u(i), u(j), rhoa, rhob, qc)
@@ -180,14 +180,8 @@ contains
             ! dcf(1,i) = dcf(1,i) + mas(j)/den(j) * dot_product(qa(:),nwa(:))
 
             ! diff-symm case
-            if (s_ivt == 5) then
-              ! gaussian-ring in cylindrical coordinates
-              call get_nw_cyl(pos(:,i), pos(:,j), h(i), nwa)
-              call get_nw_cyl(pos(:,i), pos(:,j), h(j), nwb)
-            else
-              call get_nw(rab, h(i), nwa)
-              call get_nw(rab, h(j), nwb)
-            end if
+            call nw(rab, pos(:,i), pos(:,j), h(i), nwa)
+            call nw(rab, pos(:,i), pos(:,j), h(j), nwb)
             ! the third den is from c1
             odda = 1./om(i)/den(i)/den(i)/den(i)
             oddb = 1./om(j)/den(j)/den(j)/den(j)
@@ -205,7 +199,7 @@ contains
         case(4)
         case(5)
           ! 'diff-laplace'
-          call get_n2w(rab, h(i), n2wa)
+          call n2w(rab, h(i), n2wa)
           dv(:,i)  = dv(:,i) + mas(j)/den(j) * vba(:) * n2wa
           ! call get_hessian(rab, h(i), Hes)
           ! kcfij(:) = 2. * kcf(:,i) * kcf(:,j) / (kcf(:,i) + kcf(:,j))
@@ -313,8 +307,8 @@ contains
       do lb = 1, size(nlistb)
         j = nlistb(lb)
         rab(:) = pos(:,i) - pos(:,j)
-        call get_nw(rab, h(i), nwa)
-        call get_nw(rab, h(j), nwb)
+        call nw(rab, pos(:,i), pos(:,j),  h(i), nwa)
+        call nw(rab, pos(:,i), pos(:,j), h(j), nwb)
         dcf(:,i) = dcf(:,i) + mas(j)*( &
             cf(1,i)*nwa(:)/om(i)/den(i)/den(i) + &
             cf(1,j)*nwb(:)/om(j)/den(j)/den(j) )
