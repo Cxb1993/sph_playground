@@ -72,10 +72,14 @@ ifndef useomp
 useomp=t
 endif
 
+ifndef xperf
+xperf=f
+endif
+
 FC=gfortran
 
-FFLAGS=-fdefault-real-8 -fdefault-double-8\
- 				-O4
+FFLAGS=-fdefault-real-8 -fdefault-double-8 \
+ 				-flto -Ofast
 
 ifeq ($(debug),t)
 FFLAGS=-fdefault-real-8 -fdefault-double-8\
@@ -88,6 +92,15 @@ ifeq ($(useomp),t)
 	FFLAGS+=-fopenmp
 endif
 
+ifeq ($(xperf),f)
+	FFLAGS+=-O4
+endif
+ifeq ($(xperf),t)
+	FFLAGS+=-fprofile-generate=profiler
+endif
+ifeq ($(xperf),c)
+	FFLAGS+=-fprofile-use=profiler -fprofile-correction
+endif
 # FFLAGS+=-fopenmp
 
 ifeq ($(FC),gfortran)

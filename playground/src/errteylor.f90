@@ -3,7 +3,7 @@ module errteylor
 
   use timing,           only: addTime
   use kernel,           only: n2w, &
-                              get_hessian, &
+                              hessian, &
                               get_krad
   use state,            only: getdim
   use neighboursearch,  only: getneighbours,&
@@ -152,8 +152,8 @@ contains
     i = idx
     do l = 1,size(nlist)
       j = nlist(l)
-      r(:) = pos(:,j) - pos(:,i)
-      call get_hessian(r, h(i), Hes)
+      r(:) = pos(:,i) - pos(:,j)
+      call hessian(r, pos(:,i), pos(:,j), h(i), Hes)
       ci = 1
       do a = 1,3
         do b = 1,3

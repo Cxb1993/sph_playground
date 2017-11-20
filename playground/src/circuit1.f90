@@ -90,7 +90,8 @@ contains
       !$omp private(r, dr, dwdh, w, dfdh, fh, hn, j, i, la, lb, r2, t0, nlistb)&
       !$omp private(ni, nj, nwa, nwb, vba)&
       !$omp shared(resid, allowerror, n, pos, mas, dim, sk, h, ktp)&
-      !$omp shared(nlista, den, om, slnint, dcf, cf, ivt, nw)&
+      !$omp shared(nlista, den, om, slnint, dcf, cf, ivt)&
+      !$omp shared(nw)&
       !$omp reduction(+:tneib)
       do la = 1, size(nlista)
         i = nlista(la)

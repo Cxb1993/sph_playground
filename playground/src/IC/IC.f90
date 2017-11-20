@@ -434,6 +434,30 @@ contains
           kcf(:,:,i) = matmul(kcf(:,:,i), qtmatr(:,:))
         end if
 
+        ! print*, '-------------'
+        ! print*, x(:,i)
+        ! print*, '---'
+        ! print*, kcf(:,1,i)
+        ! print*, kcf(:,2,i)
+        ! print*, kcf(:,3,i)
+        ! print*, kcf(1,1,i)*kcf(2,2,i)-kcf(1,2,i)*kcf(2,1,i)
+        ! kcf(1,1,i) = x(2,i)*x(2,i)/(x(1,i)*x(1,i)+x(2,i)*x(2,i))
+        ! kcf(1,2,i) = -x(1,i)*x(2,i)/(x(1,i)*x(1,i)+x(2,i)*x(2,i))
+        ! kcf(1,3,i) = 0.
+        ! kcf(2,1,i) = -x(1,i)*x(2,i)/(x(1,i)*x(1,i)+x(2,i)*x(2,i))
+        ! kcf(2,2,i) = x(1,i)*x(1,i)/(x(1,i)*x(1,i)+x(2,i)*x(2,i))
+        ! kcf(2,3,i) = 0.
+        ! kcf(3,1,i) = 0.
+        ! kcf(3,2,i) = 0.
+        ! kcf(3,3,i) = 0.
+        ! print*, '---'
+        ! print*, kcf(:,1,i)
+        ! print*, kcf(:,2,i)
+        ! print*, kcf(:,3,i)
+        ! print*, kcf(1,1,i)*kcf(2,2,i)-kcf(1,2,i)*kcf(2,1,i)
+        ! print*, '-------------'
+        ! read*
+        
         ! exp[−(1/2)[(r−r0)^2/δr0^2 + φ^2/δφ0^2]]
         ! δr0 = 0.05 and r0 = 0.3 define a Gaussian ring
         !  at radius r0 of width δr, and δφ0 = 0.5

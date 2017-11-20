@@ -94,7 +94,6 @@ module args
       end if
 
       call scoordsys(coordsysstr)
-      call initkernel(dim)
       call set_tasktype(itype)
       pspc2 = pspc1
       call setkerntype(ktype)
@@ -125,5 +124,7 @@ module args
       write(*, "(A, A)") " # #         difftype:   ", dtype
       write(*, "(A, A)") " # #           silent:   ", silentstr
       write(*, "(A, F7.5, A, F7.5)") " # #           set dx:   x1=", pspc1, "   x2=", pspc2
+
+      call initkernel(dim)
     end subroutine fillargs
 end module

@@ -2,7 +2,7 @@ module circuit2
   use const
   use omp_lib
   use timing,           only: addTime
-  use kernel,           only: get_hessian, &
+  use kernel,           only: hessian, &
                               get_krad, &
                               n2w, &
                               nw, &
@@ -85,7 +85,7 @@ contains
     !$omp shared(dv, du, dh, dcf, n, pos, h, v, den, c, p, om, mas, u, kcf, cf)&
     !$omp shared(ptype, nlista, dcftmp)&
     !$omp shared(s_dim, s_kr, s_ktp, s_ttp, s_adden, s_artts, s_ivt)&
-    !$omp shared(nw)&
+    !$omp shared(nw, hessian)&
     !$omp reduction(+:tneib)
     do la = 1, size(nlista)
       i = nlista(la)
@@ -165,7 +165,7 @@ contains
           kcfij(:,:) = 2. * kcfij(:,:)
 
           if (s_ktp /= 3) then
-            call get_hessian(rab, h(i), Hesa)
+            call hessian(rab, pos(:,i), pos(:,j), h(i), Hesa)
 
             dcf(1,i) = dcf(1,i) + mas(j)/den(j) * (cf(1,j) - cf(1,i)) * &
               ( dot_product(kcfij(1,:),Hesa(1,:)) + &
@@ -206,7 +206,7 @@ contains
           ! dcf(1,i) = dcf(1,i) - mas(j) / (den(i) * den(j)) * (cf(1,i) - cf(1,j)) * &
           !           (kcfij(1)*Hes(1,1) + kcfij(2)*Hes(2,2) + kcfij(3)*Hes(3,3))
         case(6)
-          call get_hessian(rab, h(i), Hesa)
+          call hessian(rab, pos(:,i), pos(:,j), h(i), Hesa)
           dv(1,i) = dv(1,i) + mas(j)/den(j) * dot_product(vba,Hesa(:,1))
           dv(2,i) = dv(2,i) + mas(j)/den(j) * dot_product(vba,Hesa(:,2))
           dv(3,i) = dv(3,i) + mas(j)/den(j) * dot_product(vba,Hesa(:,3))
