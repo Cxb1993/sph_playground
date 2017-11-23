@@ -73,7 +73,7 @@ contains
       if (kt == 1) then
         hessian => hessian_ddw_cyl
       else if (kt == 2) then
-        !
+        ! hessian => hessian_fab_cart
       else if (kt == 3) then
         nw => nw_cyl
       else if (kt == 4) then
@@ -102,19 +102,6 @@ contains
 
     w = wCv * f / h ** dim
   end subroutine
-
-  ! pure subroutine nw(rab, ra, rb, h, onw)
-  !   real, intent(in)  :: rab(3), ra(3), rb(3), h
-  !   real, intent(out) :: onw(3)
-  !
-  !   if (s_cs == 1) then
-  !     call nw_cart(rab, h, onw)
-  !   else if (s_cs == 2) then
-  !     call nw_cyl(rab, ra, rb, h, onw)
-  !   else
-  !     error stop "Wrong CS in \nabla W"
-  !   end if
-  ! end subroutine nw
 
   pure subroutine nw_cart(rab, ra, rb, h, nw)
     real, intent(in)  :: rab(3), ra(3), rb(3), h
@@ -145,7 +132,11 @@ contains
     call kdf(q, df)
 
     nw(1) = wCv / h**(dim+2) / q * df * (cca(1)-ccb(1)+ccb(1)*(1-cos(cca(2)-ccb(2))))
-    nw(2) = wCv / h**(dim+2) / q * df * (cca(1)*ccb(1)*sin(cca(2)-ccb(2)))
+    if (cca(1) /= 0.) then
+      nw(2) = wCv / h**(dim+2) / q * df * (cca(1)*ccb(1)*sin(cca(2)-ccb(2))) / cca(1)
+    else
+      nw(2) = 0.
+    end if
     nw(3) = wCv / h**(dim+2) / q * df * (cca(3)-ccb(3))
   end subroutine nw_cyl
 
@@ -317,6 +308,7 @@ contains
   end subroutine
 
   pure subroutine hessian_ddw_cart(rab, ra, rb, h, Hes)
+  ! subroutine hessian_ddw_cart(rab, ra, rb, h, Hes)
     real, intent(in)  :: rab(3), ra(3), rb(3), h
     real, intent(out) :: Hes(3,3)
     real              :: r2, dr, df, ddf, fab, q
@@ -383,16 +375,19 @@ contains
     fab = 0.5*fab
 
     Hes(1,1) = ((dim+2)*r11 - 1)*fab
+    Hes(1,1) = 0.2*(2.*Hes(1,1) + 1.)
     if ( dim /= 1 ) then
       Hes(1,2) = (dim+2)*r12*fab
       Hes(2,1) = Hes(1,2)
       Hes(2,2) = ((dim+2)*r22 - 1)*fab
+      Hes(2,2) = 0.2*(2.*Hes(2,2) + 1.)
       if ( dim == 3 ) then
         Hes(1,3) = (dim+2)*r13*fab
         Hes(3,1) = Hes(1,3)
         Hes(2,3) = (dim+2)*r23*fab
         Hes(3,2) = Hes(2,3)
         Hes(3,3) = ((dim+2)*r33 - 1)*fab
+        Hes(3,3) = 0.2*(2.*Hes(3,3) + 1.)
       end if
     end if
   end subroutine
@@ -437,7 +432,7 @@ contains
   pure subroutine hessian_ddw_cyl(rab, ra, rb, h, Hes)
     real, intent(in)  :: rab(3), ra(3), rb(3), h
     real, intent(out) :: Hes(3,3)
-    real              :: r2, ir2, dr, df, ddf, fab, q
+    real              :: r2, ir2, dr, df, ddf, fab, q, nw(3)
     real              :: r11, r12, r13, r22, r23, r33, cstart, dfq
     real              :: d11, d12, d13, d22, d23, d33
     real              :: cosdphi, sindphi, term1
@@ -478,20 +473,22 @@ contains
 
     call kddf(q, ddf)
     call kdf(q, df)
+    call nw_cyl(rab, ra, rb, h, nw)
 
     dfq = df/q
-
-    Hes(1,1) = cstart*((ddf - dfq)*r11 + dfq*d11)
-    if ( dim /= 1 ) then
-      Hes(1,2) = cstart*((ddf - dfq)*r12 + dfq*d12)
-      Hes(2,1) = Hes(1,2)
-      Hes(2,2) = cstart*((ddf - dfq)*r22 + dfq*d22)
-      if ( dim == 3 ) then
-        Hes(1,3) = cstart*((ddf - dfq)*r13 + dfq*d13)
-        Hes(3,1) = Hes(1,3)
-        Hes(2,3) = cstart*((ddf - dfq)*r23 + dfq*d23)
-        Hes(3,2) = Hes(2,3)
-        Hes(3,3) = cstart*((ddf - dfq)*r33 + dfq*d33)
+    if ( cca(1) /= 0.) then
+      Hes(1,1) = cstart*((ddf - dfq)*r11 + dfq*d11) + nw(1) / cca(1)
+      if ( dim /= 1 ) then
+        Hes(1,2) = cstart*((ddf - dfq)*r12 + dfq*d12) / cca(1)
+        Hes(2,1) = Hes(1,2)
+        Hes(2,2) = cstart*((ddf - dfq)*r22 + dfq*d22) / cca(1)
+        if ( dim == 3 ) then
+          Hes(1,3) = cstart*((ddf - dfq)*r13 + dfq*d13)
+          Hes(3,1) = Hes(1,3)
+          Hes(2,3) = cstart*((ddf - dfq)*r23 + dfq*d23) / cca(1)
+          Hes(3,2) = Hes(2,3)
+          Hes(3,3) = cstart*((ddf - dfq)*r33 + dfq*d33)
+        end if
       end if
     end if
   end subroutine hessian_ddw_cyl

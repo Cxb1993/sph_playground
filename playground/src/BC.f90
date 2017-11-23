@@ -221,7 +221,12 @@ contains
     case (00)
       error stop "not implemented"
     case (10)
-      error stop "not implemented"
+      do i = 1, size(bX1ins)
+        A(bX2exc(i)) = A(bX1ins(i))
+      end do
+      do i = 1, size(bX2ins)
+        A(bX1exc(i)) = A(bX2ins(i))
+      end do
     case (20)
       do i = 1, size(bY1ins)
         A(bY2exc(i)) = A(bY1ins(i))
@@ -230,7 +235,12 @@ contains
         A(bY1exc(i)) = A(bY2ins(i))
       end do
     case (30)
-      error stop "not implemented"
+      do i = 1, size(bZ1ins)
+        A(bZ2exc(i)) = A(bZ1ins(i))
+      end do
+      do i = 1, size(bZ2ins)
+        A(bZ1exc(i)) = A(bZ2ins(i))
+      end do
     end select
   end subroutine periodic1v2
 
@@ -243,7 +253,12 @@ contains
     case (00)
       error stop "not implemented"
     case (10)
-      error stop "not implemented"
+      do i = 1, size(bX1ins)
+        A(:,bX2exc(i)) = A(:,bX1ins(i))
+      end do
+      do i = 1, size(bX2ins)
+        A(:,bX1exc(i)) = A(:,bX2ins(i))
+      end do
     case (20)
       do i = 1, size(bY1ins)
         A(:,bY2exc(i)) = A(:,bY1ins(i))
@@ -252,7 +267,12 @@ contains
         A(:,bY1exc(i)) = A(:,bY2ins(i))
       end do
     case (30)
-      error stop "not implemented"
+      do i = 1, size(bZ1ins)
+        A(:,bZ2exc(i)) = A(:,bZ1ins(i))
+      end do
+      do i = 1, size(bZ2ins)
+        A(:,bZ1exc(i)) = A(:,bZ2ins(i))
+      end do
     end select
   end subroutine periodic3v2
 

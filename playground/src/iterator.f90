@@ -77,10 +77,18 @@ contains
 
       call c1(ptype, pos, mas, sk, h, den, om, cf, dcf, kcf)
       call system_clock(start)
-      call periodic1v2(den, dim*10)
-      call periodic1v2(h,   dim*10)
-      call periodic1v2(om,  dim*10)
-      call periodic3v2(dcf, dim*10)
+      if (dim > 1 ) then
+        call periodic1v2(den, 20)
+        call periodic1v2(h,   20)
+        call periodic1v2(om,  20)
+        call periodic3v2(dcf, 20)
+        if (dim == 3) then
+          call periodic1v2(den, 30)
+          call periodic1v2(h,   30)
+          call periodic1v2(om,  30)
+          call periodic3v2(dcf, 30)
+        end if
+      end if
       call system_clock(finish)
       call addTime(' BC', finish - start)
 
@@ -92,14 +100,17 @@ contains
       ! call addTime(' BC', finish - start)
 
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
+      call system_clock(start)
       if (ivr == 3) then
         if (dim > 1) then
-          call system_clock(start)
-          call periodic3v2(dcf, dim*10)
-          call system_clock(finish)
-          call addTime(' BC', finish - start)
+          call periodic3v2(dcf, 20)
+          if (dim == 3) then
+            call periodic3v2(dcf, 30)
+          end if
         end if
       end if
+      call system_clock(finish)
+      call addTime(' BC', finish - start)
     case(4)
     case(5)
       ! 'diff-laplace'

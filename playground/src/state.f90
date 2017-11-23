@@ -5,11 +5,13 @@ module state
             setkerntype, getkerntype, getdim, setdim, sinitvar, &
             ginitvar, setAdvancedDensity, getAdvancedDensity,&
             setArtificialTerms, getArtificialTerms, &
-            setpartnum, getpartnum, scoordsys, gcoordsys
+            setpartnum, getpartnum, scoordsys, gcoordsys, &
+            sorigin, gorigin
   private
   save
     integer :: dim = 1, partnumber=-1
-    integer :: ttype, ktype, dtype, icvar=-1, adden = 1, artts = 1, coordsys = 1
+    integer :: ttype, ktype, dtype, icvar=-1, adden = 1, artts = 1, coordsys = 1, &
+                origin = 0
   contains
     subroutine setdim(d)
       integer, intent(in) :: d
@@ -183,4 +185,14 @@ module state
      integer, intent(out) :: ocs
      ocs = coordsys
    end subroutine
+
+   subroutine sorigin(io)
+     integer, intent(in) :: io
+     origin = io
+   end subroutine sorigin
+
+   pure subroutine gorigin(oo)
+     integer, intent(out) :: oo
+     oo = origin
+   end subroutine gorigin
 end module

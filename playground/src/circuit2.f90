@@ -20,7 +20,7 @@ module circuit2
   private
   save
     integer(8)  :: start=0, finish=0
-    integer     :: s_dim, s_ttp, s_ktp, s_adden, s_artts, s_ivt, initdone = 0
+    integer     :: s_dim, s_ttp, s_ktp, s_adden, s_artts, s_ivt, initdone = 0, s_origin
     real        :: s_kr
     real, allocatable :: dcftmp(:,:)
 
@@ -32,7 +32,8 @@ contains
                       getAdvancedDensity, &
                       getArtificialTerms, &
                       getpartnum, &
-                      ginitvar
+                      ginitvar, &
+                      gorigin
     integer :: n
 
     call getdim(s_dim)
@@ -42,6 +43,7 @@ contains
     call getAdvancedDensity(s_adden)
     call getArtificialTerms(s_artts)
     call ginitvar(s_ivt)
+    call gorigin(s_origin)
 
     if (s_ktp == 3) then
       call getpartnum(n)
@@ -134,43 +136,44 @@ contains
           end if
         case (2, 3)
           ! heatconduction
-          kcfij(:,:) = 0.
-          ktmp = kcf(1,1,i) + kcf(1,1,j)
-          if (abs(ktmp) > eps0) then
-            kcfij(1,1) = kcf(1,1,i) * kcf(1,1,j) / ktmp
-          end if
-          ktmp = kcf(1,2,i) + kcf(1,2,j)
-          if (abs(ktmp) > eps0) then
-            kcfij(1,2) = kcf(1,2,i) * kcf(1,2,j) / ktmp
-          end if
-          ktmp = kcf(1,3,i) + kcf(1,3,j)
-          if (abs(ktmp) > eps0) then
-            kcfij(1,3) = kcf(1,3,i) * kcf(1,3,j) / ktmp
-          end if
-          kcfij(2,1) = kcfij(1,2)
-          ktmp = kcf(2,2,i) + kcf(2,2,j)
-          if (abs(ktmp) > eps0) then
-            kcfij(2,2) = kcf(2,2,i) * kcf(2,2,j) / ktmp
-          end if
-          ktmp = kcf(2,3,i) + kcf(2,3,j)
-          if (abs(ktmp) > eps0) then
-            kcfij(2,3) = kcf(2,3,i) * kcf(2,3,j) / ktmp
-          end if
-          kcfij(3,1) = kcfij(1,3)
-          kcfij(3,2) = kcfij(3,2)
-          ktmp = kcf(3,3,i) + kcf(3,3,j)
-          if (abs(ktmp) > eps0) then
-            kcfij(3,3) = kcf(3,3,i) * kcf(3,3,j) / ktmp
-          end if
-          kcfij(:,:) = 2. * kcfij(:,:)
-
           if (s_ktp /= 3) then
+            ! kcfij(:,:) = 0.
+            ! ktmp = kcf(1,1,i) + kcf(1,1,j)
+            ! if (abs(ktmp) > eps0) then
+            !   kcfij(1,1) = kcf(1,1,i) * kcf(1,1,j) / ktmp
+            ! end if
+            ! ktmp = kcf(1,2,i) + kcf(1,2,j)
+            ! if (abs(ktmp) > eps0) then
+            !   kcfij(1,2) = kcf(1,2,i) * kcf(1,2,j) / ktmp
+            ! end if
+            ! ktmp = kcf(1,3,i) + kcf(1,3,j)
+            ! if (abs(ktmp) > eps0) then
+            !   kcfij(1,3) = kcf(1,3,i) * kcf(1,3,j) / ktmp
+            ! end if
+            ! kcfij(2,1) = kcfij(1,2)
+            ! ktmp = kcf(2,2,i) + kcf(2,2,j)
+            ! if (abs(ktmp) > eps0) then
+            !   kcfij(2,2) = kcf(2,2,i) * kcf(2,2,j) / ktmp
+            ! end if
+            ! ktmp = kcf(2,3,i) + kcf(2,3,j)
+            ! if (abs(ktmp) > eps0) then
+            !   kcfij(2,3) = kcf(2,3,i) * kcf(2,3,j) / ktmp
+            ! end if
+            ! kcfij(3,1) = kcfij(1,3)
+            ! kcfij(3,2) = kcfij(3,2)
+            ! ktmp = kcf(3,3,i) + kcf(3,3,j)
+            ! if (abs(ktmp) > eps0) then
+            !   kcfij(3,3) = kcf(3,3,i) * kcf(3,3,j) / ktmp
+            ! end if
+            ! kcfij(:,:) = 2. * kcfij(:,:)
+            kcfij(:,:) = (kcf(:,:,i) + kcf(:,:,j))/2.
+
             call hessian(rab, pos(:,i), pos(:,j), h(i), Hesa)
 
             dcf(1,i) = dcf(1,i) + mas(j)/den(j) * (cf(1,j) - cf(1,i)) * &
               ( dot_product(kcfij(1,:),Hesa(1,:)) + &
                 dot_product(kcfij(2,:),Hesa(2,:)) + &
-                dot_product(kcfij(3,:),Hesa(3,:)))
+                dot_product(kcfij(3,:),Hesa(3,:)) )
           else
             ! symm-difff case
             ! call get_nw(rab, h(i), nwa)
@@ -186,12 +189,13 @@ contains
             odda = 1./om(i)/den(i)/den(i)/den(i)
             oddb = 1./om(j)/den(j)/den(j)/den(j)
 
-            qa(1) = dot_product(kcfij(1,:),dcftmp(:,i))
-            qa(2) = dot_product(kcfij(2,:),dcftmp(:,i))
-            qa(3) = dot_product(kcfij(3,:),dcftmp(:,i))
-            qb(1) = dot_product(kcfij(1,:),dcftmp(:,j))
-            qb(2) = dot_product(kcfij(2,:),dcftmp(:,j))
-            qb(3) = dot_product(kcfij(3,:),dcftmp(:,j))
+            qa(1) = dot_product(kcf(1,:,i),dcftmp(:,i))
+            qa(2) = dot_product(kcf(2,:,i),dcftmp(:,i))
+            qa(3) = dot_product(kcf(3,:,i),dcftmp(:,i))
+
+            qb(1) = dot_product(kcf(1,:,j),dcftmp(:,j))
+            qb(2) = dot_product(kcf(2,:,j),dcftmp(:,j))
+            qb(3) = dot_product(kcf(3,:,j),dcftmp(:,j))
 
             dcf(1,i) = dcf(1,i) + mas(j)*( &
               dot_product(qa(:),nwa(:))*odda + dot_product(qb(:),nwb(:))*oddb)
@@ -240,7 +244,6 @@ contains
     end do
     !$omp end parallel do
 
-    ! print*, du(1:5)
     call system_clock(finish)
     call addTime(' circuit2', finish - start - tneib)
   end subroutine

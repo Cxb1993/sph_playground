@@ -9,7 +9,8 @@ module IC
                           getkerntype,&
                           getdim,&
                           ginitvar,&
-                          gcoordsys
+                          gcoordsys,&
+                          sorigin
   use BC
   use initpositions,  only: uniform,&
                             place_close_packed_fcc
@@ -387,21 +388,133 @@ contains
         end if
       case(4)
         ! gaussian-pulse
-        kcf(1,1,i) = 1.
-        kcf(1,2,i) = 0.
-        kcf(1,3,i) = 0.
-        kcf(2,1,i) = 0.
-        kcf(2,2,i) = 0.
-        kcf(2,3,i) = 0.
-        kcf(3,1,i) = 0.
-        kcf(3,2,i) = 0.
-        kcf(3,3,i) = 0.
+        ! 
+        if (x(1,i) <= -9*pspc1) then
+          kcf(1,1,i) = 0.
+          kcf(1,2,i) = 0.
+          kcf(1,3,i) = 0.
+          kcf(2,1,i) = 0.
+          kcf(2,2,i) = 0.
+          kcf(2,3,i) = 0.
+          kcf(3,1,i) = 0.
+          kcf(3,2,i) = 0.
+          kcf(3,3,i) = 0.
+        else if (x(1,i) < -6*pspc1) then
+          kcf(1,1,i) = 1.
+          kcf(1,2,i) = 0.
+          kcf(1,3,i) = 0.
+          kcf(2,1,i) = 0.
+          kcf(2,2,i) = 0.
+          kcf(2,3,i) = 0.
+          kcf(3,1,i) = 0.
+          kcf(3,2,i) = 0.
+          kcf(3,3,i) = 0.
+        else if (x(1,i) == -6*pspc1) then
+          kcf(1,1,i) = 0.
+          kcf(1,2,i) = 0.
+          kcf(1,3,i) = 0.
+          kcf(2,1,i) = 0.
+          kcf(2,2,i) = 0.
+          kcf(2,3,i) = 0.
+          kcf(3,1,i) = 0.
+          kcf(3,2,i) = 0.
+          kcf(3,3,i) = 0.
+        else if (x(1,i) <= -3*pspc1) then
+          kcf(1,1,i) = 0.
+          kcf(1,2,i) = 0.
+          kcf(1,3,i) = 0.
+          kcf(2,1,i) = 0.
+          kcf(2,2,i) = 1.
+          kcf(2,3,i) = 0.
+          kcf(3,1,i) = 0.
+          kcf(3,2,i) = 0.
+          kcf(3,3,i) = 0.
+        else if (x(1,i) == -3*pspc1) then
+          kcf(1,1,i) = 0.
+          kcf(1,2,i) = 0.
+          kcf(1,3,i) = 0.
+          kcf(2,1,i) = 0.
+          kcf(2,2,i) = 0.
+          kcf(2,3,i) = 0.
+          kcf(3,1,i) = 0.
+          kcf(3,2,i) = 0.
+          kcf(3,3,i) = 0.
+        else if (x(1,i) < 3*pspc1) then
+          kcf(1,1,i) = 1.
+          kcf(1,2,i) = 0.
+          kcf(1,3,i) = 0.
+          kcf(2,1,i) = 0.
+          kcf(2,2,i) = 0.
+          kcf(2,3,i) = 0.
+          kcf(3,1,i) = 0.
+          kcf(3,2,i) = 0.
+          kcf(3,3,i) = 0.
+        else if (x(1,i) == 3*pspc1) then
+          kcf(1,1,i) = 0.
+          kcf(1,2,i) = 0.
+          kcf(1,3,i) = 0.
+          kcf(2,1,i) = 0.
+          kcf(2,2,i) = 0.
+          kcf(2,3,i) = 0.
+          kcf(3,1,i) = 0.
+          kcf(3,2,i) = 0.
+          kcf(3,3,i) = 0.
+        else if (x(1,i) < 6*pspc1) then
+          kcf(1,1,i) = 0.
+          kcf(1,2,i) = 0.
+          kcf(1,3,i) = 0.
+          kcf(2,1,i) = 0.
+          kcf(2,2,i) = 1.
+          kcf(2,3,i) = 0.
+          kcf(3,1,i) = 0.
+          kcf(3,2,i) = 0.
+          kcf(3,3,i) = 0.
+        else if (x(1,i) == 6*pspc1) then
+          kcf(1,1,i) = 0.
+          kcf(1,2,i) = 0.
+          kcf(1,3,i) = 0.
+          kcf(2,1,i) = 0.
+          kcf(2,2,i) = 0.
+          kcf(2,3,i) = 0.
+          kcf(3,1,i) = 0.
+          kcf(3,2,i) = 0.
+          kcf(3,3,i) = 0.
+        else if (x(1,i) < 9*pspc1) then
+          kcf(1,1,i) = 1.
+          kcf(1,2,i) = 0.
+          kcf(1,3,i) = 0.
+          kcf(2,1,i) = 0.
+          kcf(2,2,i) = 0.
+          kcf(2,3,i) = 0.
+          kcf(3,1,i) = 0.
+          kcf(3,2,i) = 0.
+          kcf(3,3,i) = 0.
+        else
+          kcf(1,1,i) = 0.
+          kcf(1,2,i) = 0.
+          kcf(1,3,i) = 0.
+          kcf(2,1,i) = 0.
+          kcf(2,2,i) = 0.
+          kcf(2,3,i) = 0.
+          kcf(3,1,i) = 0.
+          kcf(3,2,i) = 0.
+          kcf(3,3,i) = 0.
+        end if
+        ! kcf(1,1,i) = 1.
+        ! kcf(1,2,i) = 0.
+        ! kcf(1,3,i) = 0.
+        ! kcf(2,1,i) = 0.
+        ! kcf(2,2,i) = 0.
+        ! kcf(2,3,i) = 0.
+        ! kcf(3,1,i) = 0.
+        ! kcf(3,2,i) = 0.
+        ! kcf(3,3,i) = 0.
         ! cf(:, i) = sin(x(:,i))
-        cf(1,i) = (2.*pi)**(-dim/2.)/(0.05**2)**(dim/2.)*&
-                  exp(-0.5*(x(1,i)*x(1,i) + x(2,i)*x(2,i) + x(3,i)*x(3,i))/(0.05**2))
+        cf(1,i) = (2.*pi)**(-dim/2.)/(0.1**2)**(dim/2.)*&
+                  exp(-0.5*(x(1,i)*x(1,i) + x(2,i)*x(2,i) + x(3,i)*x(3,i))/(0.1**2))
       case(5)
         ! gaussian-ring
-        ! initially in cylindric CS, but will be transphered in other system fewlines lower
+        ! initially in cylindric CS, but will be transphered in other system few lines lower
         kcf(1,1,i) = 0.
         kcf(1,2,i) = 0.
         kcf(1,3,i) = 0.
@@ -417,7 +530,7 @@ contains
         cca(3) = x(3,i)
 
         if ( cs == 1 ) then
-          ! if do all in cartesian system
+          ! cartesian
           qmatr(1,1) = cos(cca(2))
           qmatr(1,2) = -sin(cca(2))
           qmatr(1,3) = 0.
@@ -433,31 +546,6 @@ contains
           kcf(:,:,i) = matmul(qmatr(:,:), kcf(:,:,i))
           kcf(:,:,i) = matmul(kcf(:,:,i), qtmatr(:,:))
         end if
-
-        ! print*, '-------------'
-        ! print*, x(:,i)
-        ! print*, '---'
-        ! print*, kcf(:,1,i)
-        ! print*, kcf(:,2,i)
-        ! print*, kcf(:,3,i)
-        ! print*, kcf(1,1,i)*kcf(2,2,i)-kcf(1,2,i)*kcf(2,1,i)
-        ! kcf(1,1,i) = x(2,i)*x(2,i)/(x(1,i)*x(1,i)+x(2,i)*x(2,i))
-        ! kcf(1,2,i) = -x(1,i)*x(2,i)/(x(1,i)*x(1,i)+x(2,i)*x(2,i))
-        ! kcf(1,3,i) = 0.
-        ! kcf(2,1,i) = -x(1,i)*x(2,i)/(x(1,i)*x(1,i)+x(2,i)*x(2,i))
-        ! kcf(2,2,i) = x(1,i)*x(1,i)/(x(1,i)*x(1,i)+x(2,i)*x(2,i))
-        ! kcf(2,3,i) = 0.
-        ! kcf(3,1,i) = 0.
-        ! kcf(3,2,i) = 0.
-        ! kcf(3,3,i) = 0.
-        ! print*, '---'
-        ! print*, kcf(:,1,i)
-        ! print*, kcf(:,2,i)
-        ! print*, kcf(:,3,i)
-        ! print*, kcf(1,1,i)*kcf(2,2,i)-kcf(1,2,i)*kcf(2,1,i)
-        ! print*, '-------------'
-        ! read*
-        
         ! exp[−(1/2)[(r−r0)^2/δr0^2 + φ^2/δφ0^2]]
         ! δr0 = 0.05 and r0 = 0.3 define a Gaussian ring
         !  at radius r0 of width δr, and δφ0 = 0.5
