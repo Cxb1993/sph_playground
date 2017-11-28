@@ -60,10 +60,11 @@ contains
 
     real                 :: dr, rhoa, rhob, qa(3), qb(3), qc, n2wa, r2, &
                             nwa(3), nwb(3), rab(3), vab(3), vba(3), urab(3), &
-                            Hesa(3,3), odda, oddb, kcfij(3,3), ktmp, phi
+                            Hesa(3,3), odda, oddb, kcfij(3,3), ktmp, phi, &
+                            tmpt1(3,3), tmpt2(3,3), tmpt3(3,3)
 
     integer, allocatable :: nlista(:), nlistb(:)
-    integer              :: i, j, la, lb, n
+    integer              :: i, j, la, lb, n, li, lj
     integer(8)           :: t0, tneib
 
     if (s_ktp == 3) then
@@ -79,25 +80,30 @@ contains
     tneib = 0.
 
     call getNeibListL1(nlista)
+    call getNeibListL1(nlista)
 
     !$omp parallel do default(none)&
     !$omp private(rab, dr, vab, urab, rhoa, rhob, nwa, nwb, qa, qb, qc)&
     !$omp private(n2wa, j, i, r2, odda ,oddb, la, lb)&
     !$omp private(nlistb, Hesa, vba, t0, kcfij, ktmp, phi) &
+    !$omp private(tmpt1, tmpt2, tmpt3, li, lj)&
     !$omp shared(dv, du, dh, dcf, n, pos, h, v, den, c, p, om, mas, u, kcf, cf)&
     !$omp shared(ptype, nlista, dcftmp)&
     !$omp shared(s_dim, s_kr, s_ktp, s_ttp, s_adden, s_artts, s_ivt)&
     !$omp shared(nw, hessian)&
     !$omp reduction(+:tneib)
-    do la = 1, size(nlista)
+    overa: do la = 1, size(nlista)
       i = nlista(la)
       dv(:,i) = 0.
       du(i) = 0.
       dh(i) = 0.
       dcf(:,i) = 0.
+      tmpt1(:,:) = 0.
+      tmpt2(:,:) = 0.
+      tmpt3(:,:) = 0.
       call getneighbours(i, pos, h, nlistb, t0)
       tneib = tneib + t0
-      do lb = 1, size(nlistb)
+      overb: do lb = 1, size(nlistb)
         j = nlistb(lb)
         rab(:) = pos(:,i) - pos(:,j)
         r2 = dot_product(rab(:),rab(:))
@@ -166,14 +172,22 @@ contains
             !   kcfij(3,3) = kcf(3,3,i) * kcf(3,3,j) / ktmp
             ! end if
             ! kcfij(:,:) = 2. * kcfij(:,:)
-            kcfij(:,:) = (kcf(:,:,i) + kcf(:,:,j))/2.
+            ! kcfij(:,:) = (kcf(:,:,i) + kcf(:,:,j))/2.
 
+            call nw(rab, pos(:,i), pos(:,j), h(i), nwa)
             call hessian(rab, pos(:,i), pos(:,j), h(i), Hesa)
 
-            dcf(1,i) = dcf(1,i) + mas(j)/den(j) * (cf(1,j) - cf(1,i)) * &
-              ( dot_product(kcfij(1,:),Hesa(1,:)) + &
-                dot_product(kcfij(2,:),Hesa(2,:)) + &
-                dot_product(kcfij(3,:),Hesa(3,:)) )
+            do li = 1, 3
+              do lj = 1,3
+                tmpt1(li,lj) = tmpt1(li,lj) + mas(j)/den(j) * (kcf(li,lj,j) - kcf(li,lj,i)) * nwa(li)
+                tmpt2(li,lj) = tmpt2(li,lj) + mas(j)/den(j) * (cf(1,j) - cf(1,i)) * nwa(lj)
+                tmpt3(li,lj) = tmpt3(li,lj) + kcf(li,lj,i) * mas(j)/den(j) * (cf(1,j) - cf(1,i)) * Hesa(li,lj)
+              end do
+            end do
+            ! dcf(1,i) = dcf(1,i) + mas(j)/den(j) * (cf(1,j) - cf(1,i)) * &
+            !   ( dot_product(kcfij(1,:),Hesa(1,:)) + &
+            !     dot_product(kcfij(2,:),Hesa(2,:)) + &
+            !     dot_product(kcfij(3,:),Hesa(3,:)) )
           else
             ! symm-difff case
             ! call get_nw(rab, h(i), nwa)
@@ -186,8 +200,8 @@ contains
             call nw(rab, pos(:,i), pos(:,j), h(i), nwa)
             call nw(rab, pos(:,i), pos(:,j), h(j), nwb)
             ! the third den is from c1
-            odda = 1./om(i)/den(i)/den(i)/den(i)
-            oddb = 1./om(j)/den(j)/den(j)/den(j)
+            odda = 1./om(i)/den(i)/den(i)
+            oddb = 1./om(j)/den(j)/den(j)
 
             qa(1) = dot_product(kcf(1,:,i),dcftmp(:,i))
             qa(2) = dot_product(kcf(2,:,i),dcftmp(:,i))
@@ -224,12 +238,23 @@ contains
           print *, 'Task type was not defined in circuit2.f90: line 240.'
           stop
         end select
-      end do
+      end do overb
 
       select case (s_ttp)
-      case(1,2,3,4,9)
+      case(1,2,4,9)
         if ( s_adden == 1 ) then
           dh(i) =  (- h(i) / (s_dim * den(i))) * dh(i) / om(i)
+        end if
+      case(3)
+        if ( s_adden == 1 ) then
+          dh(i) =  (- h(i) / (s_dim * den(i))) * dh(i) / om(i)
+        end if
+        if (s_ktp /= 3) then
+          do li = 1,3
+            do lj = 1,3
+              dcf(1,i) = dcf(1,i) + tmpt1(li,lj) * tmpt2(li,lj) + tmpt3(li,lj)
+            end do
+          end do
         end if
       case(5, 6, 10)
         ! diff-graddiv ! diff-laplace ! diff-artvisc
@@ -241,7 +266,7 @@ contains
         stop
       end select
       ! print*, i, den(i)
-    end do
+    end do overa
     !$omp end parallel do
 
     call system_clock(finish)

@@ -18,7 +18,7 @@ module circuit1
 
   private
   save
-    real, allocatable :: slnint(:), resid(:)
+    real, allocatable :: slnint(:), resid(:), dennew(:)
     integer(8) :: start=0, finish=0
 
 contains
@@ -26,6 +26,7 @@ contains
     integer, intent(in) :: n
     allocate(slnint(n))
     allocate(resid(n))
+    allocate(dennew(n))
   end subroutine c1_init
 
   subroutine c1(ptype, pos, mas, hfac, h, den, om, cf, dcf, kcf)
@@ -51,6 +52,7 @@ contains
   subroutine destroy()
     deallocate(slnint)
     deallocate(resid)
+    deallocate(dennew)
   end subroutine
 
   subroutine c1advanced(ptype, pos, mas, sk, h, den, om, cf, dcf, kcf)
@@ -62,14 +64,14 @@ contains
     real, allocatable, intent(inout) :: h(:), den(:), om(:), dcf(:,:)
     real, intent(in)     :: sk
     real                 :: w, dwdh, r(3), dr, r2, dfdh, fh, hn, vba(3), nwa(3), nwb(3)
-    real                 :: allowerror
+    real                 :: allowerror, maxinterr, currinterr
     integer              :: n, ni, nj, i, j, la, lb, dim, iter, ktp, ivt
     integer(8)           :: t0, tneib
     integer, allocatable :: nlista(:), nlistb(:)
 
     call system_clock(start)
 
-    n = size(den)
+    ! n = size(den)
 
     call getdim(dim)
     call getkerntype(ktp)
@@ -79,25 +81,30 @@ contains
 
     allowerror = 1e-8
     slnint(:) = h(:)
+    dennew(:) = den(:)
     resid(:)  = 0.
     resid(nlista) = 1.
     iter = 0
     tneib = 0.
+    maxinterr  = 0.
+    currinterr = 0.
 
     do while ((maxval(resid, mask=(resid>0)) > allowerror) .and. (iter < 100))
+      maxinterr  = 0.
       iter = iter + 1
       !$omp parallel do default(none)&
       !$omp private(r, dr, dwdh, w, dfdh, fh, hn, j, i, la, lb, r2, t0, nlistb)&
-      !$omp private(ni, nj, nwa, nwb, vba)&
-      !$omp shared(resid, allowerror, n, pos, mas, dim, sk, h, ktp)&
-      !$omp shared(nlista, den, om, slnint, dcf, cf, ivt)&
+      !$omp private(ni, nj, nwa, nwb, vba, currinterr)&
+      !$omp shared(resid, allowerror, n, pos, mas, dim, sk, h, ktp, maxinterr)&
+      !$omp shared(nlista, den, dennew, om, slnint, dcf, cf, ivt)&
       !$omp shared(nw)&
       !$omp reduction(+:tneib)
       do la = 1, size(nlista)
         i = nlista(la)
         if (resid(i) > allowerror) then
-          den(i)  = 0.
-          om(i)   = 0.
+          dennew(i) = 0.
+          om(i)  = 0.
+          currinterr = 0.
           ! print*, i
           call getneighbours(i, pos, h, nlistb, t0)
           tneib = tneib + t0
@@ -112,8 +119,9 @@ contains
             ! print*,-1
             call get_w(dr, slnint(i), w)
             ! print*,0
-            den(i) = den(i) + mas(j) * w
+            dennew(i) = dennew(i) + mas(j) * w
             om(i) = om(i) + mas(j) * dwdh
+            currinterr = currinterr + mas(j)/den(j) * w
           end do
           ! ---------------------------------------------------------!
           !      There is no particle itself in neighbour list       !
@@ -123,15 +131,19 @@ contains
           ! print*,'c1', 2
           call get_w(0., slnint(i), w)
           ! print*,'c1', 3
-          den(i) = den(i) + mas(i) * w
+          dennew(i) = dennew(i) + mas(i) * w
+          currinterr = currinterr + mas(i)/den(i) * w
+          if (currinterr > maxinterr) then
+            maxinterr = currinterr
+          end if
           om(i) = om(i) + mas(i) * dwdh
           ! -(**)----------------------------------------------------!
           ! print*,'c1', 4, om(i), mas(i), dwdh
-          om(i) = 1. - om(i) * (-slnint(i) / (dim * den(i)))
+          om(i) = 1. - om(i) * (-slnint(i) / (dim * dennew(i)))
           ! print*,'c1', 5, om(i), slnint(i), dim, den(i)
-          dfdh = - dim * den(i) * om(i) / slnint(i)
+          dfdh = - dim * dennew(i) * om(i) / slnint(i)
           ! print*,'c1', 7, den(i), om(i), slnint(i)
-          fh  = mas(i) * (sk / slnint(i)) ** dim - den(i)
+          fh  = mas(i) * (sk / slnint(i)) ** dim - dennew(i)
           ! print*,'c1', 8, dfdh
           hn = slnint(i) - fh / dfdh
           ! print*,'c1', 9
@@ -146,19 +158,22 @@ contains
               j = nlistb(lb)
               r(:) = pos(:,i) - pos(:,j)
               call nw(r(:), pos(:,i), pos(:,j), slnint(i), nwa)
-              dcf(:,i) = dcf(:,i) + mas(j)*(cf(1,j) - cf(1,i))*nwa(:)
+              dcf(:,i) = dcf(:,i) + mas(j)/den(j)*(cf(1,j) - cf(1,i))*nwa(:)
             end do
           end if
         end if
       end do
       !$omp end parallel do
 
-      ! call findneighboursKDT(ptype, pos, h)
-      ! call getNeibListL2(nlista)
+      den(:) = dennew(:)
     end do
 
     if (iter > 10) then
-      print*, "Warn: density NR solution took ", iter, "iterations, with max norm error", maxval(resid, mask=(resid>0))
+      print*, "Warn: density NR: solution took ", iter, "iterations, with max norm error", maxval(resid, mask=(resid>0))
+    end if
+
+    if (abs(1. - maxinterr) > 0.1) then
+      print*, "Warn: density NR: kernel integral condition does not fulfilled Int(V_{ab}*W_{ab}) = ", maxinterr
     end if
 
     h(:) = slnint(:)
@@ -172,26 +187,29 @@ contains
     real, allocatable, intent(in)    :: pos(:,:), mas(:), cf(:,:), kcf(:,:,:)
     real,              intent(in)    :: sk
     real, allocatable, intent(inout) :: den(:), sln(:), dcf(:,:)
-    real                             :: w, r(3), dr
+    real                             :: w, r(3), dr, currinterr
     integer                          :: i, j, la, lb, dim
     integer, allocatable             :: nlista(:), nlistb(:)
     integer(8)                       :: t0, tneib
 
-
     call system_clock(start)
-    call getNeibListL1(nlista)
+    call getNeibListL2(nlista)
     call getdim(dim)
+
+    dennew(:) = den(:)
+    currinterr = 0.
 
     tneib = 0.
     !$omp parallel do default(none)&
-    !$omp private(r, dr, w, j, i, la, lb, nlistb, t0)&
+    !$omp private(r, dr, w, j, i, la, lb, nlistb, t0, currinterr)&
     !$omp shared(pos, mas, sk, sln, dim)&
-    !$omp shared(nlista, den)&
+    !$omp shared(nlista, den, dennew)&
     !$omp reduction(+:tneib)
     do la = 1, size(nlista)
       i = nlista(la)
-      den(i) = 0.
 
+      dennew(i) = 0.
+      ! currinterr = 0.
       call getneighbours(i, pos, sln, nlistb, t0)
       tneib = tneib + t0
       do lb = 1, size(nlistb)
@@ -199,13 +217,17 @@ contains
         r(:) = pos(:,i) - pos(:,j)
         dr = sqrt(dot_product(r(:),r(:)))
         call get_w(dr, sln(i), w)
-        den(i) = den(i) + mas(j) * w
+        dennew(i) = dennew(i) + mas(j) * w
+        currinterr = currinterr + mas(j)/den(j) * w
       end do
       call get_w(0., sln(i), w)
-      den(i) = den(i) + mas(i) * w
+      dennew(i) = dennew(i) + mas(i) * w
+      ! currinterr = currinterr + mas(i)/den(i) * w
       sln(i) = sk * (mas(i) / den(i))**(1./dim)
     end do
     !$omp end parallel do
+    den(:) = dennew(:)
+
     call system_clock(finish)
     call addTime(' circuit1', finish - start - tneib)
   end subroutine

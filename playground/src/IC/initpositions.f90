@@ -12,11 +12,10 @@ module InitPositions
   private
 
 contains
-  subroutine uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, pos, ptype)
+  subroutine uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, pos, ptype, randomise)
     use list
 
-    real, intent(in)    :: brdx1, brdx2, brdy1, brdy2, brdz1, brdz2
-
+    real, intent(in)    :: brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, randomise
     real, allocatable, intent(inout)    :: pos(:,:)
     integer, allocatable, intent(inout) :: ptype(:)
     real, intent(inout) :: pspc1, pspc2
@@ -117,9 +116,9 @@ contains
             call resize(pos, ptsz, ptsz*2)
             call resize(ptype, ptsz, ptsz*2)
           end if
-          pos(1,n) = sp*i
-          pos(2,n) = sp*j
-          pos(3,n) = sp*k
+          pos(1,n) = sp*i + randomise*sp*(2*(rand() - 0.5))
+          pos(2,n) = sp*j + randomise*sp*(2*(rand() - 0.5))
+          pos(3,n) = sp*k + randomise*sp*(2*(rand() - 0.5))
           freenumber = merge(freenumber + 1, freenumber, isborder == 0)
           ptype(n) = merge(1, 0, isborder == 0)
           n = n + 1

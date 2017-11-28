@@ -4,7 +4,8 @@ module IC
   use timing,       only: addTime
   use ArrayResize,  only: resize
   use const
-  use kernel,       only: get_krad
+  use kernel,       only: get_krad, &
+                          get_w
   use state,        only: get_tasktype,&
                           getkerntype,&
                           getdim,&
@@ -15,6 +16,10 @@ module IC
   use initpositions,  only: uniform,&
                             place_close_packed_fcc
 
+  use neighboursearch,  only: getneighbours, &
+                              getNeibListL1, &
+                              getNeibListL2, &
+                              findneighboursKDT
   implicit none
 
   public :: setupIC
@@ -24,9 +29,9 @@ module IC
 contains
 
   subroutine setupIC(n, sk, g, pspc1, pspc2, &
-    x, v, dv, mas, den, sln, prs, iu, du, cf, kcf, dcf, ptype)
+    pos, v, dv, mas, den, sln, prs, iu, du, cf, kcf, dcf, ptype)
     integer, allocatable, intent(inout) :: ptype(:)
-    real, allocatable, intent(inout), dimension(:,:)  :: x, v, dv, cf, dcf
+    real, allocatable, intent(inout), dimension(:,:)  :: pos, v, dv, cf, dcf
     real, allocatable, intent(inout), dimension(:,:,:):: kcf
     real, allocatable, intent(inout), dimension(:)    :: mas, den, sln, prs, iu, du
     real, intent(in)     :: sk
@@ -35,8 +40,10 @@ contains
 
     real                 :: kr, prs1, prs2, rho1, rho2, kcf1, kcf2, cf1, cf2, sp, v0, &
                             brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, period, eA, &
-                            cca(3), qmatr(3,3), qtmatr(3,3)
-    integer              :: i, nb, tt, kt, dim, nptcs, ivt, cs
+                            cca(3), qmatr(3,3), qtmatr(3,3), w
+    integer              :: i, lj, j, nb, tt, kt, dim, nptcs, ivt, cs
+    integer, allocatable :: nlista(:)
+    integer(8)           :: t0
 
     call system_clock(start)
 
@@ -76,11 +83,7 @@ contains
         brdz1 = 0.
         brdz2 = 0.
       end if
-      call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
-    case (2)
-      ! infslb
-      nb = 1
-      call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
+      call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, pos, ptype, randomise=0.)
     case (3, 9)
       ! heatconduction ! soundwave
       brdx1 = -1.
@@ -113,11 +116,11 @@ contains
         brdz1 = 0.
         brdz2 = 0.
       end if
-      call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
+      call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, pos, ptype, randomise=0.)
     case (4)
       ! pheva
       nb = int(kr * sk) + 1
-      call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
+      call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, pos, ptype, randomise=0.)
     case(5, 6, 7, 8, 10)
       ! diff-laplace ! diff-graddiv ! diff-artvisc
       period = pi
@@ -138,14 +141,14 @@ contains
         brdz2 = 0.
       end if
       nb = int(kr * sk)
-      call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, x, ptype)
-      ! call place_close_packed_fcc(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, nb, x)
+      call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, pos, ptype, randomise=0.)
+      ! call place_close_packed_fcc(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, nb, pos)
     case default
       print *, 'Task type was not defined in IC.f90: line 125'
       stop
     end select
 
-    n = size(x,dim=2)
+    n = size(pos,dim=2)
     if (n < 2) then
       error stop 'There is only ' // char(n+48) // ' particles in the domain'
     end if
@@ -206,7 +209,7 @@ contains
       cf2 = 1.
     case (3)
       ! heatconduction
-      rho1 = 1.
+      rho1 = 2.
       kcf1 = 1.
     case (4)
       ! pheva
@@ -233,20 +236,22 @@ contains
     !        particles values       !
     !-------------------------------!
 
+    ! sln(:) = sk * pspc1
+    ! call findneighboursKDT(ptype, pos, sln)
+
     !$omp parallel do default(none)&
-    !$omp private(i, sp, cca, qmatr, qtmatr)&
-    !$omp shared(n, pspc1, pspc2, x, sln, den, prs, mas, iu, g, rho1, rho2)&
+    !$omp private(i, sp, cca, qmatr, qtmatr, t0, lj, j, w, nlista)&
+    !$omp shared(n, pspc1, pspc2, pos, sln, den, prs, mas, iu, g, rho1, rho2)&
     !$omp shared(cf, kcf, dim, sk, tt, prs1, prs2, cf1, cf2, kcf1, kcf2)&
     !$omp shared(brdx2, brdx1, brdy2, brdy1, brdz2, brdz1, v0, v, period, ptype)&
     !$omp shared(ivt, eA, kt, cs)
     do i=1,n
-      sp = merge(pspc1, pspc2, x(1,i) < 0)
+      sp = merge(pspc1, pspc2, pos(1,i) < 0)
       sln(i) = sk * sp
-
       select case (tt)
       case (1)
         ! hydroshock
-        if (x(1,i) <= 0.) then
+        if (pos(1,i) <= 0.) then
           sln(i) = sk * pspc1
           den(i) = rho1
           prs(i) = prs1
@@ -261,7 +266,7 @@ contains
         end if
       case (2)
         ! infslb
-        if (x(1,i) < 0) then
+        if (pos(1,i) < 0) then
           cf(:,i)  = cf1
           kcf(1,1,i) = kcf1
           kcf(2,2,i) = kcf1
@@ -277,48 +282,73 @@ contains
       case (3, 4)
         mas(i) = (sp**dim) * rho1
         den(i) = rho1
+        ! call getneighbours(i, pos, sln, nlista, t0)
+        ! mas(i) = 0.
+        ! do lj = 1, size(nlista)
+        !   j = nlista(lj)
+        !   call get_w(sqrt(dot_product(pos(:,i) - pos(:,j),pos(:,i) - pos(:,j))), sln(i), w)
+        !   mas(i) = mas(i) + w / rho1
+        ! end do
+        ! call get_w(0., sln(i), w)
+        ! mas(i) = mas(i) + w / rho1
+        ! mas(i) = 1./mas(i)
+        ! den(i) = mas(i)/(sp**dim)
+        ! print*, '# ', i, '-------------------------'
+        ! print*, 'm_i_numer = ', mas(i)
+        ! print*, 'm_i_theor = ', (sp**dim) * rho1
+        ! print*, 'accuracy  % ', ((sp**dim) * rho1)/mas(i)
+        ! print*, ''
+        ! print*, 'r_i_numer = ', den(i)
+        ! print*, 'r_i_theor = ', rho1
+        ! print*, 'accuracy  % ', rho1/den(i)
+        ! print*, ''
+        ! print*, 'n_i_numer = ', size(nlista)
+        ! print*, 'n_i_theor = ', pi*(2.*sk)**2
+        ! print*, 'accuracy  % ', size(nlista)/(pi*(2.*sk)**2)
+        ! read*
+        ! den(i) = rho1
       case(5, 6, 7, 8, 10)
         ! diff-graddiv ! diff-laplace ! chi-laplace
         ! chi-graddiv  ! soundwave ! diff-artvisc
         g = 5./3.
         den(i) = rho1
         mas(i) = (sp**dim) * rho1
-        ! v(:,i)  = sin(period*x(:,i))*cos(period*x(:,i)**2)
+        ! v(:,i)  = sin(period*pos(:,i))*cos(period*pos(:,i)**2)
         v(:,i) = 0.
         if (dim == 1) then
-          ! x
-          ! v(1,i) = x(1,i)
-          ! x sinx
-          v(1,i) = sin(x(1,i)) * x(1,i)
+          ! pos
+          ! v(1,i) = pos(1,i)
+          ! pos sinpos
+          v(1,i) = sin(pos(1,i)) * pos(1,i)
           ! sin
-          ! v(1,i) = sin(x(1,i))
+          ! v(1,i) = sin(pos(1,i))
         elseif ( dim == 2 ) then
-          ! v(1,i) = x(1,i)*x(2,i)
-          ! v(2,i) = x(1,i)*x(2,i)
+          ! v(1,i) = pos(1,i)*pos(2,i)
+          ! v(2,i) = pos(1,i)*pos(2,i)
           ! (y six, x^2 siny)
-          v(1,i) = sin(x(1,i)) * x(2,i)
-          v(2,i) = sin(x(2,i)) * x(1,i) * x(1,i)
+          v(1,i) = sin(pos(1,i)) * pos(2,i)
+          v(2,i) = sin(pos(2,i)) * pos(1,i) * pos(1,i)
           ! sin
-          ! v(1,i) = sin(x(1,i))
-          ! v(2,i) = sin(x(2,i))
+          ! v(1,i) = sin(pos(1,i))
+          ! v(2,i) = sin(pos(2,i))
         elseif ( dim == 3 ) then
-          ! v(1,i) = x(1,i)*x(2,i)*x(3,i)
-          ! v(2,i) = x(1,i)*x(2,i)*x(3,i)
-          ! v(3,i) = x(1,i)*x(2,i)*x(3,i)
+          ! v(1,i) = pos(1,i)*pos(2,i)*pos(3,i)
+          ! v(2,i) = pos(1,i)*pos(2,i)*pos(3,i)
+          ! v(3,i) = pos(1,i)*pos(2,i)*pos(3,i)
           ! (y six, z^2 siny, x^3 sinz)
-          v(1,i) = sin(x(1,i)) * x(2,i)
-          v(2,i) = sin(x(2,i)) * x(3,i) * x(3,i)
-          v(3,i) = sin(x(3,i)) * x(1,i) * x(1,i) * x(1,i)
+          v(1,i) = sin(pos(1,i)) * pos(2,i)
+          v(2,i) = sin(pos(2,i)) * pos(3,i) * pos(3,i)
+          v(3,i) = sin(pos(3,i)) * pos(1,i) * pos(1,i) * pos(1,i)
           ! sin
-          ! v(1,i) = sin(x(1,i))
-          ! v(2,i) = sin(x(2,i))
-          ! v(3,i) = sin(x(3,i))
+          ! v(1,i) = sin(pos(1,i))
+          ! v(2,i) = sin(pos(2,i))
+          ! v(3,i) = sin(pos(3,i))
         end if
       case(9)
-        den(i) = rho1 * (1. + eA * sin(pi * x(1,i)))
+        den(i) = rho1 * (1. + eA * sin(pi * pos(1,i)))
         mas(i) = (sp**dim) * den(i)
         v(:,i) = 0.
-        v(1,i) = eA*sin(pi*(x(1,i)))
+        v(1,i) = eA*sin(pi*(pos(1,i)))
       case default
         print *, 'Task type was not defined in IC.f90: line 300'
         stop
@@ -331,7 +361,7 @@ contains
         kcf(1,1,i) = kcf1
         kcf(2,2,i) = kcf1
         kcf(3,3,i) = kcf1
-        ! if (x(1,i) < 0) then
+        ! if (pos(1,i) < 0) then
         !   kcf(i) = 1
         ! else
         !   kcf(i) = 10
@@ -339,14 +369,14 @@ contains
         cf(:, i) = 0
         if (ptype(i) /= 0) then
           if ( dim == 1) then
-            cf(1, i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1))
+            cf(1, i)  = sin(pi * (pos(1,i) - brdx1) / abs(brdx2-brdx1))
           elseif ( dim == 2 ) then
-            cf(1, i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1)) * &
-                     sin(pi * (x(2,i) - brdy1) / abs(brdy2-brdy1))
+            cf(1, i)  = sin(pi * (pos(1,i) - brdx1) / abs(brdx2-brdx1)) * &
+                     sin(pi * (pos(2,i) - brdy1) / abs(brdy2-brdy1))
           elseif ( dim == 3 ) then
-            cf(1, i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1)) * &
-                     sin(pi * (x(2,i) - brdy1) / abs(brdy2-brdy1)) * &
-                     sin(pi * (x(3,i) - brdz1) / abs(brdz2-brdz1))
+            cf(1, i)  = sin(pi * (pos(1,i) - brdx1) / abs(brdx2-brdx1)) * &
+                     sin(pi * (pos(2,i) - brdy1) / abs(brdy2-brdy1)) * &
+                     sin(pi * (pos(3,i) - brdz1) / abs(brdz2-brdz1))
           end if
         end if
       case(2)
@@ -357,163 +387,163 @@ contains
         cf(:, i) = 0
         if (ptype(i) /= 0) then
           if ( dim == 1) then
-            cf(1, i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1))
+            cf(1, i)  = sin(pi * (pos(1,i) - brdx1) / abs(brdx2-brdx1))
           elseif ( dim == 2 ) then
-            cf(1, i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1)) * &
-                     sin(pi * (x(2,i) - brdy1) / abs(brdy2-brdy1))
+            cf(1, i)  = sin(pi * (pos(1,i) - brdx1) / abs(brdx2-brdx1)) * &
+                     sin(pi * (pos(2,i) - brdy1) / abs(brdy2-brdy1))
           elseif ( dim == 3 ) then
-            cf(1, i)  = sin(pi * (x(1,i) - brdx1) / abs(brdx2-brdx1)) * &
-                     sin(pi * (x(2,i) - brdy1) / abs(brdy2-brdy1)) * &
-                     sin(pi * (x(3,i) - brdz1) / abs(brdz2-brdz1))
+            cf(1, i)  = sin(pi * (pos(1,i) - brdx1) / abs(brdx2-brdx1)) * &
+                     sin(pi * (pos(2,i) - brdy1) / abs(brdy2-brdy1)) * &
+                     sin(pi * (pos(3,i) - brdz1) / abs(brdz2-brdz1))
           end if
         end if
       case(3)
         ! shock12
-        kcf(1,1,i) = 0.
+        kcf(1,1,i) = 1.
         kcf(1,2,i) = 0.
         kcf(1,3,i) = 0.
         kcf(2,1,i) = 0.
-        kcf(2,2,i) = 1.
+        kcf(2,2,i) = 0.
         kcf(2,3,i) = 0.
         kcf(3,1,i) = 0.
         kcf(3,2,i) = 0.
         kcf(3,3,i) = 0.
-        ! cf(:, i) = sin(x(:,i))
-        if (x(1,i) < 0.) then
-          cf(1,i) = 1
-        else if (x(1,i) > 0.) then
-          cf(1,i) = 2
+        ! cf(:, i) = sin(pos(:,i))
+        if (pos(1,i) < 0.) then
+          cf(1,i) = 1.
+        else if (pos(1,i) > 0.) then
+          cf(1,i) = 2.
         else
           cf(1,i) = 1.5
         end if
       case(4)
-        ! gaussian-pulse
-        ! 
-        if (x(1,i) <= -9*pspc1) then
-          kcf(1,1,i) = 0.
-          kcf(1,2,i) = 0.
-          kcf(1,3,i) = 0.
-          kcf(2,1,i) = 0.
-          kcf(2,2,i) = 0.
-          kcf(2,3,i) = 0.
-          kcf(3,1,i) = 0.
-          kcf(3,2,i) = 0.
-          kcf(3,3,i) = 0.
-        else if (x(1,i) < -6*pspc1) then
-          kcf(1,1,i) = 1.
-          kcf(1,2,i) = 0.
-          kcf(1,3,i) = 0.
-          kcf(2,1,i) = 0.
-          kcf(2,2,i) = 0.
-          kcf(2,3,i) = 0.
-          kcf(3,1,i) = 0.
-          kcf(3,2,i) = 0.
-          kcf(3,3,i) = 0.
-        else if (x(1,i) == -6*pspc1) then
-          kcf(1,1,i) = 0.
-          kcf(1,2,i) = 0.
-          kcf(1,3,i) = 0.
-          kcf(2,1,i) = 0.
-          kcf(2,2,i) = 0.
-          kcf(2,3,i) = 0.
-          kcf(3,1,i) = 0.
-          kcf(3,2,i) = 0.
-          kcf(3,3,i) = 0.
-        else if (x(1,i) <= -3*pspc1) then
-          kcf(1,1,i) = 0.
-          kcf(1,2,i) = 0.
-          kcf(1,3,i) = 0.
-          kcf(2,1,i) = 0.
-          kcf(2,2,i) = 1.
-          kcf(2,3,i) = 0.
-          kcf(3,1,i) = 0.
-          kcf(3,2,i) = 0.
-          kcf(3,3,i) = 0.
-        else if (x(1,i) == -3*pspc1) then
-          kcf(1,1,i) = 0.
-          kcf(1,2,i) = 0.
-          kcf(1,3,i) = 0.
-          kcf(2,1,i) = 0.
-          kcf(2,2,i) = 0.
-          kcf(2,3,i) = 0.
-          kcf(3,1,i) = 0.
-          kcf(3,2,i) = 0.
-          kcf(3,3,i) = 0.
-        else if (x(1,i) < 3*pspc1) then
-          kcf(1,1,i) = 1.
-          kcf(1,2,i) = 0.
-          kcf(1,3,i) = 0.
-          kcf(2,1,i) = 0.
-          kcf(2,2,i) = 0.
-          kcf(2,3,i) = 0.
-          kcf(3,1,i) = 0.
-          kcf(3,2,i) = 0.
-          kcf(3,3,i) = 0.
-        else if (x(1,i) == 3*pspc1) then
-          kcf(1,1,i) = 0.
-          kcf(1,2,i) = 0.
-          kcf(1,3,i) = 0.
-          kcf(2,1,i) = 0.
-          kcf(2,2,i) = 0.
-          kcf(2,3,i) = 0.
-          kcf(3,1,i) = 0.
-          kcf(3,2,i) = 0.
-          kcf(3,3,i) = 0.
-        else if (x(1,i) < 6*pspc1) then
-          kcf(1,1,i) = 0.
-          kcf(1,2,i) = 0.
-          kcf(1,3,i) = 0.
-          kcf(2,1,i) = 0.
-          kcf(2,2,i) = 1.
-          kcf(2,3,i) = 0.
-          kcf(3,1,i) = 0.
-          kcf(3,2,i) = 0.
-          kcf(3,3,i) = 0.
-        else if (x(1,i) == 6*pspc1) then
-          kcf(1,1,i) = 0.
-          kcf(1,2,i) = 0.
-          kcf(1,3,i) = 0.
-          kcf(2,1,i) = 0.
-          kcf(2,2,i) = 0.
-          kcf(2,3,i) = 0.
-          kcf(3,1,i) = 0.
-          kcf(3,2,i) = 0.
-          kcf(3,3,i) = 0.
-        else if (x(1,i) < 9*pspc1) then
-          kcf(1,1,i) = 1.
-          kcf(1,2,i) = 0.
-          kcf(1,3,i) = 0.
-          kcf(2,1,i) = 0.
-          kcf(2,2,i) = 0.
-          kcf(2,3,i) = 0.
-          kcf(3,1,i) = 0.
-          kcf(3,2,i) = 0.
-          kcf(3,3,i) = 0.
-        else
-          kcf(1,1,i) = 0.
-          kcf(1,2,i) = 0.
-          kcf(1,3,i) = 0.
-          kcf(2,1,i) = 0.
-          kcf(2,2,i) = 0.
-          kcf(2,3,i) = 0.
-          kcf(3,1,i) = 0.
-          kcf(3,2,i) = 0.
-          kcf(3,3,i) = 0.
-        end if
-        ! kcf(1,1,i) = 1.
-        ! kcf(1,2,i) = 0.
-        ! kcf(1,3,i) = 0.
-        ! kcf(2,1,i) = 0.
-        ! kcf(2,2,i) = 0.
-        ! kcf(2,3,i) = 0.
-        ! kcf(3,1,i) = 0.
-        ! kcf(3,2,i) = 0.
-        ! kcf(3,3,i) = 0.
-        ! cf(:, i) = sin(x(:,i))
+        ! pulse
+        !
+        ! if (pos(1,i) <= -9*pspc1) then
+        !   kcf(1,1,i) = 0.
+        !   kcf(1,2,i) = 0.
+        !   kcf(1,3,i) = 0.
+        !   kcf(2,1,i) = 0.
+        !   kcf(2,2,i) = 0.
+        !   kcf(2,3,i) = 0.
+        !   kcf(3,1,i) = 0.
+        !   kcf(3,2,i) = 0.
+        !   kcf(3,3,i) = 0.
+        ! else if (pos(1,i) < -6*pspc1) then
+        !   kcf(1,1,i) = 1.
+        !   kcf(1,2,i) = 0.
+        !   kcf(1,3,i) = 0.
+        !   kcf(2,1,i) = 0.
+        !   kcf(2,2,i) = 0.
+        !   kcf(2,3,i) = 0.
+        !   kcf(3,1,i) = 0.
+        !   kcf(3,2,i) = 0.
+        !   kcf(3,3,i) = 0.
+        ! else if (pos(1,i) == -6*pspc1) then
+        !   kcf(1,1,i) = 0.
+        !   kcf(1,2,i) = 0.
+        !   kcf(1,3,i) = 0.
+        !   kcf(2,1,i) = 0.
+        !   kcf(2,2,i) = 0.
+        !   kcf(2,3,i) = 0.
+        !   kcf(3,1,i) = 0.
+        !   kcf(3,2,i) = 0.
+        !   kcf(3,3,i) = 0.
+        ! else if (pos(1,i) <= -3*pspc1) then
+        !   kcf(1,1,i) = 0.
+        !   kcf(1,2,i) = 0.
+        !   kcf(1,3,i) = 0.
+        !   kcf(2,1,i) = 0.
+        !   kcf(2,2,i) = 1.
+        !   kcf(2,3,i) = 0.
+        !   kcf(3,1,i) = 0.
+        !   kcf(3,2,i) = 0.
+        !   kcf(3,3,i) = 0.
+        ! else if (pos(1,i) == -3*pspc1) then
+        !   kcf(1,1,i) = 0.
+        !   kcf(1,2,i) = 0.
+        !   kcf(1,3,i) = 0.
+        !   kcf(2,1,i) = 0.
+        !   kcf(2,2,i) = 0.
+        !   kcf(2,3,i) = 0.
+        !   kcf(3,1,i) = 0.
+        !   kcf(3,2,i) = 0.
+        !   kcf(3,3,i) = 0.
+        ! else if (pos(1,i) < 3*pspc1) then
+        !   kcf(1,1,i) = 1.
+        !   kcf(1,2,i) = 0.
+        !   kcf(1,3,i) = 0.
+        !   kcf(2,1,i) = 0.
+        !   kcf(2,2,i) = 0.
+        !   kcf(2,3,i) = 0.
+        !   kcf(3,1,i) = 0.
+        !   kcf(3,2,i) = 0.
+        !   kcf(3,3,i) = 0.
+        ! else if (pos(1,i) == 3*pspc1) then
+        !   kcf(1,1,i) = 0.
+        !   kcf(1,2,i) = 0.
+        !   kcf(1,3,i) = 0.
+        !   kcf(2,1,i) = 0.
+        !   kcf(2,2,i) = 0.
+        !   kcf(2,3,i) = 0.
+        !   kcf(3,1,i) = 0.
+        !   kcf(3,2,i) = 0.
+        !   kcf(3,3,i) = 0.
+        ! else if (pos(1,i) < 6*pspc1) then
+        !   kcf(1,1,i) = 0.
+        !   kcf(1,2,i) = 0.
+        !   kcf(1,3,i) = 0.
+        !   kcf(2,1,i) = 0.
+        !   kcf(2,2,i) = 1.
+        !   kcf(2,3,i) = 0.
+        !   kcf(3,1,i) = 0.
+        !   kcf(3,2,i) = 0.
+        !   kcf(3,3,i) = 0.
+        ! else if (pos(1,i) == 6*pspc1) then
+        !   kcf(1,1,i) = 0.
+        !   kcf(1,2,i) = 0.
+        !   kcf(1,3,i) = 0.
+        !   kcf(2,1,i) = 0.
+        !   kcf(2,2,i) = 0.
+        !   kcf(2,3,i) = 0.
+        !   kcf(3,1,i) = 0.
+        !   kcf(3,2,i) = 0.
+        !   kcf(3,3,i) = 0.
+        ! else if (pos(1,i) < 9*pspc1) then
+        !   kcf(1,1,i) = 1.
+        !   kcf(1,2,i) = 0.
+        !   kcf(1,3,i) = 0.
+        !   kcf(2,1,i) = 0.
+        !   kcf(2,2,i) = 0.
+        !   kcf(2,3,i) = 0.
+        !   kcf(3,1,i) = 0.
+        !   kcf(3,2,i) = 0.
+        !   kcf(3,3,i) = 0.
+        ! else
+        !   kcf(1,1,i) = 0.
+        !   kcf(1,2,i) = 0.
+        !   kcf(1,3,i) = 0.
+        !   kcf(2,1,i) = 0.
+        !   kcf(2,2,i) = 0.
+        !   kcf(2,3,i) = 0.
+        !   kcf(3,1,i) = 0.
+        !   kcf(3,2,i) = 0.
+        !   kcf(3,3,i) = 0.
+        ! end if
+        kcf(1,1,i) = 1.
+        kcf(1,2,i) = 0.
+        kcf(1,3,i) = 0.
+        kcf(2,1,i) = 0.
+        kcf(2,2,i) = 0.
+        kcf(2,3,i) = 0.
+        kcf(3,1,i) = 0.
+        kcf(3,2,i) = 0.
+        kcf(3,3,i) = 0.
+        ! cf(:, i) = sin(pos(:,i))
         cf(1,i) = (2.*pi)**(-dim/2.)/(0.1**2)**(dim/2.)*&
-                  exp(-0.5*(x(1,i)*x(1,i) + x(2,i)*x(2,i) + x(3,i)*x(3,i))/(0.1**2))
+                  exp(-0.5*(pos(1,i)*pos(1,i) + pos(2,i)*pos(2,i) + pos(3,i)*pos(3,i))/(0.1**2))
       case(5)
-        ! gaussian-ring
+        ! ring
         ! initially in cylindric CS, but will be transphered in other system few lines lower
         kcf(1,1,i) = 0.
         kcf(1,2,i) = 0.
@@ -525,9 +555,9 @@ contains
         kcf(3,2,i) = 0.
         kcf(3,3,i) = 0.
 
-        cca(1) = sqrt(x(1,i)*x(1,i) + x(2,i)*x(2,i))
-        cca(2) = atan(x(2,i),x(1,i))
-        cca(3) = x(3,i)
+        cca(1) = sqrt(pos(1,i)*pos(1,i) + pos(2,i)*pos(2,i))
+        cca(2) = atan(pos(2,i),pos(1,i))
+        cca(3) = pos(3,i)
 
         if ( cs == 1 ) then
           ! cartesian

@@ -117,9 +117,9 @@ module state
        icvar = 2
      case('shock12')
        icvar = 3
-     case('gaussian-pulse')
+     case('pulse')
        icvar = 4
-     case('gaussian-ring')
+     case('ring')
        icvar = 5
      case default
        print *, 'There is no such initial variable setting : ', itt

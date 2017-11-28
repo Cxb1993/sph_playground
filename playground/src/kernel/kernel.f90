@@ -58,12 +58,13 @@ contains
     call gcoordsys(cs)
     call getkerntype(kt)
     if (cs == 1) then
+      nw => nw_cart
       if (kt == 1) then
         hessian => hessian_ddw_cart
       else if (kt == 2) then
         hessian => hessian_fab_cart
       else if (kt == 3) then
-        nw => nw_cart
+        ! no more actions
       else if (kt == 4) then
         hessian => hessian_fw_cart
       else
@@ -356,7 +357,7 @@ contains
     real, intent(in)  :: rab(3), ra(3), rb(3), h
     real, intent(out) :: Hes(3,3)
     real              :: r2, dr, df, ddf, fab, q
-    real              :: r11, r12, r13, r22, r23, r33, cstart, dfq
+    real              :: r11, r12, r13, r22, r23, r33, cstart, dfq, a
     integer :: ktype
 
     r2 = dot_product(rab,rab)
@@ -375,21 +376,27 @@ contains
     fab = 0.5*fab
 
     Hes(1,1) = ((dim+2)*r11 - 1)*fab
-    Hes(1,1) = 0.2*(2.*Hes(1,1) + 1.)
     if ( dim /= 1 ) then
       Hes(1,2) = (dim+2)*r12*fab
       Hes(2,1) = Hes(1,2)
       Hes(2,2) = ((dim+2)*r22 - 1)*fab
-      Hes(2,2) = 0.2*(2.*Hes(2,2) + 1.)
       if ( dim == 3 ) then
         Hes(1,3) = (dim+2)*r13*fab
         Hes(3,1) = Hes(1,3)
         Hes(2,3) = (dim+2)*r23*fab
         Hes(3,2) = Hes(2,3)
         Hes(3,3) = ((dim+2)*r33 - 1)*fab
-        Hes(3,3) = 0.2*(2.*Hes(3,3) + 1.)
       end if
     end if
+    ! a = 2./5.
+    ! Hes(:,:) = a*Hes(:,:)
+    ! Hes(1,1) = Hes(1,1) + 1./3.*(1 - a)
+    ! if (dim > 1) then
+    !   Hes(2,2) = Hes(2,2) + 1./3.*(1 - a)
+    !   if (dim == 3) then
+    !     Hes(3,3) = Hes(3,3) + 1./3.*(1 - a)
+    !   end if
+    ! end if
   end subroutine
 
   pure subroutine hessian_fw_cart(rab, ra, rb, h, Hes)
