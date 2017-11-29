@@ -129,13 +129,14 @@ program main
   end select
 
   do while ((t < tfinish + eps0).and.(stopiter==0))
+    ! call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, sqerr)
     select case(tt)
     case(1, 9)
       ! 'hydroshock'
       dt = .3 * minval(h) / maxval(c)
     case(2)
-      ! 'infslb'
-      dt = .1 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
+      ! magnetohydro
+      dt = .0001 * minval(h) / maxval(c)
     case(3)
       ! 'hc-sinx'
       dt = .1 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
@@ -158,7 +159,7 @@ program main
     if (t >= ltout) then
       ! print*, maxval(kcf), minval(den), minval(c), minval(h)
       ! read*
-      print *, iter, t, dt, sum(iu)
+      print *, iter, t, dt, sum(iu), 'min h:', minval(h), 'max h:', maxval(h)
       if ( silent == 0) then
         call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, err)
       end if

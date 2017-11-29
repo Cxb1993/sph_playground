@@ -146,6 +146,9 @@ contains
           fh  = mas(i) * (sk / slnint(i)) ** dim - dennew(i)
           ! print*,'c1', 8, dfdh
           hn = slnint(i) - fh / dfdh
+          if (hn <= 0.) then
+            error stop "Negative smoothing length in c1 advanced"
+          end if
           ! print*,'c1', 9
           resid(i) = abs(hn - slnint(i)) / h(i)
           slnint(i) = hn
@@ -172,9 +175,9 @@ contains
       print*, "Warn: density NR: solution took ", iter, "iterations, with max norm error", maxval(resid, mask=(resid>0))
     end if
 
-    if (abs(1. - maxinterr) > 0.1) then
-      print*, "Warn: density NR: kernel integral condition does not fulfilled Int(V_{ab}*W_{ab}) = ", maxinterr
-    end if
+    ! if (abs(1. - maxinterr) > 0.1) then
+    !   print*, "Warn: density NR: kernel integral condition does not fulfilled Int(V_{ab}*W_{ab}) = ", maxinterr
+    ! end if
 
     h(:) = slnint(:)
     call system_clock(finish)

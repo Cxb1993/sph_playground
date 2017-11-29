@@ -2,15 +2,16 @@ module base_kernel
   use const
   implicit none
 
-  public :: kf, kdf, kddf, wCv, krad, kernelname, setdimbase, fwc
+  public :: kf, kdf, kddf, wCv, krad, kernelname, setdimbase, fwc, returnneibnum
 
   private
 
     real :: n2C(3)  = [ 5./8., 7./4./pi, 21./16./pi ]
     real :: fwcl(3) = [ 5.25, 7.2, 7.5 ]
+    integer :: maxneibnum(3) = [35, 350, 700]
     character (len=20) :: kernelname = ' Wendland C2 '
     real :: krad = 2.0, wCv, fwc
-    integer :: dim
+    integer :: dim, returnneibnum
   contains
 
   subroutine setdimbase(d)
@@ -18,6 +19,7 @@ module base_kernel
     dim = d
     wCv = n2C(dim)
     fwc = fwcl(dim)
+    returnneibnum = maxneibnum(dim)
   end subroutine
 
   pure subroutine kf(q, f)

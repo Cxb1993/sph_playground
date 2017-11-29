@@ -711,9 +711,9 @@ contains
       integer, intent (In) :: l, u
       ! ..
       ! .. Local Scalars ..
-      integer :: i, c, m, dimen
+      integer :: i, c, m, dimen, is
       logical :: recompute
-      real(kdkind)    :: average
+      real(kdkind)    :: average, sumavg
 
 !!$      If (.False.) Then
 !!$         If ((l .Lt. 1) .Or. (l .Gt. tp%n)) Then
@@ -795,7 +795,11 @@ contains
             !
             if (.true.) then
                ! actually compute average
-               average = sum(tp%the_data(c,tp%ind(l:u))) / real(u-l+1,kdkind)
+               sumavg = 0.
+               do is = l,u
+                 sumavg = sumavg + tp%the_data(c,tp%ind(is))
+               end do
+               average =  sumavg / real(u-l+1,kdkind)
             else
                average = (res%box(c)%upper + res%box(c)%lower)/2.0
             endif
@@ -1183,6 +1187,7 @@ contains
     real(kdkind), intent(in)             :: r2
     integer, intent(out)         :: nfound
     type(kdtree2_result), target :: results(:)
+    integer                      :: i
     ! ..
     ! .. Intrinsic Functions ..
     intrinsic HUGE
@@ -1192,7 +1197,9 @@ contains
     psr => sr
 
     allocate (sr%qv(tp%dimen))
-    sr%qv = tp%the_data(:,idxin) ! copy the vector
+    do i = 1,tp%dimen
+      sr%qv(i) = tp%the_data(i,idxin) ! copy the vector
+    end do
     sr%ballsize = r2
     sr%nn = 0    ! flag for fixed r search
     sr%nfound = 0

@@ -219,7 +219,24 @@ contains
 
     select case(axis)
     case (00)
-      error stop "not implemented"
+      do i = 1, size(bY1ins)
+        A(bY2exc(i)) = A(bY1ins(i))
+      end do
+      do i = 1, size(bY2ins)
+        A(bY1exc(i)) = A(bY2ins(i))
+      end do
+      do i = 1, size(bZ1ins)
+        A(bZ2exc(i)) = A(bZ1ins(i))
+      end do
+      do i = 1, size(bZ2ins)
+        A(bZ1exc(i)) = A(bZ2ins(i))
+      end do
+      do i = 1, size(bX1ins)
+        A(bX2exc(i)) = A(bX1ins(i))
+      end do
+      do i = 1, size(bX2ins)
+        A(bX1exc(i)) = A(bX2ins(i))
+      end do
     case (10)
       do i = 1, size(bX1ins)
         A(bX2exc(i)) = A(bX1ins(i))
@@ -251,7 +268,24 @@ contains
 
     select case(axis)
     case (00)
-      error stop "not implemented"
+      do i = 1, size(bY1ins)
+        A(:,bY2exc(i)) = A(:,bY1ins(i))
+      end do
+      do i = 1, size(bY2ins)
+        A(:,bY1exc(i)) = A(:,bY2ins(i))
+      end do
+      do i = 1, size(bZ1ins)
+        A(:,bZ2exc(i)) = A(:,bZ1ins(i))
+      end do
+      do i = 1, size(bZ2ins)
+        A(:,bZ1exc(i)) = A(:,bZ2ins(i))
+      end do
+      do i = 1, size(bX1ins)
+        A(:,bX2exc(i)) = A(:,bX1ins(i))
+      end do
+      do i = 1, size(bX2ins)
+        A(:,bX1exc(i)) = A(:,bX2ins(i))
+      end do
     case (10)
       do i = 1, size(bX1ins)
         A(:,bX2exc(i)) = A(:,bX1ins(i))

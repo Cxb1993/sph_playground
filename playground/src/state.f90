@@ -38,7 +38,7 @@ module state
       select case(itt)
       case('hydroshock')
         ttype = 1
-      case('infslb')
+      case('magnetohydro')
         ttype = 2
       case('heatconduction')
         ttype = 3

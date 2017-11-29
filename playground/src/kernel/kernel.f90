@@ -133,7 +133,7 @@ contains
     call kdf(q, df)
 
     nw(1) = wCv / h**(dim+2) / q * df * (cca(1)-ccb(1)+ccb(1)*(1-cos(cca(2)-ccb(2))))
-    if (cca(1) /= 0.) then
+    if (cca(1) > eps0) then
       nw(2) = wCv / h**(dim+2) / q * df * (cca(1)*ccb(1)*sin(cca(2)-ccb(2))) / cca(1)
     else
       nw(2) = 0.
@@ -402,7 +402,7 @@ contains
   pure subroutine hessian_fw_cart(rab, ra, rb, h, Hes)
     real, intent(in)  :: rab(3), ra(3), rb(3), h
     real, intent(out) :: Hes(3,3)
-    real              :: r2, dr, df, ddf, fab, q
+    real              :: r2, dr, df, fab, q
     real              :: r11, r12, r13, r22, r23, r33, cstart, dfq
     integer :: ktype
 
@@ -439,7 +439,7 @@ contains
   pure subroutine hessian_ddw_cyl(rab, ra, rb, h, Hes)
     real, intent(in)  :: rab(3), ra(3), rb(3), h
     real, intent(out) :: Hes(3,3)
-    real              :: r2, ir2, dr, df, ddf, fab, q, nw(3)
+    real              :: r2, ir2, dr, df, ddf, q, nw(3)
     real              :: r11, r12, r13, r22, r23, r33, cstart, dfq
     real              :: d11, d12, d13, d22, d23, d33
     real              :: cosdphi, sindphi, term1
@@ -483,9 +483,9 @@ contains
     call nw_cyl(rab, ra, rb, h, nw)
 
     dfq = df/q
-    if ( cca(1) /= 0.) then
+    if (cca(1) > eps0) then
       Hes(1,1) = cstart*((ddf - dfq)*r11 + dfq*d11) + nw(1) / cca(1)
-      if ( dim /= 1 ) then
+      if (dim /= 1) then
         Hes(1,2) = cstart*((ddf - dfq)*r12 + dfq*d12) / cca(1)
         Hes(2,1) = Hes(1,2)
         Hes(2,2) = cstart*((ddf - dfq)*r22 + dfq*d22) / cca(1)

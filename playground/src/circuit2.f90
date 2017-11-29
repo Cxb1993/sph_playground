@@ -58,7 +58,7 @@ contains
     integer, allocatable, intent(in) :: ptype(:)
     real, allocatable, intent(inout) :: dv(:,:), du(:), dh(:), dcf(:,:)
 
-    real                 :: dr, rhoa, rhob, qa(3), qb(3), qc, n2wa, r2, &
+    real                 :: dr, rhoa, rhob, qa(3), qb(3), qc, qd(3), n2wa, r2, &
                             nwa(3), nwb(3), rab(3), vab(3), vba(3), urab(3), &
                             Hesa(3,3), odda, oddb, kcfij(3,3), ktmp, phi, &
                             tmpt1(3,3), tmpt2(3,3), tmpt3(3,3)
@@ -104,6 +104,10 @@ contains
       call getneighbours(i, pos, h, nlistb, t0)
       tneib = tneib + t0
       overb: do lb = 1, size(nlistb)
+        qa(:) = 0.
+        qb(:) = 0.
+        qc    = 0.
+        ! qd(:) = 0.
         j = nlistb(lb)
         rab(:) = pos(:,i) - pos(:,j)
         r2 = dot_product(rab(:),rab(:))
@@ -114,9 +118,6 @@ contains
         select case (s_ttp)
         case (1, 9)
           ! hydroshock ! soundwave
-          qa(:) = 0.
-          qb(:) = 0.
-          qc = 0.
           rhoa = den(i)
           rhob = den(j)
           call nw(rab, pos(:,i), pos(:,j), h(i), nwa)
@@ -140,7 +141,62 @@ contains
           if ( s_adden == 1 ) then
             dh(i) = dh(i) + mas(j) * dot_product(vab(:), nwa(:))
           end if
-        case (2, 3)
+        case (2)
+          ! magnetohydro
+          rhoa = den(i)
+          rhob = den(j)
+          call nw(rab, pos(:,i), pos(:,j), h(i), nwa)
+          call nw(rab, pos(:,i), pos(:,j), h(j), nwb)
+
+          if (s_artts == 1) then
+            call art_viscosity(rhoa, rhob, vab, urab, rab, dr, s_dim, c(i), c(j), om(i), om(j), h(i), h(j), qa, qb)
+            call art_termcond(nwa, nwb, urab, P(i), P(j), u(i), u(j), rhoa, rhob, qc)
+            ! call art_fdivbab(cf(:,i), cf(:,j), mas(j), nwa, nwb, om(i), om(j), den(i), den(j), qd)
+          end if
+
+          tmpt3(1,1) = dot_product(cf(:,i),cf(:,i))
+          tmpt3(2,2) = dot_product(cf(:,j),cf(:,j))
+
+          do li = 1,3
+            do lj = 1,3
+              if (li == lj) then
+                tmpt1(li,lj) = P(i) + 0.5*(tmpt3(1,1) - cf(li,i)*cf(lj,i))/0.00000125663706
+                tmpt2(li,lj) = P(j) + 0.5*(tmpt3(2,2) - cf(li,j)*cf(lj,j))/0.00000125663706
+              else
+                tmpt1(li,lj) = -cf(li,i)*cf(lj,i)/0.00000125663706
+                tmpt2(li,lj) = -cf(li,j)*cf(lj,j)/0.00000125663706
+              end if
+            end do
+          end do
+
+          qa(1) = qa(1) + dot_product(tmpt1(1,:), nwa(:))
+          qa(2) = qa(2) + dot_product(tmpt1(2,:), nwa(:))
+          qa(3) = qa(3) + dot_product(tmpt1(3,:), nwa(:))
+
+          qb(1) = qb(1) + dot_product(tmpt2(1,:), nwb(:))
+          qb(2) = qb(2) + dot_product(tmpt2(2,:), nwb(:))
+          qb(3) = qb(3) + dot_product(tmpt2(3,:), nwb(:))
+
+          dv(:,i) = dv(:,i) - mas(j) * ( &
+                      qa(:) / (rhoa**2 * om(i)) + &
+                      qb(:) / (rhob**2 * om(j)) &
+                    )
+
+          du(i)   = du(i) + mas(j) * ( &
+                      P(i) / (rhoa**2 * om(i)) * dot_product(vab(:), nwa(:)) &
+                      - dot_product(vab(:),qa(:)) &
+                      + qc &
+                    )
+
+          dcf(:,i) = dcf(:,i) - 1./(rhoa * om(i))*mas(j)*( &
+                      vab(:)  * dot_product(cf(:,i),nwa(:)) - &
+                      cf(:,i) * dot_product(vab(:),nwa(:)) &
+                      )
+
+          if ( s_adden == 1 ) then
+            dh(i) = dh(i) + mas(j) * dot_product(vab(:), nwa(:))
+          end if
+        case (3)
           ! heatconduction
           if (s_ktp /= 3) then
             ! kcfij(:,:) = 0.
@@ -172,7 +228,7 @@ contains
             !   kcfij(3,3) = kcf(3,3,i) * kcf(3,3,j) / ktmp
             ! end if
             ! kcfij(:,:) = 2. * kcfij(:,:)
-            ! kcfij(:,:) = (kcf(:,:,i) + kcf(:,:,j))/2.
+            kcfij(:,:) = (kcf(:,:,i) + kcf(:,:,j))/2.
 
             call nw(rab, pos(:,i), pos(:,j), h(i), nwa)
             call hessian(rab, pos(:,i), pos(:,j), h(i), Hesa)
@@ -182,6 +238,7 @@ contains
                 tmpt1(li,lj) = tmpt1(li,lj) + mas(j)/den(j) * (kcf(li,lj,j) - kcf(li,lj,i)) * nwa(li)
                 tmpt2(li,lj) = tmpt2(li,lj) + mas(j)/den(j) * (cf(1,j) - cf(1,i)) * nwa(lj)
                 tmpt3(li,lj) = tmpt3(li,lj) + kcf(li,lj,i) * mas(j)/den(j) * (cf(1,j) - cf(1,i)) * Hesa(li,lj)
+                ! tmpt3(li,lj) = tmpt3(li,lj) + kcfij(li,lj) * mas(j)/den(j) * (cf(1,j) - cf(1,i)) * Hesa(li,lj)
               end do
             end do
             ! dcf(1,i) = dcf(1,i) + mas(j)/den(j) * (cf(1,j) - cf(1,i)) * &
@@ -313,6 +370,13 @@ contains
       qb(3) = vsigu * dot_product(vab, Hesrr(:,3)) * dr / (dim + 2.) / (db * ob)
     end if
   end subroutine
+
+  pure subroutine art_fdivbab(Ba, Bb, mb, nwa, nwb, oa, ob, da, db, qd)
+    real, intent(in)  :: Ba(3), Bb(3), mb, nwa(3), nwb(3), oa, ob, da, db
+    real, intent(out) :: qd(3)
+
+    qd(:) = -Ba(:)*mb*(dot_product(Ba(:),nwa(:))/oa/da/da + dot_product(Bb(:),nwb(:))/ob/db/db)
+  end subroutine art_fdivbab
 
   subroutine c15(pos, mas, h, den, cf, om, dcf)
     real, allocatable, intent(in)    :: pos(:,:), mas(:), h(:), den(:),&
