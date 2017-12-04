@@ -22,10 +22,10 @@ save
   type(neighbourlisttype), allocatable :: neighbours(:)
   integer, allocatable :: alllistlv1(:), alllistlv2(:)
 
-  integer    :: stepsize = 1
-  integer    :: initialized = 0
-  integer(8) :: start = 0, finish = 0
-  real, parameter :: eps = eps0
+  integer                :: stepsize = 1
+  integer                :: initialized = 0
+  integer(8)             :: start = 0, finish = 0
+  real, parameter        :: eps = eps0
 contains
 
   subroutine setStepsize(i)
@@ -71,8 +71,8 @@ contains
     use kernel, only: getkernelnn => getneibnumber
     use state,  only: getkerntype
 
-    real, allocatable, intent(in)    :: pos(:,:), h(:)
-    integer, allocatable, intent(in) :: ptype(:)
+    real, allocatable, intent(in)     :: pos(:,:), h(:)
+    integer, allocatable, intent(in)  :: ptype(:)
     type(kdtree2), pointer            :: kdtree
     type(kdtree2_result), allocatable :: kdtree_res(:)
     integer :: maxresultnum, sn, nfound, nlsz, i, j, al1, al2, tx, ktp
@@ -83,6 +83,7 @@ contains
     call getkernelnn(maxresultnum)
     call getkerntype(ktp)
 
+    ! kdtree2_destroy(kdtree)
     kdtree => kdtree2_create(pos)
 
     sn = size(pos, dim=2)
@@ -153,8 +154,8 @@ contains
 
     initialized = 1.
 
-    ! call kdtree2_destroy(kdtree)
-    ! deallocate(kdtree_res)
+    call kdtree2_destroy(kdtree)
+    deallocate(kdtree_res)
 
     call system_clock(finish)
     call addTime(' neibs', finish - start)

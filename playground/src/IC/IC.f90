@@ -58,57 +58,16 @@ contains
       kr = kr * 2
     end if
 
+    !
+    !
+    ! need to get rid of it
+    !
+    !
     select case (tt)
-    case (1)
-      ! hydroshock
-      ! pspc1 = 0.001
-      pspc2 = pspc1*2.
-      if (dim == 1) then
-        pspc2 = pspc1 * 8.
-      end if
-      nb = int(kr * sk * 3)
-      brdx1 = -.5
-      brdx2 = .5
-      if ( dim > 1) then
-        brdy1 = -pspc2*nb*2
-        brdy2 = pspc2*nb*2
-      else
-        brdy1 = 0.
-        brdy2 = 0.
-      end if
-      if ( dim == 3 ) then
-        brdz1 = -pspc2*nb
-        brdz2 = pspc2*nb
-      else
-        brdz1 = 0.
-        brdz2 = 0.
-      end if
-      call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, pos, ptype, randomise=0.)
-    case (2)
-      ! magnetohydro
-      brdx1 = -1.5
-      brdx2 = 1.5
-      nptcs = int((brdx2-brdx1)/pspc1)
-      pspc1 = merge(0.,(brdx2-brdx1)/nptcs, nptcs == 0)
-      pspc2 = pspc1
-      nb = int(kr * sk)*2
-      if (dim > 1) then
-          brdy1 = -0.75
-          brdy2 =  0.75
-      else
-        brdy1 = 0.
-        brdy2 = 0.
-      end if
-      if (dim == 3) then
-          brdz1 = -0.75
-          brdz2 =  0.75
-      else
-        brdz1 = 0.
-        brdz2 = 0.
-      end if
-      call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, pos, ptype, randomise=0.)
-    case (3, 9)
-      ! heatconduction ! soundwave
+    case (1, 2, 9, 4)
+      ! mooved to ivt check below
+    case (3)
+      ! heatconduction
       brdx1 = -1.
       brdx2 =  1.
       nptcs = int((brdx2-brdx1)/pspc1)
@@ -140,10 +99,6 @@ contains
         brdz2 = 0.
       end if
       call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, pos, ptype, randomise=0.)
-    case (4)
-      ! pheva
-      nb = int(kr * sk) + 1
-      call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, pos, ptype, randomise=0.)
     case(5, 6, 7, 8, 10)
       ! diff-laplace ! diff-graddiv ! diff-artvisc
       period = pi
@@ -168,6 +123,105 @@ contains
       ! call place_close_packed_fcc(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, nb, pos)
     case default
       print *, 'Task type was not defined in IC.f90: line 170'
+      stop
+    end select
+    !
+    !
+    ! need to get rid of it
+    !
+    !
+
+    select case(ivt)
+    case(-1, 1, 2, 3, 4, 5)
+      print*, "Not set yet. FIX ME."
+    case (6)
+      ! soundwave
+      rho1 = 1.
+      g = 5./3.
+      eA = 0.005
+      prs1 = 1.
+
+      brdx1 = -1.
+      brdx2 =  1.
+      nptcs = int((brdx2-brdx1)/pspc1)
+      pspc1 = merge(0.,(brdx2-brdx1)/nptcs, nptcs == 0)
+      pspc2 = pspc1
+      nb = int(kr * sk * 2.)
+      if (dim > 1) then
+        brdy1 = -pspc1*nb*2
+        brdy2 =  pspc1*nb*2
+      else
+        brdy1 = 0.
+        brdy2 = 0.
+      end if
+      if (dim == 3) then
+        brdz1 = -pspc1*nb*2
+        brdz2 =  pspc1*nb*2
+      else
+        brdz1 = 0.
+        brdz2 = 0.
+      end if
+      call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, pos, ptype, randomise=0.)
+    case (7)
+      ! hydroshock
+      g = 1.4
+      prs1 = 1.
+      prs2 = prs1 / 10.
+      rho1 = 1.
+      rho2 = rho1 / 8.
+      ! pspc1 = 0.001
+      pspc2 = pspc1*2.
+      if (dim == 1) then
+        pspc2 = pspc1 * 8.
+      end if
+      nb = int(kr * sk * 3)
+      brdx1 = -.5
+      brdx2 = .5
+      if ( dim > 1) then
+        brdy1 = -pspc2*nb*2
+        brdy2 = pspc2*nb*2
+      else
+        brdy1 = 0.
+        brdy2 = 0.
+      end if
+      if ( dim == 3 ) then
+        brdz1 = -pspc2*nb
+        brdz2 = pspc2*nb
+      else
+        brdz1 = 0.
+        brdz2 = 0.
+      end if
+      call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, pos, ptype, randomise=0.)
+    case (8)
+      ! alfvenwave
+      rho1 = 1.
+      g    = 5./3.
+      eA   = 0.1
+      prs1 = 0.1
+
+      brdx1 = -1.5
+      brdx2 =  1.5
+      nptcs = int((brdx2-brdx1)/pspc1)
+      pspc1 = merge(0.,(brdx2-brdx1)/nptcs, nptcs == 0)
+      pspc2 = pspc1
+      nb = int(kr * sk*1.5)
+      if (dim > 1) then
+        brdy1 = -0.5
+        brdy2 =  0.5
+      else
+        brdy1 = 0.
+        brdy2 = 0.
+      end if
+      if (dim == 3) then
+        brdz1 = -0.5
+        brdz2 =  0.5
+      else
+        brdz1 = 0.
+        brdz2 = 0.
+      end if
+      call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, pos, ptype, randomise=0.)
+    case default
+      print *, 'Problem was not set in IC.f90: line 215'
       stop
     end select
 
@@ -196,58 +250,20 @@ contains
     cf(:,:) = 0.
     allocate(dcf(3,n))
     dcf(:,:) = 0.
+    allocate(kcf(3,3,n))
+    kcf(:,:,:) = 0.
 
     select case (tt)
-    case (2, 3)
-      allocate(kcf(3,3,n))
-      kcf(:,:,:) = 0.
-    end select
-
-    !--------------------
-    ! common values
-    !--------------------
-    rho1 = 0.
-    rho2 = 0.
-    prs1 = 0.
-    prs2 = 0.
-    kcf1 = 0.
-    kcf2 = 0.
-    cf1  = 0.
-
-    select case (tt)
-    case (1)
-      ! hydroshock
-      g = 1.4
-      prs1 = 1.
-      prs2 = prs1 / 10.
-      rho1 = 1.
-      rho2 = rho1 / 8.
-    case (2)
-      ! magnetohydro
-      g    = 5/3.
-      prs1 = 0.1
-      rho1 = 1.
+    case (1, 2, 4, 9)
+      ! mover to ivt check above
     case (3)
       ! heatconduction
       rho1 = 1.
       kcf1 = 1.
-    case (4)
-      ! pheva
-      g    = 5/3.
-      rho1 = 2.
-      cf1  = 0.5
-      kcf1 = 1e-1
-      v0   = 1e-4
-      prs1 = 1.
     case(5, 6, 7, 8, 10)
       ! diff-laplace ! diff-graddiv ! chi-laplace ! chi-graddiv ! diff-artvisc
       g    = 5/3.
       rho1 = 1.
-    case(9)
-      ! soundwave
-      rho1 = 1.
-      g = 5./3.
-      eA = 0.005
     case default
       print *, 'Task type was not defined in IC.f90: line 200'
       stop
@@ -269,55 +285,8 @@ contains
     do i=1,n
       sp = merge(pspc1, pspc2, pos(1,i) < 0)
       select case (tt)
-      case (1)
-        ! hydroshock
-        if (pos(1,i) <= 0.) then
-          sln(i) = sk * sp
-          den(i) = rho1
-          prs(i) = prs1
-          mas(i) = (pspc1**dim) * rho1
-          iu(i)  = prs1/(g-1)/rho1
-        else
-          sln(i) = sk * sp
-          den(i) = rho2
-          prs(i) = prs2
-          mas(i) = (pspc2**dim) * rho2
-          iu(i)  = prs2/(g-1)/rho2
-        end if
-      case (2)
-        ! magnetohydro
-        sln(i) = sk * sp
-        mas(i) = (sp**dim) * rho1
-        den(i) = rho1
-        ! den(i) = rho1 * (1. + eA * sin(2.*pi*pos(1,i)))
-        v(:,i) = 0.
-        cf(:, i) = 0
-        iu(i)  = prs1/(g-1)/rho1
-        !   elseif ( dim == 3 ) then
-        !     cf(1, i)  = sin(pi * (pos(1,i) - brdx1) / abs(brdx2-brdx1)) * &
-        !              sin(pi * (pos(2,i) - brdy1) / abs(brdy2-brdy1)) * &
-        !              sin(pi * (pos(3,i) - brdz1) / abs(brdz2-brdz1))
-        !   end if
-        ! end if
-        cca(1) = (pos(1,i) + 2.*pos(2,i) + 2.*pos(3,i))/3.
-        ! cca(1) = pos(1,i)
-        if (dim == 1) then
-          v(1,i)    = 0.
-          cf(1, i)  = 1.
-        elseif ( dim == 2 ) then
-          v(1,i)    = 0.
-          v(2,i)    = 0.1*sin(2.*pi*cca(1))
-          cf(1, i)  = 1.
-          cf(2, i)  = 0.1*sin(2.*pi*cca(1))
-        elseif ( dim == 3 ) then
-          ! v(1,i)    = 0.1*sin(2.*pi*cca(1))
-          v(1,i)    = 0.
-          v(2,i)    = 0.1*sin(2.*pi*cca(1))
-          v(3,i)    = 0.1*cos(2.*pi*cca(1))
-          cf(1, i)  = 1.
-          cf(2, i)  = 0.1*sin(2.*pi*cca(1))
-          cf(3,i)   = 0.1*cos(2.*pi*cca(1))
-        end if
+      case (1, 2)
+        ! mooved to ivt check below
       case (3, 4)
         sln(i) = sk * sp
         mas(i) = (sp**dim) * rho1
@@ -384,12 +353,6 @@ contains
           ! v(2,i) = sin(pos(2,i))
           ! v(3,i) = sin(pos(3,i))
         end if
-      case(9)
-        sln(i) = sk * sp
-        den(i) = rho1 * (1. + eA * sin(pi * pos(1,i)))
-        mas(i) = (sp**dim) * den(i)
-        v(:,i) = 0.
-        v(1,i) = eA*sin(pi*(pos(1,i)))
       case default
         print *, 'Task type was not defined in IC.f90: line 300'
         stop
@@ -407,24 +370,6 @@ contains
         ! else
         !   kcf(i) = 10
         ! end if
-        cf(:, i) = 0
-        if (ptype(i) /= 0) then
-          if ( dim == 1) then
-            cf(1, i)  = sin(pi * (pos(1,i) - brdx1) / abs(brdx2-brdx1))
-          elseif ( dim == 2 ) then
-            cf(1, i)  = sin(pi * (pos(1,i) - brdx1) / abs(brdx2-brdx1)) * &
-                     sin(pi * (pos(2,i) - brdy1) / abs(brdy2-brdy1))
-          elseif ( dim == 3 ) then
-            cf(1, i)  = sin(pi * (pos(1,i) - brdx1) / abs(brdx2-brdx1)) * &
-                     sin(pi * (pos(2,i) - brdy1) / abs(brdy2-brdy1)) * &
-                     sin(pi * (pos(3,i) - brdz1) / abs(brdz2-brdz1))
-          end if
-        end if
-      case(2)
-        ! orthotropic-sinxsinysinz
-        kcf(1,1,i) = 10
-        kcf(2,2,i) = 1
-        kcf(3,3,i) = 0.1
         cf(:, i) = 0
         if (ptype(i) /= 0) then
           if ( dim == 1) then
@@ -510,6 +455,54 @@ contains
         !  at radius r0 of width δr, and δφ0 = 0.5
         ! is an initial Gaussian spread about φ=0intheφˆdirection
         cf(1,i) = exp(-0.5*((cca(1) - 0.3)**2/(0.05*0.05) + cca(2)*cca(2)/(0.5*0.5)))
+      case (6)
+        ! soundwave
+        sln(i) = sk * sp
+        den(i) = rho1 * (1. + eA * sin(pi * pos(1,i)))
+        mas(i) = (sp**dim) * den(i)
+        v(1,i) = eA*sin(pi*(pos(1,i)))
+        prs(i) = prs1
+        iu(i)  = prs1/(g-1)/rho1
+      case (7)
+        ! hydroshock
+        if (pos(1,i) <= 0.) then
+          sln(i) = sk * sp
+          den(i) = rho1
+          prs(i) = prs1
+          mas(i) = (pspc1**dim) * rho1
+          iu(i)  = prs1/(g-1)/rho1
+        else
+          sln(i) = sk * sp
+          den(i) = rho2
+          prs(i) = prs2
+          mas(i) = (pspc2**dim) * rho2
+          iu(i)  = prs2/(g-1)/rho2
+        end if
+      case (8)
+        ! alfvenwave
+        sln(i) = sk * sp
+        mas(i) = (sp**dim) * rho1
+
+        den(i) = rho1
+        prs(i) = prs1
+        iu(i)  = prs1/(g-1)/rho1
+
+        cca(1) = (pos(1,i) + 2.*pos(2,i) + 2.*pos(3,i))/3.
+
+        v(1,i) = 0.
+        v(2,i) = eA*sin(2.*pi*cca(1))
+        v(3,i) = eA*cos(2.*pi*cca(1))
+        cf(1,i) = 1.
+        cf(2,i) = v(2,i)
+        cf(3,i) = v(3,i)
+
+        if (dim == 1) then
+          v(2:3,i)   = 0.
+          cf(2:3,i)  = 0.
+        elseif (dim == 2) then
+          v(3,i)    = 0.
+          cf(3, i)  = 0.
+        end if
       end select
     end do
     !$omp end parallel do

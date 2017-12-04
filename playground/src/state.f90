@@ -34,16 +34,15 @@ module state
     end subroutine
 
     subroutine set_tasktype(itt)
+      ! equations
       character (len=*), intent(in) :: itt
       select case(itt)
-      case('hydroshock')
+      case('hydro')
         ttype = 1
       case('magnetohydro')
         ttype = 2
       case('heatconduction')
         ttype = 3
-      case('pheva')
-        ttype = 4
       case('diff-laplace')
         ttype = 5
       case('diff-graddiv')
@@ -52,8 +51,6 @@ module state
         ttype = 7
       case('chi-graddiv')
         ttype = 8
-      case('soundwave')
-        ttype = 9
       case('diff-artvisc')
         ttype = 10
       case default
@@ -109,11 +106,12 @@ module state
    end subroutine get_difftype
 
    subroutine sinitvar(itt)
+     ! initvar
      character (len=*), intent(in) :: itt
      select case(itt)
      case('isotropic-sinxsinysinz')
        icvar = 1
-     case('anisotropic-sinxsinysinz')
+     case('I AM FREE NOW')
        icvar = 2
      case('shock12')
        icvar = 3
@@ -121,6 +119,12 @@ module state
        icvar = 4
      case('ring')
        icvar = 5
+     case('soundwave')
+       icvar = 6
+     case('hydroshock')
+       icvar = 7
+     case('alfvenwave')
+       icvar = 8
      case default
        print *, 'There is no such initial variable setting : ', itt
        stop

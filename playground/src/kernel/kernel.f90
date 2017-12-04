@@ -7,12 +7,12 @@ module kernel
   implicit none
 
   public :: nw, get_dw_dh, get_w, initkernel, &
-            n2w, get_krad, hessian, getkernelname, get_hessian_rr, getneibnumber
+            n2w, get_krad, hessian, getkernelname, hessian_rr, getneibnumber
   save
     integer :: dim
     procedure (ainw), pointer :: nw => null()
-    ! nw -- nabla W //density, smoothing length
     procedure (aihesw), pointer :: hessian => null()
+    procedure (aihesrrw), pointer :: hessian_rr => null()
 
     abstract interface
       subroutine ainw(rab, ra, rb, h, onw)
@@ -26,6 +26,13 @@ module kernel
         real, intent(out) :: hesw(3,3)
         real, intent (in) :: rab(3), ra(3), rb(3), h
       end subroutine aihesw
+    end interface
+
+    abstract interface
+      pure subroutine aihesrrw(rab, h, hesrrw)
+        real, intent(out) :: hesrrw(3,3)
+        real, intent (in) :: rab(3), h
+      end subroutine aihesrrw
     end interface
 
   private
@@ -57,6 +64,9 @@ contains
 
     call gcoordsys(cs)
     call getkerntype(kt)
+
+    hessian_rr => hessian_rr_fab_cart
+
     if (cs == 1) then
       nw => nw_cart
       if (kt == 1) then
@@ -221,20 +231,18 @@ contains
     end if
   end subroutine n2w
 
-  pure subroutine get_hessian_rr(r, h, Hes)
-  ! subroutine get_hessian_rr(r, h, Hes)
-  ! Hessian for artificial viscosity term
-  ! H^* = H - F_{ab}/|r_{ab}| I_3       // for momentum methods
-  ! H^* = H - f'/ q I_3                 // for direct derivatives
-  ! same as original hessian, but without diagonal matrix,
-  ! that corresponds to Laplacian term
+  pure subroutine hessian_rr_fab_cart(r, h, Hes)
+    ! subroutine get_hessian_rr(r, h, Hes)
+    ! Hessian for artificial viscosity term
+    ! H^* = H - F_{ab}/|r_{ab}| I_3       // for momentum methods
+    ! H^* = H - f'/ q I_3                 // for direct derivatives
+    ! same as original hessian, but without diagonal matrix,
+    ! that corresponds to Laplacian term
     real, intent(in)  :: r(3), h
     real, intent(out) :: Hes(3,3)
-    real              :: r2, dr, df, ddf, fab, q
-    real              :: r11, r12, r13, r22, r23, r33, cstart, dfq
+    real              :: r2, dr, fab, q
+    real              :: r11, r12, r13, r22, r23, r33, cstart
     integer :: ktype
-
-    call getkerntype(ktype)
 
     r2 = dot_product(r,r)
 
@@ -247,66 +255,69 @@ contains
     cstart = wCv/h**(dim+2)
     Hes(:,:) = 0.
 
-    if (ktype == 1) then
-      ! print*, 'Calc with using of dw/dxdy'
-      dr = sqrt(r2)
-      q = dr / h
-      call kddf(q, ddf)
-      call kdf(q, df)
-      dfq = df/q
+    dr = sqrt(r2)
+    call Fab_cart(r, h, fab)
+    fab = 0.5*fab
 
-      Hes(1,1) = cstart*(ddf - dfq)*r11
-      if ( dim /= 1 ) then
-        Hes(1,2) = cstart*(ddf - dfq)*r12
-        Hes(2,1) = Hes(1,2)
-        Hes(2,2) = cstart*(ddf - dfq)*r22
-        if ( dim == 3 ) then
-          Hes(1,3) = cstart*(ddf - dfq)*r13
-          Hes(3,1) = Hes(1,3)
-          Hes(2,3) = cstart*(ddf - dfq)*r23
-          Hes(3,2) = Hes(2,3)
-          Hes(3,3) = cstart*(ddf - dfq)*r33
-        end if
-      end if
-    elseif ( ktype == 2 ) then
-      ! print*, 'Calc with using of F_{ab}'
-      dr = sqrt(r2)
-      call Fab_cart(r, h, fab)
-      fab = 0.5*fab
-
-      Hes(1,1) = (dim+2)*r11*fab
-      if ( dim /= 1 ) then
-        Hes(1,2) = (dim+2)*r12*fab
-        Hes(2,1) = Hes(1,2)
-        Hes(2,2) = (dim+2)*r22*fab
-        if ( dim == 3 ) then
-          Hes(1,3) = (dim+2)*r13*fab
-          Hes(3,1) = Hes(1,3)
-          Hes(2,3) = (dim+2)*r23*fab
-          Hes(3,2) = Hes(2,3)
-          Hes(3,3) = (dim+2)*r33*fab
-        end if
-      end if
-    elseif ( ktype == 4 ) then
-      dr = sqrt(r2)
-      call FW_cart(r, h, fab)
-      fab = 0.5*fab
-
-      Hes(1,1) = (dim+2)*r11*fab
-      if ( dim /= 1 ) then
-        Hes(1,2) = (dim+2)*r12*fab
-        Hes(2,1) = Hes(1,2)
-        Hes(2,2) = (dim+2)*r22*fab
-        if ( dim == 3 ) then
-          Hes(1,3) = (dim+2)*r13*fab
-          Hes(3,1) = Hes(1,3)
-          Hes(2,3) = (dim+2)*r23*fab
-          Hes(3,2) = Hes(2,3)
-          Hes(3,3) = (dim+2)*r33*fab
-        end if
+    Hes(1,1) = (dim+2)*r11*fab
+    if ( dim /= 1 ) then
+      Hes(1,2) = (dim+2)*r12*fab
+      Hes(2,1) = Hes(1,2)
+      Hes(2,2) = (dim+2)*r22*fab
+      if ( dim == 3 ) then
+        Hes(1,3) = (dim+2)*r13*fab
+        Hes(3,1) = Hes(1,3)
+        Hes(2,3) = (dim+2)*r23*fab
+        Hes(3,2) = Hes(2,3)
+        Hes(3,3) = (dim+2)*r33*fab
       end if
     end if
-  end subroutine
+  end subroutine hessian_rr_fab_cart
+
+  pure subroutine hessian_rr_n2w_cart(r, h, Hes)
+    ! subroutine get_hessian_rr(r, h, Hes)
+    ! Hessian for artificial viscosity term
+    ! H^* = H - F_{ab}/|r_{ab}| I_3       // for momentum methods
+    ! H^* = H - f'/ q I_3                 // for direct derivatives
+    ! same as original hessian, but without diagonal matrix,
+    ! that corresponds to Laplacian term
+    real, intent(out) :: Hes(3,3)
+    real, intent(in)  :: r(3), h
+    real              :: r2, dr, df, ddf, q
+    real              :: r11, r12, r13, r22, r23, r33, cstart, dfq
+    integer :: ktype
+
+    r2 = dot_product(r,r)
+
+    r11 = r(1)*r(1)/r2
+    r12 = r(1)*r(2)/r2
+    r13 = r(1)*r(3)/r2
+    r22 = r(2)*r(2)/r2
+    r23 = r(2)*r(3)/r2
+    r33 = r(3)*r(3)/r2
+    cstart = wCv/h**(dim+2)
+    Hes(:,:) = 0.
+
+    dr = sqrt(r2)
+    q = dr / h
+    call kddf(q, ddf)
+    call kdf(q, df)
+    dfq = df/q
+
+    Hes(1,1) = cstart*(ddf - dfq)*r11
+    if ( dim /= 1 ) then
+      Hes(1,2) = cstart*(ddf - dfq)*r12
+      Hes(2,1) = Hes(1,2)
+      Hes(2,2) = cstart*(ddf - dfq)*r22
+      if ( dim == 3 ) then
+        Hes(1,3) = cstart*(ddf - dfq)*r13
+        Hes(3,1) = Hes(1,3)
+        Hes(2,3) = cstart*(ddf - dfq)*r23
+        Hes(3,2) = Hes(2,3)
+        Hes(3,3) = cstart*(ddf - dfq)*r33
+      end if
+    end if
+  end subroutine hessian_rr_n2w_cart
 
   pure subroutine hessian_ddw_cart(rab, ra, rb, h, Hes)
   ! subroutine hessian_ddw_cart(rab, ra, rb, h, Hes)

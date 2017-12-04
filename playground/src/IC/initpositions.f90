@@ -66,12 +66,7 @@ contains
           if (i < -ix1) then
             isborder = 1
             call bx1%append(n)
-          else if (i < -ix1 + bx) then
-            call inbx1%append(n)
-          else if (i <= ix2 - bx) then
-          else if (i <= ix2) then
-            call inbx2%append(n)
-          else
+          else if (i > ix1) then
             isborder = 1
             call bx2%append(n)
           end if
@@ -122,9 +117,11 @@ contains
           freenumber = merge(freenumber + 1, freenumber, isborder == 0)
           ptype(n) = merge(1, 0, isborder == 0)
           n = n + 1
+          print*, '------------', i,j,k, n-1
+          print*, 'x = ', pos(:,n-1), 'isb=', isborder
+          read*
         end do
       end do
-      ! read*
     end do
 
     n = n - 1

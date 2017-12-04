@@ -13,7 +13,7 @@ module errcalc
             err_diff_laplace, err_diff_graddiv, shockTube,&
             soundwaveperturbation_density, &
             soundwaveperturbation_velocity, &
-            diff_artvisc
+            diff_artvisc, alfvenwave
 
   private
 
@@ -98,6 +98,28 @@ end subroutine
     end do
     !$omp end parallel do
   end subroutine err_sinxet
+
+  subroutine alfvenwave(x, num, t, err)
+    real, allocatable, intent(in)    :: num(:,:), x(:,:)
+    real, allocatable, intent(inout) :: err(:)
+    real, intent(in)                 :: t
+
+    integer, allocatable :: nlista(:)
+    integer              :: i, j, dim, x1, B2
+    real                 :: exact
+
+    call getdim(dim)
+    call getNeibListL1(nlista)
+    err(:) = 0.
+    do j = 1,size(nlista)
+      i = nlista(j)
+      x1 = (x(1,i) + 2*x(2,i) + 2*x(3,i))/3.
+      B2 = (num(2,i) - 2*num(1,i))/sqrt(5.)
+
+      exact = 0.1 * sin(2.*pi*(x1 - t))
+      err(i) = (exact - B2)*(exact - B2)
+    end do
+  end subroutine alfvenwave
 
   subroutine soundwaveperturbation_density(x, num, t, err)
     real, allocatable, intent(in)    :: num(:), x(:,:)

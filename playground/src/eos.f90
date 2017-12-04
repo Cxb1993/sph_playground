@@ -11,22 +11,15 @@ contains
     real, allocatable, intent(inout) :: P(:), c(:)
     real, intent(in)    :: gamma
     integer, intent(in) :: n
-    integer             :: i, t
+    integer             :: i
 
-    call get_tasktype(t)
-
-    !$omp parallel do default(none)&
-    !$omp shared(P, den, u, c, n, gamma, t)&
-    !$omp private(i)
     do i = 1, n
-      ! print *, '--------0'
+      ! if (tasktype == 4) then
+      !   P(i) = P(i) * 1
+      ! end if
       P(i) = (gamma - 1) * den(i) * u(i)
-      if (t == 4) then
-        P(i) = P(i) * 1
-      end if
       c(i) = sqrt(gamma * P(i) / den(i))
     end do
-    !$omp end parallel do
   end subroutine
 
   subroutine eos_isothermal(den, c, P)
@@ -37,12 +30,8 @@ contains
 
     n = size(P)
 
-    !$omp parallel do default(none)&
-    !$omp shared(P, den, c, n)&
-    !$omp private(i)
     do i = 1, n
       P(i) = den(i) * c * c
     end do
-    !$omp end parallel do
   end subroutine
 end module

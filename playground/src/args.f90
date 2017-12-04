@@ -54,7 +54,7 @@ module args
           select case(adjustl(argkey))
           case('--dim')
             read(argval1, fmt="(i5)") dim
-          case('--tasktype')
+          case('--equations')
             itype = adjustl(argval1)
           case('--spacing')
             read(argval1, *) pspc1

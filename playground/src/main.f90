@@ -12,7 +12,8 @@ program main
                               err_shockTube => shockTube, &
                               err_soundwave_d => soundwaveperturbation_density, &
                               err_soundwave_v => soundwaveperturbation_velocity, &
-                              err_diff_artvisc => diff_artvisc
+                              err_diff_artvisc => diff_artvisc, &
+                              err_alfvenwave => alfvenwave
   use args,             only: fillargs
   use errteylor,        only: etlaplace => laplace,&
                               etgraddiv => graddiv
@@ -62,7 +63,7 @@ program main
 
   select case(tt)
   case (1, 2, 3, 4, 9)
-    ! diff-artvisc
+    ! hydro | magnetohydro
   case (5, 6, 7, 8, 10)
     ! 'diff-laplass' ! 'diff-graddiv' ! diff-artvisc
     call set_stepping(10**dim)
@@ -117,38 +118,37 @@ program main
               cf, dcf, kcf)
 
   select case(tt)
-  case(1, 2, 3, 7, 8, 9)
-    ! 'hydroshock' ! 'heatconduction' ! chi-laplace ! 'infslb'
+  case(1, 2)
+    ! hydro | magnetohydro
     ! stopiter = 1
+  case(3, 7, 8, 9)
+    ! who knows....
   case(5, 6, 10)
     ! 'diff-laplace' ! 'diff-graddiv' ! diff-artvisc
     stopiter = 1
   case default
-    print *, 'Task type was not sen in l2 error evaluation main.f90: line 182'
+    print *, 'Task type was not sen in l2 error evaluation main.f90: line 129'
     stop
   end select
 
   do while ((t < tfinish + eps0).and.(stopiter==0))
     ! call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, sqerr)
     select case(tt)
-    case(1, 9)
-      ! 'hydroshock'
+    case(1)
+      ! hydro
       dt = .3 * minval(h) / maxval(c)
     case(2)
       ! magnetohydro
-      dt = .0001 * minval(h) / maxval(c)
+      dt = .3 * minval(h) / maxval(c)
     case(3)
       ! 'hc-sinx'
       dt = .1 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
-    case(4)
-      ! 'photoevaporation' 'pheva'
-      dt = .3e-3 * minval(h)**2 / maxval(c)**2 / maxval(kcf) / maxval(cf)
     case (5,6,7,8)
       ! 'diff-laplass'      ! 'diff-graddiv'
       stopiter = 1
       dt = 0.
     case default
-      print *, 'Task type time increment was not set main.f90: line 115.'
+      print *, 'Task type time increment was not set main.f90: line 150.'
       stop
     end select
     if (t + dt > tfinish) then
@@ -194,32 +194,45 @@ program main
   !         l2 error calc evaluatopn       !
   !----------------------------------------!
   select case(tt)
-  case(1)
-    call err_shockTube(ptype, pos, den, t, err)
-  case(2, 7, 8)
+  case(1, 2, 3, 9)
+    ! mooved to ivt check below
+    ! the rest should be mooved as well
+  case(7, 8)
     ! 'hydroshock' ! chi-laplace ! 'infslb'
-  case(3)
-    ! 'heatconduction'
-    select case(ivt)
-    case(1)
-      call err_sinxet(pos, cf, t, err)
-    end select
+    ! there was empty
   case(5)
     ! 'diff-laplace'
     call err_diff_laplace(pos, acc, err)
   case(6)
     ! 'diff-graddiv'
     call err_diff_graddiv(ptype, pos, acc, err)
-  case(9)
-    ! call err_soundwave_v(pos, vel, t, err)
-    call err_soundwave_d(pos, den, t, err)
   case(10)
     ! diff-artvisc
     call err_diff_artvisc(pos, acc, err)
   case default
-    print *, 'Task type was not sen in l2 error evaluation main.f90: line 219'
+    print *, 'Task type was not sen in l2 error evaluation main.f90: line 212.'
     stop
   end select
+
+  select case(ivt)
+  case (-1, 2, 3, 4, 5)
+  case (1)
+    ! isotropic sinxsinysinz
+    call err_sinxet(pos, cf, t, err)
+  case (6)
+    ! soundwave
+    ! call err_soundwave_v(pos, vel, t, err)
+    call err_soundwave_d(pos, den, t, err)
+  case (7)
+    ! hydroshock
+    call err_shockTube(ptype, pos, den, t, err)
+  case (8)
+    call err_alfvenwave(pos, cf, t, err)
+  case default
+    print *, 'Task type was not sen in l2 error evaluation main.f90: line 229.'
+    stop
+  end select
+
   call getNeibNumbers(nusedl1, nusedl2)
   result(3) = merge(sqrt(sum(err)/nusedl1), 0., nusedl1 > 0)
   !----------------------------------------!
