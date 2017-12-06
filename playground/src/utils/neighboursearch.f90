@@ -12,7 +12,8 @@ module NeighbourSearch
 
 public findneighboursN2, findneighboursN2plusStatic, findneighboursKDT, &
         getneighbours, getNeibNumbers, destroy, &
-        setStepsize, isInitialized, getNeibListL1, getNeibListL2
+        setStepsize, isInitialized, getNeibListL1, getNeibListL2, &
+        FindPeriodicBorder
 
 private
 save
@@ -67,6 +68,111 @@ contains
     end if
   end subroutine
 
+  subroutine FindPeriodicBorder(pos, pspc, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, &
+                                bx1, bx2, by1, by2, bz1, bz2, &
+                                inbx1, inbx2, inby1, inby2, inbz1, inbz2)
+    use list
+
+    real, allocatable, intent(in)     :: pos(:,:)
+    real, intent(in)                  :: pspc, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2
+    type(intlist), intent(in)         :: bx1, bx2, by1, by2, bz1, bz2
+    integer, allocatable, intent(out) :: inbx1(:), inbx2(:), inby1(:), inby2(:), inbz1(:), inbz2(:)
+
+    real    :: approxPos, approxPosVec(3)
+    integer :: i, nfound
+    type(kdtree2), pointer :: kdtreeStore
+    type(kdtree2_result), allocatable :: kdtree_res(:)
+
+    kdtreeStore => kdtree2_create(pos)
+
+    allocate(kdtree_res(10))
+    allocate(inbx1(bx1%llen()))
+    allocate(inbx2(bx2%llen()))
+    allocate(inby1(by1%llen()))
+    allocate(inby2(by2%llen()))
+    allocate(inbz1(bz1%llen()))
+    allocate(inbz2(bz2%llen()))
+
+    do i=1,bx1%llen()
+      approxPos = brdx2 - (abs(brdx1 - pos(1,bx1%xe(i))))
+      approxPosVec(1) = approxPos
+      approxPosVec(2:3) = pos(2:3,bx1%xe(i))
+      call kdtree2_r_nearest(kdtreeStore, approxPosVec(:), &
+        (pspc/2.)**2, nfound, 10, kdtree_res)
+      if (nfound /= 1) then
+        error stop "FindPeriodicBorder: Found wrond number of candidates for a periodic particle. FIX IT."
+      end if
+      inbx1(i) = kdtree_res(1)%idx
+      ! print*, '--------------------------'
+      ! print*, nfound, kdtree_res(1)%idx, kdtree_res(1)%dis
+      ! print*, 'my pos=', pos(:,bz2%xe(i))
+      ! print*, 'target pos=', approxPosVec
+      ! print*, 'found pos=', pos(:,kdtree_res(1)%idx)
+      ! read*
+    end do
+    do i=1,bx2%llen()
+      approxPos = brdx1 + (abs(brdx2 - pos(1,bx2%xe(i))))
+      approxPosVec(1) = approxPos
+      approxPosVec(2:3) = pos(2:3,bx2%xe(i))
+      call kdtree2_r_nearest(kdtreeStore, approxPosVec(:), &
+        (pspc/2.)**2, nfound, 10, kdtree_res)
+      if (nfound /= 1) then
+        error stop "FindPeriodicBorder: Found wrond number of candidates for a periodic particle. FIX IT."
+      end if
+      inbx2(i) = kdtree_res(1)%idx
+    end do
+
+    do i=1,by1%llen()
+      approxPos = brdy2 - (abs(brdy1 - pos(2,by1%xe(i))))
+      approxPosVec(1) = pos(1,by1%xe(i))
+      approxPosVec(2) = approxPos
+      approxPosVec(3) = pos(3,by1%xe(i))
+      call kdtree2_r_nearest(kdtreeStore, approxPosVec(:), &
+        (pspc/2.)**2, nfound, 10, kdtree_res)
+      if (nfound /= 1) then
+        error stop "FindPeriodicBorder: Found wrond number of candidates for a periodic particle. FIX IT."
+      end if
+      inby1(i) = kdtree_res(1)%idx
+    end do
+    do i=1,by2%llen()
+      approxPos = brdy1 + (abs(brdy2 - pos(2,by2%xe(i))))
+      approxPosVec(1) = pos(1,by2%xe(i))
+      approxPosVec(2) = approxPos
+      approxPosVec(3) = pos(3,by2%xe(i))
+      call kdtree2_r_nearest(kdtreeStore, approxPosVec(:), &
+        (pspc/2.)**2, nfound, 10, kdtree_res)
+      if (nfound /= 1) then
+        error stop "FindPeriodicBorder: Found wrond number of candidates for a periodic particle. FIX IT."
+      end if
+      inby2(i) = kdtree_res(1)%idx
+    end do
+
+    do i=1,bz1%llen()
+      approxPos = brdz2 - (abs(brdz1 - pos(3,bz1%xe(i))))
+      approxPosVec(1:2) = pos(1:2,bz1%xe(i))
+      approxPosVec(3)   = approxPos
+      call kdtree2_r_nearest(kdtreeStore, approxPosVec(:), &
+        (pspc/2.)**2, nfound, 10, kdtree_res)
+      if (nfound /= 1) then
+        error stop "FindPeriodicBorder: Found wrond number of candidates for a periodic particle. FIX IT."
+      end if
+      inbz1(i) = kdtree_res(1)%idx
+    end do
+    do i=1,bz2%llen()
+      approxPos = brdz1 + (abs(brdz2 - pos(3,bz2%xe(i))))
+      approxPosVec(1:2) = pos(1:2,bz2%xe(i))
+      approxPosVec(3)   = approxPos
+      call kdtree2_r_nearest(kdtreeStore, approxPosVec(:), &
+        (pspc/2.)**2, nfound, 10, kdtree_res)
+      if (nfound /= 1) then
+        error stop "FindPeriodicBorder: Found wrond number of candidates for a periodic particle. FIX IT."
+      end if
+      inbz2(i) = kdtree_res(1)%idx
+    end do
+
+    call kdtree2_destroy(kdtreeStore)
+  end subroutine FindPeriodicBorder
+
   subroutine findneighboursKDT(ptype, pos, h)
     use kernel, only: getkernelnn => getneibnumber
     use state,  only: getkerntype
@@ -102,8 +208,6 @@ contains
 
     alllistlv1(:) = 0
     alllistlv2(:) = 0
-    al1 = 1
-    al2 = 1
 
     !$omp parallel do default(none)&
     !$omp shared(pos, ptype, h, kr, neighbours, stepsize, ktp)&
@@ -137,6 +241,8 @@ contains
     end do
     !$omp end parallel do
 
+    al1 = 1
+    al2 = 1
     do i = 1,sn
       if ( alllistlv1(i) == 1 ) then
         alllistlv1(al1) = i

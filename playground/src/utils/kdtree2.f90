@@ -496,8 +496,10 @@ module kdtree2_module
   ! public :: kdtree2_n_nearest,kdtree2_n_nearest_around_point
   ! Return fixed number of nearest neighbors around arbitrary vector,
   ! or extant point in dataset, with decorrelation window.
+
   !
-  ! public :: kdtree2_r_nearest, kdtree2_r_nearest_around_point
+  public :: kdtree2_r_nearest
+  ! , kdtree2_r_nearest_around_point
   public :: kdtree2_r_nearest_around_point
   ! Return points within a fixed ball of arb vector/extant point
   !
@@ -1113,66 +1115,72 @@ contains
   !   return
   ! end subroutine kdtree2_n_nearest_around_point
 
-  ! subroutine kdtree2_r_nearest(tp,qv,r2,nfound,nalloc,results)
-  !   ! find the nearest neighbors to point 'idxin', within SQUARED
-  !   ! Euclidean distance 'r2'.   Upon ENTRY, nalloc must be the
-  !   ! size of memory allocated for results(1:nalloc).  Upon
-  !   ! EXIT, nfound is the number actually found within the ball.
-  !   !
-  !   !  Note that if nfound .gt. nalloc then more neighbors were found
-  !   !  than there were storage to store.  The resulting list is NOT
-  !   !  the smallest ball inside norm r^2
-  !   !
-  !   ! Results are NOT sorted unless tree was created with sort option.
-  !   type (kdtree2), pointer      :: tp
-  !   real(kdkind), target, intent (In)    :: qv(:)
-  !   real(kdkind), intent(in)             :: r2
-  !   integer, intent(out)         :: nfound
-  !   integer, intent (In)         :: nalloc
-  !   type(kdtree2_result), target :: results(:)
-  !
-  !   !
-  !   sr%qv => qv
-  !   sr%ballsize = r2
-  !   sr%nn = 0      ! flag for fixed ball search
-  !   sr%nfound = 0
-  !   sr%centeridx = -1
-  !   sr%correltime = 0
-  !
-  !   sr%results => results
-  !
-  !   call validate_query_storage(nalloc)
-  !   sr%nalloc = nalloc
-  !   sr%overflow = .false.
-  !   sr%ind => tp%ind
-  !   sr%rearrange= tp%rearrange
-  !
-  !   if (tp%rearrange) then
-  !      sr%Data => tp%rearranged_data
-  !   else
-  !      sr%Data => tp%the_data
-  !   endif
-  !   sr%dimen = tp%dimen
-  !
-  !   !
-  !   !sr%dsl = Huge(sr%dsl)    ! set to huge positive values
-  !   !sr%il = -1               ! set to invalid indexes
-  !   !
-  !
-  !   call search(tp%root)
-  !   nfound = sr%nfound
-  !   if (tp%sort) then
-  !      call kdtree2_sort_results(nfound, results)
-  !   endif
-  !
-  !   if (sr%overflow) then
-  !      write (*,*) 'KD_TREE_TRANS: warning! return from kdtree2_r_nearest found more neighbors'
-  !      write (*,*) 'KD_TREE_TRANS: than storage was provided for.  Answer is NOT smallest ball'
-  !      write (*,*) 'KD_TREE_TRANS: with that number of neighbors!  I.e. it is wrong.'
-  !   endif
-  !
-  !   return
-  ! end subroutine kdtree2_r_nearest
+  subroutine kdtree2_r_nearest(tp,qv,r2,nfound,nalloc,results)
+    ! find the nearest neighbors to point 'idxin', within SQUARED
+    ! Euclidean distance 'r2'.   Upon ENTRY, nalloc must be the
+    ! size of memory allocated for results(1:nalloc).  Upon
+    ! EXIT, nfound is the number actually found within the ball.
+    !
+    !  Note that if nfound .gt. nalloc then more neighbors were found
+    !  than there were storage to store.  The resulting list is NOT
+    !  the smallest ball inside norm r^2
+    !
+    ! Results are NOT sorted unless tree was created with sort option.
+    type (kdtree2), pointer              :: tp
+    real(kdkind), target, intent (In)    :: qv(:)
+    real(kdkind), intent(in)             :: r2
+    integer, intent(out)                 :: nfound
+    integer, intent (In)                 :: nalloc
+    type(kdtree2_result), target         :: results(:)
+
+    ! LOCALIZED version
+    type(tree_search_record), target  :: sr   ! A GLOBAL VARIABLE for search
+    type(tree_search_record), pointer :: psr   ! A GLOBAL VARIABLE for search
+    psr => sr
+    allocate (sr%qv(tp%dimen))
+    !
+
+    sr%qv => qv
+    sr%ballsize = r2
+    sr%nn = 0      ! flag for fixed ball search
+    sr%nfound = 0
+    sr%centeridx = -1
+    sr%correltime = 0
+
+    sr%results => results
+
+    call validate_query_storage(psr, nalloc)
+    sr%nalloc = nalloc
+    sr%overflow = .false.
+    sr%ind => tp%ind
+    sr%rearrange= tp%rearrange
+
+    if (tp%rearrange) then
+       sr%Data => tp%rearranged_data
+    else
+       sr%Data => tp%the_data
+    endif
+    sr%dimen = tp%dimen
+
+    !
+    !sr%dsl = Huge(sr%dsl)    ! set to huge positive values
+    !sr%il = -1               ! set to invalid indexes
+    !
+
+    call search(psr, tp%root)
+    nfound = sr%nfound
+    if (tp%sort) then
+       call kdtree2_sort_results(nfound, results)
+    endif
+
+    if (sr%overflow) then
+       write (*,*) 'KD_TREE_TRANS: warning! return from kdtree2_r_nearest found more neighbors'
+       write (*,*) 'KD_TREE_TRANS: than storage was provided for.  Answer is NOT smallest ball'
+       write (*,*) 'KD_TREE_TRANS: with that number of neighbors!  I.e. it is wrong.'
+    endif
+
+    return
+  end subroutine kdtree2_r_nearest
 
   subroutine kdtree2_r_nearest_around_point(tp,idxin,correltime,r2,&
    nfound,nalloc,results)
@@ -1184,19 +1192,21 @@ contains
     !
     type (kdtree2), pointer      :: tp
     integer, intent (In)         :: idxin, correltime, nalloc
-    real(kdkind), intent(in)             :: r2
+    real(kdkind), intent(in)     :: r2
     integer, intent(out)         :: nfound
     type(kdtree2_result), target :: results(:)
     integer                      :: i
     ! ..
     ! .. Intrinsic Functions ..
     intrinsic HUGE
-    ! ..
+
+    ! LOCALIZED version
     type(tree_search_record), target :: sr   ! A GLOBAL VARIABLE for search
     type(tree_search_record), pointer :: psr   ! A GLOBAL VARIABLE for search
     psr => sr
-
     allocate (sr%qv(tp%dimen))
+    !
+
     do i = 1,tp%dimen
       sr%qv(i) = tp%the_data(i,idxin) ! copy the vector
     end do

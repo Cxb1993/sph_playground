@@ -164,11 +164,11 @@ contains
           do li = 1,3
             do lj = 1,3
               if (li == lj) then
-                tmpt1(li,lj) = P(i) + 0.5*(tmpt3(3,1) - cf(li,i)*cf(lj,i))/0.00000125663706
-                tmpt2(li,lj) = P(j) + 0.5*(tmpt3(3,2) - cf(li,j)*cf(lj,j))/0.00000125663706
+                tmpt1(li,lj) = P(i) + 0.5*(tmpt3(3,1) - cf(li,i)*cf(lj,i)) !/0.00000125663706
+                tmpt2(li,lj) = P(j) + 0.5*(tmpt3(3,2) - cf(li,j)*cf(lj,j)) !/0.00000125663706
               else
-                tmpt1(li,lj) = -cf(li,i)*cf(lj,i)/0.00000125663706
-                tmpt2(li,lj) = -cf(li,j)*cf(lj,j)/0.00000125663706
+                tmpt1(li,lj) = -cf(li,i)*cf(lj,i) !/0.00000125663706
+                tmpt2(li,lj) = -cf(li,j)*cf(lj,j) !/0.00000125663706
               end if
             end do
           end do

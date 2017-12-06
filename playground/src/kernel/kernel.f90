@@ -119,7 +119,7 @@ contains
     real, intent(out) :: nw(3)
     real              :: df, q
 
-    q = sqrt(dot_product(rab(:),rab(:))) / h
+    q = sqrt(dot_product(rab(:),ra(:)-rb(:))) / h
     call kdf(q, df)
 
     nw(:) = wCv * df * rab(:) / h**(dim+2) / q
@@ -240,9 +240,8 @@ contains
     ! that corresponds to Laplacian term
     real, intent(in)  :: r(3), h
     real, intent(out) :: Hes(3,3)
-    real              :: r2, dr, fab, q
+    real              :: r2, dr, fab
     real              :: r11, r12, r13, r22, r23, r33, cstart
-    integer :: ktype
 
     r2 = dot_product(r,r)
 
@@ -285,7 +284,6 @@ contains
     real, intent(in)  :: r(3), h
     real              :: r2, dr, df, ddf, q
     real              :: r11, r12, r13, r22, r23, r33, cstart, dfq
-    integer :: ktype
 
     r2 = dot_product(r,r)
 
@@ -323,13 +321,13 @@ contains
   ! subroutine hessian_ddw_cart(rab, ra, rb, h, Hes)
     real, intent(in)  :: rab(3), ra(3), rb(3), h
     real, intent(out) :: Hes(3,3)
-    real              :: r2, dr, df, ddf, fab, q
+    real              :: r2, dr, df, ddf, q
     real              :: r11, r12, r13, r22, r23, r33, cstart, dfq
     integer :: ktype
 
     call getkerntype(ktype)
 
-    r2 = dot_product(rab,rab)
+    r2 = dot_product(rab,ra(:)-rb(:))
 
     r11 = rab(1)*rab(1)/r2
     r12 = rab(1)*rab(2)/r2
@@ -367,11 +365,10 @@ contains
   pure subroutine hessian_fab_cart(rab, ra, rb, h, Hes)
     real, intent(in)  :: rab(3), ra(3), rb(3), h
     real, intent(out) :: Hes(3,3)
-    real              :: r2, dr, df, ddf, fab, q
-    real              :: r11, r12, r13, r22, r23, r33, cstart, dfq, a
-    integer :: ktype
+    real              :: r2, dr, fab
+    real              :: r11, r12, r13, r22, r23, r33, cstart!, a
 
-    r2 = dot_product(rab,rab)
+    r2 = dot_product(rab,ra(:)-rb(:))
 
     r11 = rab(1)*rab(1)/r2
     r12 = rab(1)*rab(2)/r2
@@ -413,11 +410,10 @@ contains
   pure subroutine hessian_fw_cart(rab, ra, rb, h, Hes)
     real, intent(in)  :: rab(3), ra(3), rb(3), h
     real, intent(out) :: Hes(3,3)
-    real              :: r2, dr, df, fab, q
-    real              :: r11, r12, r13, r22, r23, r33, cstart, dfq
-    integer :: ktype
+    real              :: r2, dr, fab
+    real              :: r11, r12, r13, r22, r23, r33, cstart
 
-    r2 = dot_product(rab,rab)
+    r2 = dot_product(rab,ra(:) - rb(:))
 
     r11 = rab(1)*rab(1)/r2
     r12 = rab(1)*rab(2)/r2

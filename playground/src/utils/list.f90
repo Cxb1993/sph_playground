@@ -58,13 +58,13 @@ contains
     end if
   end subroutine
 
-  pure subroutine xe(list, idx, element)
+  pure function xe(list, idx) result(element)
     class(intlist), intent(in)  :: list
     integer, intent(in)         :: idx
-    integer, intent(out)        :: element
+    integer                     :: element
 
     element = list%elements(idx)
-  end subroutine
+  end function xe
 
   pure function llen(list) result(length)
     class(intlist), intent(in)  :: list

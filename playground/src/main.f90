@@ -139,7 +139,7 @@ program main
       dt = .3 * minval(h) / maxval(c)
     case(2)
       ! magnetohydro
-      dt = .3 * minval(h) / maxval(c)
+      dt = .1 * minval(h) / maxval(c)
     case(3)
       ! 'hc-sinx'
       dt = .1 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)

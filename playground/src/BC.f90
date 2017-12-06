@@ -1,7 +1,7 @@
 module BC
   implicit none
 
-  public :: periodic1, periodic3, fixed1, fixed3, destroy, &
+  public :: fixed1, fixed3, destroy, &
             set_particles_numbers, setBorder, set_sqare_box_sides,&
             getSqaureBoxSides, setBorderInside, periodic3v2, periodic1v2
 
@@ -132,134 +132,51 @@ contains
   !
   !-- See page 19
   !
-  subroutine periodic1(A, axis)
-    integer, intent(in) :: axis
-    real, intent(out)   :: A(ns)
-    integer             :: i
-
-    select case(axis)
-    case (1)
-      ! A(bX1exc) = A(bX2exc - (nbrd + 1) * ny * nz)
-      ! A(bX2exc) = A(bX1exc + (nbrd + 1) * ny * nz)
-      ! print*, bX1exc, (bX2exc - (nbrd + 1) * ny * nz)
-      ! print*, bX2exc, (bX1exc + (nbrd + 1) * ny * nz)
-      ! read*
-      do i = 1, size(bX1exc)
-        A(bX1exc(i)) = A(bX2exc(i) - (nbrd + 1) * ny * nz)
-        A(bX2exc(i)) = A(bX1exc(i) + (nbrd + 1) * ny * nz)
-      end do
-    case (2)
-      ! A(bY1exc) = A(bY2exc - (nbrd + 1) * nz)
-      ! A(bY2exc) = A(bY1exc + (nbrd + 1) * nz)
-      do i = 1, size(bY1exc)
-        A(bY1exc(i)) = A(bY2exc(i) - (nbrd + 1) * nz)
-        A(bY2exc(i)) = A(bY1exc(i) + (nbrd + 1) * nz)
-      end do
-    case (3)
-      ! A(bZ1exc) = A(bZ2exc - (nbrd + 1))
-      ! A(bZ2exc) = A(bZ1exc + (nbrd + 1))
-      do i = 1, size(bZ1exc)
-        A(bZ1exc(i)) = A(bZ2exc(i) - (nbrd + 1))
-        A(bZ2exc(i)) = A(bZ1exc(i) + (nbrd + 1))
-      end do
-    end select
-  end subroutine periodic1
-
-  subroutine periodic3(A, axis, dim)
-    integer, intent(in) :: axis, dim
-    real, intent(out)   :: A(3,ns)
-    integer             :: i
-
-    select case(axis)
-    case (00)
-      if (size(bX1exc) /= 1) then
-        do i = 1, size(bX1exc)
-          A(:,bX1exc(i)) = A(:,bX2exc(i) - (nbrd + 1) * ny * nz)
-          A(:,bX2exc(i)) = A(:,bX1exc(i) + (nbrd + 1) * ny * nz)
-        end do
-      end if
-      if (dim > 1) then
-        if (size(bY1exc) /= 1) then
-          do i = 1, size(bY1exc)
-            A(:,bY1exc(i)) = A(:,bY2exc(i) - (nbrd + 1) * nz)
-            A(:,bY2exc(i)) = A(:,bY1exc(i) + (nbrd + 1) * nz)
-          end do
-        end if
-      end if
-      if (dim == 3) then
-        if (size(bZ1exc) /= 1) then
-          do i = 1, size(bZ1exc)
-            A(:,bZ1exc(i)) = A(:,bZ2exc(i) - (nbrd + 1))
-            A(:,bZ2exc(i)) = A(:,bZ1exc(i) + (nbrd + 1))
-          end do
-        end if
-      end if
-    case (10)
-      do i = 1, size(bX1exc)
-        A(:,bX1exc(i)) = A(:,bX2exc(i) - (nbrd + 1) * ny * nz)
-        A(:,bX2exc(i)) = A(:,bX1exc(i) + (nbrd + 1) * ny * nz)
-      end do
-    case (20)
-      do i = 1, size(bY1exc)
-        A(:,bY1exc(i)) = A(:,bY2exc(i) - (nbrd + 1) * nz)
-        A(:,bY2exc(i)) = A(:,bY1exc(i) + (nbrd + 1) * nz)
-      end do
-    case (30)
-      do i = 1, size(bZ1exc)
-        A(:,bZ1exc(i)) = A(:,bZ2exc(i) - (nbrd + 1))
-        A(:,bZ2exc(i)) = A(:,bZ1exc(i) + (nbrd + 1))
-      end do
-    end select
-  end subroutine periodic3
-
-  subroutine periodic1v2(A, x, axis)
+  subroutine periodic1v2(A, axis)
     integer, intent(in)              :: axis
-    real, allocatable, intent(inout) :: A(:), x(:,:)
+    real, allocatable, intent(inout) :: A(:)
     integer                          :: i
 
     select case(axis)
     case (00)
       do i = 1, size(bX1ins)
-        A(bX2exc(i)) = A(bX1ins(i)+1)
-        ! print*, bX1ins(i)+1, "to", bX2exc(i)
-        ! print*, x(:,bX1ins(i)+1), "to", x(:,bX2exc(i))
-        ! read*
+        A(bX1exc(i)) = A(bX1ins(i))
       end do
       do i = 1, size(bX2ins)
-        A(bX1exc(i)) = A(bX2ins(i)-1)
+        A(bX2exc(i)) = A(bX2ins(i))
       end do
       do i = 1, size(bY1ins)
-        A(bY2exc(i)) = A(bY1ins(i)+1)
+        A(bY1exc(i)) = A(bY1ins(i))
       end do
       do i = 1, size(bY2ins)
-        A(bY1exc(i)) = A(bY2ins(i)-1)
+        A(bY2exc(i)) = A(bY2ins(i))
       end do
       do i = 1, size(bZ1ins)
-        A(bZ2exc(i)) = A(bZ1ins(i)+1)
+        A(bZ1exc(i)) = A(bZ1ins(i))
       end do
       do i = 1, size(bZ2ins)
-        A(bZ1exc(i)) = A(bZ2ins(i)-1)
+        A(bZ2exc(i)) = A(bZ2ins(i))
       end do
     case (10)
       do i = 1, size(bX1ins)
-        A(bX2exc(i)) = A(bX1ins(i)+1)
+        A(bX1exc(i)) = A(bX1ins(i))
       end do
       do i = 1, size(bX2ins)
-        A(bX1exc(i)) = A(bX2ins(i)-1)
+        A(bX2exc(i)) = A(bX2ins(i))
       end do
     case (20)
       do i = 1, size(bY1ins)
-        A(bY2exc(i)) = A(bY1ins(i)+1)
+        A(bY1exc(i)) = A(bY1ins(i))
       end do
       do i = 1, size(bY2ins)
-        A(bY1exc(i)) = A(bY2ins(i)-1)
+        A(bY2exc(i)) = A(bY2ins(i))
       end do
     case (30)
       do i = 1, size(bZ1ins)
-        A(bZ2exc(i)) = A(bZ1ins(i)+1)
+        A(bZ1exc(i)) = A(bZ1ins(i))
       end do
       do i = 1, size(bZ2ins)
-        A(bZ1exc(i)) = A(bZ2ins(i)-1)
+        A(bZ2exc(i)) = A(bZ2ins(i))
       end do
     end select
   end subroutine periodic1v2
@@ -272,43 +189,43 @@ contains
     select case(axis)
     case (00)
       do i = 1, size(bX1ins)
-        A(:,bX2exc(i)) = A(:,bX1ins(i)+1)
+        A(:,bX1exc(i)) = A(:,bX1ins(i))
       end do
       do i = 1, size(bX2ins)
-        A(:,bX1exc(i)) = A(:,bX2ins(i)-1)
+        A(:,bX2exc(i)) = A(:,bX2ins(i))
       end do
       do i = 1, size(bY1ins)
-        A(:,bY2exc(i)) = A(:,bY1ins(i)+1)
+        A(:,bY1exc(i)) = A(:,bY1ins(i))
       end do
       do i = 1, size(bY2ins)
-        A(:,bY1exc(i)) = A(:,bY2ins(i)-1)
+        A(:,bY2exc(i)) = A(:,bY2ins(i))
       end do
       do i = 1, size(bZ1ins)
-        A(:,bZ2exc(i)) = A(:,bZ1ins(i)+1)
+        A(:,bZ1exc(i)) = A(:,bZ1ins(i))
       end do
       do i = 1, size(bZ2ins)
-        A(:,bZ1exc(i)) = A(:,bZ2ins(i)-1)
+        A(:,bZ2exc(i)) = A(:,bZ2ins(i))
       end do
     case (10)
       do i = 1, size(bX1ins)
-        A(:,bX2exc(i)) = A(:,bX1ins(i)+1)
+        A(:,bX1exc(i)) = A(:,bX1ins(i))
       end do
       do i = 1, size(bX2ins)
-        A(:,bX1exc(i)) = A(:,bX2ins(i)-1)
+        A(:,bX2exc(i)) = A(:,bX2ins(i))
       end do
     case (20)
       do i = 1, size(bY1ins)
-        A(:,bY2exc(i)) = A(:,bY1ins(i)+1)
+        A(:,bY1exc(i)) = A(:,bY1ins(i))
       end do
       do i = 1, size(bY2ins)
-        A(:,bY1exc(i)) = A(:,bY2ins(i)-1)
+        A(:,bY2exc(i)) = A(:,bY2ins(i))
       end do
     case (30)
       do i = 1, size(bZ1ins)
-        A(:,bZ2exc(i)) = A(:,bZ1ins(i)+1)
+        A(:,bZ1exc(i)) = A(:,bZ1ins(i))
       end do
       do i = 1, size(bZ2ins)
-        A(:,bZ1exc(i)) = A(:,bZ2ins(i)-1)
+        A(:,bZ2exc(i)) = A(:,bZ2ins(i))
       end do
     end select
   end subroutine periodic3v2

@@ -6,14 +6,13 @@ module eos
   private
 contains
 
-  subroutine eos_adiabatic(n, den, u, P, c, gamma)
+  subroutine eos_adiabatic(den, u, P, c, gamma)
     real, allocatable, intent(in)    :: den(:), u(:)
     real, allocatable, intent(inout) :: P(:), c(:)
     real, intent(in)    :: gamma
-    integer, intent(in) :: n
     integer             :: i
 
-    do i = 1, n
+    do i = 1, size(den)
       ! if (tasktype == 4) then
       !   P(i) = P(i) * 1
       ! end if

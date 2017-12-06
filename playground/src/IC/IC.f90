@@ -13,8 +13,7 @@ module IC
                           gcoordsys,&
                           sorigin
   use BC
-  use initpositions,  only: uniform,&
-                            place_close_packed_fcc
+  use initpositions,  only: uniform
 
   use neighboursearch,  only: getneighbours, &
                               getNeibListL1, &
@@ -38,12 +37,11 @@ contains
     real, intent(inout)  :: pspc1, pspc2, g
     integer, intent(out) :: n
 
-    real                 :: kr, prs1, prs2, rho1, rho2, kcf1, kcf2, cf1, cf2, sp, v0, &
+    real                 :: kr, prs1, prs2, rho1, rho2, kcf1, sp, &
                             brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, period, eA, &
-                            cca(3), qmatr(3,3), qtmatr(3,3), w
-    integer              :: i, lj, j, nb, tt, kt, dim, nptcs, ivt, cs
-    integer, allocatable :: nlista(:)
-    integer(8)           :: t0
+                            cca(3), qmatr(3,3), qtmatr(3,3)
+    integer              :: i, nb, tt, kt, dim, nptcs, ivt, cs
+    ! integer, allocatable :: nlista(:)
 
     call system_clock(start)
 
@@ -196,7 +194,7 @@ contains
       ! alfvenwave
       rho1 = 1.
       g    = 5./3.
-      eA   = 0.1
+      eA   = 0.005
       prs1 = 0.1
 
       brdx1 = -1.5
@@ -204,7 +202,7 @@ contains
       nptcs = int((brdx2-brdx1)/pspc1)
       pspc1 = merge(0.,(brdx2-brdx1)/nptcs, nptcs == 0)
       pspc2 = pspc1
-      nb = int(kr * sk*1.5)
+      nb = int(kr*sk*2)
       if (dim > 1) then
         brdy1 = -0.5
         brdy2 =  0.5
@@ -277,10 +275,10 @@ contains
     ! call findneighboursKDT(ptype, pos, sln)
 
     !$omp parallel do default(none)&
-    !$omp private(i, sp, cca, qmatr, qtmatr, t0, lj, j, w, nlista)&
+    !$omp private(i, sp, cca, qmatr, qtmatr)&
     !$omp shared(n, pspc1, pspc2, pos, sln, den, prs, mas, iu, g, rho1, rho2)&
-    !$omp shared(cf, kcf, dim, sk, tt, prs1, prs2, cf1, cf2, kcf1, kcf2)&
-    !$omp shared(brdx2, brdx1, brdy2, brdy1, brdz2, brdz1, v0, v, period, ptype)&
+    !$omp shared(cf, kcf, dim, sk, tt, prs1, prs2, kcf1)&
+    !$omp shared(brdx2, brdx1, brdy2, brdy1, brdz2, brdz1, v, period, ptype)&
     !$omp shared(ivt, eA, kt, cs)
     do i=1,n
       sp = merge(pspc1, pspc2, pos(1,i) < 0)
@@ -486,15 +484,19 @@ contains
         den(i) = rho1
         prs(i) = prs1
         iu(i)  = prs1/(g-1)/rho1
+        ! thetta
+        cca(1) = pi/6.
+        ! r ||
+        cca(2) = (pos(1,i)*cos(cca(1)) + pos(2,i)*sin(cca(1)))
+        ! B T
+        cca(3) = eA*sin(2*pi*cca(2))
 
-        cca(1) = (pos(1,i) + 2.*pos(2,i) + 2.*pos(3,i))/3.
-
-        v(1,i) = 0.
-        v(2,i) = eA*sin(2.*pi*cca(1))
-        v(3,i) = eA*cos(2.*pi*cca(1))
-        cf(1,i) = 1.
-        cf(2,i) = v(2,i)
-        cf(3,i) = v(3,i)
+        cf(1,i) = 1.*cos(cca(3)) - cca(3) * sin(cca(1))
+        cf(2,i) = 1.*sin(cca(3)) + cca(3) * cos(cca(1))
+        cf(3,i) = eA*cos(2*pi*cca(2))
+        v(1,i) = cf(1,i)
+        v(2,i) = cf(2,i)
+        v(3,i) = cf(3,i)
 
         if (dim == 1) then
           v(2:3,i)   = 0.

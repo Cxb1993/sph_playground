@@ -105,8 +105,8 @@ end subroutine
     real, intent(in)                 :: t
 
     integer, allocatable :: nlista(:)
-    integer              :: i, j, dim, x1, B2
-    real                 :: exact
+    integer              :: i, j, dim
+    real                 :: exact, x1, B2
 
     call getdim(dim)
     call getNeibListL1(nlista)
