@@ -1,5 +1,6 @@
 module iterator
   use eos
+  use const
   use circuit1
   use timing,           only: addTime
   use circuit2,         only: c2, c15
@@ -17,15 +18,25 @@ module iterator
 
  private
  save
- integer(8)  :: start=0, finish=0
+ integer(8)         :: start=0, finish=0
+ real, allocatable  :: dbtmp(:,:)
+ integer            :: initialised = 0
 
 contains
+  subroutine initIterate(n)
+    integer, intent(in) :: n
+
+    allocate(dbtmp(3,n))
+    initialised = 1
+  end subroutine
+
   subroutine iterate(n, sk, gamma, ptype, pos, vel, acc, &
                     mas, den, h, dh, om, prs, c, uei, due, cf, dcf, kcf)
     real, allocatable, intent(inout), dimension(:,:)  :: pos, vel, acc, cf, dcf
     real, allocatable, intent(inout), dimension(:)    :: mas, den, dh, prs, c, uei, due, om, h
     real, allocatable, intent(inout), dimension(:,:,:):: kcf
-    integer, allocatable, intent(in) :: ptype(:)
+    integer, allocatable, intent(in)   :: ptype(:)
+
     integer, intent(in) :: n
     real, intent(in)    :: sk, gamma
     integer             :: dim, ttp, dtp, ivt
@@ -36,52 +47,13 @@ contains
     call ginitvar(ivt)
 
     dcf(:,:) = 0.
+    if (initialised == 0) then
+      call initIterate(n)
+    end if
 
     select case (ttp)
-    case (1, 2, 9)
+    case (1, 2, 3, 4, 9)
       ! mooved to ivt check
-    case (3)
-      ! heatconduction
-      print*, "FIX ME. I should depend on IVT not EQS"
-      call findneighboursKDT(ptype, pos, h)
-
-      call c1(ptype, pos, mas, sk, h, den, om, cf, dcf, kcf)
-      call system_clock(start)
-      if (dim > 1 ) then
-        call periodic1v2(den, 20)
-        call periodic1v2(h,   20)
-        call periodic1v2(om,  20)
-        call periodic3v2(dcf, 20)
-        if (dim == 3) then
-          call periodic1v2(den, 30)
-          call periodic1v2(h,   30)
-          call periodic1v2(om,  30)
-          call periodic3v2(dcf, 30)
-        end if
-      end if
-      call system_clock(finish)
-      call addTime(' BC', finish - start)
-
-      ! symm-diff case for two first derivatives
-      ! call c15(pos, mas, h, den, cf, om, dcf)
-      ! call system_clock(start)
-      ! call periodic3v2(dcf, dim*10)
-      ! call system_clock(finish)
-      ! call addTime(' BC', finish - start)
-
-      call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
-      call system_clock(start)
-      if (ivt == 3) then
-        if (dim > 1) then
-          call periodic3v2(dcf, 20)
-          if (dim == 3) then
-            call periodic3v2(dcf, 30)
-          end if
-        end if
-      end if
-      call system_clock(finish)
-      call addTime(' BC', finish - start)
-    case(4)
     case(5)
       ! 'diff-laplace'
       print*, "FIX ME. I should depend on IVT not EQS"
@@ -115,93 +87,154 @@ contains
     end select
 
     select case(ivt)
-    case(6)
-      ! soundwave
+    case (ett_ring)
       call findneighboursKDT(ptype, pos, h)
 
       call c1(ptype, pos, mas, sk, h, den, om, cf, dcf, kcf)
       call system_clock(start)
-      call periodic1v2(den, 00)
-      call periodic1v2(h,   00)
-      call periodic1v2(om,  00)
+      call periodic1v2(den, ebc_all)
+      call periodic1v2(h,   ebc_all)
+      call periodic1v2(om,  ebc_all)
+      call periodic3v2(dcf, ebc_all)
+      call system_clock(finish)
+      call addTime(' bc', finish - start)
+
+      call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
+      call system_clock(start)
+      call periodic3v2(dcf, ebc_all)
+      call periodic1v2(due, ebc_all)
+      call periodic1v2(dh,  ebc_all)
+      call system_clock(finish)
+      call addTime(' bc', finish - start)
+      ! do I need to do it
+      ! kcf(:,2,:) = 0.
+      acc(:,:) = 0.
+    case (ett_soundwave)
+      call findneighboursKDT(ptype, pos, h)
+
+      call c1(ptype, pos, mas, sk, h, den, om, cf, dcf, kcf)
+      call system_clock(start)
+      call periodic1v2(den, ebc_all)
+      call periodic1v2(h,   ebc_all)
+      call periodic1v2(om,  ebc_all)
       call system_clock(finish)
       call addTime(' bc', finish - start)
 
       ! call eos_adiabatic(den, uei, prs, c, gamma)
       call eos_isothermal(den, c(1), prs)
       call system_clock(start)
-      call periodic1v2(prs, 00)
-      call periodic1v2(c,   00)
+      call periodic1v2(prs, ebc_all)
+      call periodic1v2(c,   ebc_all)
       call system_clock(finish)
       call addTime(' bc', finish - start)
 
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
       call system_clock(start)
-      call periodic3v2(acc, 00)
-      call periodic3v2(dcf, 00)
-      call periodic1v2(due, 00)
-      call periodic1v2(dh,  00)
+      call periodic3v2(acc, ebc_all)
+      call periodic3v2(dcf, ebc_all)
+      call periodic1v2(due, ebc_all)
+      call periodic1v2(dh,  ebc_all)
       call system_clock(finish)
       call addTime(' bc', finish - start)
-    case (7)
-      ! hydroshock
+    case (ett_hydroshock)
       call findneighboursKDT(ptype, pos, h)
       call c1(ptype, pos, mas, sk, h, den, om, cf, dcf, kcf)
       if ( dim > 1 ) then
         call system_clock(start)
-        call periodic1v2(den, 20)
-        call periodic1v2(h,   20)
-        call periodic1v2(om,  20)
+        call periodic1v2(den, ebc_y)
+        call periodic1v2(h,   ebc_y)
+        call periodic1v2(om,  ebc_y)
         call system_clock(finish)
         call addTime(' bc', finish - start)
       end if
       call eos_adiabatic(den, uei, prs, c, gamma)
       if ( dim > 1 ) then
         call system_clock(start)
-        call periodic1v2(prs, 20)
-        call periodic1v2(c,   20)
+        call periodic1v2(prs, ebc_y)
+        call periodic1v2(c,   ebc_y)
         call system_clock(finish)
         call addTime(' bc', finish - start)
       end if
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
       if ( dim > 1 ) then
         call system_clock(start)
-        call periodic3v2(acc, 20)
-        call periodic1v2(due, 20)
-        call periodic1v2(dh,  20)
+        call periodic3v2(acc, ebc_y)
+        call periodic1v2(due, ebc_y)
+        call periodic1v2(dh,  ebc_y)
         call system_clock(finish)
         call addTime(' bc', finish - start)
       end if
-    case (8)
-      ! alfvenwave
+    case (ett_alfvenwave)
       call findneighboursKDT(ptype, pos, h)
 
       call c1(ptype, pos, mas, sk, h, den, om, cf, dcf, kcf)
       call system_clock(start)
-      call periodic1v2(den, 00)
-      call periodic1v2(h,   00)
-      call periodic1v2(om,  00)
+      call periodic1v2(den, ebc_all)
+      call periodic1v2(h,   ebc_all)
+      call periodic1v2(om,  ebc_all)
       call system_clock(finish)
       call addTime(' bc', finish - start)
 
       call eos_adiabatic(den, uei, prs, c, gamma)
       ! call eos_isothermal(den, c(1), prs)
       call system_clock(start)
-      call periodic1v2(prs, 00)
-      call periodic1v2(c,   00)
+      call periodic1v2(prs, ebc_all)
+      call periodic1v2(c,   ebc_all)
       call system_clock(finish)
       call addTime(' bc', finish - start)
 
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
       call system_clock(start)
-      call periodic3v2(acc, 00)
-      call periodic3v2(dcf, 00)
-      call periodic1v2(due, 00)
-      call periodic1v2(dh,  00)
+      call periodic3v2(acc, ebc_all)
+      call periodic3v2(dcf, ebc_all)
+      call periodic1v2(due, ebc_all)
+      call periodic1v2(dh,  ebc_all)
+      dbtmp(:,:) = kcf(:,2,:)
+      call periodic3v2(dbtmp, ebc_all)
+      kcf(:,2,:) = dbtmp(:,:)
+      call system_clock(finish)
+      call addTime(' bc', finish - start)
+    case(ett_mti)
+
+      call findneighboursKDT(ptype, pos, h)
+
+      call c1(ptype, pos, mas, sk, h, den, om, cf, dcf, kcf)
+      call system_clock(start)
+      call periodic1v2(den, ebc_x)
+      call periodic1v2(h,   ebc_x)
+      call periodic1v2(om,  ebc_x)
+      call system_clock(finish)
+      call addTime(' bc', finish - start)
+
+      call eos_adiabatic(den, uei, prs, c, gamma)
+      ! call eos_isothermal(den, c(1), prs)
+      call system_clock(start)
+      call periodic1v2(prs, ebc_x)
+      call periodic1v2(c,   ebc_x)
+      call system_clock(finish)
+      call addTime(' bc', finish - start)
+
+      call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
+      call system_clock(start)
+      call periodic3v2(acc, ebc_x)
+      call periodic3v2(dcf, ebc_x)
+      call periodic1v2(due, ebc_x)
+      call periodic1v2(dh,  ebc_x)
+
+      call fixed3(acc, ebc_y, ebc_all, 0.)
+      call fixed3(dcf, ebc_y, ebc_all, 0.)
+      call fixed1(due, ebc_y, 0.)
+      call fixed1(dh,  ebc_y, 0.)
+      
+      dbtmp(:,:) = kcf(:,2,:)
+      call periodic3v2(dbtmp, ebc_x)
+      call fixed3(dbtmp, ebc_y, ebc_all, 0.)
+      kcf(:,2,:) = dbtmp(:,:)
+
       call system_clock(finish)
       call addTime(' bc', finish - start)
     case default
-      print *, 'Task type was not defined in iterator.f90: line 172.'
+      print *, 'Task type was not defined in iterator.f90: line 204.'
       stop
     end select
   end subroutine iterate

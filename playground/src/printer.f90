@@ -13,15 +13,20 @@ module printer
 
 
 contains
-  subroutine Output(time, ptype, x, v, dv, m, den, slen, pres, ien, cf, err)
+  subroutine Output(time, ptype, x, v, dv, m, den, slen, pres, ien, cf, kcf, err)
+    use kernel, only: get_krad
     real, allocatable, intent(in)    :: x(:,:), v(:,:), dv(:,:), m(:), err(:), &
-                                        den(:), slen(:), pres(:), ien(:), cf(:,:)
+                                        den(:), slen(:), pres(:), ien(:), &
+                                        cf(:,:), kcf(:,:,:)
     integer, allocatable, intent(in) :: ptype(:)
     real, intent(in)    :: time
+    real                :: kr
     character (len=40)  :: fname
     integer :: iu = 0, j, n
 
     call system_clock(start)
+    call get_krad(kr)
+
 
     n = size(ptype)
     write(fname, "(a,i5.5)") 'output/step_', ifile
@@ -29,7 +34,9 @@ contains
     write(iu,*) time
     do j = 1, n
       ! if (ptype(j) == 1) then
-        write(iu, *) x(:,j), v(:,j), dv(:,j), m(j), den(j), slen(j), pres(j), ien(j), cf(:,j), err(j)
+        write(iu, *) x(:,j), v(:,j), dv(:,j),&
+          m(j), den(j), (kr/2.)*slen(j), pres(j),&
+          ien(j), cf(:,j), kcf(:,1,j), err(j)
       ! end if
     end do
     close(iu)

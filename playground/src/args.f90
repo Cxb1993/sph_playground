@@ -15,21 +15,23 @@ module args
   public :: fillargs
 
   contains
-    subroutine fillargs(dim, pspc1, pspc2, itype, ktype, dtype, errfname, dtout, npic, tfinish, sk, silent)
-      real, intent(inout)                 :: pspc1, pspc2, dtout, npic, tfinish, sk
-      integer, intent(inout)              :: dim, silent
+    subroutine fillargs(dim, pspc1, resol, itype, ktype, dtype, errfname, dtout, npic, tfinish, sk, silent)
+      real, intent(inout)                 :: pspc1, dtout, npic, tfinish, sk
+      integer, intent(inout)              :: dim, silent, resol
       character (len=100), intent(inout)  :: itype, ktype, errfname, dtype
       character (len=100)                 :: kname
 
       integer                             :: numargs, curargnum
       character (len=100)                 :: argkey, argval1, silentstr, kerninflname, initvart,&
                                              adden, artts, coordsysstr
+      real :: tmp
 
       dim   = 1
       itype = 'chi-laplace'
-      pspc1 = 1.
+      pspc1 = 0
+      resol = 0
       errfname = 'runresult.info'
-      ktype = 'fab'
+      ktype = ''
       kname = ''
       tfinish = 1.
       npic = 200.
@@ -40,9 +42,10 @@ module args
       kerninflname = ''
       initvart = ''
       adden = 'yes'
-      artts = 'yes'
-      coordsysstr = 'cartesian'
+      artts = ''
+      coordsysstr = ''
 
+      print*, "# #"
 
       numargs = command_argument_count()
       if ( numargs > 0 )then
@@ -58,6 +61,9 @@ module args
             itype = adjustl(argval1)
           case('--spacing')
             read(argval1, *) pspc1
+          case('--resolution')
+            read(argval1, *) tmp
+            resol = int(tmp)
           case('--errfilename')
             errfname = adjustl(argval1)
           case('--kerninfluencefile')
@@ -94,36 +100,45 @@ module args
       end if
 
       call scoordsys(coordsysstr)
+      call setArtificialTerms(artts)
       call set_tasktype(itype)
-      pspc2 = pspc1
       call setkerntype(ktype)
       dtout = tfinish / npic
       call set_difftype(dtype)
 
-      print *, "# #               dim:   ", dim
-      print *, "# # coordinate system:   ", coordsysstr
-      print *, "# #         task type:   ", itype
+      print*, "# #"
+      print *, "# #                dim:   ", dim
+      if (coordsysstr /= '') then
+        print *, "# #  coordinate system:   ", coordsysstr
+      end if
+      print *, "# #          task type:   ", itype
       if (initvart /= '') then
         call sinitvar(initvart)
-        print *, "# #     init var type:   ", initvart
+        print *, "# #      init var type:   ", initvart
       end if
       call setAdvancedDensity(adden)
-      print *, "# # advanced density:   ", adden
-      call setArtificialTerms(artts)
-      print *, "# # artificail terms:   ", artts
-      print *, "# #         errfname:   ", errfname
+      print *, "# #   advanced density:   ", adden
+      if (artts /= '') then
+        print *, "# #   artificail terms:   ", artts
+      end if
+      print *, "# #           errfname:   ", errfname
       if (kerninflname /= '') then
         call setInfluenceCalc(kerninflname)
-        print *, "# #   kern infl name:   ", kerninflname
+        print *, "# #     kern infl name:   ", kerninflname
       end if
-      print *, "# #         ker.type:   ", ktype
+      print *, "# #        kernel type:   ", ktype
       call getkernelname(kname)
-      print *, "# #         ker.name:   ", kname
-      write(*, "(A, F9.7)") " # #         print dt:   ", dtout
-      write(*, "(A, F7.5)") " # #                h:   ", sk
-      write(*, "(A, A)") " # #         difftype:   ", dtype
-      write(*, "(A, A)") " # #           silent:   ", silentstr
-      write(*, "(A, F7.5, A, F7.5)") " # #           set dx:   x1=", pspc1, "   x2=", pspc2
+      print *, "# #        kernel name:  ", kname
+      write(*, "(A, F9.7)") " # #           print dt:   ", dtout
+      write(*, "(A, F7.5)") " # #                  h:   ", sk
+      write(*, "(A, A)") " # #           difftype:   ", dtype
+      write(*, "(A, A)") " # #             silent:   ", silentstr
+      if (pspc1 > 0) then
+        write(*, "(A, F7.5)") " # #         desired dx:   x1=", pspc1
+      end if
+      if (resol > 0) then
+        write(*, "(A, I5)") " # # desired resolution:   npx1=", resol
+      end if
 
       call initkernel(dim)
     end subroutine fillargs

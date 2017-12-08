@@ -24,7 +24,7 @@ contains
     type(intlist)        :: bx1, bx2, by1, by2, bz1, bz2
     integer, allocatable :: inbx1(:), inbx2(:), inby1(:), inby2(:), inbz1(:), inbz2(:)
     integer              :: dim, nb, isborder, freenumber, n, ptsz, &
-                             ix1, ix2, iy1, iz1, bx, by, bz, i, j, k
+                             ix1, ix2, iy1, iy2, iz1, iz2, bx, by, bz, i, j, k
     real                 :: sp, eps
 
     ! eps = -eps0
@@ -60,18 +60,20 @@ contains
       else
         sp = pspc2
       end if
-      iy1 = int((brdy2-brdy1)/sp/2)
-      iz1 = int((brdz2-brdz1)/sp/2)
+      iy1 = int(-brdy1/sp)
+      iy2 = int(brdy2/sp)
+      iz1 = int(-brdz1/sp)
+      iz2 = int(brdz2/sp)
       ! print*,(-by -iy1), (iy1 +by), by, iy1
       ! print*, '------'
-      do j = (-by -iy1), (iy1 +by)
+      do j = (-by -iy1), (iy2 +by)
         ! print*, j
-        do k = (-bz -iz1), (iz1 +bz)
+        do k = (-bz -iz1), (iz2 +bz)
           isborder = 0
           if (i < -ix1) then
             isborder = 1
             call bx1%append(n)
-          else if (i > ix1) then
+          else if (i > ix2) then
             isborder = 1
             call bx2%append(n)
           end if
@@ -81,7 +83,7 @@ contains
             if (j < -iy1) then
               isborder = 1
               call by1%append(n)
-            else if (j > iy1) then
+            else if (j > iy2) then
               isborder = 1
               call by2%append(n)
             end if
@@ -89,7 +91,7 @@ contains
               if (k < -iz1) then
                 isborder = 1
                 call bz1%append(n)
-              else if (k > iz1) then
+              else if (k > iz2) then
                 isborder = 1
                 call bz2%append(n)
               end if

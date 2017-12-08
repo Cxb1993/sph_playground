@@ -1,5 +1,7 @@
 program main
-  use BC,               only: bcdestroy => destroy
+  use BC,               only: bcdestroy => destroy,&
+                              periodic3v2, &
+                              periodic1v2
   use IC,               only: setupIC
   use state,            only: get_tasktype,&
                               ginitvar,&
@@ -25,6 +27,8 @@ program main
   use neighboursearch,  only: getNeibNumbers,&
                               neibDestroy => destroy
   use arrayresize,      only: resize
+  use timing,           only: addTime
+
 
   use const
   ! use cltest,           only: runcltest
@@ -39,36 +43,37 @@ program main
   integer, allocatable, dimension(:)  :: ptype
 
   real                                :: dt, t, dtout, ltout, tfinish, npic,&
-                                         pspc1, pspc2, gamma,&
+                                         pspc1, gamma,&
                                          sk, chi(81), cv = 1.
 
-  character (len=100)  :: itype, errfname, ktype, dtype
-  integer             :: n, dim, iter, tt, nusedl1, nusedl2, printlen, silent, ivt, stopiter
+  character (len=100) :: itype, errfname, ktype, dtype
+  integer             :: n, dim, iter, s_tt, nusedl1, nusedl2, printlen, silent,&
+                        ivt, stopiter, resol
 
-  integer(8)          :: tprint
+  integer(8)          :: tprint, start=0, finish=0
 
   ! call runcltest()
   print *, '##############################################'
   print *, '#####'
 
-  call fillargs(dim, pspc1, pspc2,&
+  call fillargs(dim, pspc1, resol,&
                 itype, ktype, dtype, errfname, dtout, npic, tfinish, sk, silent)
 
-  call setupIC(n, sk, gamma, pspc1, pspc2, pos, vel, acc, &
+  call setupIC(n, sk, gamma, pspc1, resol, pos, vel, acc, &
                 mas, den, h, prs, iu, du, cf, kcf, dcf, ptype)
 
   call setpartnum(n)
-  call get_tasktype(tt)
+  call get_tasktype(s_tt)
   call ginitvar(ivt)
 
-  select case(tt)
+  select case(s_tt)
   case (1, 2, 3, 4, 9)
     ! hydro | magnetohydro
   case (5, 6, 7, 8, 10)
     ! 'diff-laplass' ! 'diff-graddiv' ! diff-artvisc
     call set_stepping(10**dim)
   case default
-    print *, 'Particle turn-off was not set main.f90: line 68.'
+    print *, 'Particle turn-off was not set main.f90: line 75.'
     stop
   end select
 
@@ -109,7 +114,7 @@ program main
 
   if (silent == 0) then
     print *, 'Initial setup printed'
-    call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, sqerr)
+    call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, kcf, sqerr)
   end if
 
   call iterate(n, sk, gamma, &
@@ -117,23 +122,23 @@ program main
               mas, den, h, dh, om, prs, c, iu, du, &
               cf, dcf, kcf)
 
-  select case(tt)
-  case(1, 2)
-    ! hydro | magnetohydro
+  select case(s_tt)
+  case(1, 2, 3, 4)
+    ! hydro | magnetohydro | hydro magneto diffusion
     ! stopiter = 1
-  case(3, 7, 8, 9)
+  case(7, 8, 9)
     ! who knows....
   case(5, 6, 10)
     ! 'diff-laplace' ! 'diff-graddiv' ! diff-artvisc
     stopiter = 1
   case default
-    print *, 'Task type was not sen in l2 error evaluation main.f90: line 129'
+    print *, 'EQS type was not sen in while interuption main.f90: line 147.'
     stop
   end select
 
   do while ((t < tfinish + eps0).and.(stopiter==0))
     ! call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, sqerr)
-    select case(tt)
+    select case(s_tt)
     case(1)
       ! hydro
       dt = .3 * minval(h) / maxval(c)
@@ -141,8 +146,11 @@ program main
       ! magnetohydro
       dt = .1 * minval(h) / maxval(c)
     case(3)
-      ! 'hc-sinx'
+      ! 'diffusion'
       dt = .1 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
+    case (4)
+      ! hydro magneto diffusion
+      dt = .000001 * minval(den) * minval(c) * minval(h) ** 2 / merge(maxval(kcf), 1., maxval(kcf)>0)
     case (5,6,7,8)
       ! 'diff-laplass'      ! 'diff-graddiv'
       stopiter = 1
@@ -161,7 +169,7 @@ program main
       ! read*
       print *, iter, t, dt, sum(iu), 'min h:', minval(h), 'max h:', maxval(h)
       if ( silent == 0) then
-        call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, err)
+        call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, kcf, err)
       end if
       ltout = ltout + dtout
     end if
@@ -172,11 +180,13 @@ program main
     tdu(:) = du(:)
     tdh(:) = dh(:)
     tcf(:,:) = dcf(:,:)
+    kcf(:,3,:) = kcf(:,2,:)
     pos(:,:) = p(:,:)  + dt * v(:,:) + 0.5 * dt * dt * a(:,:)
     vel(:,:) = v(:,:)  + dt * a(:,:)
     iu(:)    = iu(:)   + dt * du(:)
     h(:)     = h(:)    + dt * dh(:)
     cf(:,:)  = cf(:,:) + dt * dcf(:,:)
+    kcf(:,1,:) = kcf(:,1,:) + dt * kcf(:,2,:)
     call iterate(n, sk, gamma, &
                 ptype, pos, vel, acc, &
                 mas, den, h, dh, om, prs, c, iu, du, &
@@ -185,6 +195,7 @@ program main
     iu(:)    = iu(:)    + 0.5 * dt * (du(:)     - tdu(:))
     h(:)     = h(:)     + 0.5 * dt * (dh(:)     - tdh(:))
     cf(:,:)  = cf(:,:)  + 0.5 * dt * (dcf(:,:)  - tcf(:,:))
+    kcf(:,1,:) = kcf(:,1,:) + 0.5 * dt * (kcf(:,2,:)  - kcf(:,3,:))
 
     t = t + dt
     iter = iter + 1
@@ -193,8 +204,8 @@ program main
   !----------------------------------------!
   !         l2 error calc evaluatopn       !
   !----------------------------------------!
-  select case(tt)
-  case(1, 2, 3, 9)
+  select case(s_tt)
+  case(1, 2, 3, 4)
     ! mooved to ivt check below
     ! the rest should be mooved as well
   case(7, 8)
@@ -210,7 +221,7 @@ program main
     ! diff-artvisc
     call err_diff_artvisc(pos, acc, err)
   case default
-    print *, 'Task type was not sen in l2 error evaluation main.f90: line 212.'
+    print *, 'Task type was not set in l2 error evaluation main.f90: line 242.'
     stop
   end select
 
@@ -238,7 +249,7 @@ program main
   !----------------------------------------!
   !          teylor error evaluation       !
   !----------------------------------------!
-  select case(tt)
+  select case(s_tt)
   case(5, 7)
     ! diff-laplace ! chi-laplace
     call etlaplace(pos, mas, den, h, chi)
@@ -252,18 +263,18 @@ program main
     result(4) = sum(chi)/dim/(2*dim - 1)
     result(6:86) = chi(1:81)
     printlen = 86
-  case(1, 2, 3, 9, 10)
+  case(1, 2, 3, 4, 9, 10)
     ! 'hc-sinx' ! 'diff-graddiv' ! diff-artvisc
     printlen = 5
   case default
-    print *, 'Task type was not sen in taylor error evaluation main.f90: line 248'
+    print *, 'Task type was not sen in taylor error evaluation main.f90: line 282.'
     stop
   end select
   if (nusedl1 /= 0) then
     sqerr(:) = sqrt(err(:))
     print *, iter, t, 0.
     if (silent == 0) then
-      call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, sqerr)
+      call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, kcf, sqerr)
     end if
   end if
   result(5) = sk
@@ -288,9 +299,7 @@ program main
   deallocate(iu)
   deallocate(du)
   deallocate(cf)
-  if ((tt == 2).or.(tt == 3)) then
-    deallocate(kcf)
-  end if
+  deallocate(kcf)
   deallocate(dcf)
   deallocate(err)
   deallocate(sqerr)

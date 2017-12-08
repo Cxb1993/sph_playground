@@ -65,7 +65,7 @@ contains
     real, intent(in)     :: sk
     real                 :: w, dwdh, r(3), dr, r2, dfdh, fh, hn, vba(3), nwa(3), nwb(3)
     real                 :: allowerror, maxinterr, currinterr
-    integer              :: n, i, j, la, lb, dim, iter, ktp, ivt
+    integer              :: n, i, j, la, lb, dim, iter, ktp
     integer(8)           :: t0, tneib
     integer, allocatable :: nlista(:), nlistb(:)
 
@@ -75,9 +75,9 @@ contains
 
     call getdim(dim)
     call getkerntype(ktp)
-    call ginitvar(ivt)
 
-    call getNeibListL2(nlista)
+    ! call getNeibListL2(nlista)
+    call getNeibListL1(nlista)
 
     allowerror = 1e-8
     slnint(:) = h(:)
@@ -88,7 +88,7 @@ contains
     tneib = 0.
     maxinterr  = 0.
     currinterr = 0.
-
+    ! print*, nlista
     ! print*, '1'
     do while ((maxval(resid, mask=(resid>0)) > allowerror) .and. (iter < 100))
       maxinterr  = 0.
@@ -97,7 +97,7 @@ contains
       !$omp private(r, dr, dwdh, w, dfdh, fh, hn, j, i, la, lb, r2, t0, nlistb)&
       !$omp private(nwa, nwb, vba, currinterr)&
       !$omp shared(resid, allowerror, n, pos, mas, dim, sk, h, ktp, maxinterr)&
-      !$omp shared(nlista, den, dennew, om, slnint, dcf, cf, ivt)&
+      !$omp shared(nlista, den, dennew, om, slnint, dcf, cf)&
       !$omp shared(nw)&
       !$omp reduction(+:tneib)
       do la = 1, size(nlista)
@@ -155,7 +155,6 @@ contains
           ! print*,'c1', 9
           resid(i) = abs(hn - slnint(i)) / h(i)
           slnint(i) = hn
-          ! print *,'c1', 10 dennew(i), slnint(i), om(i)
           if (ktp == 3) then
             dcf(:,i) = 0.
             call getneighbours(i, pos, slnint, nlistb, t0)
@@ -168,6 +167,7 @@ contains
             end do
           end if
         end if
+        ! print *,'c1', dennew(i), slnint(i), om(i)
       end do
       !$omp end parallel do
 
@@ -181,7 +181,7 @@ contains
     ! if (abs(1. - maxinterr) > 0.1) then
     !   print*, "Warn: density NR: kernel integral condition does not fulfilled Int(V_{ab}*W_{ab}) = ", maxinterr
     ! end if
-
+    ! read*
     h(:) = slnint(:)
     call system_clock(finish)
     call addTime(' circuit1', finish - start - tneib)

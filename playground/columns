@@ -12,7 +12,10 @@ m
 h
 P
 U
-CFx
-CFy
-CFz
+Tx
+Ty
+Tz
+Bx
+By
+Bz
 err

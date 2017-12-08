@@ -81,12 +81,13 @@ contains
         error stop "Wrong kernel type in kernel init."
       end if
     else if (cs == 2) then
+      nw => nw_cyl
       if (kt == 1) then
         hessian => hessian_ddw_cyl
       else if (kt == 2) then
         ! hessian => hessian_fab_cart
       else if (kt == 3) then
-        nw => nw_cyl
+        ! no more actions
       else if (kt == 4) then
         ! hessian => hessian_fw_cart
       else

@@ -1,4 +1,7 @@
 module state
+
+  use const
+
   implicit none
 
   public :: set_difftype, get_difftype, set_tasktype, get_tasktype, &
@@ -6,12 +9,17 @@ module state
             ginitvar, setAdvancedDensity, getAdvancedDensity,&
             setArtificialTerms, getArtificialTerms, &
             setpartnum, getpartnum, scoordsys, gcoordsys, &
-            sorigin, gorigin
+            sorigin, gorigin, switch_hc_conductivity, switch_hc_isotropic
+
   private
   save
     integer :: dim = 1, partnumber=-1
     integer :: ttype, ktype, dtype, icvar=-1, adden = 1, artts = 1, coordsys = 1, &
                 origin = 0
+    real :: &
+      switch_hc_conductivity = 0.,&
+      switch_hc_isotropic = -1.
+
   contains
     subroutine setdim(d)
       integer, intent(in) :: d
@@ -41,8 +49,10 @@ module state
         ttype = 1
       case('magnetohydro')
         ttype = 2
-      case('heatconduction')
+      case('diffusion')
         ttype = 3
+      case('hmd')
+        ttype = 4
       case('diff-laplace')
         ttype = 5
       case('diff-graddiv')
@@ -76,8 +86,8 @@ module state
       case('fw')
         ktype = 4
       case default
-        print *, 'Kernel type not set: ', itt
-        stop
+        ktype = 2
+        print *, '# # > Fab is set be default d2W/dx2 <'
       end select
      !  call calc_params()
     end subroutine setkerntype
@@ -109,22 +119,22 @@ module state
      ! initvar
      character (len=*), intent(in) :: itt
      select case(itt)
-     case('isotropic-sinxsinysinz')
-       icvar = 1
-     case('I AM FREE NOW')
-       icvar = 2
+     case('sin3')
+       icvar = ett_sin3
+     case('mti')
+       icvar = ett_mti
      case('shock12')
-       icvar = 3
+       icvar = ett_shock12
      case('pulse')
-       icvar = 4
+       icvar = ett_pulse
      case('ring')
-       icvar = 5
+       icvar = ett_ring
      case('soundwave')
-       icvar = 6
+       icvar = ett_soundwave
      case('hydroshock')
-       icvar = 7
+       icvar = ett_hydroshock
      case('alfvenwave')
-       icvar = 8
+       icvar = ett_alfvenwave
      case default
        print *, 'There is no such initial variable setting : ', itt
        stop
@@ -162,8 +172,8 @@ module state
      case('no')
        artts = 0
      case default
-       print *, 'There is no such case for advanced density : ', iat
-       stop
+       artts = 1
+       print *, '# # > Yes is set be default choise for artificial terms <'
      end select
    end subroutine
 
@@ -180,9 +190,9 @@ module state
      case('cylindric')
        coordsys = 2
      case default
-       print *, 'There is no such coordinate system setting : ', ics
-       stop
-     end select
+       coordsys = 1
+       print *, '# # > Cartesian is set be default coordinate system <'
+      end select
    end subroutine
 
    pure subroutine gcoordsys(ocs)

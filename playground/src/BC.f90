@@ -1,4 +1,5 @@
 module BC
+  use const
   implicit none
 
   public :: fixed1, fixed3, destroy, &
@@ -138,7 +139,7 @@ contains
     integer                          :: i
 
     select case(axis)
-    case (00)
+    case (ebc_all)
       do i = 1, size(bX1ins)
         A(bX1exc(i)) = A(bX1ins(i))
       end do
@@ -157,21 +158,21 @@ contains
       do i = 1, size(bZ2ins)
         A(bZ2exc(i)) = A(bZ2ins(i))
       end do
-    case (10)
+    case (ebc_x)
       do i = 1, size(bX1ins)
         A(bX1exc(i)) = A(bX1ins(i))
       end do
       do i = 1, size(bX2ins)
         A(bX2exc(i)) = A(bX2ins(i))
       end do
-    case (20)
+    case (ebc_y)
       do i = 1, size(bY1ins)
         A(bY1exc(i)) = A(bY1ins(i))
       end do
       do i = 1, size(bY2ins)
         A(bY2exc(i)) = A(bY2ins(i))
       end do
-    case (30)
+    case (ebc_z)
       do i = 1, size(bZ1ins)
         A(bZ1exc(i)) = A(bZ1ins(i))
       end do
@@ -187,7 +188,7 @@ contains
     integer                          :: i
 
     select case(axis)
-    case (00)
+    case (ebc_all)
       do i = 1, size(bX1ins)
         A(:,bX1exc(i)) = A(:,bX1ins(i))
       end do
@@ -206,21 +207,21 @@ contains
       do i = 1, size(bZ2ins)
         A(:,bZ2exc(i)) = A(:,bZ2ins(i))
       end do
-    case (10)
+    case (ebc_x)
       do i = 1, size(bX1ins)
         A(:,bX1exc(i)) = A(:,bX1ins(i))
       end do
       do i = 1, size(bX2ins)
         A(:,bX2exc(i)) = A(:,bX2ins(i))
       end do
-    case (20)
+    case (ebc_y)
       do i = 1, size(bY1ins)
         A(:,bY1exc(i)) = A(:,bY1ins(i))
       end do
       do i = 1, size(bY2ins)
         A(:,bY2exc(i)) = A(:,bY2ins(i))
       end do
-    case (30)
+    case (ebc_z)
       do i = 1, size(bZ1ins)
         A(:,bZ1exc(i)) = A(:,bZ1ins(i))
       end do
@@ -236,24 +237,33 @@ contains
     real, intent(out)   :: A(ns)
 
     select case(axeside)
-    case (00)
+    case (ebc_all)
       A(bX1exc) = k
       A(bX2exc) = k
       A(bY1exc) = k
       A(bY2exc) = k
       A(bZ1exc) = k
       A(bZ2exc) = k
-    case (11)
+    case (ebc_x1)
       A(bX1exc) = k
-    case (12)
+    case (ebc_x2)
       A(bX2exc) = k
-    case (21)
+    case (ebc_x)
+      A(bX1exc) = k
+      A(bX2exc) = k
+    case (ebc_y1)
       A(bY1exc) = k
-    case (22)
+    case (ebc_y2)
       A(bY2exc) = k
-    case (31)
+    case (ebc_y)
+      A(bY1exc) = k
+      A(bY2exc) = k
+    case (ebc_z1)
       A(bZ1exc) = k
-    case (32)
+    case (ebc_z2)
+      A(bZ2exc) = k
+    case (ebc_z)
+      A(bZ1exc) = k
       A(bZ2exc) = k
     end select
   end subroutine fixed1
@@ -264,25 +274,74 @@ contains
     real, intent(out)   :: A(3,ns)
 
     select case(axeside)
-    case (00)
+    case (ebc_all)
+      if (dim == ebc_all) then
+        A(:,bX1exc) = k
+        A(:,bX2exc) = k
+        A(:,bY1exc) = k
+        A(:,bY2exc) = k
+        A(:,bZ1exc) = k
+        A(:,bZ2exc) = k
+      end if
       A(dim,bX1exc) = k
       A(dim,bX2exc) = k
       A(dim,bY1exc) = k
       A(dim,bY2exc) = k
       A(dim,bZ1exc) = k
       A(dim,bZ2exc) = k
-    case (11)
+    case (ebc_x1)
       A(dim,bX1exc) = k
-    case (12)
+      if (dim == ebc_all) then
+        A(:,bX1exc) = k
+      end if
+    case (ebc_x2)
       A(dim,bX2exc) = k
-    case (21)
+      if (dim == ebc_all) then
+        A(:,bX2exc) = k
+      end if
+    case (ebc_x)
+      A(dim,bX1exc) = k
+      A(dim,bX2exc) = k
+      if (dim == ebc_all) then
+        A(:,bX1exc) = k
+        A(:,bX2exc) = k
+      end if
+    case (ebc_y1)
       A(dim,bY1exc) = k
-    case (22)
+      if (dim == ebc_all) then
+        A(:,bY1exc) = k
+      end if
+    case (ebc_y2)
       A(dim,bY2exc) = k
-    case (31)
+      if (dim == ebc_all) then
+        A(:,bY2exc) = k
+      end if
+    case (ebc_y)
+      A(dim,bY1exc) = k
+      A(dim,bY2exc) = k
+      if (dim == ebc_all) then
+        A(:,bY1exc) = k
+        A(:,bY2exc) = k
+      end if
+    case (ebc_z1)
       A(dim,bZ1exc) = k
-    case (32)
-      A(dim,bZ2exc) = k
+      if (dim == ebc_all) then
+        A(:,bZ1exc) = k
+      end if
+    case (ebc_z2)
+      if (dim == ebc_all) then
+        A(:,bZ2exc) = k
+      else
+        A(dim,bZ2exc) = k
+      end if
+    case (ebc_z)
+      if (dim == ebc_all) then
+        A(:,bZ1exc) = k
+        A(:,bZ2exc) = k
+      else
+        A(dim,bZ1exc) = k
+        A(dim,bZ2exc) = k
+      end if
     end select
   end subroutine fixed3
 end module BC
