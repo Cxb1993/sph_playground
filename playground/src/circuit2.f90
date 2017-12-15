@@ -109,20 +109,20 @@ contains
       call getneighbours(i, pos, h, nlistb, t0)
       tneib = tneib + t0
       select case (s_ttp)
-      case (3, 4)
-        ! diffusion and HMD
+      case (eeq_diffusion, eeq_magnetohydrodiffusion)
+        kcfa(:,:) = 0.
+        kcfb(:,:) = 0.
         if (diff_isotropic > 0.) then
-          kcfa(:,1) = [1.,0.,0.]
-          kcfa(:,2) = [0.,1.,0.]
-          kcfa(:,3) = [0.,0.,1.]
+          kcfa(1,1) = diff_conductivity
+          kcfa(2,2) = diff_conductivity
+          kcfa(3,3) = diff_conductivity
         else
           do li = 1, 3
             do lj = 1,3
-              kcfa(li,lj) = kcf(li,1,i)*kcf(lj,1,i)
+              kcfa(li,lj) = diff_conductivity*kcf(li,1,i)*kcf(lj,1,i)
             end do
           end do
         end if
-        kcfa(:,:) = diff_conductivity*kcfa(:,:)
       end select
       overb: do lb = 1, size(nlistb)
         j = nlistb(lb)
@@ -140,8 +140,8 @@ contains
         case (eeq_hydro)
           rhoa = den(i)
           rhob = den(j)
-          call nw(rab, pos(:,i), pos(:,j), h(i), nwa)
-          call nw(rab, pos(:,i), pos(:,j), h(j), nwb)
+          call nw(rab, pos(:,i), pos(:,j), dr, h(i), nwa)
+          call nw(rab, pos(:,i), pos(:,j), dr, h(j), nwb)
 
           if (s_artts == 1) then
             call art_viscosity(rhoa, rhob, vab, urab, rab, dr, s_dim, c(i), c(j), om(i), om(j), h(i), h(j), qa, qb)
@@ -168,8 +168,8 @@ contains
           Mc(:)   = 0.
           rhoa = den(i)
           rhob = den(j)
-          call nw(rab, pos(:,i), pos(:,j), h(i), nwa)
-          call nw(rab, pos(:,i), pos(:,j), h(j), nwb)
+          call nw(rab, pos(:,i), pos(:,j), dr, h(i), nwa)
+          call nw(rab, pos(:,i), pos(:,j), dr, h(j), nwb)
 
           if (s_artts == 1) then
             call art_viscosity(rhoa, rhob, vab, urab, rab, dr, &
@@ -221,20 +221,19 @@ contains
           end if
         case (eeq_diffusion)
           if (diff_isotropic > 0.) then
-            kcfb(:,1) = [1.,0.,0.]
-            kcfb(:,2) = [0.,1.,0.]
-            kcfb(:,3) = [0.,0.,1.]
+            kcfb(1,1) = diff_conductivity
+            kcfb(2,2) = diff_conductivity
+            kcfb(3,3) = diff_conductivity
           else
             do li = 1, 3
               do lj = 1,3
-                kcfb(li,lj) = kcf(li,1,j)*kcf(lj,1,j)
+                kcfb(li,lj) = diff_conductivity*kcf(li,1,j)*kcf(lj,1,j)
               end do
             end do
           end if
-          kcfb(:,:) = diff_conductivity*kcfb(:,:)
 
-          call nw(rab, pos(:,i), pos(:,j), h(i), nwa)
-          call nw(rab, pos(:,i), pos(:,j), h(j), nwb)
+          call nw(rab, pos(:,i), pos(:,j), dr, h(i), nwa)
+          call nw(rab, pos(:,i), pos(:,j), dr, h(j), nwb)
 
           if (s_ktp == 1) then
             call hessian(rab, pos(:,i), pos(:,j), h(i), Hesa)
@@ -274,9 +273,10 @@ contains
           Mc(:)   = 0.
           rhoa = den(i)
           rhob = den(j)
-          call nw(rab, pos(:,i), pos(:,j), h(i), nwa)
-          call nw(rab, pos(:,i), pos(:,j), h(j), nwb)
+          call nw(rab, pos(:,i), pos(:,j), dr, h(i), nwa)
+          call nw(rab, pos(:,i), pos(:,j), dr, h(j), nwb)
           if (diff_isotropic > 0.) then
+            kcfb(1,1) = 1.
             kcfb(:,1) = [1.,0.,0.]
             kcfb(:,2) = [0.,1.,0.]
             kcfb(:,3) = [0.,0.,1.]
@@ -293,7 +293,7 @@ contains
           if (s_artts == 1) then
             call art_viscosity(rhoa, rhob, vab, urab, rab, dr, &
                                 s_dim, c(i), c(j), om(i), om(j), h(i), h(j), qa, qb)
-            call art_termcond(nwa, nwb, urab, P(i), P(j), u(i), u(j), rhoa, rhob, om(i), om(j), qc)
+            ! call art_termcond(nwa, nwb, urab, P(i), P(j), u(i), u(j), rhoa, rhob, om(i), om(j), qc)
             call art_fdivbab(kcf(:,1,i), kcf(:,1,j), mas(j), nwa, nwb, om(i), om(j), den(i), den(j), qd)
           end if
           ! print*, 2
@@ -487,12 +487,23 @@ contains
     qd(:) = Ba(:)*mb*(dot_product(Ba(:),nwa(:))/oa/da/da + dot_product(Bb(:),nwb(:))/ob/db/db)
   end subroutine art_fdivbab
 
+  ! pure subroutine art_resistivity(nwa, nwb, urab, pa, pb, ua, ub, da, db, oa, ob, qbt)
+  !   real, intent(in)  :: pa, pb, da, db, ua, ub, oa, ob, &
+  !                         nwa(3), nwb(3), urab(3)
+  !   real, intent(out) :: qbt
+  !   real              :: vsigu
+  !   qc = 0.
+  !
+  !   vsigB = sqrt((dvx - projv*runix)**2 + (dvy - projv*runiy)**2 + (dvz - projv*runiz)**2)
+  !   dBdissterm = (avBterm*grkerni + avBtermj*grkernj)*vsigB
+  ! end subroutine
+
   subroutine c15(pos, mas, h, den, cf, om, dcf)
     real, allocatable, intent(in)    :: pos(:,:), mas(:), h(:), den(:),&
                                         cf(:,:), om(:)
     real, allocatable, intent(inout) :: dcf(:,:)
 
-    real                 :: nwa(3), nwb(3), rab(3)
+    real                 :: nwa(3), nwb(3), rab(3), dr
     integer, allocatable :: nlista(:), nlistb(:)
     integer              :: i, j, la, lb
     integer(8)           :: t0, tneib
@@ -508,8 +519,9 @@ contains
       do lb = 1, size(nlistb)
         j = nlistb(lb)
         rab(:) = pos(:,i) - pos(:,j)
-        call nw(rab, pos(:,i), pos(:,j),  h(i), nwa)
-        call nw(rab, pos(:,i), pos(:,j), h(j), nwb)
+        dr = sqrt(dot_product(rab(:),rab(:)))
+        call nw(rab, pos(:,i), pos(:,j), dr, h(i), nwa)
+        call nw(rab, pos(:,i), pos(:,j), dr, h(j), nwb)
         dcf(:,i) = dcf(:,i) + mas(j)*( &
             cf(1,i)*nwa(:)/om(i)/den(i)/den(i) + &
             cf(1,j)*nwb(:)/om(j)/den(j)/den(j) )

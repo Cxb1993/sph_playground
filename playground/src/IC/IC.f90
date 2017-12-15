@@ -233,7 +233,7 @@ contains
       end if
       pspc1 = (brdx2-brdx1)/resol
       pspc2 = pspc1
-      nb = int(kr*sk*5)
+      nb = int(kr*sk*3)
       if (dim > 1) then
         brdy1 = -1
         brdy2 =  1
@@ -489,11 +489,11 @@ contains
           prs(i) = prs1
           iu(i)  = prs1/(g-1)/rho1
 
-          v(1,i) = -sin(2*pi*pos(2,i))
-          v(2,i) =  sin(2*pi*pos(1,i))
+          v(1,i) = -sin(2*pi*(pos(2,i)-brdy1))
+          v(2,i) =  sin(2*pi*(pos(1,i)-brdx1))
           v(3,i) = 0.01
-          kcf(1,1,i) = -1./sqrt(4*pi)*sin(2*pi*pos(2,i))
-          kcf(2,1,i) =  1./sqrt(4*pi)*sin(4*pi*pos(1,i))
+          kcf(1,1,i) = -1./sqrt(4*pi)*sin(2*pi*(pos(2,i)-brdy1))
+          kcf(2,1,i) =  1./sqrt(4*pi)*sin(4*pi*(pos(1,i)-brdx1))
           kcf(3,1,i) =  0.
           if (dim == 1) then
             v(2:3,i)   = 0.

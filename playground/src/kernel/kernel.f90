@@ -15,9 +15,9 @@ module kernel
     procedure (aihesrrw), pointer :: hessian_rr => null()
 
     abstract interface
-      subroutine ainw(rab, ra, rb, h, onw)
+      subroutine ainw(rab, ra, rb, dr, h, onw)
         real, intent(out) :: onw(3)
-        real, intent (in) :: rab(3), ra(3), rb(3), h
+        real, intent (in) :: rab(3), ra(3), rb(3), dr, h
       end subroutine ainw
     end interface
 
@@ -115,20 +115,20 @@ contains
     w = wCv * f / h ** dim
   end subroutine
 
-  pure subroutine nw_cart(rab, ra, rb, h, nw)
-    real, intent(in)  :: rab(3), ra(3), rb(3), h
+  pure subroutine nw_cart(rab, ra, rb, dr, h, nw)
+    real, intent(in)  :: rab(3), ra(3), rb(3), dr, h
     real, intent(out) :: nw(3)
     real              :: df, q
 
-    q = sqrt(dot_product(rab(:),ra(:)-rb(:))) / h
+    q = dr / h
     call kdf(q, df)
 
     nw(:) = wCv * df * rab(:) / h**(dim+2) / q
   end subroutine nw_cart
 
-  pure subroutine nw_cyl(rab, ra, rb, h, nw)
+  pure subroutine nw_cyl(rab, ra, rb, dr, h, nw)
     ! get cylindrical nabla kernel for cartesian input
-    real, intent(in)  :: rab(3), ra(3), rb(3), h
+    real, intent(in)  :: rab(3), ra(3), rb(3), dr, h
     real, intent(out) :: nw(3)
     real              :: df, q, cca(3), ccb(3)
 
@@ -140,7 +140,7 @@ contains
     ccb(2) = atan(rb(2),rb(1))
     ccb(3) = rb(3)
 
-    q = sqrt(dot_product(rab(:),rab(:))) / h
+    q = dr / h
     call kdf(q, df)
 
     nw(1) = wCv / h**(dim+2) / q * df * (cca(1)-ccb(1)+ccb(1)*(1-cos(cca(2)-ccb(2))))
@@ -488,7 +488,7 @@ contains
 
     call kddf(q, ddf)
     call kdf(q, df)
-    call nw_cyl(rab, ra, rb, h, nw)
+    call nw_cyl(rab, ra, rb, dr, h, nw)
 
     dfq = df/q
     if (cca(1) > eps0) then

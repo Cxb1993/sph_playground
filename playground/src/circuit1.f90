@@ -106,8 +106,9 @@ contains
           dennew(i) = 0.
           om(i)  = 0.
           currinterr = 0.
+          dcf(:,i) = 0.
           ! print*, i
-          call getneighbours(i, pos, h, nlistb, t0)
+          call getneighbours(i, pos, slnint, nlistb, t0)
           tneib = tneib + t0
           ! print*, nlista
           ! print*, "me=", i, "   neibs=", nlistb, pos(:,i)
@@ -126,6 +127,10 @@ contains
             dennew(i) = dennew(i) + mas(j) * w
             om(i) = om(i) + mas(j) * dwdh
             currinterr = currinterr + mas(j)/den(j) * w
+            if (ktp == 3) then
+              call nw(r(:), pos(:,i), pos(:,j), dr, slnint(i), nwa)
+              dcf(:,i) = dcf(:,i) + mas(j)/den(j)*(cf(1,j) - cf(1,i))*nwa(:)
+            end if
           end do
           ! ---------------------------------------------------------!
           !      There is no particle itself in neighbour list       !
@@ -155,17 +160,6 @@ contains
           ! print*,'c1', 9
           resid(i) = abs(hn - slnint(i)) / h(i)
           slnint(i) = hn
-          if (ktp == 3) then
-            dcf(:,i) = 0.
-            call getneighbours(i, pos, slnint, nlistb, t0)
-            tneib = tneib + t0
-            do lb = 1, size(nlistb)
-              j = nlistb(lb)
-              r(:) = pos(:,i) - pos(:,j)
-              call nw(r(:), pos(:,i), pos(:,j), slnint(i), nwa)
-              dcf(:,i) = dcf(:,i) + mas(j)/den(j)*(cf(1,j) - cf(1,i))*nwa(:)
-            end do
-          end if
         end if
         ! print *,'c1', dennew(i), slnint(i), om(i)
         ! read*

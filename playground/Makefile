@@ -88,6 +88,9 @@ FFLAGS=-fdefault-real-8 -fdefault-double-8\
 				-Wall -Wextra -Warray-temporaries -Wconversion -fimplicit-none -fbacktrace\
 				-ffree-line-length-0 -fcheck=all -ffpe-trap=zero,overflow,underflow,invalid -finit-real=nan
 endif
+ifeq ($(debug),p)
+FFLAGS=-pg -no-pie -fdefault-real-8 -fdefault-double-8 -flto -Ofast
+endif
 
 ifeq ($(useomp),t)
 	FFLAGS+=-fopenmp
@@ -143,71 +146,6 @@ memleakcheck:
 			--tasktype $(taskcheck) --spacing .01\
 			--errfilename result.info --kerneltype $(kt) \
 			--tfinish .05 --hfac 1.2 --difftype diff --silent no
-
-hydroshock:
-	make debug=$(debug) && time ./execute --dim $(dim)\
-			--tasktype hydroshock --spacing 0.0005\
-			--errfilename runresult.info --kerneltype $(kt)\
-			--tfinish .2 --hfac $(hf) --difftype $(dtype)\
-			--silent $(silent)
-
-soundwave:
-	make debug=$(debug) && time ./execute --dim $(dim)\
-			--tasktype soundwave --spacing .1\
-			--errfilename runresult.info --kerneltype $(kt)\
-			--tfinish .2 --hfac $(hf) --difftype $(dtype)\
-			--silent $(silent)
-
-infslb:
-	make debug=$(debug) && time ./execute $(dim) infslb 0.1 runresult.info $(kt) 5 $(dtype) $(silent)
-
-hc-sinx:
-	make debug=$(debug) && time ./execute --dim $(dim)\
-			--tasktype hc-sinx --spacing .1\
-			--errfilename runresult.info --kerneltype $(kt)\
-			--tfinish 5. --hfac $(hf) --difftype $(dtype)\
-			--silent $(silent)
-
-pheva:
-	make debug=$(debug) && time ./execute $(dim) pheva 0.002 runresult.info $(kt) -1.5 $(hf) $(dtype) $(silent)
-
-diff-laplace:
-	make debug=$(debug) && time ./execute --dim $(dim)\
-			--tasktype diff-laplace --spacing .06\
-			--errfilename runresult.info --kerneltype $(kt)\
-			--tfinish 100 --hfac $(hf) --difftype $(dtype)\
-			--silent $(silent)
-
-diff-graddiv:
-	make debug=$(debug) && time ./execute $(dim) diff-graddiv .05 runresult.info $(kt) 100 $(hf) $(dtype) $(silent)
-
-chi-laplace:
-	make debug=$(debug) && time ./execute --dim $(dim)\
-			--tasktype chi-laplace --spacing .06\
-			--errfilename runresult.info --kerneltype $(kt)\
-			--tfinish -1 --hfac $(hf) --difftype $(dtype)\
-			--silent $(silent)
-
-chi-graddiv:
-	make debug=$(debug) && time ./execute --dim $(dim)\
-			--tasktype chi-graddiv --spacing .06\
-			--errfilename runresult.info --kerneltype $(kt)\
-			--tfinish -1 --hfac $(hf) --difftype $(dtype)\
-			--silent $(silent)
-
-inflience-graddiv:
-	make debug=$(debug) && time ./execute --dim $(dim) \
-			--tasktype chi-graddiv --spacing 0.06 \
-			--errfilename runresult.info --kerneltype $(kt)\
-			--tfinish 100 --hfac $(hf) --difftype $(dtype) \
-			--kerninfluencefile influence.info --silent $(silent)
-
-inflience-laplace:
-	make debug=$(debug) && time ./execute --dim $(dim) \
-			--tasktype chi-laplace --spacing 0.06 \
-			--errfilename runresult.info --kerneltype $(kt)\
-			--tfinish 100 --hfac $(hf) --difftype $(dtype) \
-			--kerninfluencefile output/influence.info --silent $(silent)
 
 .PHONY: execute
 
