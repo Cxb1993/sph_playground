@@ -183,18 +183,14 @@ contains
     type(kdtree2_result), allocatable :: kdtree_res(:)
     integer :: maxresultnum, sn, nfound, nlsz, i, j, al1, al2, tx, ktp
     real    :: kr
-
     call system_clock(start)
     call get_krad(kr)
     call getkernelnn(maxresultnum)
     call getkerntype(ktp)
-
     ! kdtree2_destroy(kdtree)
     kdtree => kdtree2_create(pos)
-
     sn = size(pos, dim=2)
     allocate(kdtree_res(maxresultnum))
-
     if (.not.allocated(neighbours)) then
       allocate(neighbours(sn))
     end if
@@ -208,7 +204,6 @@ contains
 
     alllistlv1(:) = 0
     alllistlv2(:) = 0
-
     !$omp parallel do default(none)&
     !$omp shared(pos, ptype, h, kr, neighbours, stepsize, ktp)&
     !$omp shared(alllistlv1, alllistlv2, maxresultnum, kdtree)&
@@ -259,7 +254,6 @@ contains
     call resize(alllistlv2, al2, al2)
 
     initialized = 1.
-
     call kdtree2_destroy(kdtree)
     deallocate(kdtree_res)
 

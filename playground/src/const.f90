@@ -2,8 +2,11 @@ module const
   implicit none
   real, parameter :: pi = 4.*atan(1.)
   real, parameter :: eps0 = epsilon(0.)
+
   integer, parameter :: &
-    e_none = -1,&
+    e_none = -1
+
+  integer, parameter :: &
     ett_sin3 = 1,&
     ett_mti = 2,&
     ett_shock12 = 3,&
@@ -12,14 +15,23 @@ module const
     ett_soundwave = 6,&
     ett_hydroshock = 7,&
     ett_alfvenwave = 8,&
-    ebc_all = 9,&
-    ebc_x = 10,&
-    ebc_y = 11,&
-    ebc_z = 12,&
-    ebc_x1 = 13,&
-    ebc_y1 = 14,&
-    ebc_z1 = 15,&
-    ebc_x2 = 16,&
-    ebc_y2 = 17,&
-    ebc_z2 = 18
+    ett_OTvortex = 9
+
+  integer, parameter :: &
+    ebc_all = 100,&
+    ebc_x = 101,&
+    ebc_y = 102,&
+    ebc_z = 103,&
+    ebc_x1 = 104,&
+    ebc_y1 = 105,&
+    ebc_z1 = 106,&
+    ebc_x2 = 107,&
+    ebc_y2 = 108,&
+    ebc_z2 = 109
+
+  integer, parameter :: &
+    eeq_hydro = 201,&
+    eeq_diffusion = 202,&
+    eeq_magnetohydro = 203,&
+    eeq_magnetohydrodiffusion = 204
 end module

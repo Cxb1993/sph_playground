@@ -39,7 +39,7 @@ contains
 
     integer, intent(in) :: n
     real, intent(in)    :: sk, gamma
-    integer             :: dim, ttp, dtp, ivt
+    integer             :: dim, ttp, dtp, ivt, i
 
     call getdim(dim)
     call get_tasktype(ttp)
@@ -51,41 +51,40 @@ contains
       call initIterate(n)
     end if
 
-    select case (ttp)
-    case (1, 2, 3, 4, 9)
-      ! mooved to ivt check
-    case(5)
-      ! 'diff-laplace'
-      print*, "FIX ME. I should depend on IVT not EQS"
-      call findneighboursN2plusStatic(ptype, pos, h)
-      select case(dtp)
-      case(1)
-        call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
-      case(2)
-        call c1(ptype, pos, mas, sk, h, den, om, cf, dcf, kcf)
-        call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
-      case default
-        print *, 'Diff type is not set in iterator'
-        stop
-      end select
-    case(6)
-      ! 'diff-graddiv'
-      print*, "FIX ME. I should depend on IVT not EQS"
-      call findneighboursN2plusStatic(ptype, pos, h)
-      call c1(ptype, pos, mas, sk, h, den, om, cf, dcf, kcf)
-      call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
-    case(7,8)
-    case(10)
-      ! diff-artvisc
-      print*, "FIX ME. I should depend on IVT not EQS"
-      ! call findneighboursN2plus(ptype, pos, h)
-      call findneighboursKDT(ptype, pos, h)
-      call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
-    case default
-      print *, 'Task type was not defined in iterator.f90: line 140.'
-      stop
-    end select
-
+    ! select case (ttp)
+    ! case (1, 2, 3, 4, 9)
+    !   ! mooved to ivt check
+    ! case(5)
+    !   ! 'diff-laplace'
+    !   print*, "FIX ME. I should depend on IVT not EQS"
+    !   call findneighboursN2plusStatic(ptype, pos, h)
+    !   select case(dtp)
+    !   case(1)
+    !     call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
+    !   case(2)
+    !     call c1(ptype, pos, mas, sk, h, den, om, cf, dcf, kcf)
+    !     call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
+    !   case default
+    !     print *, 'Diff type is not set in iterator'
+    !     stop
+    !   end select
+    ! case(6)
+    !   ! 'diff-graddiv'
+    !   print*, "FIX ME. I should depend on IVT not EQS"
+    !   call findneighboursN2plusStatic(ptype, pos, h)
+    !   call c1(ptype, pos, mas, sk, h, den, om, cf, dcf, kcf)
+    !   call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
+    ! case(7,8)
+    ! case(10)
+    !   ! diff-artvisc
+    !   print*, "FIX ME. I should depend on IVT not EQS"
+    !   ! call findneighboursN2plus(ptype, pos, h)
+    !   call findneighboursKDT(ptype, pos, h)
+    !   call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
+    ! case default
+    !   print *, 'Task type was not defined in iterator.f90: line 140.'
+    !   stop
+    ! end select
     select case(ivt)
     case (ett_ring)
       call findneighboursKDT(ptype, pos, h)
@@ -95,19 +94,18 @@ contains
       call periodic1v2(den, ebc_all)
       call periodic1v2(h,   ebc_all)
       call periodic1v2(om,  ebc_all)
-      call periodic3v2(dcf, ebc_all)
+      ! call periodic3v2(dcf, ebc_all)
       call system_clock(finish)
       call addTime(' bc', finish - start)
 
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
       call system_clock(start)
-      call periodic3v2(dcf, ebc_all)
-      call periodic1v2(due, ebc_all)
+      ! call periodic3v2(dcf, ebc_all)
       call periodic1v2(dh,  ebc_all)
       call system_clock(finish)
       call addTime(' bc', finish - start)
       ! do I need to do it
-      ! kcf(:,2,:) = 0.
+      kcf(:,2,:) = 0.
       acc(:,:) = 0.
     case (ett_soundwave)
       call findneighboursKDT(ptype, pos, h)
@@ -195,10 +193,10 @@ contains
       call system_clock(finish)
       call addTime(' bc', finish - start)
     case(ett_mti)
-
       call findneighboursKDT(ptype, pos, h)
 
       call c1(ptype, pos, mas, sk, h, den, om, cf, dcf, kcf)
+
       call system_clock(start)
       call periodic1v2(den, ebc_x)
       call periodic1v2(h,   ebc_x)
@@ -220,19 +218,44 @@ contains
       call periodic3v2(dcf, ebc_x)
       call periodic1v2(due, ebc_x)
       call periodic1v2(dh,  ebc_x)
-
-      call fixed3(acc, ebc_y, ebc_all, 0.)
-      call fixed3(dcf, ebc_y, ebc_all, 0.)
-      call fixed1(due, ebc_y, 0.)
-      call fixed1(dh,  ebc_y, 0.)
-      
+      ! call fixed3(acc, ebc_y, ebc_all, 0.)
+      ! call fixed3(dcf, ebc_y, ebc_all, 0.)
+      ! call fixed1(due, ebc_y, 0.)
+      ! call fixed1(dh,  ebc_y, 0.)
       dbtmp(:,:) = kcf(:,2,:)
       call periodic3v2(dbtmp, ebc_x)
-      call fixed3(dbtmp, ebc_y, ebc_all, 0.)
+      ! call fixed3(dbtmp, ebc_y, ebc_all, 0.)
       kcf(:,2,:) = dbtmp(:,:)
-
       call system_clock(finish)
       call addTime(' bc', finish - start)
+    case (ett_OTvortex)
+      call findneighboursKDT(ptype, pos, h)
+      call c1(ptype, pos, mas, sk, h, den, om, cf, dcf, kcf)
+      call system_clock(start)
+      call periodic1v2(den, ebc_all)
+      call periodic1v2(h,   ebc_all)
+      call periodic1v2(om,  ebc_all)
+      call system_clock(finish)
+      call addTime(' bc', finish - start)
+
+      call eos_adiabatic(den, uei, prs, c, gamma)
+      call system_clock(start)
+      call periodic1v2(prs, ebc_all)
+      call periodic1v2(c,   ebc_all)
+      call system_clock(finish)
+      call addTime(' bc', finish - start)
+
+      call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
+      call system_clock(start)
+      call periodic3v2(acc, ebc_all)
+      call periodic3v2(dcf, ebc_all)
+      call periodic1v2(due, ebc_all)
+      call periodic1v2(dh,  ebc_all)
+      dbtmp(:,:) = kcf(:,2,:)
+      call periodic3v2(dbtmp, ebc_all)
+      kcf(:,2,:) = dbtmp(:,:)
+      call system_clock(finish)
+      call addTime(' bc', finish-start)
     case default
       print *, 'Task type was not defined in iterator.f90: line 204.'
       stop

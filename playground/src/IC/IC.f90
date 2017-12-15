@@ -12,8 +12,9 @@ module IC
                           ginitvar,&
                           gcoordsys,&
                           sorigin, &
-                          switch_hc_conductivity,&
-                          switch_hc_isotropic
+                          diff_conductivity,&
+                          diff_isotropic, &
+                          mhd_magneticconstant
   use BC
   use initpositions,  only: uniform
 
@@ -41,7 +42,7 @@ contains
 
     real                 :: kr, prs1, prs2, rho1, rho2, kcf1, sp, &
                             brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, period, eA, &
-                            cca(3), qmatr(3,3), qtmatr(3,3), pspc2
+                            cca(3), qmatr(3,3), qtmatr(3,3), pspc2, theta, phi
     integer              :: i, nb, tt, kt, dim, ivt, cs
     ! integer, allocatable :: nlista(:)
 
@@ -54,50 +55,6 @@ contains
     call ginitvar(ivt)
     call gcoordsys(cs)
 
-    !
-    !
-    ! need to get rid of it
-    !
-    !
-    select case (tt)
-    case (1, 2, 3, 9, 4)
-      ! mooved to ivt check below
-    case(5, 6, 7, 8, 10)
-      ! diff-laplace ! diff-graddiv ! diff-artvisc
-      print *, 'Need to get rid of it: line 89'
-      stop
-      g    = 5/3.
-      rho1 = 1.
-      period = pi
-      brdx1 = -1.*period
-      brdx2 = 1.*period
-      if (dim > 1) then
-        brdy1 = -1.*period
-        brdy2 =  1.*period
-      else
-        brdy1 = 0.
-        brdy2 = 0.
-      end if
-      if (dim == 3) then
-        brdz1 = -1.*period
-        brdz2 =  1.*period
-      else
-        brdz1 = 0.
-        brdz2 = 0.
-      end if
-      nb = int(kr * sk)
-      call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, pos, ptype, randomise=0.)
-      ! call place_close_packed_fcc(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, nb, pos)
-    case default
-      print *, 'Task type was not defined in IC.f90: line 92'
-      stop
-    end select
-    !
-    !
-    ! need to get rid of it
-    !
-    !
-
     ! don't need to have it different for 2nw, just copy it periodicly
     nb = int(kr*sk) + 1
 
@@ -106,10 +63,12 @@ contains
       print*, "Not set yet. FIX ME. IC.f90. line 103."
       stop
     case (ett_mti)
+      mhd_magneticconstant = 0.00000125663706
+      diff_isotropic = 1.
+      diff_conductivity = 0.01
+
       rho1 = 1.
       g    = 5./3.
-      switch_hc_isotropic = 1.
-      switch_hc_conductivity = 0.01
 
       brdx1 = 0.
       brdx2 = 1./10.
@@ -135,9 +94,10 @@ contains
       end if
       call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, pos, ptype, randomise=0.)
     case (ett_ring)
+      diff_conductivity = 1.
+
       rho1 = 1.
       kcf1 = 1.
-      switch_hc_conductivity = 1.
 
       brdx1 = -1.
       brdx2 =  1.
@@ -223,13 +183,19 @@ contains
       end if
       call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, pos, ptype, randomise=0.)
     case (ett_alfvenwave)
+      mhd_magneticconstant = 1.
+      ! thetta
+      theta = pi/2.
+      phi = pi/2.
+
       rho1 = 1.
       g    = 5./3.
       eA   = 0.1
       prs1 = 0.1
 
       brdx1 = 0.
-      brdx2 = 1./cos(pi/6.)
+      ! brdx2 = 1./cos(theta)
+      brdx2 = 1.
       if (pspc1 /= 0) then
         resol = int((brdx2-brdx1)/pspc1)
       end if
@@ -238,14 +204,48 @@ contains
       nb = int(kr*sk*2)
       if (dim > 1) then
         brdy1 = 0.
-        brdy2 = 1./sin(pi/6.)
+        brdy2 = 1./sin(theta)
       else
         brdy1 = 0.
         brdy2 = 0.
       end if
       if (dim == 3) then
-        brdz1 = -1
-        brdz2 =  1
+        brdz1 = 0.
+        brdz2 = 1.
+      else
+        brdz1 = 0.
+        brdz2 = 0.
+      end if
+      call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, pos, ptype, randomise=0.)
+    case (ett_OTvortex)
+      mhd_magneticconstant = 1.
+      diff_isotropic = 1.
+      diff_conductivity = 0.
+
+      prs1 =  5./(12.*pi)
+      rho1 = 25./(36.*pi)
+      g    = 5./3.
+
+      brdx1 = -1
+      brdx2 =  1
+      if (resol == 0) then
+        resol = int((brdx2-brdx1)/pspc1)
+      end if
+      pspc1 = (brdx2-brdx1)/resol
+      pspc2 = pspc1
+      nb = int(kr*sk*5)
+      if (dim > 1) then
+        brdy1 = -1
+        brdy2 =  1
+      else
+        brdy1 = 0.
+        brdy2 = 0.
+      end if
+      if (dim == 3) then
+        brdz1 = -pspc1 * nb
+        brdz2 =  pspc1 * nb
+        ! brdz1 = -2.*sqrt(6.)/resol
+        ! brdz2 =  2.*sqrt(6.)/resol
       else
         brdz1 = 0.
         brdz2 = 0.
@@ -296,7 +296,7 @@ contains
     !$omp shared(n, pspc1, pspc2, pos, sln, den, prs, mas, iu, g, rho1, rho2)&
     !$omp shared(cf, kcf, dim, sk, tt, prs1, prs2, kcf1)&
     !$omp shared(brdx2, brdx1, brdy2, brdy1, brdz2, brdz1, v, period, ptype)&
-    !$omp shared(ivt, eA, kt, cs)
+    !$omp shared(ivt, eA, kt, cs, theta, phi)
     do i=1,n
       ! call getneighbours(i, pos, sln, nlista, t0)
       ! mas(i) = 0.
@@ -325,49 +325,6 @@ contains
       ! den(i) = rho1
       ! if (ptype(i) /= 0) then
         sp = merge(pspc1, pspc2, pos(1,i) < 0)
-        select case (tt)
-        case (1, 2, 3, 4)
-        case(5, 6, 7, 8, 10)
-          ! diff-graddiv ! diff-laplace ! chi-laplace
-          ! chi-graddiv  ! soundwave ! diff-artvisc
-          sln(i) = sk * sp
-          den(i) = rho1
-          mas(i) = (sp**dim) * rho1
-          ! v(:,i)  = sin(period*pos(:,i))*cos(period*pos(:,i)**2)
-          v(:,i) = 0.
-          if (dim == 1) then
-            ! pos
-            ! v(1,i) = pos(1,i)
-            ! pos sinpos
-            v(1,i) = sin(pos(1,i)) * pos(1,i)
-            ! sin
-            ! v(1,i) = sin(pos(1,i))
-          elseif ( dim == 2 ) then
-            ! v(1,i) = pos(1,i)*pos(2,i)
-            ! v(2,i) = pos(1,i)*pos(2,i)
-            ! (y six, x^2 siny)
-            v(1,i) = sin(pos(1,i)) * pos(2,i)
-            v(2,i) = sin(pos(2,i)) * pos(1,i) * pos(1,i)
-            ! sin
-            ! v(1,i) = sin(pos(1,i))
-            ! v(2,i) = sin(pos(2,i))
-          elseif ( dim == 3 ) then
-            ! v(1,i) = pos(1,i)*pos(2,i)*pos(3,i)
-            ! v(2,i) = pos(1,i)*pos(2,i)*pos(3,i)
-            ! v(3,i) = pos(1,i)*pos(2,i)*pos(3,i)
-            ! (y six, z^2 siny, x^3 sinz)
-            v(1,i) = sin(pos(1,i)) * pos(2,i)
-            v(2,i) = sin(pos(2,i)) * pos(3,i) * pos(3,i)
-            v(3,i) = sin(pos(3,i)) * pos(1,i) * pos(1,i) * pos(1,i)
-            ! sin
-            ! v(1,i) = sin(pos(1,i))
-            ! v(2,i) = sin(pos(2,i))
-            ! v(3,i) = sin(pos(3,i))
-          end if
-        case default
-          print *, 'Task type was not defined in IC.f90: line 300'
-          stop
-        end select
 
         select case (ivt)
         case(ett_sin3)
@@ -483,26 +440,29 @@ contains
           den(i) = rho1
           prs(i) = prs1
           iu(i)  = prs1/(g-1)/rho1
-          ! thetta
-          cca(1) = pi/6.
-          ! r ||
-          cca(2) = pos(1,i)*cos(cca(1)) + pos(2,i)*sin(cca(1))
-          ! B T
-          cca(3) = eA*sin(2*pi*cca(2))
 
-          kcf(1,1,i) = 1.*cos(cca(1)) - cca(3) * sin(cca(1))
-          kcf(2,1,i) = 1.*sin(cca(1)) + cca(3) * cos(cca(1))
-          kcf(3,1,i) = eA*cos(2*pi*cca(2))
+          cca(:) = [cos(theta)*cos(phi), cos(theta)*sin(phi), sin(theta)]
+
+          ! kcf(1,1,i) = 1.*cos(cca(1)) - cca(3) * sin(cca(1))
+          ! kcf(2,1,i) = 1.*sin(cca(1)) + cca(3) * cos(cca(1))
+          ! kcf(3,1,i) = eA*cos(2*pi*cca(2))
           ! v(1,i) = kcf(1,1,i)
           ! v(2,i) = kcf(2,1,i)
           ! v(3,i) = kcf(3,1,i)
-          if (dim == 1) then
-            v(2:3,i)   = 0.
-            kcf(2:3,1,i)  = 0.
-          elseif (dim == 2) then
-            v(3,i)    = 0.
-            kcf(3,1,i)  = 0.
-          end if
+          v(:,i) = eA*[0.,&
+            sin(2*pi*(dot_product(pos(:,i),cca(:)))),&
+            cos(2*pi*(dot_product(pos(:,i),cca(:))))]
+          kcf(:,1,i) = [1.,0.,0.] + v(:,i)
+          ! v(1,i) = 0.
+          ! v(2,i) = kcf(2,1,i)
+          ! v(3,i) = kcf(3,1,i)
+          ! if (dim == 1) then
+          !   v(2:3,i)   = 0.
+          !   kcf(2:3,1,i)  = 0.
+          ! elseif (dim == 2) then
+          !   v(3,i)    = 0.
+          !   kcf(3,1,i)  = 0.
+          ! end if
         case(ett_mti)
           sln(i) = sk * sp
           mas(i) = (sp**dim) * rho1
@@ -511,9 +471,30 @@ contains
           iu(i)  = (3./2.)*(1. - pos(2,i)/3.)
           cca(1) = dot_product(pos(:,i),pos(:,i))
           if (cca(1) /= 0) then
-            kcf(:,1,i) = 10e-11*(pos(1,i)*pos(1,i)/cca(1))
-            v(:,i) = 10e-2*1.*sin(4.*pi*pos(1,i)/(brdx2-brdx1))*(pos(2,i)*pos(2,i)/cca(1))
+            cca(:) = pos(:,i)/sqrt(cca(1))
+            kcf(:,1,i) = 10e-11*cca(1)
+            v(:,i) = 10e-2*1.*sin(4.*pi*pos(1,i)/(brdx2-brdx1))*cca(2)
           end if
+          if (dim == 1) then
+            v(2:3,i)   = 0.
+            kcf(2:3,1,i)  = 0.
+          elseif (dim == 2) then
+            v(3,i)    = 0.
+            kcf(3,1,i)  = 0.
+          end if
+        case (ett_OTvortex)
+          sln(i) = sk * sp
+          mas(i) = (sp**dim) * rho1
+          den(i) = rho1
+          prs(i) = prs1
+          iu(i)  = prs1/(g-1)/rho1
+
+          v(1,i) = -sin(2*pi*pos(2,i))
+          v(2,i) =  sin(2*pi*pos(1,i))
+          v(3,i) = 0.01
+          kcf(1,1,i) = -1./sqrt(4*pi)*sin(2*pi*pos(2,i))
+          kcf(2,1,i) =  1./sqrt(4*pi)*sin(4*pi*pos(1,i))
+          kcf(3,1,i) =  0.
           if (dim == 1) then
             v(2:3,i)   = 0.
             kcf(2:3,1,i)  = 0.

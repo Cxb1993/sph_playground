@@ -53,7 +53,7 @@ contains
   end subroutine
 
   subroutine c2(c, ptype, pos, v, dv, mas, den, h, om, P, u, du, dh, cf, dcf, kcf)
-    use state, only: switch_hc_conductivity, switch_hc_isotropic
+    use state, only: diff_conductivity, diff_isotropic, mhd_magneticconstant
 
     real, allocatable, intent(in)    :: pos(:,:), v(:,:), mas(:), h(:), den(:), P(:), c(:),&
                                         u(:), cf(:,:), om(:)
@@ -94,7 +94,7 @@ contains
     !$omp shared(ptype, nlista, dcftmp)&
     !$omp shared(s_dim, s_kr, s_ktp, s_ttp, s_adden, s_artts, s_ivt)&
     !$omp shared(nw, hessian, hessian_rr)&
-    !$omp shared(switch_hc_conductivity, switch_hc_isotropic)&
+    !$omp shared(diff_conductivity, diff_isotropic, mhd_magneticconstant)&
     !$omp reduction(+:tneib)
     overa: do la = 1, size(nlista)
       i = nlista(la)
@@ -102,6 +102,7 @@ contains
       du(i) = 0.
       dh(i) = 0.
       dcf(:,i) = 0.
+      kcf(:,2,i) = 0.
       tmpt1(:,:) = 0.
       tmpt2(:,:) = 0.
       tmpt3(:,:) = 0.
@@ -110,8 +111,7 @@ contains
       select case (s_ttp)
       case (3, 4)
         ! diffusion and HMD
-        kcf(:,2,i) = 0.
-        if (switch_hc_isotropic > 0.) then
+        if (diff_isotropic > 0.) then
           kcfa(:,1) = [1.,0.,0.]
           kcfa(:,2) = [0.,1.,0.]
           kcfa(:,3) = [0.,0.,1.]
@@ -122,7 +122,7 @@ contains
             end do
           end do
         end if
-        kcfa(:,:) = switch_hc_conductivity*kcfa(:,:)
+        kcfa(:,:) = diff_conductivity*kcfa(:,:)
       end select
       overb: do lb = 1, size(nlistb)
         j = nlistb(lb)
@@ -137,8 +137,7 @@ contains
         vba(:) = v(:,j) - v(:,i)
         urab(:) = rab(:) / dr
         select case (s_ttp)
-        case (1)
-          ! hydro
+        case (eeq_hydro)
           rhoa = den(i)
           rhob = den(j)
           call nw(rab, pos(:,i), pos(:,j), h(i), nwa)
@@ -163,8 +162,7 @@ contains
           if ( s_adden == 1 ) then
             dh(i) = dh(i) + mas(j) * dot_product(vab(:), nwa(:))
           end if
-        case (2)
-          ! magnetohydro
+        case (eeq_magnetohydro)
           Ma(:,:) = 0.
           Mb(:,:) = 0.
           Mc(:)   = 0.
@@ -177,7 +175,7 @@ contains
             call art_viscosity(rhoa, rhob, vab, urab, rab, dr, &
                                 s_dim, c(i), c(j), om(i), om(j), h(i), h(j), qa, qb)
             call art_termcond(nwa, nwb, urab, P(i), P(j), u(i), u(j), rhoa, rhob, om(i), om(j), qc)
-            call art_fdivbab(cf(:,i), cf(:,j), mas(j), nwa, nwb, om(i), om(j), den(i), den(j), qd)
+            call art_fdivbab(kcf(:,1,i), kcf(:,1,j), mas(j), nwa, nwb, om(i), om(j), den(i), den(j), qd)
           end if
 
           Mc(1) = dot_product(kcf(:,1,i),kcf(:,1,i))
@@ -185,11 +183,11 @@ contains
           do li = 1,3
             do lj = 1,3
               if (li == lj) then
-                Ma(li,lj) = P(i) + 0.5*Mc(1) - kcf(li,1,i)*kcf(lj,1,i) !/0.00000125663706
-                Mb(li,lj) = P(j) + 0.5*Mc(2) - kcf(li,1,j)*kcf(lj,1,j) !/0.00000125663706
+                Ma(li,lj) = P(i) + (0.5*Mc(1) - kcf(li,1,i)*kcf(lj,1,i)) /mhd_magneticconstant
+                Mb(li,lj) = P(j) + (0.5*Mc(2) - kcf(li,1,j)*kcf(lj,1,j)) /mhd_magneticconstant
               else
-                Ma(li,lj) = -kcf(li,1,i)*kcf(lj,1,i) !/0.00000125663706
-                Mb(li,lj) = -kcf(li,1,j)*kcf(lj,1,j) !/0.00000125663706
+                Ma(li,lj) = -kcf(li,1,i)*kcf(lj,1,i) /mhd_magneticconstant
+                Mb(li,lj) = -kcf(li,1,j)*kcf(lj,1,j) /mhd_magneticconstant
               end if
             end do
           end do
@@ -213,17 +211,16 @@ contains
                       qc &
                     )
 
-          dcf(:,i) = dcf(:,i) - 1./(rhoa * om(i))*mas(j)*( &
-                      vab(:)  * dot_product(cf(:,i),nwa(:)) - &
-                      cf(:,i) * dot_product(vab(:),nwa(:)) &
+          kcf(:,2,i) = kcf(:,2,i) - 1./(rhoa * om(i))*mas(j)*( &
+                      vab(:) * dot_product(kcf(:,1,i),nwa(:)) - &
+                      kcf(:,1,i) * dot_product(vab(:),nwa(:)) &
                     )
 
           if ( s_adden == 1 ) then
             dh(i) = dh(i) + mas(j) * dot_product(vab(:), nwa(:))
           end if
-        case (3)
-          ! diffusion
-          if (switch_hc_isotropic > 0.) then
+        case (eeq_diffusion)
+          if (diff_isotropic > 0.) then
             kcfb(:,1) = [1.,0.,0.]
             kcfb(:,2) = [0.,1.,0.]
             kcfb(:,3) = [0.,0.,1.]
@@ -234,7 +231,10 @@ contains
               end do
             end do
           end if
-          kcfb(:,:) = kcfb(:,:)*switch_hc_conductivity
+          kcfb(:,:) = diff_conductivity*kcfb(:,:)
+
+          call nw(rab, pos(:,i), pos(:,j), h(i), nwa)
+          call nw(rab, pos(:,i), pos(:,j), h(j), nwb)
 
           if (s_ktp == 1) then
             call hessian(rab, pos(:,i), pos(:,j), h(i), Hesa)
@@ -268,8 +268,7 @@ contains
             dcf(1,i) = dcf(1,i) + mas(j)*( &
               dot_product(qa(:),nwa(:))*odda + dot_product(qb(:),nwb(:))*oddb)
           end if
-        case (4)
-          ! hydro+magneto+diffusion
+        case (eeq_magnetohydrodiffusion)
           Ma(:,:) = 0.
           Mb(:,:) = 0.
           Mc(:)   = 0.
@@ -277,7 +276,7 @@ contains
           rhob = den(j)
           call nw(rab, pos(:,i), pos(:,j), h(i), nwa)
           call nw(rab, pos(:,i), pos(:,j), h(j), nwb)
-          if (switch_hc_isotropic > 0.) then
+          if (diff_isotropic > 0.) then
             kcfb(:,1) = [1.,0.,0.]
             kcfb(:,2) = [0.,1.,0.]
             kcfb(:,3) = [0.,0.,1.]
@@ -288,28 +287,30 @@ contains
               end do
             end do
           end if
-          kcfb(:,:) = switch_hc_conductivity*kcfb(:,:)
-
+          kcfb(:,:) = diff_conductivity*kcfb(:,:)
+          ! print*, 1
+          ! print*, mhd_magneticconstant,
           if (s_artts == 1) then
             call art_viscosity(rhoa, rhob, vab, urab, rab, dr, &
                                 s_dim, c(i), c(j), om(i), om(j), h(i), h(j), qa, qb)
             call art_termcond(nwa, nwb, urab, P(i), P(j), u(i), u(j), rhoa, rhob, om(i), om(j), qc)
             call art_fdivbab(kcf(:,1,i), kcf(:,1,j), mas(j), nwa, nwb, om(i), om(j), den(i), den(j), qd)
           end if
-
+          ! print*, 2
           Mc(1) = dot_product(kcf(:,1,i),kcf(:,1,i))
           Mc(2) = dot_product(kcf(:,1,j),kcf(:,1,j))
           do li = 1,3
             do lj = 1,3
               if (li == lj) then
-                Ma(li,lj) = P(i) + 0.5*Mc(1) - kcf(li,1,i)*kcf(lj,1,i) /0.00000125663706
-                Mb(li,lj) = P(j) + 0.5*Mc(2) - kcf(li,1,j)*kcf(lj,1,j) /0.00000125663706
+                Ma(li,lj) = P(i) + (0.5*Mc(1) - kcf(li,1,i)*kcf(lj,1,i)) /mhd_magneticconstant
+                Mb(li,lj) = P(j) + (0.5*Mc(2) - kcf(li,1,j)*kcf(lj,1,j)) /mhd_magneticconstant
               else
-                Ma(li,lj) = -kcf(li,1,i)*kcf(lj,1,i) /0.00000125663706
-                Mb(li,lj) = -kcf(li,1,j)*kcf(lj,1,j) /0.00000125663706
+                Ma(li,lj) = -kcf(li,1,i)*kcf(lj,1,i) /mhd_magneticconstant
+                Mb(li,lj) = -kcf(li,1,j)*kcf(lj,1,j) /mhd_magneticconstant
               end if
             end do
           end do
+          ! print*, 3
           ! print*, Ma(:,1)
           ! print*, Ma(:,2)
           ! print*, Ma(:,3)
@@ -317,6 +318,7 @@ contains
           ! print*, i, kcf(:,1,i)
           ! print*, j, kcf(:,1,j)
           ! print*,'---------'
+          ! print*, i, j, "|", om(i), om(j)
           ! read*
           Ma(1,1) = dot_product(Ma(1,:), nwa(:)) + qa(1)
           Ma(2,1) = dot_product(Ma(2,:), nwa(:)) + qa(2)
@@ -338,7 +340,7 @@ contains
                     )
 
           kcf(:,2,i) = kcf(:,2,i) - 1./(rhoa * om(i))*mas(j)*( &
-                      vab(:)  * dot_product(kcf(:,1,i),nwa(:)) - &
+                      vab(:) * dot_product(kcf(:,1,i),nwa(:)) - &
                       kcf(:,1,i) * dot_product(vab(:),nwa(:)) &
                     )
 
@@ -378,25 +380,25 @@ contains
             dcf(1,i) = dcf(1,i) + mas(j)*( &
               dot_product(qa(:),nwa(:))*odda + dot_product(qb(:),nwb(:))*oddb)
           end if
-        case(5)
-          ! 'diff-laplace'
-          call n2w(rab, h(i), n2wa)
-          dv(:,i)  = dv(:,i) + mas(j)/den(j) * vba(:) * n2wa
-          ! call get_hessian(rab, h(i), Hes)
-          ! kcfij(:) = 2. * kcf(:,i) * kcf(:,j) / (kcf(:,i) + kcf(:,j))
-          ! dcf(1,i) = dcf(1,i) - mas(j) / (den(i) * den(j)) * (cf(1,i) - cf(1,j)) * &
-          !           (kcfij(1)*Hes(1,1) + kcfij(2)*Hes(2,2) + kcfij(3)*Hes(3,3))
-        case(6)
-          call hessian(rab, pos(:,i), pos(:,j), h(i), Hesa)
-          dv(1,i) = dv(1,i) + mas(j)/den(j) * dot_product(vba,Hesa(:,1))
-          dv(2,i) = dv(2,i) + mas(j)/den(j) * dot_product(vba,Hesa(:,2))
-          dv(3,i) = dv(3,i) + mas(j)/den(j) * dot_product(vba,Hesa(:,3))
-        case(10)
-          ! diff-artvisc
-          call hessian_rr(rab, h(i), Hesa)
-          dv(1,i) = dv(1,i) - mas(j)/den(j) * dot_product(vab, Hesa(:,1))
-          dv(2,i) = dv(2,i) - mas(j)/den(j) * dot_product(vab, Hesa(:,2))
-          dv(3,i) = dv(3,i) - mas(j)/den(j) * dot_product(vab, Hesa(:,3))
+        ! case(5)
+        !   ! 'diff-laplace'
+        !   call n2w(rab, h(i), n2wa)
+        !   dv(:,i)  = dv(:,i) + mas(j)/den(j) * vba(:) * n2wa
+        !   ! call get_hessian(rab, h(i), Hes)
+        !   ! kcfij(:) = 2. * kcf(:,i) * kcf(:,j) / (kcf(:,i) + kcf(:,j))
+        !   ! dcf(1,i) = dcf(1,i) - mas(j) / (den(i) * den(j)) * (cf(1,i) - cf(1,j)) * &
+        !   !           (kcfij(1)*Hes(1,1) + kcfij(2)*Hes(2,2) + kcfij(3)*Hes(3,3))
+        ! case(6)
+        !   call hessian(rab, pos(:,i), pos(:,j), h(i), Hesa)
+        !   dv(1,i) = dv(1,i) + mas(j)/den(j) * dot_product(vba,Hesa(:,1))
+        !   dv(2,i) = dv(2,i) + mas(j)/den(j) * dot_product(vba,Hesa(:,2))
+        !   dv(3,i) = dv(3,i) + mas(j)/den(j) * dot_product(vba,Hesa(:,3))
+        ! case(10)
+        !   ! diff-artvisc
+        !   call hessian_rr(rab, h(i), Hesa)
+        !   dv(1,i) = dv(1,i) - mas(j)/den(j) * dot_product(vab, Hesa(:,1))
+        !   dv(2,i) = dv(2,i) - mas(j)/den(j) * dot_product(vab, Hesa(:,2))
+        !   dv(3,i) = dv(3,i) - mas(j)/den(j) * dot_product(vab, Hesa(:,3))
         case default
           print *, 'Task type was not defined in circuit2.f90: line 240.'
           stop
@@ -404,11 +406,11 @@ contains
       end do overb
 
       select case (s_ttp)
-      case(1, 2)
+      case(eeq_hydro, eeq_magnetohydro)
         if ( s_adden == 1 ) then
           dh(i) =  (- h(i) / (s_dim * den(i))) * dh(i) / om(i)
         end if
-      case(3, 4)
+      case(eeq_diffusion, eeq_magnetohydrodiffusion)
         if ( s_adden == 1 ) then
           dh(i) =  (- h(i) / (s_dim * den(i))) * dh(i) / om(i)
         end if
@@ -419,11 +421,11 @@ contains
             end do
           end do
         end if
-      case(5, 6, 10)
-        ! diff-graddiv ! diff-laplace ! diff-artvisc
-        if ( s_ktp == 3 ) then
-          dv(:,i) = dv(:,i) * den(i)
-        end if
+      ! case(5, 6, 10)
+      !   ! diff-graddiv ! diff-laplace ! diff-artvisc
+      !   if ( s_ktp == 3 ) then
+      !     dv(:,i) = dv(:,i) * den(i)
+      !   end if
       case default
         print *, 'Task type was not set in circuit2 outside circle'
         stop
@@ -443,7 +445,7 @@ contains
     real              :: vsigu
     qc = 0.
     vsigu = sqrt(abs(pa - pb)/(0.5*(da + db)))
-    qc = vsigu * (ua - ub) * 0.5 * (dot_product((nwa(:)/oa*da + nwb(:)/ob*db),urab(:)))
+    qc = vsigu * (ua - ub) * 0.5 * (dot_product((nwa(:)/oa/da + nwb(:)/ob/db),urab(:)))
   end subroutine
 
   pure subroutine art_viscosity(da, db, vab, &
@@ -477,6 +479,7 @@ contains
     end if
   end subroutine
 
+  ! subroutine art_fdivbab(Ba, Bb, mb, nwa, nwb, oa, ob, da, db, qd)
   pure subroutine art_fdivbab(Ba, Bb, mb, nwa, nwb, oa, ob, da, db, qd)
     real, intent(in)  :: Ba(3), Bb(3), mb, nwa(3), nwb(3), oa, ob, da, db
     real, intent(out) :: qd(3)

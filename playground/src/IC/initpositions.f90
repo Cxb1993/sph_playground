@@ -39,9 +39,9 @@ contains
 
     freenumber = 0
 
-    print *, '# #       x in ', brdx1, brdx2
-    print *, '# #       y in ', brdy1, brdy2
-    print *, '# #       z in ', brdz1, brdz2
+    print *, '# #       x in [',brdx1,":",brdx2,"]"
+    print *, '# #       y in [',brdy1,":",brdy2,"]"
+    print *, '# #       z in [',brdz1,":",brdz2,"]"
 
     ix1 = int(-brdx1/pspc1)
     ix2 = int(brdx2/pspc2)
@@ -64,6 +64,8 @@ contains
       iy2 = int(brdy2/sp)
       iz1 = int(-brdz1/sp)
       iz2 = int(brdz2/sp)
+      ! print*, iy1, iy2, sp, iy1*sp, (iy1+1)*sp,
+      ! read*
       ! print*,(-by -iy1), (iy1 +by), by, iy1
       ! print*, '------'
       do j = (-by -iy1), (iy2 +by)
@@ -107,9 +109,11 @@ contains
           pos(3,n) = sp*k + randomise*sp*(2*(rand() - 0.5))
           freenumber = merge(freenumber + 1, freenumber, isborder == 0)
           ptype(n) = merge(1, 0, isborder == 0)
+          ! print*, pos(:,n), ptype(n)
           n = n + 1
         end do
       end do
+      ! read*
     end do
 
     n = n - 1

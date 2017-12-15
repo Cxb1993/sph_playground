@@ -9,16 +9,22 @@ module state
             ginitvar, setAdvancedDensity, getAdvancedDensity,&
             setArtificialTerms, getArtificialTerms, &
             setpartnum, getpartnum, scoordsys, gcoordsys, &
-            sorigin, gorigin, switch_hc_conductivity, switch_hc_isotropic
+            sorigin, gorigin
+  public :: diff_conductivity, diff_isotropic, mhd_magneticconstant
 
   private
   save
     integer :: dim = 1, partnumber=-1
     integer :: ttype, ktype, dtype, icvar=-1, adden = 1, artts = 1, coordsys = 1, &
                 origin = 0
+
+
+    ! GLOBAL =(
     real :: &
-      switch_hc_conductivity = 0.,&
-      switch_hc_isotropic = -1.
+      diff_conductivity = 0.,&
+      diff_isotropic = -1.,&
+      mhd_magneticconstant = 0.
+
 
   contains
     subroutine setdim(d)
@@ -46,23 +52,23 @@ module state
       character (len=*), intent(in) :: itt
       select case(itt)
       case('hydro')
-        ttype = 1
+        ttype = eeq_hydro
       case('magnetohydro')
-        ttype = 2
+        ttype = eeq_magnetohydro
       case('diffusion')
-        ttype = 3
+        ttype = eeq_diffusion
       case('hmd')
-        ttype = 4
-      case('diff-laplace')
-        ttype = 5
-      case('diff-graddiv')
-        ttype = 6
-      case('chi-laplace')
-        ttype = 7
-      case('chi-graddiv')
-        ttype = 8
-      case('diff-artvisc')
-        ttype = 10
+        ttype = eeq_magnetohydrodiffusion
+      ! case('diff-laplace')
+      !   ttype = 5
+      ! case('diff-graddiv')
+      !   ttype = 6
+      ! case('chi-laplace')
+      !   ttype = 7
+      ! case('chi-graddiv')
+      !   ttype = 8
+      ! case('diff-artvisc')
+      !   ttype = 10
       case default
         print *, 'Task type not set: ', itt
         stop
@@ -87,7 +93,7 @@ module state
         ktype = 4
       case default
         ktype = 2
-        print *, '# # > Fab is set be default d2W/dx2 <'
+        print *, '# # <> Default d2W/dx2: fab <>'
       end select
      !  call calc_params()
     end subroutine setkerntype
@@ -135,6 +141,8 @@ module state
        icvar = ett_hydroshock
      case('alfvenwave')
        icvar = ett_alfvenwave
+     case('OTvortex')
+       icvar = ett_OTvortex
      case default
        print *, 'There is no such initial variable setting : ', itt
        stop
@@ -173,7 +181,7 @@ module state
        artts = 0
      case default
        artts = 1
-       print *, '# # > Yes is set be default choise for artificial terms <'
+       print *, '# # <> Default artificial terms: yes <>'
      end select
    end subroutine
 
@@ -191,7 +199,7 @@ module state
        coordsys = 2
      case default
        coordsys = 1
-       print *, '# # > Cartesian is set be default coordinate system <'
+       print *, '# # <> Default coordinate system: cartesian <>'
       end select
    end subroutine
 

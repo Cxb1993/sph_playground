@@ -5,7 +5,8 @@ program main
   use IC,               only: setupIC
   use state,            only: get_tasktype,&
                               ginitvar,&
-                              setpartnum
+                              setpartnum,&
+                              mhd_magneticconstant
   use iterator,         only: iterate
   use printer,          only: Output, AppendLine
   use errcalc,          only: err_diff_laplace, &
@@ -29,7 +30,7 @@ program main
   use arrayresize,      only: resize
   use timing,           only: addTime
 
-
+  use preruncheck
   use const
   ! use cltest,           only: runcltest
 
@@ -50,7 +51,7 @@ program main
   integer             :: n, dim, iter, s_tt, nusedl1, nusedl2, printlen, silent,&
                         ivt, stopiter, resol
 
-  integer(8)          :: tprint, start=0, finish=0
+  integer(8)          :: tprint
 
   ! call runcltest()
   print *, '##############################################'
@@ -58,17 +59,16 @@ program main
 
   call fillargs(dim, pspc1, resol,&
                 itype, ktype, dtype, errfname, dtout, npic, tfinish, sk, silent)
-
   call setupIC(n, sk, gamma, pspc1, resol, pos, vel, acc, &
                 mas, den, h, prs, iu, du, cf, kcf, dcf, ptype)
+                print*, mhd_magneticconstant
 
   call setpartnum(n)
   call get_tasktype(s_tt)
   call ginitvar(ivt)
 
   select case(s_tt)
-  case (1, 2, 3, 4, 9)
-    ! hydro | magnetohydro
+  case (eeq_hydro, eeq_diffusion, eeq_magnetohydro, eeq_magnetohydrodiffusion)
   case (5, 6, 7, 8, 10)
     ! 'diff-laplass' ! 'diff-graddiv' ! diff-artvisc
     call set_stepping(10**dim)
@@ -117,44 +117,43 @@ program main
     call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, kcf, sqerr)
   end if
 
+  call checkVarsReady(s_tt, mhd_magneticconstant, den, c, h, prs, iu)
+
   call iterate(n, sk, gamma, &
               ptype, pos, vel, acc, &
               mas, den, h, dh, om, prs, c, iu, du, &
               cf, dcf, kcf)
 
   select case(s_tt)
-  case(1, 2, 3, 4)
-    ! hydro | magnetohydro | hydro magneto diffusion
+  case(eeq_hydro, eeq_magnetohydro, eeq_diffusion, eeq_magnetohydrodiffusion)
     ! stopiter = 1
-  case(7, 8, 9)
-    ! who knows....
-  case(5, 6, 10)
-    ! 'diff-laplace' ! 'diff-graddiv' ! diff-artvisc
-    stopiter = 1
+  ! case(7, 8, 9)
+  !   ! who knows....
+  ! case(5, 6, 10)
+  !   ! 'diff-laplace' ! 'diff-graddiv' ! diff-artvisc
+  !   stopiter = 1
   case default
-    print *, 'EQS type was not sen in while interuption main.f90: line 147.'
+    print *, 'EQS type was not sen in while interuption main.f90: line 139.'
     stop
   end select
 
   do while ((t < tfinish + eps0).and.(stopiter==0))
     ! call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, sqerr)
     select case(s_tt)
-    case(1)
-      ! hydro
+    case(eeq_hydro)
       dt = .3 * minval(h) / maxval(c)
-    case(2)
-      ! magnetohydro
+    case(eeq_magnetohydro)
       dt = .1 * minval(h) / maxval(c)
-    case(3)
-      ! 'diffusion'
-      dt = .1 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf)
-    case (4)
-      ! hydro magneto diffusion
-      dt = .000001 * minval(den) * minval(c) * minval(h) ** 2 / merge(maxval(kcf), 1., maxval(kcf)>0)
-    case (5,6,7,8)
-      ! 'diff-laplass'      ! 'diff-graddiv'
-      stopiter = 1
-      dt = 0.
+    case(eeq_diffusion)
+      dt = .1 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf(:,1,:))
+    case (eeq_magnetohydrodiffusion)
+      dt = .1 * mhd_magneticconstant * minval(den) * minval(c) * &
+                minval(h) ** 2 / merge(maxval(kcf(:,1,:)), 1., maxval(kcf(:,1,:))>0)
+      ! dt = .1 * minval(h) / maxval(c)
+    ! case (5,6,7,8)
+    !   ! 'diff-laplass'      ! 'diff-graddiv'
+    !   stopiter = 1
+    !   dt = 0.
     case default
       print *, 'Task type time increment was not set main.f90: line 150.'
       stop
@@ -167,11 +166,17 @@ program main
     if (t >= ltout) then
       ! print*, maxval(kcf), minval(den), minval(c), minval(h)
       ! read*
-      print *, iter, t, dt, sum(iu), 'min h:', minval(h), 'max h:', maxval(h)
+      print *, "#", iter, "t=", t, "dt=", dt, 'min h=', minval(h), 'max h=', maxval(h)
       if ( silent == 0) then
         call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, kcf, err)
       end if
       ltout = ltout + dtout
+    end if
+
+    if (any(isnan(acc))) then
+      print*, 'Acceleration is NAN'
+      call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, kcf, err)
+      exit
     end if
 
     p(:,:) = pos(:,:)
@@ -196,51 +201,64 @@ program main
     h(:)     = h(:)     + 0.5 * dt * (dh(:)     - tdh(:))
     cf(:,:)  = cf(:,:)  + 0.5 * dt * (dcf(:,:)  - tcf(:,:))
     kcf(:,1,:) = kcf(:,1,:) + 0.5 * dt * (kcf(:,2,:)  - kcf(:,3,:))
-
     t = t + dt
     iter = iter + 1
+
   end do
   ! print*, 11111
   !----------------------------------------!
   !         l2 error calc evaluatopn       !
   !----------------------------------------!
-  select case(s_tt)
-  case(1, 2, 3, 4)
-    ! mooved to ivt check below
-    ! the rest should be mooved as well
-  case(7, 8)
-    ! 'hydroshock' ! chi-laplace ! 'infslb'
-    ! there was empty
-  case(5)
-    ! 'diff-laplace'
-    call err_diff_laplace(pos, acc, err)
-  case(6)
-    ! 'diff-graddiv'
-    call err_diff_graddiv(ptype, pos, acc, err)
-  case(10)
-    ! diff-artvisc
-    call err_diff_artvisc(pos, acc, err)
-  case default
-    print *, 'Task type was not set in l2 error evaluation main.f90: line 242.'
-    stop
-  end select
+  ! select case(s_tt)
+  ! case(1, 2, 3, 4)
+  !   ! mooved to ivt check below
+  !   ! the rest should be mooved as well
+  ! case(7, 8)
+  !   ! 'hydroshock' ! chi-laplace ! 'infslb'
+  !   ! there was empty
+  ! case(5)
+  !   ! 'diff-laplace'
+  !   call err_diff_laplace(pos, acc, err)
+  ! case(6)
+  !   ! 'diff-graddiv'
+  !   call err_diff_graddiv(ptype, pos, acc, err)
+  ! case(10)
+  !   ! diff-artvisc
+  !   call err_diff_artvisc(pos, acc, err)
+  ! case default
+  !   print *, 'Task type was not set in l2 error evaluation main.f90: line 229.'
+  !   stop
+  ! end select
 
   select case(ivt)
-  case (-1, 2, 3, 4, 5)
-  case (1)
-    ! isotropic sinxsinysinz
+  case (-1, 2, 3, 4, 5, ett_OTvortex)
+    ! ! diff-laplace ! chi-laplace
+    ! call etlaplace(pos, mas, den, h, chi)
+    ! result(4) = sum(chi(1:9))/dim
+    ! result(6:14) = chi(1:9)
+    ! printlen = 14
+
+    ! ! diff-graddiv ! chi-graddiv
+    ! call etgraddiv(pos, mas, den, h, chi)
+    ! result(4) = sum(chi)/dim/(2*dim - 1)
+    ! result(6:86) = chi(1:81)
+    ! printlen = 86
+    printlen = 5
+  case (ett_sin3)
     call err_sinxet(pos, cf, t, err)
-  case (6)
-    ! soundwave
+    printlen = 5
+  case (ett_soundwave)
     ! call err_soundwave_v(pos, vel, t, err)
     call err_soundwave_d(pos, den, t, err)
-  case (7)
-    ! hydroshock
+    printlen = 5
+  case (ett_hydroshock)
     call err_shockTube(ptype, pos, den, t, err)
-  case (8)
+    printlen = 5
+  case (ett_alfvenwave)
     call err_alfvenwave(pos, cf, t, err)
+    printlen = 5
   case default
-    print *, 'Task type was not sen in l2 error evaluation main.f90: line 229.'
+    print *, ivt, 'Task type was not sen in l2 error evaluation main.f90: line 229.'
     stop
   end select
 
@@ -249,27 +267,6 @@ program main
   !----------------------------------------!
   !          teylor error evaluation       !
   !----------------------------------------!
-  select case(s_tt)
-  case(5, 7)
-    ! diff-laplace ! chi-laplace
-    call etlaplace(pos, mas, den, h, chi)
-    result(4) = sum(chi(1:9))/dim
-    result(6:14) = chi(1:9)
-    printlen = 14
-    ! print(result(4))
-  case(6, 8)
-    ! diff-graddiv ! chi-graddiv
-    call etgraddiv(pos, mas, den, h, chi)
-    result(4) = sum(chi)/dim/(2*dim - 1)
-    result(6:86) = chi(1:81)
-    printlen = 86
-  case(1, 2, 3, 4, 9, 10)
-    ! 'hc-sinx' ! 'diff-graddiv' ! diff-artvisc
-    printlen = 5
-  case default
-    print *, 'Task type was not sen in taylor error evaluation main.f90: line 282.'
-    stop
-  end select
   if (nusedl1 /= 0) then
     sqerr(:) = sqrt(err(:))
     print *, iter, t, 0.

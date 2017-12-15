@@ -12,7 +12,8 @@ SRC= \
 	utils/list.f90\
 	utils/kdtree2.f90\
 	const.f90\
-	state.f90
+	state.f90\
+	preruncheck.f90
 
 SRC+=kernel/base_$(kernel).f90
 

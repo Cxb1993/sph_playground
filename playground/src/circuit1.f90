@@ -76,8 +76,8 @@ contains
     call getdim(dim)
     call getkerntype(ktp)
 
-    ! call getNeibListL2(nlista)
     call getNeibListL1(nlista)
+
 
     allowerror = 1e-8
     slnint(:) = h(:)
@@ -143,7 +143,7 @@ contains
           ! -(**)----------------------------------------------------!
           ! print*,'c1', 4, om(i), mas(i), dwdh
           om(i) = 1. - om(i) * (-slnint(i) / (dim * dennew(i)))
-          ! print*,'c1', 5, om(i), slnint(i), dim, den(i)
+          ! print*,'c1', 5, i, om(i), slnint(i), dim, den(i)
           dfdh = - dim * dennew(i) * om(i) / slnint(i)
           ! print*,'c1', 7, den(i), om(i), slnint(i)
           fh  = mas(i) * (sk / slnint(i)) ** dim - dennew(i)
@@ -168,6 +168,7 @@ contains
           end if
         end if
         ! print *,'c1', dennew(i), slnint(i), om(i)
+        ! read*
       end do
       !$omp end parallel do
 

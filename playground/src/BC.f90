@@ -130,9 +130,7 @@ contains
       bZ2ins(:) = Aexc(1:inp)
     end select
   end subroutine
-  !
-  !-- See page 19
-  !
+
   subroutine periodic1v2(A, axis)
     integer, intent(in)              :: axis
     real, allocatable, intent(inout) :: A(:)
