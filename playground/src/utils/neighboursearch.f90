@@ -183,6 +183,7 @@ contains
     type(kdtree2_result), allocatable :: kdtree_res(:)
     integer :: maxresultnum, sn, nfound, nlsz, i, j, al1, al2, tx, ktp
     real    :: kr
+
     call system_clock(start)
     call get_krad(kr)
     call getkernelnn(maxresultnum)

@@ -175,7 +175,7 @@ contains
             call art_viscosity(rhoa, rhob, vab, urab, rab, dr, &
                                 s_dim, c(i), c(j), om(i), om(j), h(i), h(j), qa, qb)
             call art_termcond(nwa, nwb, urab, P(i), P(j), u(i), u(j), rhoa, rhob, om(i), om(j), qc)
-            call art_fdivbab(kcf(:,1,i), kcf(:,1,j), mas(j), nwa, nwb, om(i), om(j), den(i), den(j), qd)
+            ! call art_fdivbab(kcf(:,1,i), kcf(:,1,j), mas(j), nwa, nwb, om(i), om(j), den(i), den(j), qd)
           end if
 
           Mc(1) = dot_product(kcf(:,1,i),kcf(:,1,i))
@@ -494,8 +494,32 @@ contains
   !   real              :: vsigu
   !   qc = 0.
   !
+  !
+  !   mrhoi5  = 0.5*pmassi*rho1i
+  !
+  !   runix = dx*rij1
+  !   runiy = dy*rij1
+  !   runiz = dz*rij1
+  !   dvx = xpartveci(ivxi) - vxyzu(1,j)
+  !   dvy = xpartveci(ivyi) - vxyzu(2,j)
+  !   dvz = xpartveci(ivzi) - vxyzu(3,j)
+  !   projv = dvx*runix + dvy*runiy + dvz*runiz
+  !
+  !   avBtermj = mrhoj5*alphaB*rho1j
+  !   avBterm = mrhoi5*alphaB*rho1i
+  !
+  !   grkernj = grkern(q2j,qj)*hj21*hj21*cnormk*gradh(1,j)
+  !   grkerni = grkern(q2i,qi)*hi41*cnormk*gradhi
   !   vsigB = sqrt((dvx - projv*runix)**2 + (dvy - projv*runiy)**2 + (dvz - projv*runiz)**2)
+  !
   !   dBdissterm = (avBterm*grkerni + avBtermj*grkernj)*vsigB
+  !
+  !   dBx = Bxi - Bxj
+  !   dBy = Byi - Byj
+  !   dBz = Bzi - Bzj
+  !   ! find Bevol and alphaB
+  !   dB2 = dBx*dBx + dBy*dBy + dBz*dBz
+  !   dudtresist = -0.5*dB2*dBdissterm
   ! end subroutine
 
   subroutine c15(pos, mas, h, den, cf, om, dcf)

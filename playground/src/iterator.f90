@@ -2,7 +2,6 @@ module iterator
   use eos
   use const
   use circuit1
-  use timing,           only: addTime
   use circuit2,         only: c2, c15
   use BC
   use state,            only: get_difftype,&
@@ -18,7 +17,6 @@ module iterator
 
  private
  save
- integer(8)         :: start=0, finish=0
  real, allocatable  :: dbtmp(:,:)
  integer            :: initialised = 0
 
@@ -90,20 +88,14 @@ contains
       call findneighboursKDT(ptype, pos, h)
 
       call c1(ptype, pos, mas, sk, h, den, om, cf, dcf, kcf)
-      call system_clock(start)
       call periodic1v2(den, ebc_all)
       call periodic1v2(h,   ebc_all)
       call periodic1v2(om,  ebc_all)
       ! call periodic3v2(dcf, ebc_all)
-      call system_clock(finish)
-      call addTime(' bc', finish - start)
 
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
-      call system_clock(start)
       ! call periodic3v2(dcf, ebc_all)
       call periodic1v2(dh,  ebc_all)
-      call system_clock(finish)
-      call addTime(' bc', finish - start)
       ! do I need to do it
       kcf(:,2,:) = 0.
       acc(:,:) = 0.
@@ -111,78 +103,53 @@ contains
       call findneighboursKDT(ptype, pos, h)
 
       call c1(ptype, pos, mas, sk, h, den, om, cf, dcf, kcf)
-      call system_clock(start)
       call periodic1v2(den, ebc_all)
       call periodic1v2(h,   ebc_all)
       call periodic1v2(om,  ebc_all)
-      call system_clock(finish)
-      call addTime(' bc', finish - start)
 
       ! call eos_adiabatic(den, uei, prs, c, gamma)
       call eos_isothermal(den, c(1), prs)
-      call system_clock(start)
       call periodic1v2(prs, ebc_all)
       call periodic1v2(c,   ebc_all)
-      call system_clock(finish)
-      call addTime(' bc', finish - start)
 
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
-      call system_clock(start)
       call periodic3v2(acc, ebc_all)
       call periodic3v2(dcf, ebc_all)
       call periodic1v2(due, ebc_all)
       call periodic1v2(dh,  ebc_all)
-      call system_clock(finish)
-      call addTime(' bc', finish - start)
     case (ett_hydroshock)
       call findneighboursKDT(ptype, pos, h)
       call c1(ptype, pos, mas, sk, h, den, om, cf, dcf, kcf)
       if ( dim > 1 ) then
-        call system_clock(start)
         call periodic1v2(den, ebc_y)
         call periodic1v2(h,   ebc_y)
         call periodic1v2(om,  ebc_y)
-        call system_clock(finish)
-        call addTime(' bc', finish - start)
       end if
       call eos_adiabatic(den, uei, prs, c, gamma)
       if ( dim > 1 ) then
-        call system_clock(start)
         call periodic1v2(prs, ebc_y)
         call periodic1v2(c,   ebc_y)
-        call system_clock(finish)
-        call addTime(' bc', finish - start)
       end if
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
       if ( dim > 1 ) then
-        call system_clock(start)
         call periodic3v2(acc, ebc_y)
         call periodic1v2(due, ebc_y)
         call periodic1v2(dh,  ebc_y)
-        call system_clock(finish)
-        call addTime(' bc', finish - start)
       end if
     case (ett_alfvenwave)
       call findneighboursKDT(ptype, pos, h)
 
       call c1(ptype, pos, mas, sk, h, den, om, cf, dcf, kcf)
-      call system_clock(start)
       call periodic1v2(den, ebc_all)
       call periodic1v2(h,   ebc_all)
       call periodic1v2(om,  ebc_all)
-      call system_clock(finish)
-      call addTime(' bc', finish - start)
 
       call eos_adiabatic(den, uei, prs, c, gamma)
       ! call eos_isothermal(den, c(1), prs)
-      call system_clock(start)
       call periodic1v2(prs, ebc_all)
       call periodic1v2(c,   ebc_all)
-      call system_clock(finish)
-      call addTime(' bc', finish - start)
 
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
-      call system_clock(start)
       call periodic3v2(acc, ebc_all)
       call periodic3v2(dcf, ebc_all)
       call periodic1v2(due, ebc_all)
@@ -190,30 +157,21 @@ contains
       dbtmp(:,:) = kcf(:,2,:)
       call periodic3v2(dbtmp, ebc_all)
       kcf(:,2,:) = dbtmp(:,:)
-      call system_clock(finish)
-      call addTime(' bc', finish - start)
     case(ett_mti)
       call findneighboursKDT(ptype, pos, h)
 
       call c1(ptype, pos, mas, sk, h, den, om, cf, dcf, kcf)
 
-      call system_clock(start)
       call periodic1v2(den, ebc_x)
       call periodic1v2(h,   ebc_x)
       call periodic1v2(om,  ebc_x)
-      call system_clock(finish)
-      call addTime(' bc', finish - start)
 
       call eos_adiabatic(den, uei, prs, c, gamma)
       ! call eos_isothermal(den, c(1), prs)
-      call system_clock(start)
       call periodic1v2(prs, ebc_x)
       call periodic1v2(c,   ebc_x)
-      call system_clock(finish)
-      call addTime(' bc', finish - start)
 
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
-      call system_clock(start)
       call periodic3v2(acc, ebc_x)
       call periodic3v2(dcf, ebc_x)
       call periodic1v2(due, ebc_x)
@@ -226,36 +184,32 @@ contains
       call periodic3v2(dbtmp, ebc_x)
       ! call fixed3(dbtmp, ebc_y, ebc_all, 0.)
       kcf(:,2,:) = dbtmp(:,:)
-      call system_clock(finish)
-      call addTime(' bc', finish - start)
     case (ett_OTvortex)
       call findneighboursKDT(ptype, pos, h)
       call c1(ptype, pos, mas, sk, h, den, om, cf, dcf, kcf)
-      call system_clock(start)
+      ! call periodicV3(ebc_all, A1=den)
+      ! call periodicV3(ebc_all, A1=h)
+      ! call periodicV3(ebc_all, A1=om)
       call periodic1v2(den, ebc_all)
       call periodic1v2(h,   ebc_all)
       call periodic1v2(om,  ebc_all)
-      call system_clock(finish)
-      call addTime(' bc', finish - start)
 
       call eos_adiabatic(den, uei, prs, c, gamma)
-      call system_clock(start)
+      ! call periodicV3(ebc_all, A1=prs)
+      ! call periodicV3(ebc_all, A1=c)
       call periodic1v2(prs, ebc_all)
       call periodic1v2(c,   ebc_all)
-      call system_clock(finish)
-      call addTime(' bc', finish - start)
 
       call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
-      call system_clock(start)
       call periodic3v2(acc, ebc_all)
       call periodic3v2(dcf, ebc_all)
+      ! call periodicV3(ebc_all, A1=due)
+      ! call periodicV3(ebc_all, A1=dh)
       call periodic1v2(due, ebc_all)
       call periodic1v2(dh,  ebc_all)
       dbtmp(:,:) = kcf(:,2,:)
       call periodic3v2(dbtmp, ebc_all)
       kcf(:,2,:) = dbtmp(:,:)
-      call system_clock(finish)
-      call addTime(' bc', finish-start)
     case default
       print *, 'Task type was not defined in iterator.f90: line 204.'
       stop

@@ -6,6 +6,7 @@ module const
   integer, parameter :: &
     e_none = -1
 
+  ! initial setups
   integer, parameter :: &
     ett_sin3 = 1,&
     ett_mti = 2,&
@@ -17,6 +18,7 @@ module const
     ett_alfvenwave = 8,&
     ett_OTvortex = 9
 
+  ! borders definitions
   integer, parameter :: &
     ebc_all = 100,&
     ebc_x = 101,&
@@ -29,6 +31,7 @@ module const
     ebc_y2 = 108,&
     ebc_z2 = 109
 
+  ! set of equations 
   integer, parameter :: &
     eeq_hydro = 201,&
     eeq_diffusion = 202,&

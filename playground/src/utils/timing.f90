@@ -20,8 +20,7 @@ module timing
     integer(8) :: cr, cm
     external rtc
 
-    call system_clock(count_rate=cr)
-    call system_clock(count_max=cm)
+    call system_clock(count_rate=cr, count_max=cm)
     clockrate = real(cr)
   end subroutine
 
@@ -34,7 +33,15 @@ module timing
     character(len=*), intent(in) :: inkey
     integer(8), intent(in)      :: inval
 
+    integer(8) :: nonzeroval
     integer :: n, i, f
+
+    if (inval == 0) then
+      ! huge error could be here, as it is hardware dependent
+      nonzeroval = 1000
+    else
+      nonzeroval = inval
+    end if
 
     n = size(names)
     f = 0
@@ -42,7 +49,7 @@ module timing
     if ( allocated(names) ) then
       do i = 1,n
         if ( names(i) == inkey ) then
-          timings(i) = timings(i) + inval
+          timings(i) = timings(i) + nonzeroval
           f = 1
         end if
       end do
@@ -50,13 +57,13 @@ module timing
         call resize(names, namelen, n, n+1)
         call resize(timings, n, n+1)
         names(n+1)   = inkey
-        timings(n+1) = inval
+        timings(n+1) = nonzeroval
       end if
     else
       allocate(names(1))
       allocate(timings(1))
       names(1)   = inkey
-      timings(1) = inval
+      timings(1) = nonzeroval
     end if
   end subroutine
 

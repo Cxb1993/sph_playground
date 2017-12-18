@@ -15,8 +15,12 @@ module IC
                           diff_conductivity,&
                           diff_isotropic, &
                           mhd_magneticconstant
-  use BC
-  use initpositions,  only: uniform
+  use BC, only: particlesnumber, &
+                bordersize, &
+                xmin, xmax, &
+                ymin, ymax, &
+                zmin, zmax
+  use initpositions,  only: uniform, uniformV3
 
   use neighboursearch,  only: getneighbours, &
                               getNeibListL1, &
@@ -27,7 +31,7 @@ module IC
   public :: setupIC
 
   private
-  integer(8) :: start=0, finish=0
+  integer(8) :: start=0, finish=0, cr
 contains
 
   subroutine setupIC(n, sk, g, pspc1, resol, &
@@ -47,7 +51,32 @@ contains
     ! integer, allocatable :: nlista(:)
 
     call system_clock(start)
-
+    ! do i=1,5
+    !   allocate(pos(3,10**i))
+    !   call system_clock(start)
+    !   call resize(pos,10**i,10**(i*2))
+    !   call system_clock(finish, count_rate=cr)
+    !   deallocate(pos)
+    !   print*, "empty  resize time: ", 10**i, "to ", 10**(i*2), (finish - start)/real(cr)
+    !
+    !   allocate(pos(3,10**i))
+    !   CALL random_number(pos)
+    !   call system_clock(start)
+    !   call resize(pos,10**i,10**(i*2))
+    !   call system_clock(finish, count_rate=cr)
+    !   deallocate(pos)
+    !   print*, "random resize time: ", 10**i, "to ", 10**(i*2), (finish - start)/real(cr)
+    !
+    !   allocate(pos(3,10**(i*2)))
+    !   CALL random_number(pos)
+    !   call system_clock(start)
+    !   call resize(pos,10**(i*2), 10**i)
+    !   call system_clock(finish, count_rate=cr)
+    !   deallocate(pos)
+    !   print*, "back   resize time: ", 10**(i*2), "to ", 10**i, (finish - start)/real(cr)
+    !   print*, '====='
+    ! end do
+    ! read*
     call getkerntype(kt)
     call get_tasktype(tt)
     call get_krad(kr)
@@ -244,13 +273,11 @@ contains
       if (dim == 3) then
         brdz1 = -pspc1 * nb
         brdz2 =  pspc1 * nb
-        ! brdz1 = -2.*sqrt(6.)/resol
-        ! brdz2 =  2.*sqrt(6.)/resol
       else
         brdz1 = 0.
         brdz2 = 0.
       end if
-      call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, pos, ptype, randomise=0.)
+      call uniformV3(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, pos)
     case default
       print *, 'Problem was not set in IC.f90: line 220.'
       stop
@@ -259,6 +286,19 @@ contains
     n = size(pos,dim=2)
     if (n < 2) then
       error stop 'There is only ' // char(n+48) // ' particles in the domain'
+    else
+      particlesnumber = n
+      bordersize = nb
+      xmin = brdx1
+      xmax = brdx2
+      ymin = brdy1
+      ymax = brdy2
+      zmin = brdz1
+      zmax = brdz2
+      if (.not.(allocated(ptype))) then
+        allocate(ptype(n))
+        ptype(:) = 1
+      end if
     end if
 
     allocate(v(3,n))

@@ -1,7 +1,8 @@
 program main
-  use BC,               only: bcdestroy => destroy,&
-                              periodic3v2, &
-                              periodic1v2
+  use BC,               only: bcdestroy => destroy
+  ! ,&
+                              ! ReflectBorders
+
   use IC,               only: setupIC
   use state,            only: get_tasktype,&
                               ginitvar,&
@@ -26,7 +27,8 @@ program main
                               tinit => init, &
                               timedestroy => destroy
   use neighboursearch,  only: getNeibNumbers,&
-                              neibDestroy => destroy
+                              neibDestroy => destroy,&
+                              getNeibListL1
   use arrayresize,      only: resize
   use timing,           only: addTime
 
@@ -41,7 +43,7 @@ program main
   real, allocatable, dimension(:)     :: den, prs, mas, iu, du, om, c, h, dh, &
                                          tdh, err, sqerr, tdu,&
                                          result
-  integer, allocatable, dimension(:)  :: ptype
+  integer, allocatable, dimension(:)  :: ptype, nlista
 
   real                                :: dt, t, dtout, ltout, tfinish, npic,&
                                          pspc1, gamma,&
@@ -49,7 +51,7 @@ program main
 
   character (len=100) :: itype, errfname, ktype, dtype
   integer             :: n, dim, iter, s_tt, nusedl1, nusedl2, printlen, silent,&
-                        ivt, stopiter, resol
+                        ivt, stopiter, resol, i, la
 
   integer(8)          :: tprint
 
@@ -61,7 +63,6 @@ program main
                 itype, ktype, dtype, errfname, dtout, npic, tfinish, sk, silent)
   call setupIC(n, sk, gamma, pspc1, resol, pos, vel, acc, &
                 mas, den, h, prs, iu, du, cf, kcf, dcf, ptype)
-                print*, mhd_magneticconstant
 
   call setpartnum(n)
   call get_tasktype(s_tt)
@@ -187,6 +188,7 @@ program main
     tcf(:,:) = dcf(:,:)
     kcf(:,3,:) = kcf(:,2,:)
     pos(:,:) = p(:,:)  + dt * v(:,:) + 0.5 * dt * dt * a(:,:)
+    ! call ReflectBorders()
     vel(:,:) = v(:,:)  + dt * a(:,:)
     iu(:)    = iu(:)   + dt * du(:)
     h(:)     = h(:)    + dt * dh(:)
@@ -203,7 +205,6 @@ program main
     kcf(:,1,:) = kcf(:,1,:) + 0.5 * dt * (kcf(:,2,:)  - kcf(:,3,:))
     t = t + dt
     iter = iter + 1
-
   end do
   ! print*, 11111
   !----------------------------------------!

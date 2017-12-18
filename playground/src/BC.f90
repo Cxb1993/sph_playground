@@ -1,16 +1,26 @@
 module BC
   use const
+  use timing,           only: addTime
+
   implicit none
 
   public :: fixed1, fixed3, destroy, &
-            set_particles_numbers, setBorder, set_sqare_box_sides,&
-            getSqaureBoxSides, setBorderInside, periodic3v2, periodic1v2
+            setBorder, set_sqare_box_sides,&
+            getSqaureBoxSides, setBorderInside, periodic3v2, periodic1v2,&
+            periodicV3
+
+  public :: particlesnumber, bordersize, &
+            xmin, xmax, ymin, ymax, zmin, zmax
 
   private
   save
-    integer              :: ns, nbrd, nx, ny, nz
-    integer, allocatable :: bX1exc(:), bY1exc(:), bZ1exc(:), bX2exc(:), bY2exc(:), bZ2exc(:)
+    integer              :: nx, ny, nz
     integer, allocatable :: bX1ins(:), bY1ins(:), bZ1ins(:), bX2ins(:), bY2ins(:), bZ2ins(:)
+    integer, allocatable :: bX1exc(:), bY1exc(:), bZ1exc(:), bX2exc(:), bY2exc(:), bZ2exc(:)
+    integer(8)           :: start=0, finish=0
+    ! GLOABL =(
+    integer :: particlesnumber, bordersize
+    real :: xmin, xmax, ymin, ymax, zmin, zmax
 
 contains
   subroutine destroy
@@ -53,12 +63,6 @@ contains
     end if
   end subroutine
 
-  subroutine set_particles_numbers(ins, inbrd)
-    integer, intent(in) :: ins, inbrd
-    ns = ins
-    nbrd = inbrd
-  end subroutine set_particles_numbers
-
   subroutine set_sqare_box_sides(inx, iny, inz)
     integer, intent(in) :: inx, iny, inz
     nx = inx
@@ -77,6 +81,8 @@ contains
     integer, allocatable, intent(in) :: Aexc(:)
     integer, intent(in) :: itb
     integer             :: inp
+
+    call system_clock(start)
 
     inp = size(Aexc)
 
@@ -100,12 +106,16 @@ contains
       allocate(bZ2exc(inp))
       bZ2exc(:) = Aexc(1:inp)
     end select
+    call system_clock(finish)
+    call addTime(' bc', finish - start)
   end subroutine
 
   subroutine setBorderInside(itb, Aexc)
     integer, allocatable, intent(in) :: Aexc(:)
     integer, intent(in) :: itb
     integer             :: inp
+
+    call system_clock(start)
 
     inp = size(Aexc)
 
@@ -129,6 +139,8 @@ contains
       allocate(bZ2ins(inp))
       bZ2ins(:) = Aexc(1:inp)
     end select
+    call system_clock(finish)
+    call addTime(' bc', finish - start)
   end subroutine
 
   subroutine periodic1v2(A, axis)
@@ -136,6 +148,8 @@ contains
     real, allocatable, intent(inout) :: A(:)
     integer                          :: i
 
+    call system_clock(start)
+
     select case(axis)
     case (ebc_all)
       do i = 1, size(bX1ins)
@@ -178,13 +192,49 @@ contains
         A(bZ2exc(i)) = A(bZ2ins(i))
       end do
     end select
+    call system_clock(finish)
+    call addTime(' bc', finish - start)
   end subroutine periodic1v2
+
+  subroutine periodicV3(axis, A1, A2, A3, AA1, AA2, AA3)
+    real, allocatable, optional, intent(inout) :: A1(:), A2(:), A3(:), AA1(:,:), AA2(:,:), AA3(:,:)
+    integer, intent(in) :: axis
+    integer             :: i, sbx, sby, sbz, smax
+
+    call system_clock(start)
+
+    select case(axis)
+    case (ebc_all)
+      sbx = size(bX1ins)
+      sby = size(bY1ins)
+      sbz = size(bZ1ins)
+      smax = max(sbx, sby, sbz)
+      do i =1,smax
+        if (i <= sbx) then
+          A1(bX1exc(i)) = A1(bX1ins(i))
+          A1(bX2exc(i)) = A1(bX2ins(i))
+        end if
+        if (i <= sby) then
+          A1(bY1exc(i)) = A1(bY1ins(i))
+          A1(bY2exc(i)) = A1(bY2ins(i))
+        end if
+        if (i <= sbz) then
+          A1(bZ1exc(i)) = A1(bZ1ins(i))
+          A1(bZ2exc(i)) = A1(bZ2ins(i))
+        end if
+      end do
+    end select
+    call system_clock(finish)
+    call addTime(' bc', finish - start)
+  end subroutine periodicV3
 
   subroutine periodic3v2(A, axis)
     integer, intent(in)              :: axis
     real, allocatable, intent(inout) :: A(:,:)
     integer                          :: i
 
+    call system_clock(start)
+
     select case(axis)
     case (ebc_all)
       do i = 1, size(bX1ins)
@@ -227,12 +277,16 @@ contains
         A(:,bZ2exc(i)) = A(:,bZ2ins(i))
       end do
     end select
+    call system_clock(finish)
+    call addTime(' bc', finish - start)
   end subroutine periodic3v2
 
   subroutine fixed1(A, axeside, k)
     integer, intent(in) :: axeside
     real, intent(in)    :: k
-    real, intent(out)   :: A(ns)
+    real, intent(out)   :: A(particlesnumber)
+
+    call system_clock(start)
 
     select case(axeside)
     case (ebc_all)
@@ -264,12 +318,16 @@ contains
       A(bZ1exc) = k
       A(bZ2exc) = k
     end select
+    call system_clock(finish)
+    call addTime(' bc', finish - start)
   end subroutine fixed1
 
   subroutine fixed3(A, axeside, dim, k)
     integer, intent(in) :: axeside, dim
     real, intent(in)    :: k
-    real, intent(out)   :: A(3,ns)
+    real, intent(out)   :: A(3,particlesnumber)
+
+    call system_clock(start)
 
     select case(axeside)
     case (ebc_all)
@@ -341,5 +399,38 @@ contains
         A(dim,bZ2exc) = k
       end if
     end select
+    call system_clock(finish)
+    call addTime(' bc', finish - start)
   end subroutine fixed3
+
+  ! subroutine ReflectBorders(axis, pos)
+  !   real, allocatable, optional, intent(inout) :: pos
+  !   integer, intent(in) :: axis
+  !   integer             :: i, sbx, sby, sbz, smax
+  !
+  !   call system_clock(start)
+  !   select case(axis)
+  !   case (ebc_all)
+  !     sbx = size(bX1ins)
+  !     sby = size(bY1ins)
+  !     sbz = size(bZ1ins)
+  !     smax = max(sbx, sby, sbz)
+  !     do i =1,smax
+  !       if (i <= sbx) then
+  !         A1(bX1exc(i)) = A1(bX1ins(i))
+  !         A1(bX2exc(i)) = A1(bX2ins(i))
+  !       end if
+  !       if (i <= sby) then
+  !         A1(bY1exc(i)) = A1(bY1ins(i))
+  !         A1(bY2exc(i)) = A1(bY2ins(i))
+  !       end if
+  !       if (i <= sbz) then
+  !         A1(bZ1exc(i)) = A1(bZ1ins(i))
+  !         A1(bZ2exc(i)) = A1(bZ2ins(i))
+  !       end if
+  !     end do
+  !   end select
+  !   call system_clock(finish)
+  !   call addTime(' bc', finish - start)
+  ! end subroutine ReflectBorders
 end module BC
