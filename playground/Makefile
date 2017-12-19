@@ -13,13 +13,13 @@ SRC= \
 	utils/kdtree2.f90\
 	const.f90\
 	state.f90\
+	BC.f90\
 	preruncheck.f90
 
 SRC+=kernel/base_$(kernel).f90
 
 SRC+=kernel/kernel.f90\
 	utils/neighboursearch.f90\
-	BC.f90\
 	printer.f90\
 	err_shocktube.f90\
 	errteylor.f90\

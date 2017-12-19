@@ -1,27 +1,27 @@
 module IC
   use omp_lib
 
-  use timing,       only: addTime
-  use ArrayResize,  only: resize
+  use timing,           only: addTime
+  use ArrayResize,      only: resize
   use const
-  use kernel,       only: get_krad, &
-                          get_w
-  use state,        only: get_tasktype,&
-                          getkerntype,&
-                          getdim,&
-                          ginitvar,&
-                          gcoordsys,&
-                          sorigin, &
-                          diff_conductivity,&
-                          diff_isotropic, &
-                          mhd_magneticconstant
-  use BC, only: particlesnumber, &
-                bordersize, &
-                xmin, xmax, &
-                ymin, ymax, &
-                zmin, zmax
-  use initpositions,  only: uniform, uniformV3
-
+  use kernel,           only: get_krad, &
+                              get_w
+  use state,            only: get_tasktype,&
+                              getkerntype,&
+                              getdim,&
+                              ginitvar,&
+                              gcoordsys,&
+                              sorigin, &
+                              diff_conductivity,&
+                              diff_isotropic, &
+                              mhd_magneticconstant
+  use BC,               only: realpartnumb, &
+                              artpartnumb, &
+                              bordersize, &
+                              xmin, xmax, &
+                              ymin, ymax, &
+                              zmin, zmax
+  use initpositions,    only: uniform, uniformV3
   use neighboursearch,  only: getneighbours, &
                               getNeibListL1, &
                               getNeibListL2, &
@@ -31,7 +31,7 @@ module IC
   public :: setupIC
 
   private
-  integer(8) :: start=0, finish=0, cr
+  integer(8) :: start=0, finish=0
 contains
 
   subroutine setupIC(n, sk, g, pspc1, resol, &
@@ -47,7 +47,7 @@ contains
     real                 :: kr, prs1, prs2, rho1, rho2, kcf1, sp, &
                             brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, period, eA, &
                             cca(3), qmatr(3,3), qtmatr(3,3), pspc2, theta, phi
-    integer              :: i, nb, tt, kt, dim, ivt, cs
+    integer              :: i, nb, tt, kt, dim, ivt, cs, d2null, d3null
     ! integer, allocatable :: nlista(:)
 
     call system_clock(start)
@@ -83,6 +83,15 @@ contains
     call getdim(dim)
     call ginitvar(ivt)
     call gcoordsys(cs)
+
+    d2null = 1
+    d3null = 1
+    if (dim == 1) then
+      d2null = 0
+      d3null = 0
+    else if (dim == 2) then
+      d3null = 0
+    end if
 
     ! don't need to have it different for 2nw, just copy it periodicly
     nb = int(kr*sk) + 1
@@ -262,33 +271,29 @@ contains
       end if
       pspc1 = (brdx2-brdx1)/resol
       pspc2 = pspc1
-      nb = int(kr*sk*3)
-      if (dim > 1) then
-        brdy1 = -1
-        brdy2 =  1
-      else
-        brdy1 = 0.
-        brdy2 = 0.
-      end if
-      if (dim == 3) then
-        brdz1 = -pspc1 * nb
-        brdz2 =  pspc1 * nb
-      else
-        brdz1 = 0.
-        brdz2 = 0.
-      end if
-      call uniformV3(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, pos)
+      nb = int(kr*sk*2)
+      brdy1 = -1 * d2null
+      brdy2 =  1 * d2null
+      brdz1 = -pspc1 * nb * d3null
+      brdz2 =  pspc1 * nb * d3null
+      call uniformV3(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pos, padding=0.5)
+      artpartnumb = (2*nb)*((2*resol+2*nb)*d2null+1)*((resol+2*nb)*d3null+1)
     case default
       print *, 'Problem was not set in IC.f90: line 220.'
       stop
     end select
 
-    n = size(pos,dim=2)
+    if (2*nb >= resol) then
+      print*, '   +-> not enough resolution to cover artificial particles'
+      stop
+    end if
+
+    n = realpartnumb+artpartnumb
+    call resize(pos, realpartnumb, n)
     if (n < 2) then
       error stop 'There is only ' // char(n+48) // ' particles in the domain'
     else
-      particlesnumber = n
-      bordersize = nb
+      bordersize = nb*pspc1
       xmin = brdx1
       xmax = brdx2
       ymin = brdy1
@@ -297,8 +302,11 @@ contains
       zmax = brdz2
       if (.not.(allocated(ptype))) then
         allocate(ptype(n))
-        ptype(:) = 1
+        ptype(1:realpartnumb) = 1
+        pos(:,realpartnumb+1:n) = 0.
+        ptype(realpartnumb+1:n) = 0
       end if
+      artpartnumb = 0
     end if
 
     allocate(v(3,n))
@@ -337,7 +345,7 @@ contains
     !$omp shared(cf, kcf, dim, sk, tt, prs1, prs2, kcf1)&
     !$omp shared(brdx2, brdx1, brdy2, brdy1, brdz2, brdz1, v, period, ptype)&
     !$omp shared(ivt, eA, kt, cs, theta, phi)
-    do i=1,n
+    do i=1,realpartnumb
       ! call getneighbours(i, pos, sln, nlista, t0)
       ! mas(i) = 0.
       ! do lj = 1, size(nlista)

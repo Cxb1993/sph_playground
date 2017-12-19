@@ -8,7 +8,7 @@ module errteylor
   use state,            only: getdim
   use neighboursearch,  only: getneighbours,&
                               isInitialized
-  use BC,               only: getSqaureBoxSides
+  use BC,               only: realpartnumb
   use printer,          only: AppendLine
 
   implicit none
@@ -37,7 +37,7 @@ contains
     real, intent(inout) :: chi(9)
 
     integer, allocatable :: nlist(:)
-    integer              :: i, j, l, kd, nx, ny, nz, idx
+    integer              :: i, j, l, kd, idx
     integer(8)           :: tneib, tprint
     real                 :: n2wa, r(3), r11, r22, r33, r12, r13, r23, kr, t(3),&
                             dsum, osum, dchi(9)
@@ -54,14 +54,7 @@ contains
     chi(1:9) = 0.
     dchi(:) = 0.
     t(:) = 0.
-    call getSqaureBoxSides(nx, ny, nz)
-    if (kd == 1) then
-      idx = int(nx/2)
-    else if (kd == 2) then
-      idx = int(ny/2*(nx+1))
-    else if (kd == 3) then
-      idx = int(nz/2*(ny*(nx+1)+1))
-    end if
+    idx = int(realpartnumb/2)
     call getneighbours(idx, pos, h, nlist, tneib)
     i = idx
 
@@ -124,7 +117,7 @@ contains
     real, intent(inout)              :: chi(81)
 
     integer, allocatable :: nlist(:)
-    integer              :: i, j, l, kd, nx, ny, nz, idx, a, b, g, d, ci
+    integer              :: i, j, l, kd, idx, a, b, g, d, ci
     integer(8)           :: tneib, tprint
     real                 :: r(3), kr, t(3), dr, Hes(3,3), m, dchi(81), dsum, osum
     real, allocatable    :: printres(:)
@@ -140,14 +133,7 @@ contains
     dchi(:) = 0.
     t(:) = 0.
 
-    call getSqaureBoxSides(nx, ny, nz)
-    if (kd == 1) then
-      idx = int(nx/2)
-    else if (kd == 2) then
-      idx = int(ny/2*(nx+1))
-    else if (kd == 3) then
-      idx = int(nz/2*(ny*(nx+1)+1))
-    end if
+    idx = int(realpartnumb/2)
     call getneighbours(idx, pos, h, nlist, tneib)
     i = idx
     do l = 1,size(nlist)

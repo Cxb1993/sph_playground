@@ -3,13 +3,17 @@ module iterator
   use const
   use circuit1
   use circuit2,         only: c2, c15
-  use BC
+  use BC,               only: periodic1v2,&
+                              periodic3v2,&
+                              reflecParticlesPeriodic, &
+                              createPhantomPeriodic
   use state,            only: get_difftype,&
                               getdim,&
                               get_tasktype, &
                               ginitvar
   use neighboursearch,  only: findneighboursN2plusStatic, &
-                              findneighboursKDT
+                              findneighboursKDT,&
+                              findneighboursKDT_V2
 
  implicit none
 
@@ -185,31 +189,26 @@ contains
       ! call fixed3(dbtmp, ebc_y, ebc_all, 0.)
       kcf(:,2,:) = dbtmp(:,:)
     case (ett_OTvortex)
-      call findneighboursKDT(ptype, pos, h)
-      call c1(ptype, pos, mas, sk, h, den, om, cf, dcf, kcf)
-      ! call periodicV3(ebc_all, A1=den)
-      ! call periodicV3(ebc_all, A1=h)
-      ! call periodicV3(ebc_all, A1=om)
-      call periodic1v2(den, ebc_all)
-      call periodic1v2(h,   ebc_all)
-      call periodic1v2(om,  ebc_all)
+      call reflecParticlesPeriodic(pos)
+      call createPhantomPeriodic(pos)
+      call findneighboursKDT_V2(ptype, pos, h)
+      ! call c1(ptype, pos, mas, sk, h, den, om, cf, dcf, kcf)
+      ! call periodic1v2(den, ebc_all)
+      ! call periodic1v2(h,   ebc_all)
+      ! call periodic1v2(om,  ebc_all)
 
-      call eos_adiabatic(den, uei, prs, c, gamma)
-      ! call periodicV3(ebc_all, A1=prs)
-      ! call periodicV3(ebc_all, A1=c)
-      call periodic1v2(prs, ebc_all)
-      call periodic1v2(c,   ebc_all)
+      ! call eos_adiabatic(den, uei, prs, c, gamma)
+      ! call periodic1v2(prs, ebc_all)
+      ! call periodic1v2(c,   ebc_all)
 
-      call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
-      call periodic3v2(acc, ebc_all)
-      call periodic3v2(dcf, ebc_all)
-      ! call periodicV3(ebc_all, A1=due)
-      ! call periodicV3(ebc_all, A1=dh)
-      call periodic1v2(due, ebc_all)
-      call periodic1v2(dh,  ebc_all)
-      dbtmp(:,:) = kcf(:,2,:)
-      call periodic3v2(dbtmp, ebc_all)
-      kcf(:,2,:) = dbtmp(:,:)
+      ! call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
+      ! call periodic3v2(acc, ebc_all)
+      ! call periodic3v2(dcf, ebc_all)
+      ! call periodic1v2(due, ebc_all)
+      ! call periodic1v2(dh,  ebc_all)
+      ! dbtmp(:,:) = kcf(:,2,:)
+      ! call periodic3v2(dbtmp, ebc_all)
+      ! kcf(:,2,:) = dbtmp(:,:)
     case default
       print *, 'Task type was not defined in iterator.f90: line 204.'
       stop

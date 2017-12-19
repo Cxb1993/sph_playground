@@ -274,49 +274,49 @@ contains
     end if
   end subroutine hessian_rr_fab_cart
 
-  pure subroutine hessian_rr_n2w_cart(r, h, Hes)
-    ! subroutine get_hessian_rr(r, h, Hes)
-    ! Hessian for artificial viscosity term
-    ! H^* = H - F_{ab}/|r_{ab}| I_3       // for momentum methods
-    ! H^* = H - f'/ q I_3                 // for direct derivatives
-    ! same as original hessian, but without diagonal matrix,
-    ! that corresponds to Laplacian term
-    real, intent(out) :: Hes(3,3)
-    real, intent(in)  :: r(3), h
-    real              :: r2, dr, df, ddf, q
-    real              :: r11, r12, r13, r22, r23, r33, cstart, dfq
-
-    r2 = dot_product(r,r)
-
-    r11 = r(1)*r(1)/r2
-    r12 = r(1)*r(2)/r2
-    r13 = r(1)*r(3)/r2
-    r22 = r(2)*r(2)/r2
-    r23 = r(2)*r(3)/r2
-    r33 = r(3)*r(3)/r2
-    cstart = wCv/h**(dim+2)
-    Hes(:,:) = 0.
-
-    dr = sqrt(r2)
-    q = dr / h
-    call kddf(q, ddf)
-    call kdf(q, df)
-    dfq = df/q
-
-    Hes(1,1) = cstart*(ddf - dfq)*r11
-    if ( dim /= 1 ) then
-      Hes(1,2) = cstart*(ddf - dfq)*r12
-      Hes(2,1) = Hes(1,2)
-      Hes(2,2) = cstart*(ddf - dfq)*r22
-      if ( dim == 3 ) then
-        Hes(1,3) = cstart*(ddf - dfq)*r13
-        Hes(3,1) = Hes(1,3)
-        Hes(2,3) = cstart*(ddf - dfq)*r23
-        Hes(3,2) = Hes(2,3)
-        Hes(3,3) = cstart*(ddf - dfq)*r33
-      end if
-    end if
-  end subroutine hessian_rr_n2w_cart
+  ! pure subroutine hessian_rr_n2w_cart(r, h, Hes)
+  !   ! subroutine get_hessian_rr(r, h, Hes)
+  !   ! Hessian for artificial viscosity term
+  !   ! H^* = H - F_{ab}/|r_{ab}| I_3       // for momentum methods
+  !   ! H^* = H - f'/ q I_3                 // for direct derivatives
+  !   ! same as original hessian, but without diagonal matrix,
+  !   ! that corresponds to Laplacian term
+  !   real, intent(out) :: Hes(3,3)
+  !   real, intent(in)  :: r(3), h
+  !   real              :: r2, dr, df, ddf, q
+  !   real              :: r11, r12, r13, r22, r23, r33, cstart, dfq
+  !
+  !   r2 = dot_product(r,r)
+  !
+  !   r11 = r(1)*r(1)/r2
+  !   r12 = r(1)*r(2)/r2
+  !   r13 = r(1)*r(3)/r2
+  !   r22 = r(2)*r(2)/r2
+  !   r23 = r(2)*r(3)/r2
+  !   r33 = r(3)*r(3)/r2
+  !   cstart = wCv/h**(dim+2)
+  !   Hes(:,:) = 0.
+  !
+  !   dr = sqrt(r2)
+  !   q = dr / h
+  !   call kddf(q, ddf)
+  !   call kdf(q, df)
+  !   dfq = df/q
+  !
+  !   Hes(1,1) = cstart*(ddf - dfq)*r11
+  !   if ( dim /= 1 ) then
+  !     Hes(1,2) = cstart*(ddf - dfq)*r12
+  !     Hes(2,1) = Hes(1,2)
+  !     Hes(2,2) = cstart*(ddf - dfq)*r22
+  !     if ( dim == 3 ) then
+  !       Hes(1,3) = cstart*(ddf - dfq)*r13
+  !       Hes(3,1) = Hes(1,3)
+  !       Hes(2,3) = cstart*(ddf - dfq)*r23
+  !       Hes(3,2) = Hes(2,3)
+  !       Hes(3,3) = cstart*(ddf - dfq)*r33
+  !     end if
+  !   end if
+  ! end subroutine hessian_rr_n2w_cart
 
   pure subroutine hessian_ddw_cart(rab, ra, rb, h, Hes)
   ! subroutine hessian_ddw_cart(rab, ra, rb, h, Hes)

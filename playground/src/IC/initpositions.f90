@@ -4,7 +4,8 @@ module InitPositions
   use state,  only: getdim
   use ArrayResize,  only: resize
   use BC, only: setBorder,&
-                setBorderInside
+                setBorderInside,&
+                realpartnumb
 
 
   implicit none
@@ -152,17 +153,26 @@ contains
     call setBorderInside(32, inbz2)
   end subroutine
 
-  subroutine uniformV3(xmin, xmax, ymin, ymax, zmin, zmax, dxmin, dxmax, pos)
-    real, intent(in)    :: xmin, xmax, ymin, ymax, zmin, zmax
+  subroutine uniformV3(xmin, xmax, ymin, ymax, zmin, zmax, dxmin, pos, dxmax, padding)
     real, allocatable, intent(inout)    :: pos(:,:)
-    real, intent(inout)  :: dxmin, dxmax
+    real, intent(in)            :: xmin, xmax, ymin, ymax, zmin, zmax
+    real, intent(inout)         :: dxmin
+    real, optional, intent(in)  :: dxmax, padding
 
-    integer, allocatable :: inbx1(:), inbx2(:), inby1(:), inby2(:), inbz1(:), inbz2(:)
-    integer              :: dim, nb, isborder, freenumber, n, ptsz, &
-                             ix1, ix2, iy1, iy2, iz1, iz2, bx, by, bz, i, j, k
-    real                 :: sp
+    integer              :: dim, n, ptsz, &
+                             ix1, ix2, iy1, iy2, iz1, iz2, i, j, k, &
+                             d2null, d3null
+    real                 :: sp, dmx, pdg
 
     call getdim(dim)
+    d2null = 1
+    d3null = 1
+    if (dim == 1) then
+      d2null = 0
+      d3null = 0
+    else if (dim == 2) then
+      d3null = 0
+    end if
 
     allocate(pos(3,1))
     n = 1
@@ -170,27 +180,38 @@ contains
     print *, '# #       y in [',ymin,":",ymax,"]"
     print *, '# #       z in [',zmin,":",zmax,"]"
 
+    if (.not.present(dxmax)) then
+      dmx = dxmin
+    else
+      dmx = dxmax
+    end if
+    if (.not.present(padding)) then
+      pdg = 0.
+    else
+      pdg = padding
+    end if
+
     ix1 = int(xmin/dxmin)
-    ix2 = int(xmax/dxmax)
-    do i = ix1, ix2
+    ix2 = int(xmax/dmx)
+    do i = ix1, ix2 - int(2*pdg)
       if (i <= 0) then
         sp = dxmin
       else
-        sp = dxmax
+        sp = dmx
       end if
       iy1 = int(ymin/sp)
       iy2 = int(ymax/sp)
       iz1 = int(zmin/sp)
       iz2 = int(zmax/sp)
-      do j = iy1, iy2
-        do k = iz1, iz2
+      do j = iy1, iy2 - int(2*pdg)*d2null
+        do k = iz1, iz2 - int(2*pdg)*d3null
           ptsz = size(pos, dim=2)
           if (ptsz < n) then
             call resize(pos, ptsz, ptsz*2)
           end if
-          pos(1,n) = sp*i
-          pos(2,n) = sp*j
-          pos(3,n) = sp*k
+          pos(1,n) =        pdg*sp + sp*i
+          pos(2,n) = d2null*pdg*sp + sp*j
+          pos(3,n) = d3null*pdg*sp + sp*k
           n = n + 1
         end do
       end do
@@ -198,7 +219,7 @@ contains
     n = n - 1
 
     call resize(pos,n,n)
-
+    realpartnumb = n
     print *, "# #   particles number:  ", n
   end subroutine uniformV3
 end module

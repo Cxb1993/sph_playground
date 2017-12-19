@@ -7,7 +7,7 @@ module list
     integer               :: length = 0
     integer               :: size = 0
   contains
-    procedure :: append, toarr, print, e, xe, llen
+    procedure :: append, toarr, print, e, xe, llen, clearfast, clear
   end type
 
 contains
@@ -72,4 +72,20 @@ contains
 
     length = list%length
   end function
+
+  pure subroutine clearfast(list)
+    class(intlist), intent(inout) :: list
+    list%length = 0
+  end subroutine clearfast
+
+  subroutine clear(list)
+    class(intlist), intent(inout) :: list
+    if (list%size /= 0) then
+      deallocate(list%elements)
+      list%length = 0
+      list%size = 0
+    else
+      print*, " <!> some one tried to deallocate an empty list"
+    end if
+  end subroutine clear
 end module
