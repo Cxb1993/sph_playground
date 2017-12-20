@@ -36,6 +36,7 @@ module kernel
     end interface
 
   private
+  real :: storekdf(100)
 
 contains
   pure subroutine getkernelname(kname)
@@ -66,6 +67,8 @@ contains
     call getkerntype(kt)
 
     hessian_rr => hessian_rr_fab_cart
+
+    call precalcKDF()
 
     if (cs == 1) then
       nw => nw_cart
@@ -98,6 +101,19 @@ contains
     end if
   end subroutine
 
+ subroutine precalcKDF()
+   real    :: dq, df
+   integer :: i, np
+
+   np = size(storekdf)
+   dq = krad/np
+   storekdf(1) = 0.
+   do i = 2,np
+     call kdf(dq*i, df)
+     storekdf(i) = wCv * df / (dq*i)
+   end do
+ end subroutine precalcKDF
+
   ! ---------!
   ! W kernel !------------------------------------------------------------------
   !----------!
@@ -125,6 +141,17 @@ contains
 
     nw(:) = wCv * df * rab(:) / h**(dim+2) / q
   end subroutine nw_cart
+
+  ! pure subroutine nw_cart_precalc(rab, ra, rb, dr, h, nw)
+  !   real, intent(in)  :: rab(3), ra(3), rb(3), dr, h
+  !   real, intent(out) :: nw(3)
+  !   real              :: df, q
+  !
+  !   q = dr / h
+  !   call kdf(q, df)
+  !
+  !   nw(:) = wCv * df * rab(:) / h**(dim+2) / q
+  ! end subroutine nw_cart
 
   pure subroutine nw_cyl(rab, ra, rb, dr, h, nw)
     ! get cylindrical nabla kernel for cartesian input

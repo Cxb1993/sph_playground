@@ -59,10 +59,12 @@ contains
     integer, allocatable, intent(in) :: ptype(:)
     real, allocatable, intent(inout) :: dv(:,:), du(:), dh(:), dcf(:,:), kcf(:,:,:)
 
-    real                 :: dr, rhoa, rhob, qa(3), qb(3), qc, qd(3), n2wa, r2, &
-                            nwa(3), nwb(3), rab(3), vab(3), vba(3), urab(3), &
-                            Hesa(3,3), odda, oddb, kcfa(3,3), kcfb(3,3), kcfab(3,3), ktmp, phi, &
-                            tmpt1(3,3), tmpt2(3,3), tmpt3(3,3), Ma(3,3), Mb(3,3), Mc(3)
+    real :: dr, rhoa, rhob, ra(3), rb(3)
+
+    real :: qa(3), qb(3), qc, qd(3), n2wa, r2, &
+            nwa(3), nwb(3), rab(3), vab(3), vba(3), urab(3), &
+            Hesa(3,3), odda, oddb, kcfa(3,3), kcfb(3,3), kcfab(3,3), ktmp, phi, &
+            tmpt1(3,3), tmpt2(3,3), tmpt3(3,3), Ma(3,3), Mb(3,3), Mc(3)
 
     integer, allocatable :: nlista(:), nlistb(:)
     integer              :: i, rj, pj, la, lb, n, li, lj
@@ -85,7 +87,7 @@ contains
     call getNeibListL1(nlista)
 
     !$omp parallel do default(none)&
-    !$omp private(rab, dr, vab, urab, rhoa, rhob, nwa, nwb, qa, qb, qc, qd)&
+    !$omp private(rab, dr, ra, rb, vab, urab, rhoa, rhob, nwa, nwb, qa, qb, qc, qd)&
     !$omp private(n2wa, rj, pj, i, r2, odda ,oddb, la, lb)&
     !$omp private(nlistb, Hesa, vba, t0, kcfa, kcfb, kcfab, ktmp, phi) &
     !$omp private(tmpt1, tmpt2, tmpt3, li, lj, Ma, Mb, Mc)&
@@ -97,6 +99,10 @@ contains
     !$omp reduction(+:tneib)
     overa: do la = 1, size(nlista)
       i = nlista(la)
+
+      rhoa = den(i)
+      ra(:) = pos(:,i)
+
       dv(:,i) = 0.
       du(i) = 0.
       dh(i) = 0.
@@ -115,6 +121,10 @@ contains
           kcfa(1,1) = diff_conductivity
           kcfa(2,2) = diff_conductivity
           kcfa(3,3) = diff_conductivity
+
+          kcfb(:,1) = [diff_conductivity,0.,0.]
+          kcfb(:,2) = [0.,diff_conductivity,0.]
+          kcfb(:,3) = [0.,0.,diff_conductivity]
         else
           do li = 1, 3
             do lj = 1,3
@@ -126,11 +136,15 @@ contains
       overb: do lb = 1, size(nlistb)
         rj = getCrossRef(nlistb(lb))
         pj = nlistb(lb)
+
+        rhob = den(rj)
+        rb(:) = pos(:,pj)
+
         qa(:) = 0.
         qb(:) = 0.
         qc    = 0.
         qd(:) = 0.
-        rab(:) = pos(:,i) - pos(:,pj)
+        rab(:) = ra(:) - rb(:)
         r2 = dot_product(rab(:),rab(:))
         dr = sqrt(r2)
         vab(:) = v(:,i) - v(:,rj)
@@ -166,8 +180,6 @@ contains
           Ma(:,:) = 0.
           Mb(:,:) = 0.
           Mc(:)   = 0.
-          rhoa = den(i)
-          rhob = den(rj)
           call nw(rab, pos(:,i), pos(:,pj), dr, h(i), nwa)
           call nw(rab, pos(:,i), pos(:,pj), dr, h(rj), nwb)
 
@@ -220,11 +232,7 @@ contains
             dh(i) = dh(i) + mas(rj) * dot_product(vab(:), nwa(:))
           end if
         case (eeq_diffusion)
-          if (diff_isotropic > 0.) then
-            kcfb(1,1) = diff_conductivity
-            kcfb(2,2) = diff_conductivity
-            kcfb(3,3) = diff_conductivity
-          else
+          if (diff_isotropic < 0.) then
             do li = 1, 3
               do lj = 1,3
                 kcfb(li,lj) = diff_conductivity*kcf(li,1,rj)*kcf(lj,1,rj)
@@ -271,32 +279,23 @@ contains
           Ma(:,:) = 0.
           Mb(:,:) = 0.
           Mc(:)   = 0.
-          rhoa = den(i)
-          rhob = den(rj)
-          call nw(rab, pos(:,i), pos(:,pj), dr, h(i), nwa)
-          call nw(rab, pos(:,i), pos(:,pj), dr, h(rj), nwb)
-          if (diff_isotropic > 0.) then
-            kcfb(1,1) = 1.
-            kcfb(:,1) = [1.,0.,0.]
-            kcfb(:,2) = [0.,1.,0.]
-            kcfb(:,3) = [0.,0.,1.]
-          else
+          odda = 1./om(i)/rhoa/rhoa
+          oddb = 1./om(rj)/rhob/rhob
+          call nw(rab, ra, rb, dr, h(i), nwa)
+          call nw(rab, ra, rb, dr, h(rj), nwb)
+          if (diff_isotropic < 0.) then
             do li = 1, 3
               do lj = 1,3
-                kcfb(li,lj) = kcf(li,1,rj)*kcf(lj,1,rj)
+                kcfb(li,lj) = diff_conductivity*kcf(li,1,rj)*kcf(lj,1,rj)
               end do
             end do
           end if
-          kcfb(:,:) = diff_conductivity*kcfb(:,:)
-          ! print*, 1
-          ! print*, mhd_magneticconstant,
           if (s_artts == 1) then
             call art_viscosity(rhoa, rhob, vab, urab, rab, dr, &
                                 s_dim, c(i), c(rj), om(i), om(rj), h(i), h(rj), qa, qb)
             ! call art_termcond(nwa, nwb, urab, P(i), P(j), u(i), u(j), rhoa, rhob, om(i), om(j), qc)
-            call art_fdivbab(kcf(:,1,i), kcf(:,1,rj), mas(rj), nwa, nwb, om(i), om(rj), den(i), den(rj), qd)
+            call art_fdivbab(kcf(:,1,i), kcf(:,1,rj), mas(rj), nwa, nwb, om(i), om(rj), rhoa, rhob, qd)
           end if
-          ! print*, 2
           Mc(1) = dot_product(kcf(:,1,i),kcf(:,1,i))
           Mc(2) = dot_product(kcf(:,1,rj),kcf(:,1,rj))
           do li = 1,3
@@ -329,12 +328,12 @@ contains
           Mb(3,1) = dot_product(Mb(3,:), nwb(:)) + qb(3)
 
           dv(:,i) = dv(:,i) - mas(rj) * ( &
-                      Ma(:,1) / (rhoa**2 * om(i)) + &
-                      Mb(:,1) / (rhob**2 * om(rj)) &
+                      Ma(:,1) * odda + &
+                      Mb(:,1) * oddb &
                     ) - qd(:)
 
           du(i)   = du(i) + mas(rj) * ( &
-                      dot_product(vab(:), nwa(:))*P(i)/(rhoa**2 * om(i)) - &
+                      dot_product(vab(:), nwa(:))*P(i) * odda - &
                       dot_product(vab(:), qa(:))/(rhoa * om(i)) + &
                       qc &
                     )
@@ -349,27 +348,25 @@ contains
           end if
           ! diffusion
           if (s_ktp == 1) then
-            call hessian(rab, pos(:,i), pos(:,pj), h(i), Hesa)
+            call hessian(rab, ra, rb, h(i), Hesa)
             do li = 1, 3
               do lj = 1,3
-                tmpt1(li,lj) = tmpt1(li,lj) + mas(rj)/den(rj) * &
+                tmpt1(li,lj) = tmpt1(li,lj) + mas(rj)/rhob * &
                                 (kcfb(li,lj) - kcfa(li,lj)) * nwa(li)
-                tmpt2(li,lj) = tmpt2(li,lj) + mas(rj)/den(rj) * &
+                tmpt2(li,lj) = tmpt2(li,lj) + mas(rj)/rhob * &
                                 (cf(1,rj) - cf(1,i)) * nwa(lj)
                 tmpt3(li,lj) = tmpt3(li,lj) + kcfa(li,lj) * &
-                                mas(rj)/den(rj) * (cf(1,rj) - cf(1,i)) * Hesa(li,lj)
+                                mas(rj)/rhob * (cf(1,rj) - cf(1,i)) * Hesa(li,lj)
               end do
             end do
           else if ((s_ktp == 2).or.(s_ktp==4)) then
             kcfab(:,:) = (kcfa(:,:)+kcfb(:,:))/2.
-            call hessian(rab, pos(:,i), pos(:,rj), h(i), Hesa)
-            dcf(1,i) = dcf(1,i) + mas(rj)/den(rj) * (cf(1,rj) - cf(1,i)) * &
+            call hessian(rab, ra, rb, h(i), Hesa)
+            dcf(1,i) = dcf(1,i) + mas(rj)/rhob * (cf(1,rj) - cf(1,i)) * &
               ( dot_product(kcfab(1,:),Hesa(1,:)) + &
                 dot_product(kcfab(2,:),Hesa(2,:)) + &
                 dot_product(kcfab(3,:),Hesa(3,:)) )
           else if (s_ktp == 3) then
-            odda = 1./om(i)/den(i)/den(i)
-            oddb = 1./om(rj)/den(rj)/den(rj)
             qa(1) = dot_product(kcfa(1,:),dcftmp(:,i))
             qa(2) = dot_product(kcfa(2,:),dcftmp(:,i))
             qa(3) = dot_product(kcfa(3,:),dcftmp(:,i))
@@ -408,11 +405,11 @@ contains
       select case (s_ttp)
       case(eeq_hydro, eeq_magnetohydro)
         if ( s_adden == 1 ) then
-          dh(i) =  (- h(i) / (s_dim * den(i))) * dh(i) / om(i)
+          dh(i) =  (- h(i) / (s_dim * rhoa)) * dh(i) / om(i)
         end if
       case(eeq_diffusion, eeq_magnetohydrodiffusion)
         if ( s_adden == 1 ) then
-          dh(i) =  (- h(i) / (s_dim * den(i))) * dh(i) / om(i)
+          dh(i) =  (- h(i) / (s_dim * rhoa)) * dh(i) / om(i)
         end if
         if (s_ktp == 1) then
           do li = 1,3
