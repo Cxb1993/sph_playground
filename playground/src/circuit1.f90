@@ -56,8 +56,8 @@ contains
   end subroutine
 
   subroutine c1advanced(ptype, pos, mas, sk, h, den, om, cf, dcf, kcf)
-    use neighboursearch,  only: findneighboursKDT
-    use state,            only: ginitvar
+    use state,  only: ginitvar
+    use BC,     only: getCrossRef
 
     integer, allocatable, intent(in) :: ptype(:)
     real, allocatable, intent(in)    :: pos(:,:), mas(:), cf(:,:), kcf(:,:,:)
@@ -65,7 +65,7 @@ contains
     real, intent(in)     :: sk
     real                 :: w, dwdh, r(3), dr, r2, dfdh, fh, hn, vba(3), nwa(3), nwb(3)
     real                 :: allowerror, maxinterr, currinterr
-    integer              :: n, i, j, la, lb, dim, iter, ktp
+    integer              :: n, i, rj, pj, la, lb, dim, iter, ktp
     integer(8)           :: t0, tneib
     integer, allocatable :: nlista(:), nlistb(:)
 
@@ -77,8 +77,6 @@ contains
     call getkerntype(ktp)
 
     call getNeibListL1(nlista)
-
-
     allowerror = 1e-8
     slnint(:) = h(:)
     dennew(:) = den(:)
@@ -94,7 +92,7 @@ contains
       maxinterr  = 0.
       iter = iter + 1
       !$omp parallel do default(none)&
-      !$omp private(r, dr, dwdh, w, dfdh, fh, hn, j, i, la, lb, r2, t0, nlistb)&
+      !$omp private(r, dr, dwdh, w, dfdh, fh, hn, rj, pj, i, la, lb, r2, t0, nlistb)&
       !$omp private(nwa, nwb, vba, currinterr)&
       !$omp shared(resid, allowerror, n, pos, mas, dim, sk, h, ktp, maxinterr)&
       !$omp shared(nlista, den, dennew, om, slnint, dcf, cf)&
@@ -111,11 +109,14 @@ contains
           call getneighbours(i, pos, slnint, nlistb, t0)
           tneib = tneib + t0
           ! print*, nlista
-          ! print*, "me=", i, "   neibs=", nlistb, pos(:,i)
+          ! print*, "a=", i, "   neibs=", nlistb, pos(:,i)
           ! read*
           do lb = 1, size(nlistb)
-            j = nlistb(lb)
-            r(:) = pos(:,i) - pos(:,j)
+            rj = getCrossRef(nlistb(lb))  ! real
+            pj = nlistb(lb)               ! phantom
+            ! print*, "b=",lb, "id=",nlistb(lb), "real=", j
+            ! read*
+            r(:) = pos(:,i) - pos(:,pj)
             r2 = dot_product(r(:),r(:))
             ! print*,-3
             dr = sqrt(r2)
@@ -124,12 +125,12 @@ contains
             ! print*,-1
             call get_w(dr, slnint(i), w)
             ! print*,0
-            dennew(i) = dennew(i) + mas(j) * w
-            om(i) = om(i) + mas(j) * dwdh
-            currinterr = currinterr + mas(j)/den(j) * w
+            dennew(i) = dennew(i) + mas(rj) * w
+            om(i) = om(i) + mas(rj) * dwdh
+            currinterr = currinterr + mas(rj)/den(rj) * w
             if (ktp == 3) then
-              call nw(r(:), pos(:,i), pos(:,j), dr, slnint(i), nwa)
-              dcf(:,i) = dcf(:,i) + mas(j)/den(j)*(cf(1,j) - cf(1,i))*nwa(:)
+              call nw(r(:), pos(:,i), pos(:,pj), dr, slnint(i), nwa)
+              dcf(:,i) = dcf(:,i) + mas(rj)/den(rj)*(cf(1,rj) - cf(1,i))*nwa(:)
             end if
           end do
           ! ---------------------------------------------------------!
@@ -184,12 +185,14 @@ contains
 
 ! Direct density summation
   subroutine c1simple(ptype, pos, mas, sk, sln, den, cf, dcf, kcf)
+    use BC, only: getCrossRef
+
     integer, allocatable, intent(in) :: ptype(:)
     real, allocatable, intent(in)    :: pos(:,:), mas(:), cf(:,:), kcf(:,:,:)
     real,              intent(in)    :: sk
     real, allocatable, intent(inout) :: den(:), sln(:), dcf(:,:)
     real                             :: w, r(3), dr, currinterr
-    integer                          :: i, j, la, lb, dim
+    integer                          :: i, rj, pj, la, lb, dim
     integer, allocatable             :: nlista(:), nlistb(:)
     integer(8)                       :: t0, tneib
 
@@ -202,7 +205,7 @@ contains
 
     tneib = 0.
     !$omp parallel do default(none)&
-    !$omp private(r, dr, w, j, i, la, lb, nlistb, t0, currinterr)&
+    !$omp private(r, dr, w, rj, pj, i, la, lb, nlistb, t0, currinterr)&
     !$omp shared(pos, mas, sk, sln, dim)&
     !$omp shared(nlista, den, dennew)&
     !$omp reduction(+:tneib)
@@ -214,12 +217,13 @@ contains
       call getneighbours(i, pos, sln, nlistb, t0)
       tneib = tneib + t0
       do lb = 1, size(nlistb)
-        j = nlistb(lb)
-        r(:) = pos(:,i) - pos(:,j)
+        rj = getCrossRef(nlistb(lb))
+        pj = nlistb(lb)
+        r(:) = pos(:,i) - pos(:,pj)
         dr = sqrt(dot_product(r(:),r(:)))
         call get_w(dr, sln(i), w)
-        dennew(i) = dennew(i) + mas(j) * w
-        currinterr = currinterr + mas(j)/den(j) * w
+        dennew(i) = dennew(i) + mas(rj) * w
+        currinterr = currinterr + mas(rj)/den(rj) * w
       end do
       call get_w(0., sln(i), w)
       dennew(i) = dennew(i) + mas(i) * w

@@ -220,6 +220,5 @@ contains
 
     call resize(pos,n,n)
     realpartnumb = n
-    print *, "# #   particles number:  ", n
   end subroutine uniformV3
 end module

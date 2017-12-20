@@ -15,6 +15,8 @@ module printer
 contains
   subroutine Output(time, ptype, x, v, dv, m, den, slen, pres, ien, cf, kcf, err)
     use kernel, only: get_krad
+    use BC,     only: realpartnumb,&
+                      artpartnumb
     real, allocatable, intent(in)    :: x(:,:), v(:,:), dv(:,:), m(:), err(:), &
                                         den(:), slen(:), pres(:), ien(:), &
                                         cf(:,:), kcf(:,:,:)
@@ -28,16 +30,14 @@ contains
     call get_krad(kr)
 
 
-    n = size(ptype)
+    n = realpartnumb + artpartnumb
     write(fname, "(a,i5.5)") 'output/step_', ifile
     open(newunit=iu, file=fname, status='replace', form='formatted')
     write(iu,*) time
     do j = 1, n
-      ! if (ptype(j) == 1) then
         write(iu, *) x(:,j), v(:,j), dv(:,j),&
           m(j), den(j), (kr/2.)*slen(j), pres(j),&
           ien(j), cf(:,j), kcf(:,1,j), err(j)
-      ! end if
     end do
     close(iu)
     ifile = ifile + 1

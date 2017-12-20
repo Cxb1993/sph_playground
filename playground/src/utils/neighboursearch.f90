@@ -285,28 +285,23 @@ contains
     kdtree => kdtree2_create(pos(:,1:sn))
     allocate(kdtree_res(maxresultnum))
     if (.not.allocated(neighbours)) then
-      allocate(neighbours(sn))
+      allocate(neighbours(realpartnumb))
     end if
 
     if (allocated(alllistlv1)) then
       deallocate(alllistlv1)
     end if
-    allocate(alllistlv1(sn))
+    allocate(alllistlv1(realpartnumb))
 
     alllistlv1(:) = 0
     !$omp parallel do default(none)&
     !$omp private(li, pi, j, tx, nlsz, nfound, kdtree_res)&
     !$omp shared(pos, ptype, h, kr, neighbours, stepsize, ktp)&
     !$omp shared(alllistlv1, maxresultnum, kdtree)
-    do li=1,sn,stepsize
-      if (ptype(li) == 0) then
-        pi = getCrossRef(li)
-      else
-        pi = li
-      end if
+    do li=1,realpartnumb,stepsize
       alllistlv1(li) = 1
       tx = 1
-      call kdtree2_r_nearest_around_point(kdtree, li, 0, (kr * h(pi))**2, nfound, maxresultnum, kdtree_res)
+      call kdtree2_r_nearest_around_point(kdtree, li, 0, (kr * h(li))**2, nfound, maxresultnum, kdtree_res)
       if (maxresultnum < nfound) then
         print*, "Need at least ", nfound, " particles."
         error stop "KDTree neibsearch result was truncated."
@@ -328,7 +323,7 @@ contains
     !$omp end parallel do
 
     al1 = 1
-    do li = 1,sn
+    do li = 1,realpartnumb
       if ( alllistlv1(li) == 1 ) then
         alllistlv1(al1) = li
         al1 = al1 + 1

@@ -293,6 +293,8 @@ contains
     if (n < 2) then
       error stop 'There is only ' // char(n+48) // ' particles in the domain'
     else
+      print *, "# #    artif particles:  ", artpartnumb
+      print *, "# #     real particles:  ", realpartnumb
       bordersize = nb*pspc1
       xmin = brdx1
       xmax = brdx2

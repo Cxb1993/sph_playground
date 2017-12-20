@@ -81,7 +81,7 @@ contains
     end if
   end subroutine init
 
-  function getCrossRef(ini) result(oti)
+  pure function getCrossRef(ini) result(oti)
     integer, intent(in) :: ini
     integer oti
     oti = posref%xe(ini)
@@ -123,8 +123,8 @@ contains
     use state,        only: getdim
 
     real, allocatable, intent(inout) :: pos(:,:)
-    integer :: i, k, dim, spos
-    real :: boxmax(3), boxmin(3), dxmin(3), dxmax(3)
+    integer :: i, k, dim, spos, refidx
+    real :: boxmax(3), boxmin(3)
 
     call clearFastAllLists()
     call getdim(dim)
@@ -179,8 +179,9 @@ contains
     do i=1,ibx1%llen()
       k = realpartnumb+artpartnumb
       if (spos < k) then
-        print*, "  <!> pos array was expanded due to phantom periodic particles"
+        print*, "  <!> pos array was expanded due to phantom periodic particles. L:182"
         call resize(pos, k-1, 2*k)
+        spos = 2*k
       end if
       call ebx1%append(k)
       call posref%append(ibx1%xe(i))
@@ -189,13 +190,13 @@ contains
       if (dim > 1) then
         if (pos(2,k) < boxmin(2)) then
           call iby1%append(k)
-        else if (pos(2,i) > boxmax(2)) then
+        else if (pos(2,k) > boxmax(2)) then
           call iby2%append(k)
         end if
         if (dim == 3) then
           if (pos(3,k) < boxmin(3)) then
             call ibz1%append(k)
-          else if (pos(3,i) > boxmax(3)) then
+          else if (pos(3,k) > boxmax(3)) then
             call ibz2%append(k)
           end if
         end if
@@ -205,8 +206,9 @@ contains
     do i=1,ibx2%llen()
       k = realpartnumb+artpartnumb
       if (spos < k) then
-        print*, "  <!> pos array was expanded due to phantom periodic particles"
+        print*, "  <!> pos array was expanded due to phantom periodic particles. L:208"
         call resize(pos, k-1, 2*k)
+        spos = 2*k
       end if
       call ebx2%append(k)
       call posref%append(ibx2%xe(i))
@@ -215,13 +217,13 @@ contains
       if (dim > 1) then
         if (pos(2,k) < boxmin(2)) then
           call iby1%append(k)
-        else if (pos(2,i) > boxmax(2)) then
+        else if (pos(2,k) > boxmax(2)) then
           call iby2%append(k)
         end if
         if (dim == 3) then
           if (pos(3,k) < boxmin(3)) then
             call ibz1%append(k)
-          else if (pos(3,i) > boxmax(3)) then
+          else if (pos(3,k) > boxmax(3)) then
             call ibz2%append(k)
           end if
         end if
@@ -232,17 +234,24 @@ contains
       do i=1,iby1%llen()
         k = realpartnumb+artpartnumb
         if (spos < k) then
-          print*, "  <!> pos array was expanded due to phantom periodic particles"
+          print*, "  <!> pos array was expanded due to phantom periodic particles. L:235"
           call resize(pos, k-1, 2*k)
+          spos = 2*k
         end if
         call eby1%append(k)
-        call posref%append(iby1%xe(i))
+        ! artificial particle can reference artificial again
+        ! so I need to calculate dereference in while it is not a real particle
+        refidx = iby1%xe(i)
+        do while (refidx > realpartnumb)
+          refidx = getCrossRef(refidx)
+        end do
+        call posref%append(refidx)
         pos(:,k) = pos(:,iby1%xe(i))
         pos(2,k) = ymax + (pos(2,k) - ymin)
         if (dim == 3) then
           if (pos(3,k) < boxmin(3)) then
             call ibz1%append(k)
-          else if (pos(3,i) > boxmax(3)) then
+          else if (pos(3,k) > boxmax(3)) then
             call ibz2%append(k)
           end if
         end if
@@ -251,17 +260,24 @@ contains
       do i=1,iby2%llen()
         k = realpartnumb+artpartnumb
         if (spos < k) then
-          print*, "  <!> pos array was expanded due to phantom periodic particles"
+          print*, "  <!> pos array was expanded due to phantom periodic particles. L:260"
           call resize(pos, k-1, 2*k)
+          spos = 2*k
         end if
         call eby2%append(k)
-        call posref%append(iby2%xe(i))
+        ! artificial particle can reference artificial again
+        ! so I need to calculate dereference in while it is not a real particle
+        refidx = iby2%xe(i)
+        do while (refidx > realpartnumb)
+          refidx = getCrossRef(refidx)
+        end do
+        call posref%append(refidx)
         pos(:,k) = pos(:,iby2%xe(i))
         pos(2,k) = ymin + (pos(2,k) - ymax)
         if (dim == 3) then
           if (pos(3,k) < boxmin(3)) then
             call ibz1%append(k)
-          else if (pos(3,i) > boxmax(3)) then
+          else if (pos(3,k) > boxmax(3)) then
             call ibz2%append(k)
           end if
         end if
@@ -271,11 +287,18 @@ contains
         do i=1,ibz1%llen()
           k = realpartnumb+artpartnumb
           if (spos < k) then
-            print*, "  <!> pos array was expanded due to phantom periodic particles"
+            print*, "  <!> pos array was expanded due to phantom periodic particles. L:286"
             call resize(pos, k-1, 2*k)
+            spos = 2*k
           end if
           call ebz1%append(k)
-          call posref%append(ibz1%xe(i))
+          ! artificial particle can reference artificial again
+          ! so I need to calculate dereference in while it is not a real particle
+          refidx = ibz1%xe(i)
+          do while (refidx > realpartnumb)
+            refidx = getCrossRef(refidx)
+          end do
+          call posref%append(refidx)
           pos(:,k) = pos(:,ibz1%xe(i))
           pos(3,k) = zmax + (pos(3,k) - zmin)
           artpartnumb = artpartnumb + 1
@@ -283,11 +306,18 @@ contains
         do i=1,ibz2%llen()
           k = realpartnumb+artpartnumb
           if (spos < k) then
-            print*, "  <!> pos array was expanded due to phantom periodic particles"
+            print*, "  <!> pos array was expanded due to phantom periodic particles. L:304"
             call resize(pos, k-1, 2*k)
+            spos = 2*k
           end if
           call ebz2%append(k)
-          call posref%append(ibz2%xe(i))
+          ! artificial particle can reference artificial again
+          ! so I need to calculate dereference in while it is not a real particle
+          refidx = ibz2%xe(i)
+          do while (refidx > realpartnumb)
+            refidx = getCrossRef(refidx)
+          end do
+          call posref%append(refidx)
           pos(:,k) = pos(:,ibz2%xe(i))
           pos(3,k) = zmin + (pos(3,k) - zmax)
           artpartnumb = artpartnumb + 1

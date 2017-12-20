@@ -1,5 +1,7 @@
 program main
-  use BC,               only: bcdestroy => destroy
+  use BC,               only: bcdestroy => destroy,&
+                              realpartnumb,&
+                              artpartnumb
   ! ,&
                               ! ReflectBorders
 
@@ -148,8 +150,9 @@ program main
     case(eeq_diffusion)
       dt = .1 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf(:,1,:))
     case (eeq_magnetohydrodiffusion)
-      dt = .1 * mhd_magneticconstant * minval(den) * minval(c) * &
-                minval(h) ** 2 / merge(maxval(kcf(:,1,:)), 1., maxval(kcf(:,1,:))>0)
+      dt = .1 * mhd_magneticconstant * minval(den(1:realpartnumb)) * minval(c(1:realpartnumb)) * &
+                minval(h(1:realpartnumb)) ** 2 / &
+                merge(maxval(kcf(:,1,1:realpartnumb)), 1., maxval(kcf(:,1,1:realpartnumb))>0)
       ! dt = .1 * minval(h) / maxval(c)
     ! case (5,6,7,8)
     !   ! 'diff-laplass'      ! 'diff-graddiv'
@@ -167,42 +170,45 @@ program main
     if (t >= ltout) then
       ! print*, maxval(kcf), minval(den), minval(c), minval(h)
       ! read*
-      print *, "#", iter, "t=", t, "dt=", dt, 'min h=', minval(h), 'max h=', maxval(h)
+      print *, "#", iter, "t=", t, "dt=", dt, 'min h=', minval(h(1:realpartnumb)), 'max h=', maxval(h(1:realpartnumb))
       if ( silent == 0) then
         call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, kcf, err)
       end if
       ltout = ltout + dtout
     end if
 
-    if (any(isnan(acc))) then
-      print*, 'Acceleration is NAN'
-      call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, kcf, err)
-      exit
-    end if
+    ! if (any(isnan(acc))) then
+    !   print*, 'Acceleration is NAN'
+    !   call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, kcf, err)
+    !   exit
+    ! end if
 
-    p(:,:) = pos(:,:)
-    v(:,:) = vel(:,:)
-    a(:,:) = acc(:,:)
-    tdu(:) = du(:)
-    tdh(:) = dh(:)
-    tcf(:,:) = dcf(:,:)
-    kcf(:,3,:) = kcf(:,2,:)
-    pos(:,:) = p(:,:)  + dt * v(:,:) + 0.5 * dt * dt * a(:,:)
-    ! call ReflectBorders()
-    vel(:,:) = v(:,:)  + dt * a(:,:)
-    iu(:)    = iu(:)   + dt * du(:)
-    h(:)     = h(:)    + dt * dh(:)
-    cf(:,:)  = cf(:,:) + dt * dcf(:,:)
-    kcf(:,1,:) = kcf(:,1,:) + dt * kcf(:,2,:)
+    p(:,1:realpartnumb) = pos(:,1:realpartnumb)
+    v(:,1:realpartnumb) = vel(:,1:realpartnumb)
+    a(:,1:realpartnumb) = acc(:,1:realpartnumb)
+    tdu(1:realpartnumb) = du(1:realpartnumb)
+    tdh(1:realpartnumb) = dh(1:realpartnumb)
+    tcf(:,1:realpartnumb) = dcf(:,1:realpartnumb)
+    kcf(:,3,1:realpartnumb) = kcf(:,2,1:realpartnumb)
+
+    pos(:,1:realpartnumb) = p(:,1:realpartnumb)  + dt * v(:,1:realpartnumb) + 0.5 * dt * dt * a(:,1:realpartnumb)
+
+    vel(:,1:realpartnumb) = v(:,1:realpartnumb)  + dt * a(:,1:realpartnumb)
+    iu(1:realpartnumb)    = iu(1:realpartnumb)   + dt * du(1:realpartnumb)
+    h(1:realpartnumb)     = h(1:realpartnumb)    + dt * dh(1:realpartnumb)
+    cf(:,1:realpartnumb)  = cf(:,1:realpartnumb) + dt * dcf(:,1:realpartnumb)
+    kcf(:,1,1:realpartnumb) = kcf(:,1,1:realpartnumb) + dt * kcf(:,2,1:realpartnumb)
+
     call iterate(n, sk, gamma, &
                 ptype, pos, vel, acc, &
                 mas, den, h, dh, om, prs, c, iu, du, &
                 cf, dcf, kcf)
-    vel(:,:) = vel(:,:) + 0.5 * dt * (acc(:,:)  - a(:,:))
-    iu(:)    = iu(:)    + 0.5 * dt * (du(:)     - tdu(:))
-    h(:)     = h(:)     + 0.5 * dt * (dh(:)     - tdh(:))
-    cf(:,:)  = cf(:,:)  + 0.5 * dt * (dcf(:,:)  - tcf(:,:))
-    kcf(:,1,:) = kcf(:,1,:) + 0.5 * dt * (kcf(:,2,:)  - kcf(:,3,:))
+
+    vel(:,1:realpartnumb) = vel(:,1:realpartnumb) + 0.5 * dt * (acc(:,1:realpartnumb)  - a(:,1:realpartnumb))
+    iu(1:realpartnumb)    = iu(1:realpartnumb)    + 0.5 * dt * (du(1:realpartnumb)     - tdu(1:realpartnumb))
+    h(1:realpartnumb)     = h(1:realpartnumb)     + 0.5 * dt * (dh(1:realpartnumb)     - tdh(1:realpartnumb))
+    cf(:,1:realpartnumb)  = cf(:,1:realpartnumb)  + 0.5 * dt * (dcf(:,1:realpartnumb)  - tcf(:,1:realpartnumb))
+    kcf(:,1,1:realpartnumb) = kcf(:,1,1:realpartnumb) + 0.5 * dt * (kcf(:,2,1:realpartnumb)  - kcf(:,3,1:realpartnumb))
     t = t + dt
     iter = iter + 1
   end do
