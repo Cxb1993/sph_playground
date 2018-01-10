@@ -1,8 +1,9 @@
 module circuit1
+  use const
   use omp_lib
   use timing,           only: addTime
   use state,            only: getdim, &
-                              getkerntype, &
+                              getddwtype, &
                               gcoordsys
   use kernel,           only: get_krad, &
                               get_dw_dh, &
@@ -57,7 +58,7 @@ contains
 
   subroutine c1advanced(ptype, pos, mas, sk, h, den, om, cf, dcf, kcf)
     use state,  only: ginitvar
-    use BC,     only: getCrossRef
+    use BC,     only: getCrossRef, needcrosref
 
     integer, allocatable, intent(in) :: ptype(:)
     real, allocatable, intent(in)    :: pos(:,:), mas(:), cf(:,:), kcf(:,:,:)
@@ -74,7 +75,7 @@ contains
     ! n = size(den)
 
     call getdim(dim)
-    call getkerntype(ktp)
+    call getddwtype(ktp)
 
     call getNeibListL1(nlista)
     allowerror = 1e-8
@@ -95,7 +96,7 @@ contains
       !$omp private(r, dr, dwdh, w, dfdh, fh, hn, rj, pj, i, la, lb, r2, t0, nlistb)&
       !$omp private(nwa, nwb, vba, currinterr)&
       !$omp shared(resid, allowerror, n, pos, mas, dim, sk, h, ktp, maxinterr)&
-      !$omp shared(nlista, den, dennew, om, slnint, dcf, cf)&
+      !$omp shared(nlista, den, dennew, om, slnint, dcf, cf, needcrosref)&
       !$omp shared(nw)&
       !$omp reduction(+:tneib)
       do la = 1, size(nlista)
@@ -112,23 +113,27 @@ contains
           ! print*, "a=", i, "   neibs=", nlistb, pos(:,i)
           ! read*
           do lb = 1, size(nlistb)
-            rj = getCrossRef(nlistb(lb))  ! real
-            pj = nlistb(lb)               ! phantom
+            pj = nlistb(lb)                 ! phantom
+            if (needcrosref == 1) then
+              rj = getCrossRef(nlistb(lb))  ! real
+            else
+              rj = pj
+            end if
             ! print*, "b=",lb, "id=",nlistb(lb), "real=", j
             ! read*
             r(:) = pos(:,i) - pos(:,pj)
             r2 = dot_product(r(:),r(:))
-            ! print*,-3
+            ! print*, -3
             dr = sqrt(r2)
-            ! print*,-2
+            ! print*, -2
             call get_dw_dh(dr, slnint(i), dwdh)
-            ! print*,-1
+            ! print*, -1
             call get_w(dr, slnint(i), w)
-            ! print*,0
+            ! print*,  0
             dennew(i) = dennew(i) + mas(rj) * w
             om(i) = om(i) + mas(rj) * dwdh
             currinterr = currinterr + mas(rj)/den(rj) * w
-            if (ktp == 3) then
+            if (ktp == esd_2nw) then
               call nw(r(:), pos(:,i), pos(:,pj), dr, slnint(i), nwa)
               dcf(:,i) = dcf(:,i) + mas(rj)/den(rj)*(cf(1,rj) - cf(1,i))*nwa(:)
             end if

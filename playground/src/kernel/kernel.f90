@@ -1,7 +1,7 @@
 module kernel
   use const
   use state, only:  gcoordsys, &
-                    getkerntype, &
+                    getddwtype, &
                     setdim
   use base_kernel
   implicit none
@@ -64,7 +64,7 @@ contains
     call setdim(dim)
 
     call gcoordsys(cs)
-    call getkerntype(kt)
+    call getddwtype(kt)
 
     hessian_rr => hessian_rr_fab_cart
 
@@ -72,26 +72,26 @@ contains
 
     if (cs == 1) then
       nw => nw_cart
-      if (kt == 1) then
+      if (kt == esd_n2w) then
         hessian => hessian_ddw_cart
-      else if (kt == 2) then
+      else if (kt == esd_fab) then
         hessian => hessian_fab_cart
-      else if (kt == 3) then
+      else if (kt == esd_2nw) then
         ! no more actions
-      else if (kt == 4) then
+      else if (kt == esd_fw) then
         hessian => hessian_fw_cart
       else
         error stop "Wrong kernel type in kernel init."
       end if
     else if (cs == 2) then
       nw => nw_cyl
-      if (kt == 1) then
+      if (kt == esd_n2w) then
         hessian => hessian_ddw_cyl
-      else if (kt == 2) then
+      else if (kt == esd_fab) then
         ! hessian => hessian_fab_cart
-      else if (kt == 3) then
+      else if (kt == esd_2nw) then
         ! no more actions
-      else if (kt == 4) then
+      else if (kt == esd_fw) then
         ! hessian => hessian_fw_cart
       else
         error stop "Wrong kernel type in kernel init."
@@ -232,7 +232,7 @@ contains
 
     integer :: cs
     call gcoordsys(cs)
-    call getkerntype(ktype)
+    call getddwtype(ktype)
 
     if (cs == 1) then
       if (ktype == 1) then
@@ -353,7 +353,7 @@ contains
     real              :: r11, r12, r13, r22, r23, r33, cstart, dfq
     integer :: ktype
 
-    call getkerntype(ktype)
+    call getddwtype(ktype)
 
     r2 = dot_product(rab,ra(:)-rb(:))
 

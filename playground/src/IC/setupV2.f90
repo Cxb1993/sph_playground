@@ -1,13 +1,13 @@
 module IC
   use omp_lib
 
+  use const
   use timing,           only: addTime
   use ArrayResize,      only: resize
-  use const
   use kernel,           only: get_krad, &
                               get_w
   use state,            only: get_tasktype,&
-                              getddwtype,&
+                              getkerntype,&
                               getdim,&
                               ginitvar,&
                               gcoordsys,&
@@ -28,18 +28,14 @@ module IC
                               findneighboursKDT
   implicit none
 
-  public :: setupIC
+  public :: setupV2
 
   private
   integer(8) :: start=0, finish=0
 contains
 
-  subroutine setupIC(n, sk, g, pspc1, resol, &
-    pos, v, dv, mas, den, sln, prs, iu, du, cf, kcf, dcf, ptype)
-    integer, allocatable, intent(inout) :: ptype(:)
-    real, allocatable, intent(inout), dimension(:,:)  :: pos, v, dv, cf, dcf
-    real, allocatable, intent(inout), dimension(:,:,:):: kcf
-    real, allocatable, intent(inout), dimension(:)    :: mas, den, sln, prs, iu, du
+  subroutine setupV2(sk, g, pspc1, resol, store)
+    real, allocatable, intent(inout) :: store(:,:)
     real, intent(in)        :: sk
     real, intent(inout)     :: pspc1, g
     integer, intent(inout)  :: n, resol
@@ -51,7 +47,8 @@ contains
     ! integer, allocatable :: nlista(:)
 
     call system_clock(start)
-    call getddwtype(kt)
+
+    call getkerntype(kt)
     call get_tasktype(tt)
     call get_krad(kr)
     call getdim(dim)
@@ -67,34 +64,12 @@ contains
       d3null = 0
     end if
 
-    ! don't need to have it different for 2nw, just copy it periodicly
     nb = int(kr*sk) + 1
 
     select case(ivt)
-    case(ett_sin3, ett_shock12)
+    case(ett_sin3, ett_shock12, ett_pulse)
       print*, "Not set yet. FIX ME. IC.f90. line 103."
       stop
-    case (ett_pulse, ett_ring)
-      mhd_magneticconstant = 1.
-      diff_isotropic = -1.
-      diff_conductivity = 1.
-      rho1 = 1.
-      prs1 = 1.
-      g = 2.
-
-      brdx1 = -1.
-      brdx2 =  1.
-      if (pspc1 /= 0) then
-        resol = int((brdx2-brdx1)/pspc1)
-      end if
-      pspc1 = (brdx2-brdx1)/resol
-      pspc2 = pspc1
-      brdy1 = -d2null*1.
-      brdy2 =  d2null*1.
-      brdz1 = -d3null*1.
-      brdz2 =  d3null*1.
-      call uniformV3(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pos, padding=0.5)
-      artpartnumb = (2*nb)*((2*resol+2*nb)*d2null+1)*((resol+2*nb)*d3null+1)
     case (ett_mti)
       mhd_magneticconstant = 0.00000125663706
       diff_isotropic = 1.
@@ -114,13 +89,37 @@ contains
       brdy2 = d2null*1./10.
       brdz1 = 0.
       brdz2 = d3null*1./10.
-      call uniformV3(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pos, padding=0.5)
+      call uniformV3(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, store, padding=0.5)
       artpartnumb = (2*nb)*((2*resol+2*nb)*d2null+1)*((resol+2*nb)*d3null+1)
-    case (ett_soundwave)
-      mhd_magneticconstant = 1.
-      diff_isotropic = 1.
-      diff_conductivity = 0.
+    case (ett_ring)
+      diff_conductivity = 1.
 
+      rho1 = 1.
+      kcf1 = 1.
+
+      brdx1 = -1.
+      brdx2 =  1.
+      if (pspc1 /= 0) then
+        resol = int((brdx2-brdx1)/pspc1)
+      end if
+      pspc1 = (brdx2-brdx1)/resol
+      pspc2 = pspc1
+      if (dim > 1) then
+          brdy1 = -1.
+          brdy2 =  1.
+      else
+        brdy1 = 0.
+        brdy2 = 0.
+      end if
+      if (dim == 3) then
+          brdz1 = -1.
+          brdz2 =  1.
+      else
+        brdz1 = 0.
+        brdz2 = 0.
+      end if
+      call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, pos, ptype, randomise=0.)
+    case (ett_soundwave)
       rho1 = 1.
       g = 5./3.
       eA = 0.1
@@ -133,38 +132,54 @@ contains
       end if
       pspc1 = (brdx2-brdx1)/resol
       pspc2 = pspc1
-      brdy1 = -pspc1*nb*2*d2null
-      brdy2 =  pspc1*nb*2*d2null
-      brdz1 = -pspc1*nb*2*d3null
-      brdz2 =  pspc1*nb*2*d3null
-      call uniformV3(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pos, padding=0.5)
-      artpartnumb = (2*nb)*((2*resol+2*nb)*d2null+1)*((resol+2*nb)*d3null+1)
+      nb = int(kr * sk * 2.)
+      if (dim > 1) then
+        brdy1 = -pspc1*nb*2
+        brdy2 =  pspc1*nb*2
+      else
+        brdy1 = 0.
+        brdy2 = 0.
+      end if
+      if (dim == 3) then
+        brdz1 = -pspc1*nb*2
+        brdz2 =  pspc1*nb*2
+      else
+        brdz1 = 0.
+        brdz2 = 0.
+      end if
+      call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, pos, ptype, randomise=0.)
     case (ett_hydroshock)
-      mhd_magneticconstant = 1.
-      diff_isotropic = 1.
-      diff_conductivity = 0.
-
       g = 1.4
       prs1 = 1.
       prs2 = prs1 / 10.
       rho1 = 1.
       rho2 = rho1 / 8.
-      brdx1 = -.5
-      brdx2 = .5
       if (pspc1 /= 0) then
-        resol = abs(int(brdx1/pspc1))
+        resol = int(brdx2/pspc1)
       end if
-      pspc1 = abs(brdx1/resol)
-      pspc2 = pspc1*4.
+      pspc1 = brdx2/resol
+      pspc2 = pspc1*2.
       if (dim == 1) then
         pspc2 = pspc1 * 8.
       end if
-      brdy1 = -d2null*pspc2*nb*2
-      brdy2 =  d2null*pspc2*nb*2
-      brdz1 = -d3null*pspc2*nb*2
-      brdz2 =  d3null*pspc2*nb*2
-      call uniformV3(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pos, dxmax=pspc2, padding=0.5)
-      artpartnumb = (2*nb)*((2*resol+2*nb)*d2null+1)*((resol+2*nb)*d3null+1)
+      nb = int(kr * sk * 3)
+      brdx1 = -.5
+      brdx2 = .5
+      if ( dim > 1) then
+        brdy1 = -pspc2*nb*2
+        brdy2 = pspc2*nb*2
+      else
+        brdy1 = 0.
+        brdy2 = 0.
+      end if
+      if ( dim == 3 ) then
+        brdz1 = -pspc2*nb
+        brdz2 = pspc2*nb
+      else
+        brdz1 = 0.
+        brdz2 = 0.
+      end if
+      call uniform(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, pspc1, pspc2, nb, pos, ptype, randomise=0.)
     case (ett_alfvenwave)
       mhd_magneticconstant = 1.
       ! thetta
@@ -233,14 +248,14 @@ contains
       stop
     end if
 
-    n = realpartnumb + 2*artpartnumb
+    n = realpartnumb+artpartnumb
     call resize(pos, realpartnumb, n)
     if (n < 2) then
       error stop 'There is only ' // char(n+48) // ' particles in the domain'
     else
-      write(*,blockFormatInt) " # #", "reserved artificial particles:", 2*artpartnumb
-      write(*,blockFormatInt) " # #", "real particles:", realpartnumb
-      bordersize = nb*pspc2
+      print *, "# #    artif particles:  ", artpartnumb
+      print *, "# #     real particles:  ", realpartnumb
+      bordersize = nb*pspc1
       xmin = brdx1
       xmax = brdx2
       ymin = brdy1
@@ -248,36 +263,12 @@ contains
       zmin = brdz1
       zmax = brdz2
       if (.not.(allocated(ptype))) then
-        allocate(ptype(n))
         ptype(1:realpartnumb) = 1
         pos(:,realpartnumb+1:n) = 0.
         ptype(realpartnumb+1:n) = 0
       end if
       artpartnumb = 0
     end if
-
-    allocate(v(3,n))
-    v(:,:) = 0.
-    allocate(dv(3,n))
-    dv(:,:) = 0.
-    allocate(mas(n))
-    mas(:) = 0.
-    allocate(den(n))
-    den(:) = 0.
-    allocate(sln(n))
-    sln(:) = 0.
-    allocate(prs(n))
-    prs(:) = 0.
-    allocate(iu(n))
-    iu(:) = 0.
-    allocate(du(n))
-    du(:) = 0.
-    allocate(cf(3,n))
-    cf(:,:) = 0.
-    allocate(dcf(3,n))
-    dcf(:,:) = 0.
-    allocate(kcf(3,3,n))
-    kcf(:,:,:) = 0.
 
     !-------------------------------!
     !        particles values       !
@@ -368,21 +359,17 @@ contains
           sln(i) = sk * sp
           mas(i) = (sp**dim) * rho1
           den(i) = rho1
-          iu(i)  = prs1/(g-1)/rho1
-          prs(i) = prs1
 
           kcf(1,1,i) = 1.
-          kcf(2,1,i) = 0.
-          kcf(3,1,i) = 0.
+          kcf(1,2,i) = 0.
+          kcf(1,3,i) = 0.
+          ! cf(:, i) = sin(pos(:,i))
           cf(1,i) = (2.*pi)**(-dim/2.)/(0.1**2)**(dim/2.)*&
                     exp(-0.5*(pos(1,i)*pos(1,i) + pos(2,i)*pos(2,i) + pos(3,i)*pos(3,i))/(0.1**2))
         case(ett_ring)
           sln(i) = sk * sp
           mas(i) = (sp**dim) * rho1
           den(i) = rho1
-          iu(i)  = prs1/(g-1)/rho1
-          prs(i) = prs1
-
           ! initially in cylindric CS, but will be transphered in other system few lines lower
           kcf(1,1,i) = 0.
           kcf(2,1,i) = 1.
@@ -498,9 +485,6 @@ contains
             v(3,i)    = 0.
             kcf(3,1,i)  = 0.
           end if
-        case default
-          print*, "# <!> There is no such initial condition on IF.f90:525"
-          stop
         end select
       ! end if
     end do

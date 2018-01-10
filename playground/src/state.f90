@@ -5,7 +5,7 @@ module state
   implicit none
 
   public :: set_difftype, get_difftype, set_tasktype, get_tasktype, &
-            setkerntype, getkerntype, getdim, setdim, sinitvar, &
+            setddwtype, getddwtype, getdim, setdim, sinitvar, &
             ginitvar, setAdvancedDensity, getAdvancedDensity,&
             setArtificialTerms, getArtificialTerms, &
             setpartnum, getpartnum, scoordsys, gcoordsys, &
@@ -15,7 +15,7 @@ module state
   private
   save
     integer :: dim = 1, partnumber=-1
-    integer :: ttype, ktype, dtype, icvar=-1, adden = 1, artts = 1, coordsys = 1, &
+    integer :: ttype, ddwtype, dtype, icvar=-1, adden = 1, artts = 1, coordsys = 1, &
                 origin = 0
 
 
@@ -24,7 +24,6 @@ module state
       diff_conductivity = 0.,&
       diff_isotropic = -1.,&
       mhd_magneticconstant = 0.
-
 
   contains
     subroutine setdim(d)
@@ -57,7 +56,7 @@ module state
         ttype = eeq_magnetohydro
       case('diffusion')
         ttype = eeq_diffusion
-      case('hmd')
+      case('mhd')
         ttype = eeq_magnetohydrodiffusion
       ! case('diff-laplace')
       !   ttype = 5
@@ -80,28 +79,28 @@ module state
       ott = ttype
     end subroutine get_tasktype
 
-    subroutine setkerntype(itt)
+    subroutine setddwtype(itt)
       character (len=*), intent(in) :: itt
       select case(itt)
       case('n2w')
-        ktype = 1
+        ddwtype = esd_n2w
       case('fab')
-        ktype = 2
+        ddwtype = esd_fab
       case('2nw')
-        ktype = 3
+        ddwtype = esd_2nw
       case('fw')
-        ktype = 4
+        ddwtype = esd_fw
       case default
-        ktype = 2
-        print *, '# # <> Default d2W/dx2: fab <>'
+        ddwtype = esd_fab
+        write(*,blockFormatStr2) ' # # <?>', ' Default d2W/dx2: ', 'fab'
       end select
      !  call calc_params()
-    end subroutine setkerntype
+    end subroutine setddwtype
 
-    pure subroutine getkerntype(ott)
+    pure subroutine getddwtype(ott)
       integer, intent(out) :: ott
-      ott = ktype
-    end subroutine getkerntype
+      ott = ddwtype
+    end subroutine getddwtype
 
    subroutine set_difftype(idt)
      character (len=*), intent(in) :: idt
@@ -181,7 +180,7 @@ module state
        artts = 0
      case default
        artts = 1
-       print *, '# # <> Default artificial terms: yes <>'
+       write(*,blockFormatStr2) ' # # <?>', ' Default artificial terms: ', 'yes'
      end select
    end subroutine
 
@@ -199,7 +198,7 @@ module state
        coordsys = 2
      case default
        coordsys = 1
-       print *, '# # <> Default coordinate system: cartesian <>'
+       write(*,blockFormatStr2) ' # # <?>', ' Default coordinate system: ', 'cartesian'
       end select
    end subroutine
 

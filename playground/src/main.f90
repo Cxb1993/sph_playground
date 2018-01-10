@@ -2,14 +2,13 @@ program main
   use BC,               only: bcdestroy => destroy,&
                               realpartnumb,&
                               artpartnumb
-  ! ,&
-                              ! ReflectBorders
-
   use IC,               only: setupIC
   use state,            only: get_tasktype,&
                               ginitvar,&
                               setpartnum,&
-                              mhd_magneticconstant
+                              mhd_magneticconstant,&
+                              diff_isotropic,&
+                              diff_conductivity
   use iterator,         only: iterate
   use printer,          only: Output, AppendLine
   use errcalc,          only: err_diff_laplace, &
@@ -45,6 +44,7 @@ program main
   real, allocatable, dimension(:)     :: den, prs, mas, iu, du, om, c, h, dh, &
                                          tdh, err, sqerr, tdu,&
                                          result
+  real, allocatable, dimension(:,:)   :: data
   integer, allocatable, dimension(:)  :: ptype, nlista
 
   real                                :: dt, t, dtout, ltout, tfinish, npic,&
@@ -63,8 +63,10 @@ program main
 
   call fillargs(dim, pspc1, resol,&
                 itype, ktype, dtype, errfname, dtout, npic, tfinish, sk, silent)
+
   call setupIC(n, sk, gamma, pspc1, resol, pos, vel, acc, &
                 mas, den, h, prs, iu, du, cf, kcf, dcf, ptype)
+  ! call setupV2(sk, gamma, pspc1, resol, data)
 
   call setpartnum(n)
   call get_tasktype(s_tt)
@@ -113,15 +115,13 @@ program main
   call tinit()
   call c1_init(n)
   stopiter = 0
-  print *, "Finish time = ", tfinish
+  print *, "# Finish time = ", tfinish
 
   if (silent == 0) then
-    print *, 'Initial setup printed'
+    print *, '# Initial setup printed'
     call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, kcf, sqerr)
   end if
-
-  call checkVarsReady(s_tt, mhd_magneticconstant, den, c, h, prs, iu)
-
+  call checkVarsReady(s_tt, den, c, h, prs, iu)
   call iterate(n, sk, gamma, &
               ptype, pos, vel, acc, &
               mas, den, h, dh, om, prs, c, iu, du, &
@@ -148,13 +148,19 @@ program main
     case(eeq_magnetohydro)
       dt = .1 * minval(h) / maxval(c)
     case(eeq_diffusion)
-      dt = .1 * minval(den) * minval(c) * minval(h) ** 2 / maxval(kcf(:,1,:))
+      dt = .1 * minval(den(1:realpartnumb)) &
+              * minval(c(1:realpartnumb)) &
+              * minval(h(1:realpartnumb)) ** 2 &
+              / merge(diff_conductivity, maxval(kcf(:,1,1:realpartnumb)), diff_isotropic > 0)
     case (eeq_magnetohydrodiffusion)
-      dt = .1 * mhd_magneticconstant * minval(den(1:realpartnumb)) * minval(c(1:realpartnumb)) * &
-                minval(h(1:realpartnumb)) ** 2 / &
-                merge(maxval(kcf(:,1,1:realpartnumb)), 1., maxval(kcf(:,1,1:realpartnumb))>0)
-      ! dt = .1 * minval(h) / maxval(c)
-    ! case (5,6,7,8)
+      ! dt = .1 * mhd_magneticconstant * minval(den(1:realpartnumb)) * minval(c(1:realpartnumb)) * &
+      !           minval(h(1:realpartnumb)) ** 2 / &
+      !           merge(maxval(kcf(:,1,1:realpartnumb)), 1., maxval(kcf(:,1,1:realpartnumb))>0)
+      dt = .1 * mhd_magneticconstant &
+              * minval(den(1:realpartnumb)) &
+              * minval(c(1:realpartnumb)) &
+              * minval(h(1:realpartnumb)) ** 2 &
+              / merge(diff_conductivity, maxval(kcf(:,1,1:realpartnumb)), diff_isotropic > 0)    ! case (5,6,7,8)
     !   ! 'diff-laplass'      ! 'diff-graddiv'
     !   stopiter = 1
     !   dt = 0.
@@ -176,12 +182,6 @@ program main
       end if
       ltout = ltout + dtout
     end if
-
-    ! if (any(isnan(acc))) then
-    !   print*, 'Acceleration is NAN'
-    !   call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, kcf, err)
-    !   exit
-    ! end if
 
     p(:,1:realpartnumb) = pos(:,1:realpartnumb)
     v(:,1:realpartnumb) = vel(:,1:realpartnumb)
@@ -238,18 +238,7 @@ program main
   ! end select
 
   select case(ivt)
-  case (-1, 2, 3, 4, 5, ett_OTvortex)
-    ! ! diff-laplace ! chi-laplace
-    ! call etlaplace(pos, mas, den, h, chi)
-    ! result(4) = sum(chi(1:9))/dim
-    ! result(6:14) = chi(1:9)
-    ! printlen = 14
-
-    ! ! diff-graddiv ! chi-graddiv
-    ! call etgraddiv(pos, mas, den, h, chi)
-    ! result(4) = sum(chi)/dim/(2*dim - 1)
-    ! result(6:86) = chi(1:81)
-    ! printlen = 86
+  case (ett_pulse, ett_OTvortex)
     printlen = 5
   case (ett_sin3)
     call err_sinxet(pos, cf, t, err)
@@ -265,7 +254,7 @@ program main
     call err_alfvenwave(pos, cf, t, err)
     printlen = 5
   case default
-    print *, ivt, 'Task type was not sen in l2 error evaluation main.f90: line 229.'
+    print *, ivt, 'Task type was not sen in l2 error evaluation main:267.'
     stop
   end select
 

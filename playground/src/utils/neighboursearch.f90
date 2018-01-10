@@ -3,7 +3,7 @@ module NeighbourSearch
   use Timing, only: addTime
   use kernel, only: get_krad
   use state,  only: getdim,&
-                    getkerntype
+                    getddwtype
   use ArrayResize,  only: resize
   use omp_lib
   use kdtree2_module
@@ -175,7 +175,7 @@ contains
 
   subroutine findneighboursKDT(ptype, pos, h)
     use kernel, only: getkernelnn => getneibnumber
-    use state,  only: getkerntype
+    use state,  only: getddwtype
 
     real, allocatable, intent(in)     :: pos(:,:), h(:)
     integer, allocatable, intent(in)  :: ptype(:)
@@ -187,7 +187,7 @@ contains
     call system_clock(start)
     call get_krad(kr)
     call getkernelnn(maxresultnum)
-    call getkerntype(ktp)
+    call getddwtype(ktp)
     ! kdtree2_destroy(kdtree)
     kdtree => kdtree2_create(pos)
     sn = size(pos, dim=2)
@@ -262,15 +262,14 @@ contains
     call addTime(' neibs', finish - start)
   end subroutine
 
-  subroutine findneighboursKDT_V2(ptype, pos, h)
+  subroutine findneighboursKDT_V2(pos, h)
     use kernel, only: getkernelnn => getneibnumber
-    use state,  only: getkerntype
+    use state,  only: getddwtype
     use BC,     only: getCrossRef,&
                       realpartnumb,&
                       artpartnumb
 
     real, allocatable, intent(in)     :: pos(:,:), h(:)
-    integer, allocatable, intent(in)  :: ptype(:)
     type(kdtree2), pointer            :: kdtree
     type(kdtree2_result), allocatable :: kdtree_res(:)
     integer :: maxresultnum, sn, nfound, nlsz, li, pi, j, al1, al2, tx, ktp
@@ -279,7 +278,7 @@ contains
     call system_clock(start)
     call get_krad(kr)
     call getkernelnn(maxresultnum)
-    call getkerntype(ktp)
+    call getddwtype(ktp)
     ! kdtree2_destroy(kdtree)
     sn = realpartnumb+artpartnumb
     kdtree => kdtree2_create(pos(:,1:sn))
@@ -296,7 +295,7 @@ contains
     alllistlv1(:) = 0
     !$omp parallel do default(none)&
     !$omp private(li, pi, j, tx, nlsz, nfound, kdtree_res)&
-    !$omp shared(pos, ptype, h, kr, neighbours, stepsize, ktp)&
+    !$omp shared(pos, h, kr, neighbours, stepsize, ktp)&
     !$omp shared(alllistlv1, maxresultnum, kdtree)
     do li=1,realpartnumb,stepsize
       alllistlv1(li) = 1
@@ -353,7 +352,7 @@ contains
 
     call get_krad(kr)
     call getdim(dim)
-    call getkerntype(kt)
+    call getddwtype(kt)
 
     if(allocated(neighbours)) then
       do i=1,sn,stepsize
@@ -503,7 +502,7 @@ contains
 
     call get_krad(kr)
     call getdim(dim)
-    call getkerntype(kt)
+    call getddwtype(kt)
 
     if (.not. allocated(neighbours)) then
       allocate(neighbours(sn))

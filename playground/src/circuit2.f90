@@ -26,7 +26,7 @@ contains
 
   subroutine c2init()
     use state,  only: get_difftype, getdim, &
-                      get_tasktype, getkerntype, &
+                      get_tasktype, getddwtype, &
                       getAdvancedDensity, &
                       getArtificialTerms, &
                       getpartnum, &
@@ -37,13 +37,13 @@ contains
     call getdim(s_dim)
     call get_krad(s_kr)
     call get_tasktype(s_ttp)
-    call getkerntype(s_ktp)
+    call getddwtype(s_ktp)
     call getAdvancedDensity(s_adden)
     call getArtificialTerms(s_artts)
     call ginitvar(s_ivt)
     call gorigin(s_origin)
 
-    if (s_ktp == 3) then
+    if (s_ktp == esd_2nw) then
       call getpartnum(n)
       allocate(dcftmp(3,n))
     end if
@@ -52,7 +52,7 @@ contains
 
   subroutine c2(c, ptype, pos, v, dv, mas, den, h, om, P, u, du, dh, cf, dcf, kcf)
     use state,  only: diff_conductivity, diff_isotropic, mhd_magneticconstant
-    use BC,     only: getCrossRef
+    use BC,     only: getCrossRef, needcrosref
 
     real, allocatable, intent(in)    :: pos(:,:), v(:,:), mas(:), h(:), den(:), P(:), c(:),&
                                         u(:), cf(:,:), om(:)
@@ -76,7 +76,7 @@ contains
       call c2init()
     end if
 
-    if (s_ktp == 3) then
+    if (s_ktp == esd_2nw) then
       dcftmp(:,:) = dcf(:,:)
       dcf(:,:) = 0.
     end if
@@ -96,6 +96,7 @@ contains
     !$omp shared(s_dim, s_kr, s_ktp, s_ttp, s_adden, s_artts, s_ivt)&
     !$omp shared(nw, hessian, hessian_rr)&
     !$omp shared(diff_conductivity, diff_isotropic, mhd_magneticconstant)&
+    !$omp shared(needcrosref)&
     !$omp reduction(+:tneib)
     overa: do la = 1, size(nlista)
       i = nlista(la)
@@ -111,16 +112,16 @@ contains
       tmpt1(:,:) = 0.
       tmpt2(:,:) = 0.
       tmpt3(:,:) = 0.
+      kcfa(:,:) = 0.
+      kcfb(:,:) = 0.
       call getneighbours(i, pos, h, nlistb, t0)
       tneib = tneib + t0
       select case (s_ttp)
       case (eeq_diffusion, eeq_magnetohydrodiffusion)
-        kcfa(:,:) = 0.
-        kcfb(:,:) = 0.
         if (diff_isotropic > 0.) then
-          kcfa(1,1) = diff_conductivity
-          kcfa(2,2) = diff_conductivity
-          kcfa(3,3) = diff_conductivity
+          kcfa(:,1) = [diff_conductivity,0.,0.]
+          kcfa(:,2) = [0.,diff_conductivity,0.]
+          kcfa(:,3) = [0.,0.,diff_conductivity]
 
           kcfb(:,1) = [diff_conductivity,0.,0.]
           kcfb(:,2) = [0.,diff_conductivity,0.]
@@ -134,8 +135,12 @@ contains
         end if
       end select
       overb: do lb = 1, size(nlistb)
-        rj = getCrossRef(nlistb(lb))
         pj = nlistb(lb)
+        if (needcrosref == 1) then
+          rj = getCrossRef(nlistb(lb))  ! real
+        else
+          rj = pj
+        end if
 
         rhob = den(rj)
         rb(:) = pos(:,pj)
@@ -152,10 +157,8 @@ contains
         urab(:) = rab(:) / dr
         select case (s_ttp)
         case (eeq_hydro)
-          rhoa = den(i)
-          rhob = den(rj)
-          call nw(rab, pos(:,i), pos(:,pj), dr, h(i), nwa)
-          call nw(rab, pos(:,i), pos(:,pj), dr, h(rj), nwb)
+          call nw(rab, ra(:), rb(:), dr, h(i), nwa)
+          call nw(rab, ra(:), rb(:), dr, h(rj), nwb)
 
           if (s_artts == 1) then
             call art_viscosity(rhoa, rhob, vab, urab, rab, dr, s_dim, c(i), c(rj), om(i), om(rj), h(i), h(rj), qa, qb)
@@ -166,6 +169,7 @@ contains
                       (P(i) * nwa(:) + qa(:)) / (rhoa**2 * om(i)) + &
                       (P(rj) * nwb(:) + qb(:)) / (rhob**2 * om(rj)) &
                     )
+          ! dv(2,i) = dv(2,i) - urab(2)
 
           du(i)   = du(i) + mas(rj) * ( &
                       dot_product(vab(:), P(i) * nwa(:)) / (rhoa**2 * om(i)) - &
@@ -187,7 +191,7 @@ contains
             call art_viscosity(rhoa, rhob, vab, urab, rab, dr, &
                                 s_dim, c(i), c(rj), om(i), om(rj), h(i), h(rj), qa, qb)
             call art_termcond(nwa, nwb, urab, P(i), P(rj), u(i), u(rj), rhoa, rhob, om(i), om(rj), qc)
-            ! call art_fdivbab(kcf(:,1,i), kcf(:,1,j), mas(j), nwa, nwb, om(i), om(j), den(i), den(j), qd)
+            call art_fdivbab(kcf(:,1,i), kcf(:,1,rj), mas(rj), nwa, nwb, om(i), om(rj), rhoa, rhob, qd)
           end if
 
           Mc(1) = dot_product(kcf(:,1,i),kcf(:,1,i))
@@ -243,7 +247,7 @@ contains
           call nw(rab, pos(:,i), pos(:,pj), dr, h(i), nwa)
           call nw(rab, pos(:,i), pos(:,pj), dr, h(rj), nwb)
 
-          if (s_ktp == 1) then
+          if (s_ktp == esd_n2w) then
             call hessian(rab, pos(:,i), pos(:,pj), h(i), Hesa)
             do li = 1, 3
               do lj = 1,3
@@ -255,14 +259,14 @@ contains
                                 mas(rj)/den(rj) * (cf(1,rj) - cf(1,i)) * Hesa(li,lj)
               end do
             end do
-          else if ((s_ktp == 2).or.(s_ktp==4)) then
+          else if ((s_ktp == esd_fw).or.(s_ktp == esd_fab)) then
             kcfab(:,:) = (kcfa(:,:)+kcfb(:,:))/2.
             call hessian(rab, pos(:,i), pos(:,pj), h(i), Hesa)
             dcf(1,i) = dcf(1,i) + mas(rj)/den(rj) * (cf(1,rj) - cf(1,i)) * &
               ( dot_product(kcfab(1,:),Hesa(1,:)) + &
                 dot_product(kcfab(2,:),Hesa(2,:)) + &
                 dot_product(kcfab(3,:),Hesa(3,:)) )
-          else if (s_ktp == 3) then
+          else if (s_ktp == esd_2nw) then
             odda = 1./om(i)/den(i)/den(i)
             oddb = 1./om(rj)/den(rj)/den(rj)
             qa(1) = dot_product(kcfa(1,:),dcftmp(:,i))
@@ -274,7 +278,11 @@ contains
 
             dcf(1,i) = dcf(1,i) + mas(rj)*( &
               dot_product(qa(:),nwa(:))*odda + dot_product(qb(:),nwb(:))*oddb)
+            else
+              print*, "# <!> second deriv id not found"
+              stop
           end if
+
         case (eeq_magnetohydrodiffusion)
           Ma(:,:) = 0.
           Mb(:,:) = 0.
@@ -284,6 +292,9 @@ contains
           call nw(rab, ra, rb, dr, h(i), nwa)
           call nw(rab, ra, rb, dr, h(rj), nwb)
           if (diff_isotropic < 0.) then
+            ! print*, kcf(:,1,rj)
+            ! print*, dot_product(kcf(:,1,rj),kcf(:,1,rj))
+            ! read*
             do li = 1, 3
               do lj = 1,3
                 kcfb(li,lj) = diff_conductivity*kcf(li,1,rj)*kcf(lj,1,rj)
@@ -293,7 +304,7 @@ contains
           if (s_artts == 1) then
             call art_viscosity(rhoa, rhob, vab, urab, rab, dr, &
                                 s_dim, c(i), c(rj), om(i), om(rj), h(i), h(rj), qa, qb)
-            ! call art_termcond(nwa, nwb, urab, P(i), P(j), u(i), u(j), rhoa, rhob, om(i), om(j), qc)
+            call art_termcond(nwa, nwb, urab, P(i), P(rj), u(i), u(rj), rhoa, rhob, om(i), om(rj), qc)
             call art_fdivbab(kcf(:,1,i), kcf(:,1,rj), mas(rj), nwa, nwb, om(i), om(rj), rhoa, rhob, qd)
           end if
           Mc(1) = dot_product(kcf(:,1,i),kcf(:,1,i))
@@ -309,16 +320,6 @@ contains
               end if
             end do
           end do
-          ! print*, 3
-          ! print*, Ma(:,1)
-          ! print*, Ma(:,2)
-          ! print*, Ma(:,3)
-          ! print*, '-------'
-          ! print*, i, kcf(:,1,i)
-          ! print*, j, kcf(:,1,j)
-          ! print*,'---------'
-          ! print*, i, j, "|", om(i), om(j)
-          ! read*
           Ma(1,1) = dot_product(Ma(1,:), nwa(:)) + qa(1)
           Ma(2,1) = dot_product(Ma(2,:), nwa(:)) + qa(2)
           Ma(3,1) = dot_product(Ma(3,:), nwa(:)) + qa(3)
@@ -347,7 +348,7 @@ contains
             dh(i) = dh(i) + mas(rj) * dot_product(vab(:), nwa(:))
           end if
           ! diffusion
-          if (s_ktp == 1) then
+          if (s_ktp == esd_n2w) then
             call hessian(rab, ra, rb, h(i), Hesa)
             do li = 1, 3
               do lj = 1,3
@@ -359,14 +360,14 @@ contains
                                 mas(rj)/rhob * (cf(1,rj) - cf(1,i)) * Hesa(li,lj)
               end do
             end do
-          else if ((s_ktp == 2).or.(s_ktp==4)) then
+          else if ((s_ktp == esd_fab).or.(s_ktp == esd_fw)) then
             kcfab(:,:) = (kcfa(:,:)+kcfb(:,:))/2.
             call hessian(rab, ra, rb, h(i), Hesa)
             dcf(1,i) = dcf(1,i) + mas(rj)/rhob * (cf(1,rj) - cf(1,i)) * &
               ( dot_product(kcfab(1,:),Hesa(1,:)) + &
                 dot_product(kcfab(2,:),Hesa(2,:)) + &
                 dot_product(kcfab(3,:),Hesa(3,:)) )
-          else if (s_ktp == 3) then
+          else if (s_ktp == esd_2nw) then
             qa(1) = dot_product(kcfa(1,:),dcftmp(:,i))
             qa(2) = dot_product(kcfa(2,:),dcftmp(:,i))
             qa(3) = dot_product(kcfa(3,:),dcftmp(:,i))
@@ -376,6 +377,9 @@ contains
 
             dcf(1,i) = dcf(1,i) + mas(rj)*( &
               dot_product(qa(:),nwa(:))*odda + dot_product(qb(:),nwb(:))*oddb)
+            else
+              print*, "# <!> second deriv id not found"
+              stop
           end if
         ! case(5)
         !   ! 'diff-laplace'
@@ -411,7 +415,7 @@ contains
         if ( s_adden == 1 ) then
           dh(i) =  (- h(i) / (s_dim * rhoa)) * dh(i) / om(i)
         end if
-        if (s_ktp == 1) then
+        if (s_ktp == esd_n2w) then
           do li = 1,3
             do lj = 1,3
               dcf(1,i) = dcf(1,i) + tmpt1(li,lj) * tmpt2(li,lj) + tmpt3(li,lj)

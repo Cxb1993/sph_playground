@@ -1,7 +1,8 @@
 module args
+  use const
   use errteylor,  only: setInfluenceCalc
   use state,      only: set_tasktype,&
-                        setkerntype,&
+                        setddwtype,&
                         set_difftype,&
                         sinitvar,&
                         setAdvancedDensity, &
@@ -15,10 +16,10 @@ module args
   public :: fillargs
 
   contains
-    subroutine fillargs(dim, pspc1, resol, itype, ktype, dtype, errfname, dtout, npic, tfinish, sk, silent)
+    subroutine fillargs(dim, pspc1, resol, itype, ddwtype, dtype, errfname, dtout, npic, tfinish, sk, silent)
       real, intent(inout)                 :: pspc1, dtout, npic, tfinish, sk
       integer, intent(inout)              :: dim, silent, resol
-      character (len=100), intent(inout)  :: itype, ktype, errfname, dtype
+      character (len=100), intent(inout)  :: itype, ddwtype, errfname, dtype
       character (len=100)                 :: kname
 
       integer                             :: numargs, curargnum
@@ -31,7 +32,7 @@ module args
       pspc1 = 0
       resol = 0
       errfname = 'runresult.info'
-      ktype = ''
+      ddwtype = ''
       kname = ''
       tfinish = 1.
       npic = 200.
@@ -68,8 +69,8 @@ module args
             errfname = adjustl(argval1)
           case('--kerninfluencefile')
             kerninflname = adjustl(argval1)
-          case('--kerneltype')
-            ktype = adjustl(argval1)
+          case('--ddw')
+            ddwtype = adjustl(argval1)
           case('--tfinish')
             read(argval1, *) tfinish
           case('--hfac')
@@ -102,42 +103,44 @@ module args
       call scoordsys(coordsysstr)
       call setArtificialTerms(artts)
       call set_tasktype(itype)
-      call setkerntype(ktype)
+      call setddwtype(ddwtype)
       dtout = tfinish / npic
       call set_difftype(dtype)
 
       print*, "# #"
-      print *, "# #                dim:   ", dim
+      write(*,blockFormatInt) " # #", "dim:", dim
       if (coordsysstr /= '') then
-        print *, "# #  coordinate system:   ", coordsysstr
+        write(*,blockFormatStr) " # #", "coordinate system: ", coordsysstr
       end if
-      print *, "# #          task type:   ", itype
+      write(*,blockFormatStr) " # #", "equations: ", itype
       if (initvart /= '') then
         call sinitvar(initvart)
-        print *, "# #      init var type:   ", initvart
+        write(*,blockFormatStr) " # #", "task type: ", initvart
       end if
       call setAdvancedDensity(adden)
-      print *, "# #   advanced density:   ", adden
+      write(*,blockFormatStr) " # #", "advanced density: ", adden
       if (artts /= '') then
-        print *, "# #   artificail terms:   ", artts
+        write(*,blockFormatStr) " # #", "artificail terms: ", artts
       end if
-      print *, "# #           errfname:   ", errfname
+      write(*,blockFormatStr) " # #", "result file: ", errfname
       if (kerninflname /= '') then
         call setInfluenceCalc(kerninflname)
-        print *, "# #     kern infl name:   ", kerninflname
+        write(*,blockFormatStr) " # #", "kernel influence file name: ", kerninflname
       end if
-      print *, "# #        kernel type:   ", ktype
+      if (ddwtype /= '') then
+        write(*,blockFormatStr) " # #", "kernel type: ", ddwtype
+      end if
       call getkernelname(kname)
-      print *, "# #        kernel name:  ", kname
-      write(*, "(A, F9.7)") " # #           print dt:   ", dtout
-      write(*, "(A, F7.5)") " # #                  h:   ", sk
-      write(*, "(A, A)") " # #           difftype:   ", dtype
-      write(*, "(A, A)") " # #             silent:   ", silentstr
+      write(*,blockFormatStr) " # #", "kernel name: ", kname
+      write(*,blockFormatFlt) " # #", "print dt: ", dtout
+      write(*,blockFormatFlt) " # #", "hfac: ", sk
+      write(*,blockFormatStr) " # #", "second derivative type: ", dtype
+      write(*,blockFormatStr) " # #", "silent mode: ", silentstr
       if (pspc1 > 0) then
-        write(*, "(A, F7.5)") " # #         desired dx:   x1=", pspc1
+        write(*,blockFormatFlt) " # #", "desired spacing: ", pspc1
       end if
       if (resol > 0) then
-        write(*, "(A, I5)") " # # desired resolution:   npx1=", resol
+        write(*,blockFormatInt) " # #", "desired resolution: ", resol
       end if
 
       call initkernel(dim)
