@@ -265,7 +265,7 @@ program main
 
   if (nusedl1 /= 0) then
     sqerr(:) = sqrt(err(:))
-    print *, iter, t, 0.
+    print *, "#", iter, "t=", t
     if (silent == 0) then
       call Output(t, store, sqerr)
     end if
