@@ -9,20 +9,19 @@ module state
             ginitvar, setAdvancedDensity, getAdvancedDensity,&
             setArtificialTerms, getArtificialTerms, &
             setpartnum, getpartnum, scoordsys, gcoordsys, &
-            sorigin, gorigin
-  public :: diff_conductivity, diff_isotropic, mhd_magneticconstant
+            sorigin, gorigin, &
+            setdiffconductivity, getdiffconductivity, &
+            setdiffisotropic, getdiffisotropic, &
+            setmhdmagneticpressure, getmhdmagneticpressure
 
   private
   save
-    integer :: dim = 1, partnumber=-1
-    integer :: ttype, ddwtype, dtype, icvar=-1, adden = 1, artts = 1, coordsys = 1, &
-                origin = 0
-
-
-    ! GLOBAL =(
+    integer :: &
+      dim = 1, partnumber=-1, &
+      ttype, ddwtype, dtype, icvar=-1, adden = 1, &
+      artts = 1, coordsys = 1, origin = 0, diff_isotropic = 0
     real :: &
       diff_conductivity = 0.,&
-      diff_isotropic = -1.,&
       mhd_magneticconstant = 0.
 
   contains
@@ -216,4 +215,31 @@ module state
      integer, intent(out) :: oo
      oo = origin
    end subroutine gorigin
+
+   subroutine setdiffconductivity(i)
+     real, intent(in) :: i
+     diff_conductivity = i
+   end subroutine
+   pure subroutine getdiffconductivity(o)
+     real, intent(out) :: o
+     o = diff_conductivity
+   end subroutine
+
+   subroutine setdiffisotropic(i)
+     integer, intent(in) :: i
+     diff_isotropic = i
+   end subroutine
+   pure subroutine getdiffisotropic(o)
+     integer, intent(out) :: o
+     o = diff_isotropic
+   end subroutine
+
+   subroutine setmhdmagneticpressure(i)
+     real, intent(in) :: i
+     mhd_magneticconstant = i
+   end subroutine
+   pure subroutine getmhdmagneticpressure(o)
+     real, intent(out) :: o
+     o = mhd_magneticconstant
+   end subroutine
 end module

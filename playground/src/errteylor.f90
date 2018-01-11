@@ -55,7 +55,7 @@ contains
     dchi(:) = 0.
     t(:) = 0.
     idx = int(realpartnumb/2)
-    call getneighbours(idx, pos, h, nlist, tneib)
+    call getneighbours(idx, nlist, tneib)
     i = idx
 
     dsum = 0.
@@ -134,7 +134,7 @@ contains
     t(:) = 0.
 
     idx = int(realpartnumb/2)
-    call getneighbours(idx, pos, h, nlist, tneib)
+    call getneighbours(idx, nlist, tneib)
     i = idx
     do l = 1,size(nlist)
       j = nlist(l)

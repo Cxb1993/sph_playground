@@ -8,16 +8,37 @@ module const
 
   ! store of data
   integer, parameter :: &
-    es_posx   = 1,&
-    es_posy   = 2,&
-    es_posz   = 3,&
-    es_velx   = 4,&
-    es_vely   = 5,&
-    es_velz   = 6,&
-    es_accx   = 7,&
-    es_accy   = 8,&
-    es_accz   = 9,&
-    es_total  = 9
+    es_rx   = 1,&
+    es_ry   = 2,&
+    es_rz   = 3,&
+    es_vx   = 4,&
+    es_vy   = 5,&
+    es_vz   = 6,&
+    es_ax   = 7,&
+    es_ay   = 8,&
+    es_az   = 9,&
+    es_m    = 10,&
+    es_den  = 11,&
+    es_h    = 12,&
+    es_dh   = 13,&
+    es_p    = 14,&
+    es_u    = 15,&
+    es_du   = 16,&
+    es_t    = 17,&
+    es_dtdx = 18,&
+    es_dtdy = 19,&
+    es_dtdz = 20,&
+    es_ddt  = 21,&
+    es_bx   = 22,&
+    es_by   = 23,&
+    es_bz   = 24,&
+    es_dbx  = 25,&
+    es_dby  = 26,&
+    es_dbz  = 27,&
+    es_c    = 28,&
+    es_om   = 29,&
+    es_total = 29,&
+    es_postr = 4
 
   ! initial setups
   integer, parameter :: &

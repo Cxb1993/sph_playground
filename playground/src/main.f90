@@ -1,14 +1,13 @@
 program main
   use BC,               only: bcdestroy => destroy,&
-                              realpartnumb,&
-                              artpartnumb
-  use IC,               only: setupIC
+                              realpartnumb
+  use setup,            only: setupV2
   use state,            only: get_tasktype,&
                               ginitvar,&
                               setpartnum,&
-                              mhd_magneticconstant,&
-                              diff_isotropic,&
-                              diff_conductivity
+                              getdiffisotropic, &
+                              getdiffconductivity, &
+                              getmhdmagneticpressure
   use iterator,         only: iterate
   use printer,          only: Output, AppendLine
   use errcalc,          only: err_diff_laplace, &
@@ -39,23 +38,26 @@ program main
 
   implicit none
 
-  real, allocatable, dimension(:,:,:) :: kcf
-  real, allocatable, dimension(:,:)   :: p, v, a, pos, vel, acc, cf, dcf, tcf
-  real, allocatable, dimension(:)     :: den, prs, mas, iu, du, om, c, h, dh, &
-                                         tdh, err, sqerr, tdu,&
-                                         result
-  real, allocatable, dimension(:,:)   :: data
-  integer, allocatable, dimension(:)  :: ptype, nlista
+  real, allocatable, dimension(:,:) :: &
+    tr, tv, ta, tdb
+  real, allocatable, dimension(:) :: &
+    tdh, err, sqerr, tdu, tddt, &
+    result
+  real, allocatable, dimension(:,:) :: &
+    store
+  real :: &
+    dt, t, dtout, ltout, tfinish, npic,&
+    pspc1, gamma, sk, cv = 1., &
+    mhdmuzero, difcond
+    ! , chi(81)
+  character (len=100) :: &
+    itype, errfname, ktype, dtype
+  integer :: &
+    n, dim, iter, s_tt, nusedl1, nusedl2, printlen, silent,&
+    ivt, stopiter, resol, difiso
 
-  real                                :: dt, t, dtout, ltout, tfinish, npic,&
-                                         pspc1, gamma,&
-                                         sk, chi(81), cv = 1.
-
-  character (len=100) :: itype, errfname, ktype, dtype
-  integer             :: n, dim, iter, s_tt, nusedl1, nusedl2, printlen, silent,&
-                        ivt, stopiter, resol, i, la
-
-  integer(8)          :: tprint
+  integer(8) :: &
+    tprint
 
   ! call runcltest()
   print *, '##############################################'
@@ -64,19 +66,20 @@ program main
   call fillargs(dim, pspc1, resol,&
                 itype, ktype, dtype, errfname, dtout, npic, tfinish, sk, silent)
 
-  call setupIC(n, sk, gamma, pspc1, resol, pos, vel, acc, &
-                mas, den, h, prs, iu, du, cf, kcf, dcf, ptype)
-  ! call setupV2(sk, gamma, pspc1, resol, data)
+  call setupV2(n, sk, gamma, cv, pspc1, resol, store)
 
   call setpartnum(n)
   call get_tasktype(s_tt)
   call ginitvar(ivt)
+  call getdiffisotropic(difiso)
+  call getdiffconductivity(difcond)
+  call getmhdmagneticpressure(mhdmuzero)
 
   select case(s_tt)
   case (eeq_hydro, eeq_diffusion, eeq_magnetohydro, eeq_magnetohydrodiffusion)
-  case (5, 6, 7, 8, 10)
+  ! case (5, 6, 7, 8, 10)
     ! 'diff-laplass' ! 'diff-graddiv' ! diff-artvisc
-    call set_stepping(10**dim)
+    ! call set_stepping(10**dim)
   case default
     print *, 'Particle turn-off was not set main.f90: line 75.'
     stop
@@ -88,29 +91,24 @@ program main
   allocate(result(100))
   result(:) = 0.
   result(1) = pspc1
-  result(2) = n
+  result(2) = realpartnumb
+  n = realpartnumb
 
   t = 0.
   dt = 0.
   ltout = 0.
   iter = 0.
-  allocate(p(3,n))
-  allocate(v(3,n))
-  allocate(a(3,n))
-  p = pos
-  v = vel
-  a = acc
-  allocate(err(1:n))
-  err = 0.
-  allocate(sqerr(1:n))
-  allocate(c(n))
-  c(:) = cv
+  allocate(tr(3,n))
+  allocate(tv(3,n))
+  allocate(ta(3,n))
+  allocate(tdb(3,n))
   allocate(tdu(n))
-  allocate(dh(n))
-  dh(:) = 0
   allocate(tdh(n))
-  allocate(tcf(3,n))
-  allocate(om(n))
+  allocate(tddt(n))
+  allocate(err(1:n))
+  allocate(sqerr(1:n))
+
+  err(:) = 0.
 
   call tinit()
   call c1_init(n)
@@ -119,14 +117,10 @@ program main
 
   if (silent == 0) then
     print *, '# Initial setup printed'
-    call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, kcf, sqerr)
+    call Output(t, store, sqerr)
   end if
-  call checkVarsReady(s_tt, den, c, h, prs, iu)
-  call iterate(n, sk, gamma, &
-              ptype, pos, vel, acc, &
-              mas, den, h, dh, om, prs, c, iu, du, &
-              cf, dcf, kcf)
-
+  call checkVarsReady(s_tt, store)
+  call iterate(n, sk, gamma, store)
   select case(s_tt)
   case(eeq_hydro, eeq_magnetohydro, eeq_diffusion, eeq_magnetohydrodiffusion)
     ! stopiter = 1
@@ -144,23 +138,24 @@ program main
     ! call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, sqerr)
     select case(s_tt)
     case(eeq_hydro)
-      dt = .3 * minval(h) / maxval(c)
+      dt = .3 * minval(store(es_h,1:n)) / maxval(store(es_c,1:n))
     case(eeq_magnetohydro)
-      dt = .1 * minval(h) / maxval(c)
+      dt = .1 * minval(store(es_h,1:n)) / maxval(store(es_c,1:n))
     case(eeq_diffusion)
-      dt = .1 * minval(den(1:realpartnumb)) &
-              * minval(c(1:realpartnumb)) &
-              * minval(h(1:realpartnumb)) ** 2 &
-              / merge(diff_conductivity, maxval(kcf(:,1,1:realpartnumb)), diff_isotropic > 0)
+      dt = .1 * minval(store(es_den,1:n)) &
+              * minval(store(es_c,1:n)) &
+              * minval(store(es_h,1:n)) ** 2 &
+              / merge(difcond, maxval(store(es_bx:es_bz,1:n)), difiso == 1)
     case (eeq_magnetohydrodiffusion)
       ! dt = .1 * mhd_magneticconstant * minval(den(1:realpartnumb)) * minval(c(1:realpartnumb)) * &
       !           minval(h(1:realpartnumb)) ** 2 / &
       !           merge(maxval(kcf(:,1,1:realpartnumb)), 1., maxval(kcf(:,1,1:realpartnumb))>0)
-      dt = .1 * mhd_magneticconstant &
-              * minval(den(1:realpartnumb)) &
-              * minval(c(1:realpartnumb)) &
-              * minval(h(1:realpartnumb)) ** 2 &
-              / merge(diff_conductivity, maxval(kcf(:,1,1:realpartnumb)), diff_isotropic > 0)    ! case (5,6,7,8)
+      dt = .1 * mhdmuzero &
+              * minval(store(es_den,1:n)) &
+              * minval(store(es_c,1:n)) &
+              * minval(store(es_h,1:n)) ** 2 &
+              / merge(difcond, maxval(store(es_bx:es_bz,1:n)), difiso == 1)
+    ! case (5,6,7,8)
     !   ! 'diff-laplass'      ! 'diff-graddiv'
     !   stopiter = 1
     !   dt = 0.
@@ -176,39 +171,43 @@ program main
     if (t >= ltout) then
       ! print*, maxval(kcf), minval(den), minval(c), minval(h)
       ! read*
-      print *, "#", iter, "t=", t, "dt=", dt, 'min h=', minval(h(1:realpartnumb)), 'max h=', maxval(h(1:realpartnumb))
+      print *, "#", iter, "t=", t, "dt=", dt, 'min h=', minval(store(es_h,1:n)), 'max h=', maxval(store(es_h,1:n))
       if ( silent == 0) then
-        call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, kcf, err)
+        call Output(t, store, err)
       end if
       ltout = ltout + dtout
     end if
 
-    p(:,1:realpartnumb) = pos(:,1:realpartnumb)
-    v(:,1:realpartnumb) = vel(:,1:realpartnumb)
-    a(:,1:realpartnumb) = acc(:,1:realpartnumb)
-    tdu(1:realpartnumb) = du(1:realpartnumb)
-    tdh(1:realpartnumb) = dh(1:realpartnumb)
-    tcf(:,1:realpartnumb) = dcf(:,1:realpartnumb)
-    kcf(:,3,1:realpartnumb) = kcf(:,2,1:realpartnumb)
+    tr(:,:) = store(es_rx:es_rz,1:n)
+    tv(:,:) = store(es_vx:es_vz,1:n)
+    ta(:,:) = store(es_ax:es_az,1:n)
+    tdu(:) = store(es_du,1:n)
+    tdh(:) = store(es_dh,1:n)
+    tddt(:) = store(es_ddt,1:n)
+    tdb(:,:) = store(es_dbx:es_dbz,1:n)
 
-    pos(:,1:realpartnumb) = p(:,1:realpartnumb)  + dt * v(:,1:realpartnumb) + 0.5 * dt * dt * a(:,1:realpartnumb)
+    store(es_rx:es_rz,1:n) = store(es_rx:es_rz,1:n)  + &
+        dt * tv(:,:) + 0.5 * dt * dt * ta(:,:)
 
-    vel(:,1:realpartnumb) = v(:,1:realpartnumb)  + dt * a(:,1:realpartnumb)
-    iu(1:realpartnumb)    = iu(1:realpartnumb)   + dt * du(1:realpartnumb)
-    h(1:realpartnumb)     = h(1:realpartnumb)    + dt * dh(1:realpartnumb)
-    cf(:,1:realpartnumb)  = cf(:,1:realpartnumb) + dt * dcf(:,1:realpartnumb)
-    kcf(:,1,1:realpartnumb) = kcf(:,1,1:realpartnumb) + dt * kcf(:,2,1:realpartnumb)
+    store(es_vx:es_vz,1:n) = tv(:,:)  + dt * ta(:,:)
+    store(es_u,1:n) = store(es_u,1:n) + dt * tdu(:)
+    store(es_h,1:n) = store(es_h,1:n) + dt * tdh(:)
+    store(es_t,1:n) = store(es_t,1:n) + dt * tddt(:)
+    store(es_bx:es_bz,1:n) = store(es_bx:es_bz,1:n) + dt * tdb(:,:)
 
-    call iterate(n, sk, gamma, &
-                ptype, pos, vel, acc, &
-                mas, den, h, dh, om, prs, c, iu, du, &
-                cf, dcf, kcf)
+    call iterate(n, sk, gamma, store)
 
-    vel(:,1:realpartnumb) = vel(:,1:realpartnumb) + 0.5 * dt * (acc(:,1:realpartnumb)  - a(:,1:realpartnumb))
-    iu(1:realpartnumb)    = iu(1:realpartnumb)    + 0.5 * dt * (du(1:realpartnumb)     - tdu(1:realpartnumb))
-    h(1:realpartnumb)     = h(1:realpartnumb)     + 0.5 * dt * (dh(1:realpartnumb)     - tdh(1:realpartnumb))
-    cf(:,1:realpartnumb)  = cf(:,1:realpartnumb)  + 0.5 * dt * (dcf(:,1:realpartnumb)  - tcf(:,1:realpartnumb))
-    kcf(:,1,1:realpartnumb) = kcf(:,1,1:realpartnumb) + 0.5 * dt * (kcf(:,2,1:realpartnumb)  - kcf(:,3,1:realpartnumb))
+    store(es_vx:es_vz,1:n) = &
+      store(es_vx:es_vz,1:n) + 0.5*dt*(store(es_ax:es_az,1:n) - ta(:,:))
+    store(es_u,1:n) = &
+      store(es_u,1:n) + 0.5*dt*(store(es_du,1:n) - tdu(:))
+    store(es_h,1:n) = &
+      store(es_h,1:n) + 0.5*dt*(store(es_dh,1:n) - tdh(:))
+    store(es_t,1:n) = &
+      store(es_t,1:n) + 0.5*dt*(store(es_ddt,1:n) - tddt(:))
+    store(es_bx:es_bz,1:n) = &
+      store(es_bx:es_bz,1:n) + 0.5*dt*(store(es_dbx:es_dbz,1:n) - tdb(:,:))
+
     t = t + dt
     iter = iter + 1
   end do
@@ -241,17 +240,17 @@ program main
   case (ett_pulse, ett_OTvortex)
     printlen = 5
   case (ett_sin3)
-    call err_sinxet(pos, cf, t, err)
+    call err_sinxet(store, t, err)
     printlen = 5
   case (ett_soundwave)
     ! call err_soundwave_v(pos, vel, t, err)
-    call err_soundwave_d(pos, den, t, err)
+    call err_soundwave_d(store, t, err)
     printlen = 5
   case (ett_hydroshock)
-    call err_shockTube(ptype, pos, den, t, err)
+    call err_shockTube(store, t, err)
     printlen = 5
   case (ett_alfvenwave)
-    call err_alfvenwave(pos, cf, t, err)
+    call err_alfvenwave(store, t, err)
     printlen = 5
   case default
     print *, ivt, 'Task type was not sen in l2 error evaluation main:267.'
@@ -263,11 +262,12 @@ program main
   !----------------------------------------!
   !          teylor error evaluation       !
   !----------------------------------------!
+
   if (nusedl1 /= 0) then
     sqerr(:) = sqrt(err(:))
     print *, iter, t, 0.
     if (silent == 0) then
-      call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, kcf, sqerr)
+      call Output(t, store, sqerr)
     end if
   end if
   result(5) = sk
@@ -280,31 +280,6 @@ program main
   write(*, "(A, F20.10)") " # #  chi-error: ", result(4)
   print *, '##############################################'
 
-  deallocate(result)
-  deallocate(ptype)
-  deallocate(pos)
-  deallocate(vel)
-  deallocate(acc)
-  deallocate(mas)
-  deallocate(den)
-  deallocate(h)
-  deallocate(prs)
-  deallocate(iu)
-  deallocate(du)
-  deallocate(cf)
-  deallocate(kcf)
-  deallocate(dcf)
-  deallocate(err)
-  deallocate(sqerr)
-  deallocate(c)
-  deallocate(tdu)
-  deallocate(dh)
-  deallocate(tdh)
-  deallocate(tcf)
-  deallocate(om)
-  deallocate(p)
-  deallocate(v)
-  deallocate(a)
   call neibDestroy()
   call c1destroy()
   call timedestroy()

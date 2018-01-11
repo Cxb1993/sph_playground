@@ -19,25 +19,23 @@ module errcalc
 
 contains
 
-subroutine shockTube(ptype, x, num, t, err)
+subroutine shockTube(store, t, err)
   use exactshocktube
-  integer, allocatable, intent(in) :: ptype(:)
-  real, allocatable, intent(in)    :: num(:), x(:,:)
+  real, allocatable, intent(in)    :: store(:,:)
   real, allocatable, intent(inout) :: err(:)
   real, intent(in)                 :: t
 
   integer           :: i, n
   real, allocatable :: exact(:), xpass(:)
 
-  n = size(ptype)
-
+  n = size(store,dim=2)
   allocate(xpass(n))
   allocate(exact(n))
-  xpass(:) = x(1,:)
+  xpass(:) = store(es_rx,:)
   call exact_shock(1, t, 1.4, 0., 1., 1./8., 1., 0.1, 0., 0., xpass, exact)
 
   do i = 1,n
-    err(i) = abs(num(i)-exact(i))
+    err(i) = abs(store(es_den,i)-exact(i))
   end do
 end subroutine
 
@@ -61,68 +59,68 @@ end subroutine
     !$OMP END PARALLEL
   end subroutine err_T0sxsyet
 
-  subroutine err_sinxet(x, num, t, err)
-    real, allocatable, intent(in)    :: num(:,:), x(:,:)
+  subroutine err_sinxet(store, t, err)
+    real, allocatable, intent(in)    :: store(:,:)
     real, allocatable, intent(inout) :: err(:)
     real, intent(in)                 :: t
 
     integer, allocatable :: nlista(:)
     integer             :: i, j, dim, ivt
-    real                :: exact(3)
+    real                :: exact(3), x(3), num
 
     call getdim(dim)
     call getNeibListL1(nlista)
     call ginitvar(ivt)
     err(:) = 0.
-    !$omp parallel do default(none) &
-    !$omp shared(x, num, err, dim, nlista, t, ivt) &
-    !$omp private(exact, i, j)
+
     do j = 1,size(nlista)
       i = nlista(j)
       exact(:) = 0.
+      x(:) = store(es_rx:es_rz,i)
+      num  = store(es_t,i)
       if (ivt == 1) then
         if ( dim == 1 ) then
-          exact(1) = sin(pi * (x(1,i) + 1.) / 2.) * exp(-(pi/2.)**2 * t)
+          exact(1) = sin(pi * (x(1) + 1.) / 2.) * exp(-(pi/2.)**2 * t)
         elseif ( dim == 2 ) then
-          exact(1) = sin(pi * (x(1,i) + 1.) / 2.) * &
-                  sin(pi * (x(2,i) + 1.) / 2.) * exp(-2 * (pi/2.)**2 * t)
+          exact(1) = sin(pi * (x(1) + 1.) / 2.) * &
+                  sin(pi * (x(2) + 1.) / 2.) * exp(-2 * (pi/2.)**2 * t)
         elseif ( dim == 3 ) then
-          exact(1) = sin(pi * (x(1,i) + 1.) / 2.) * &
-                  sin(pi * (x(2,i) + 1.) / 2.) * &
-                  sin(pi * (x(3,i) + 1.) / 2.) * exp(-3 * (pi/2.)**2 * t)
+          exact(1) = sin(pi * (x(1) + 1.) / 2.) * &
+                  sin(pi * (x(2) + 1.) / 2.) * &
+                  sin(pi * (x(3) + 1.) / 2.) * exp(-3 * (pi/2.)**2 * t)
         end if
-        err(i) = (exact(1) - num(1,i))*(exact(1) - num(1,i))
-        ! print*, err(i), exact(1), num(1,i)
+        err(i) = (exact(1) - num)*(exact(1) - num)
       end if
       ! err(i) = dot_product(exact(1) - num(1,i), exact(1) - num(1,i))
     end do
-    !$omp end parallel do
   end subroutine err_sinxet
 
-  subroutine alfvenwave(x, num, t, err)
-    real, allocatable, intent(in)    :: num(:,:), x(:,:)
+  subroutine alfvenwave(store, t, err)
+    real, allocatable, intent(in)    :: store(:,:)
     real, allocatable, intent(inout) :: err(:)
     real, intent(in)                 :: t
 
     integer, allocatable :: nlista(:)
     integer              :: i, j, dim
-    real                 :: exact, x1, B2
+    real                 :: exact, x1, B2, x(3), b(3)
 
     call getdim(dim)
     call getNeibListL1(nlista)
     err(:) = 0.
     do j = 1,size(nlista)
       i = nlista(j)
-      x1 = (x(1,i) + 2*x(2,i) + 2*x(3,i))/3.
-      B2 = (num(2,i) - 2*num(1,i))/sqrt(5.)
+      x(:) = store(es_rx:es_rz,i)
+      b(:) = store(es_bx:es_bz,i)
+      x1 = (x(1) + 2*x(2) + 2*x(3))/3.
+      B2 = (b(2) - 2*b(1))/sqrt(5.)
 
       exact = 0.1 * sin(2.*pi*(x1 - t))
       err(i) = (exact - B2)*(exact - B2)
     end do
   end subroutine alfvenwave
 
-  subroutine soundwaveperturbation_density(x, num, t, err)
-    real, allocatable, intent(in)    :: num(:), x(:,:)
+  subroutine soundwaveperturbation_density(store, t, err)
+    real, allocatable, intent(in)    :: store(:,:)
     real, allocatable, intent(inout) :: err(:)
     real, intent(in)                 :: t
 
@@ -133,15 +131,11 @@ end subroutine
     call getdim(dim)
     call getNeibListL1(nlista)
     err(:) = 0.
-    !$omp parallel do default(none) &
-    !$omp shared(x, num, err, dim, nlista, t) &
-    !$omp private(exact, i, j)
     do j = 1,size(nlista)
       i = nlista(j)
-      exact = 1. + 0.005 * sin(pi * (x(1,i) - t))
-      err(i) = (exact - num(i))*(exact - num(i))
+      exact = 1. + 0.005 * sin(pi * (store(es_rx,i) - t))
+      err(i) = (exact - store(es_den,i))*(exact - store(es_den,i))
     end do
-    !$omp end parallel do
   end subroutine
 
   subroutine soundwaveperturbation_velocity(x, num, t, err)

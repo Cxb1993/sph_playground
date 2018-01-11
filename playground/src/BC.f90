@@ -7,8 +7,8 @@ module BC
 
   implicit none
 
-  public :: fixed1, fixed3, destroy, getCrossRef, &
-            setBorder, setBorderInside, periodic3v2, periodic1v2, &
+  public :: destroy, getCrossRef, &
+            setBorder, setBorderInside, &
             reflecParticlesPeriodic, createPhantomPeriodic, &
             clearPhantomParticles, createPhantomFixed
 
@@ -24,13 +24,13 @@ module BC
     type(intlist)         :: posref
     integer(8)            :: start=0, finish=0
     ! GLOABL =(
-    integer :: realpartnumb=0, artpartnumb=0, initdone=0, needcrosref=0
+    integer :: realpartnumb=0, artpartnumb=0, initdone=0, needcrosref=0, phantomcreated=1
     real    :: xmin, xmax, ymin, ymax, zmin, zmax, bordersize
     real :: boxmax(3), boxmin(3)
 
 contains
-  subroutine clearPhantomParticles(pos)
-    real, allocatable, intent(inout) :: pos(:,:)
+  subroutine clearPhantomParticles(store)
+    real, allocatable, intent(inout) :: store(:,:)
 
     artpartnumb = 0
     needcrosref = 0
@@ -51,9 +51,17 @@ contains
     call ebz1%clearfast()
     call ebz2%clearfast()
 
-    boxmax = [xmax, ymax, zmax] - bordersize
-    boxmin = [xmin, ymin, zmin] + bordersize
-    call findInsideBorderParticles(pos, boxmax, boxmin)
+    boxmax(1) = xmax
+    boxmax(2) = ymax
+    boxmax(3) = zmax
+
+    boxmin(1) = xmin
+    boxmin(2) = ymin
+    boxmin(3) = zmin
+
+    boxmax(:) = boxmax(:) - bordersize
+    boxmin(:) = boxmin(:) + bordersize
+    call findInsideBorderParticles(store, boxmax, boxmin)
   end subroutine clearPhantomParticles
 
   subroutine destroy
@@ -75,25 +83,6 @@ contains
     end if
   end subroutine
 
-  subroutine init()
-    if (initdone == 0) then
-      allocate(bX1ins(1))
-      allocate(bY1ins(1))
-      allocate(bZ1ins(1))
-      allocate(bX2ins(1))
-      allocate(bY2ins(1))
-      allocate(bZ2ins(1))
-
-      allocate(bX1exc(1))
-      allocate(bY1exc(1))
-      allocate(bZ1exc(1))
-      allocate(bX2exc(1))
-      allocate(bY2exc(1))
-      allocate(bZ2exc(1))
-      initdone = 1
-    end if
-  end subroutine init
-
   pure function getCrossRef(ini) result(oti)
     integer, intent(in) :: ini
     integer oti
@@ -106,8 +95,13 @@ contains
     integer :: i
     real :: boxmax(3), boxmin(3), dxmin(3), dxmax(3)
 
-    boxmax = [xmax, ymax, zmax]
-    boxmin = [xmin, ymin, zmin]
+    boxmax(1) = xmax
+    boxmax(2) = ymax
+    boxmax(3) = zmax
+
+    boxmin(1) = xmin
+    boxmin(2) = ymin
+    boxmin(3) = zmin
 
     select case(refdir)
     case (ebc_all)
@@ -150,93 +144,91 @@ contains
     end select
   end subroutine reflecParticlesPeriodic
 
-  subroutine findInsideBorderParticles(pos, boxmax, boxmin)
-    real, allocatable, intent(in) :: pos(:,:)
+  subroutine findInsideBorderParticles(store, boxmax, boxmin)
+    real, allocatable, intent(in) :: store(:,:)
     real, intent(in)    :: boxmax(3), boxmin(3)
     integer :: i, dim
+    real :: ra(3)
 
     call getdim(dim)
 
     if (dim == 1) then
       do i=1,realpartnumb
+        ra(:) = store(es_rx:es_rz,i)
         call posref%append(i)
-        if (pos(1,i) < boxmin(1)) then
+        if (ra(1) < boxmin(1)) then
           call ibx1%append(i)
-        else if (pos(1,i) > boxmax(1)) then
+        else if (ra(1) > boxmax(1)) then
           call ibx2%append(i)
         end if
       end do
     else if (dim == 2) then
       do i=1,realpartnumb
+        ra(:) = store(es_rx:es_rz,i)
         call posref%append(i)
-        if (pos(1,i) < boxmin(1)) then
+        if (ra(1) < boxmin(1)) then
           call ibx1%append(i)
-        else if (pos(1,i) > boxmax(1)) then
+        else if (ra(1) > boxmax(1)) then
           call ibx2%append(i)
         end if
-        if (pos(2,i) < boxmin(2)) then
+        if (ra(2) < boxmin(2)) then
           call iby1%append(i)
-        else if (pos(2,i) > boxmax(2)) then
+        else if (ra(2) > boxmax(2)) then
           call iby2%append(i)
         end if
       end do
     else if (dim == 3) then
       do i=1,realpartnumb
+        ra(:) = store(es_rx:es_rz,i)
         call posref%append(i)
-        if (pos(1,i) < boxmin(1)) then
+        if (ra(1) < boxmin(1)) then
           call ibx1%append(i)
-        else if (pos(1,i) > boxmax(1)) then
+        else if (ra(1) > boxmax(1)) then
           call ibx2%append(i)
         end if
-        if (pos(2,i) < boxmin(2)) then
+        if (ra(2) < boxmin(2)) then
           call iby1%append(i)
-        else if (pos(2,i) > boxmax(2)) then
+        else if (ra(2) > boxmax(2)) then
           call iby2%append(i)
         end if
-        if (pos(3,i) < boxmin(3)) then
+        if (ra(3) < boxmin(3)) then
           call ibz1%append(i)
-        else if (pos(3,i) > boxmax(3)) then
+        else if (ra(3) > boxmax(3)) then
           call ibz2%append(i)
         end if
       end do
     end if
   end subroutine
 
-  subroutine createPhantomPeriodic(pos, targetSide)
-    use arrayresize,  only: resize
-    use state,        only: getdim
-
-    real, allocatable, intent(inout) :: pos(:,:)
+  subroutine createPhantomPeriodic(store, targetSide)
+    real, allocatable, intent(inout) :: store(:,:)
     integer, intent(in) :: targetSide
 
-    integer :: i, k, dim, spos, refidx
+    integer :: i, k, dim, storesize, refidx
 
-    needcrosref = 1
     call getdim(dim)
-    spos = size(pos,dim=2)
+    storesize = size(store,dim=2)
     artpartnumb = artpartnumb + 1
     if ((targetSide == ebc_all).or.(targetSide == ebc_x)) then
       do i=1,ibx1%llen()
         k = realpartnumb+artpartnumb
-        if (spos < k) then
-          print*, "  <!> pos array was expanded due to phantom periodic particles. L:182"
-          call resize(pos, k-1, 2*k)
-          spos = 2*k
+        if (storesize < k) then
+          print*, "  <?> pos array was expanded due to phantom periodic particles. L:182"
+          call resize(store, k-1, 2*k)
+          storesize = 2*k
         end if
-        call ebx1%append(k)
-        call posref%append(ibx1%xe(i))
-        pos(:,k) = pos(:,ibx1%xe(i))
-        pos(1,k) = xmax + (pos(1,k) - xmin)
+        store(:,k) = store(:,ibx1%xe(i))
+        store(es_rx,k) = xmax + (store(es_rx,k) - xmin)
         if (dim > 1) then
-          if (pos(2,k) < boxmin(2)) then
+          if (store(es_ry,k) < boxmin(2)) then
             call iby1%append(k)
-          else if (pos(2,k) > boxmax(2)) then
+          else if (store(es_ry,k) > boxmax(2)) then
             call iby2%append(k)
           end if
           if (dim == 3) then
-            if (pos(3,k) < boxmin(3)) then
+            if (store(es_rz,k) < boxmin(3)) then
               call ibz1%append(k)
-            else if (pos(3,k) > boxmax(3)) then
+            else if (store(es_rz,k) > boxmax(3)) then
               call ibz2%append(k)
             end if
           end if
@@ -245,25 +237,23 @@ contains
       end do
       do i=1,ibx2%llen()
         k = realpartnumb+artpartnumb
-        if (spos < k) then
+        if (storesize < k) then
           print*, "  <!> pos array was expanded due to phantom periodic particles. L:208"
-          call resize(pos, k-1, 2*k)
-          spos = 2*k
+          call resize(store, k-1, 2*k)
+          storesize = 2*k
         end if
-        call ebx2%append(k)
-        call posref%append(ibx2%xe(i))
-        pos(:,k) = pos(:,ibx2%xe(i))
-        pos(1,k) = xmin + (pos(1,k) - xmax)
+        store(:,k) = store(:,ibx2%xe(i))
+        store(es_rx,k) = xmin + (store(es_rx,k) - xmax)
         if (dim > 1) then
-          if (pos(2,k) < boxmin(2)) then
+          if (store(es_ry,k) < boxmin(2)) then
             call iby1%append(k)
-          else if (pos(2,k) > boxmax(2)) then
+          else if (store(es_ry,k) > boxmax(2)) then
             call iby2%append(k)
           end if
           if (dim == 3) then
-            if (pos(3,k) < boxmin(3)) then
+            if (store(es_rz,k) < boxmin(3)) then
               call ibz1%append(k)
-            else if (pos(3,k) > boxmax(3)) then
+            else if (store(es_rz,k) > boxmax(3)) then
               call ibz2%append(k)
             end if
           end if
@@ -275,25 +265,17 @@ contains
       if ((targetSide == ebc_all).or.(targetSide == ebc_y)) then
         do i=1,iby1%llen()
           k = realpartnumb+artpartnumb
-          if (spos < k) then
+          if (storesize < k) then
             print*, "  <!> pos array was expanded due to phantom periodic particles. L:235"
-            call resize(pos, k-1, 2*k)
-            spos = 2*k
+            call resize(store, k-1, 2*k)
+            storesize = 2*k
           end if
-          call eby1%append(k)
-          ! artificial particle can reference artificial again
-          ! so I need to calculate dereference in while it is not a real particle
-          refidx = iby1%xe(i)
-          do while (refidx > realpartnumb)
-            refidx = getCrossRef(refidx)
-          end do
-          call posref%append(refidx)
-          pos(:,k) = pos(:,iby1%xe(i))
-          pos(2,k) = ymax + (pos(2,k) - ymin)
+          store(:,k) = store(:,iby1%xe(i))
+          store(es_ry,k) = ymax + (store(es_ry,k) - ymin)
           if (dim == 3) then
-            if (pos(3,k) < boxmin(3)) then
+            if (store(es_rz,k) < boxmin(3)) then
               call ibz1%append(k)
-            else if (pos(3,k) > boxmax(3)) then
+            else if (store(es_rz,k) > boxmax(3)) then
               call ibz2%append(k)
             end if
           end if
@@ -301,25 +283,17 @@ contains
         end do
         do i=1,iby2%llen()
           k = realpartnumb+artpartnumb
-          if (spos < k) then
+          if (storesize < k) then
             print*, "  <!> pos array was expanded due to phantom periodic particles. L:260"
-            call resize(pos, k-1, 2*k)
-            spos = 2*k
+            call resize(store, k-1, 2*k)
+            storesize = 2*k
           end if
-          call eby2%append(k)
-          ! artificial particle can reference artificial again
-          ! so I need to calculate dereference in while it is not a real particle
-          refidx = iby2%xe(i)
-          do while (refidx > realpartnumb)
-            refidx = getCrossRef(refidx)
-          end do
-          call posref%append(refidx)
-          pos(:,k) = pos(:,iby2%xe(i))
-          pos(2,k) = ymin + (pos(2,k) - ymax)
+          store(:,k) = store(:,iby2%xe(i))
+          store(es_ry,k) = ymin + (store(es_ry,k) - ymax)
           if (dim == 3) then
-            if (pos(3,k) < boxmin(3)) then
+            if (store(es_rz,k) < boxmin(3)) then
               call ibz1%append(k)
-            else if (pos(3,k) > boxmax(3)) then
+            else if (store(es_rz,k) > boxmax(3)) then
               call ibz2%append(k)
             end if
           end if
@@ -330,40 +304,24 @@ contains
         if ((targetSide == ebc_all).or.(targetSide == ebc_z)) then
           do i=1,ibz1%llen()
             k = realpartnumb+artpartnumb
-            if (spos < k) then
+            if (storesize < k) then
               print*, "  <!> pos array was expanded due to phantom periodic particles. L:286"
-              call resize(pos, k-1, 2*k)
-              spos = 2*k
+              call resize(store, k-1, 2*k)
+              storesize = 2*k
             end if
-            call ebz1%append(k)
-            ! artificial particle can reference artificial again
-            ! so I need to calculate dereference in while it is not a real particle
-            refidx = ibz1%xe(i)
-            do while (refidx > realpartnumb)
-              refidx = getCrossRef(refidx)
-            end do
-            call posref%append(refidx)
-            pos(:,k) = pos(:,ibz1%xe(i))
-            pos(3,k) = zmax + (pos(3,k) - zmin)
+            store(:,k) = store(:,ibz1%xe(i))
+            store(es_rz,k) = zmax + (store(es_rz,k) - zmin)
             artpartnumb = artpartnumb + 1
           end do
           do i=1,ibz2%llen()
             k = realpartnumb+artpartnumb
-            if (spos < k) then
+            if (storesize < k) then
               print*, "  <!> pos array was expanded due to phantom periodic particles. L:304"
-              call resize(pos, k-1, 2*k)
-              spos = 2*k
+              call resize(store, k-1, 2*k)
+              storesize = 2*k
             end if
-            call ebz2%append(k)
-            ! artificial particle can reference artificial again
-            ! so I need to calculate dereference in while it is not a real particle
-            refidx = ibz2%xe(i)
-            do while (refidx > realpartnumb)
-              refidx = getCrossRef(refidx)
-            end do
-            call posref%append(refidx)
-            pos(:,k) = pos(:,ibz2%xe(i))
-            pos(3,k) = zmin + (pos(3,k) - zmax)
+            store(:,k) = store(:,ibz2%xe(i))
+            store(es_rz,k) = zmin + (store(es_rz,k) - zmax)
             artpartnumb = artpartnumb + 1
           end do
         end if
@@ -729,233 +687,5 @@ contains
     end select
     call system_clock(finish)
     call addTime(' bc', finish - start)
-  end subroutine
-
-  subroutine periodic1v2(A, axis)
-    integer, intent(in)              :: axis
-    real, allocatable, intent(inout) :: A(:)
-    integer                          :: i
-
-    call system_clock(start)
-
-    select case(axis)
-    case (ebc_all)
-      do i = 1, size(bX1ins)
-        A(bX1exc(i)) = A(bX1ins(i))
-      end do
-      do i = 1, size(bX2ins)
-        A(bX2exc(i)) = A(bX2ins(i))
-      end do
-      do i = 1, size(bY1ins)
-        A(bY1exc(i)) = A(bY1ins(i))
-      end do
-      do i = 1, size(bY2ins)
-        A(bY2exc(i)) = A(bY2ins(i))
-      end do
-      do i = 1, size(bZ1ins)
-        A(bZ1exc(i)) = A(bZ1ins(i))
-      end do
-      do i = 1, size(bZ2ins)
-        A(bZ2exc(i)) = A(bZ2ins(i))
-      end do
-    case (ebc_x)
-      do i = 1, size(bX1ins)
-        A(bX1exc(i)) = A(bX1ins(i))
-      end do
-      do i = 1, size(bX2ins)
-        A(bX2exc(i)) = A(bX2ins(i))
-      end do
-    case (ebc_y)
-      do i = 1, size(bY1ins)
-        A(bY1exc(i)) = A(bY1ins(i))
-      end do
-      do i = 1, size(bY2ins)
-        A(bY2exc(i)) = A(bY2ins(i))
-      end do
-    case (ebc_z)
-      do i = 1, size(bZ1ins)
-        A(bZ1exc(i)) = A(bZ1ins(i))
-      end do
-      do i = 1, size(bZ2ins)
-        A(bZ2exc(i)) = A(bZ2ins(i))
-      end do
-    end select
-    call system_clock(finish)
-    call addTime(' bc', finish - start)
-  end subroutine periodic1v2
-
-  subroutine periodic3v2(A, axis)
-    integer, intent(in)              :: axis
-    real, allocatable, intent(inout) :: A(:,:)
-    integer                          :: i
-
-    call system_clock(start)
-
-    select case(axis)
-    case (ebc_all)
-      do i = 1, size(bX1ins)
-        A(:,bX1exc(i)) = A(:,bX1ins(i))
-      end do
-      do i = 1, size(bX2ins)
-        A(:,bX2exc(i)) = A(:,bX2ins(i))
-      end do
-      do i = 1, size(bY1ins)
-        A(:,bY1exc(i)) = A(:,bY1ins(i))
-      end do
-      do i = 1, size(bY2ins)
-        A(:,bY2exc(i)) = A(:,bY2ins(i))
-      end do
-      do i = 1, size(bZ1ins)
-        A(:,bZ1exc(i)) = A(:,bZ1ins(i))
-      end do
-      do i = 1, size(bZ2ins)
-        A(:,bZ2exc(i)) = A(:,bZ2ins(i))
-      end do
-    case (ebc_x)
-      do i = 1, size(bX1ins)
-        A(:,bX1exc(i)) = A(:,bX1ins(i))
-      end do
-      do i = 1, size(bX2ins)
-        A(:,bX2exc(i)) = A(:,bX2ins(i))
-      end do
-    case (ebc_y)
-      do i = 1, size(bY1ins)
-        A(:,bY1exc(i)) = A(:,bY1ins(i))
-      end do
-      do i = 1, size(bY2ins)
-        A(:,bY2exc(i)) = A(:,bY2ins(i))
-      end do
-    case (ebc_z)
-      do i = 1, size(bZ1ins)
-        A(:,bZ1exc(i)) = A(:,bZ1ins(i))
-      end do
-      do i = 1, size(bZ2ins)
-        A(:,bZ2exc(i)) = A(:,bZ2ins(i))
-      end do
-    end select
-    call system_clock(finish)
-    call addTime(' bc', finish - start)
-  end subroutine periodic3v2
-
-  subroutine fixed1(A, axeside, k)
-    integer, intent(in) :: axeside
-    real, intent(in)    :: k
-    real, intent(out)   :: A(realpartnumb)
-
-    call system_clock(start)
-
-    select case(axeside)
-    case (ebc_all)
-      A(bX1exc) = k
-      A(bX2exc) = k
-      A(bY1exc) = k
-      A(bY2exc) = k
-      A(bZ1exc) = k
-      A(bZ2exc) = k
-    case (ebc_x1)
-      A(bX1exc) = k
-    case (ebc_x2)
-      A(bX2exc) = k
-    case (ebc_x)
-      A(bX1exc) = k
-      A(bX2exc) = k
-    case (ebc_y1)
-      A(bY1exc) = k
-    case (ebc_y2)
-      A(bY2exc) = k
-    case (ebc_y)
-      A(bY1exc) = k
-      A(bY2exc) = k
-    case (ebc_z1)
-      A(bZ1exc) = k
-    case (ebc_z2)
-      A(bZ2exc) = k
-    case (ebc_z)
-      A(bZ1exc) = k
-      A(bZ2exc) = k
-    end select
-    call system_clock(finish)
-    call addTime(' bc', finish - start)
-  end subroutine fixed1
-
-  subroutine fixed3(A, axeside, dim, k)
-    integer, intent(in) :: axeside, dim
-    real, intent(in)    :: k
-    real, intent(out)   :: A(3,realpartnumb)
-
-    call system_clock(start)
-
-    select case(axeside)
-    case (ebc_all)
-      if (dim == ebc_all) then
-        A(:,bX1exc) = k
-        A(:,bX2exc) = k
-        A(:,bY1exc) = k
-        A(:,bY2exc) = k
-        A(:,bZ1exc) = k
-        A(:,bZ2exc) = k
-      end if
-      A(dim,bX1exc) = k
-      A(dim,bX2exc) = k
-      A(dim,bY1exc) = k
-      A(dim,bY2exc) = k
-      A(dim,bZ1exc) = k
-      A(dim,bZ2exc) = k
-    case (ebc_x1)
-      A(dim,bX1exc) = k
-      if (dim == ebc_all) then
-        A(:,bX1exc) = k
-      end if
-    case (ebc_x2)
-      A(dim,bX2exc) = k
-      if (dim == ebc_all) then
-        A(:,bX2exc) = k
-      end if
-    case (ebc_x)
-      A(dim,bX1exc) = k
-      A(dim,bX2exc) = k
-      if (dim == ebc_all) then
-        A(:,bX1exc) = k
-        A(:,bX2exc) = k
-      end if
-    case (ebc_y1)
-      A(dim,bY1exc) = k
-      if (dim == ebc_all) then
-        A(:,bY1exc) = k
-      end if
-    case (ebc_y2)
-      A(dim,bY2exc) = k
-      if (dim == ebc_all) then
-        A(:,bY2exc) = k
-      end if
-    case (ebc_y)
-      A(dim,bY1exc) = k
-      A(dim,bY2exc) = k
-      if (dim == ebc_all) then
-        A(:,bY1exc) = k
-        A(:,bY2exc) = k
-      end if
-    case (ebc_z1)
-      A(dim,bZ1exc) = k
-      if (dim == ebc_all) then
-        A(:,bZ1exc) = k
-      end if
-    case (ebc_z2)
-      if (dim == ebc_all) then
-        A(:,bZ2exc) = k
-      else
-        A(dim,bZ2exc) = k
-      end if
-    case (ebc_z)
-      if (dim == ebc_all) then
-        A(:,bZ1exc) = k
-        A(:,bZ2exc) = k
-      else
-        A(dim,bZ1exc) = k
-        A(dim,bZ2exc) = k
-      end if
-    end select
-    call system_clock(finish)
-    call addTime(' bc', finish - start)
-  end subroutine fixed3
+  end subroutine setBorderInside
 end module BC

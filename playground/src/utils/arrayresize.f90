@@ -29,7 +29,7 @@ contains
     do i=1,iterlimit
       array(i) = tmp(i)
     end do
-    ! deallocate(tmp)
+    deallocate(tmp)
   end subroutine
 
   pure subroutine i8resize(array, oldsize, newsize)
@@ -48,7 +48,7 @@ contains
     do i=1,iterlimit
       array(i) = tmp(i)
     end do
-    ! deallocate(tmp)
+    deallocate(tmp)
   end subroutine
 
   pure subroutine rresize(array, oldsize, newsize)
@@ -67,7 +67,7 @@ contains
     do i=1,iterlimit
       array(i) = tmp(i)
     end do
-    ! deallocate(tmp)
+    deallocate(tmp)
   end subroutine
 
   pure subroutine cresize(array, chsz, oldsize, newsize)
@@ -86,25 +86,26 @@ contains
     do i=1,iterlimit
       array(i) = tmp(i)
     end do
-    ! deallocate(tmp)
+    deallocate(tmp)
   end subroutine
 
   pure subroutine resize3r(array, oldsize, newsize)
     integer, intent(in)              :: newsize, oldsize
     real, intent(inout), allocatable :: array(:,:)
     real, allocatable                :: tmp(:,:)
-    integer                          :: i, iterlimit
+    integer                          :: i, iterlimit, dim1
 
+    dim1 = size(array,dim=1)
     iterlimit = min(newsize, oldsize)
-    allocate(tmp(3,newsize))
+    allocate(tmp(dim1,newsize))
     do i=1,iterlimit
       tmp(:,i) = array(:,i)
     end do
     deallocate(array)
-    allocate(array(3,newsize))
+    allocate(array(dim1,newsize))
     do i=1,iterlimit
       array(:,i) = tmp(:,i)
     end do
-    ! deallocate(tmp)
+    deallocate(tmp)
   end subroutine
 end module

@@ -1,5 +1,8 @@
 module printer
-
+  use const
+  use kernel, only: get_krad
+  use BC,     only: realpartnumb,&
+                    artpartnumb
   use timing, only: addTime
 
   implicit none
@@ -13,14 +16,9 @@ module printer
 
 
 contains
-  subroutine Output(time, ptype, x, v, dv, m, den, slen, pres, ien, cf, kcf, err)
-    use kernel, only: get_krad
-    use BC,     only: realpartnumb,&
-                      artpartnumb
-    real, allocatable, intent(in)    :: x(:,:), v(:,:), dv(:,:), m(:), err(:), &
-                                        den(:), slen(:), pres(:), ien(:), &
-                                        cf(:,:), kcf(:,:,:)
-    integer, allocatable, intent(in) :: ptype(:)
+  subroutine Output(time, store, err)
+    real, allocatable, intent(in) :: &
+      store(:,:), err(:)
     real, intent(in)    :: time
     real                :: kr
     character (len=40)  :: fname
@@ -35,9 +33,10 @@ contains
     open(newunit=iu, file=fname, status='replace', form='formatted')
     write(iu,*) time
     do j = 1, n
-        write(iu, *) x(:,j), v(:,j), dv(:,j),&
-          m(j), den(j), (kr/2.)*slen(j), pres(j),&
-          ien(j), cf(:,j), kcf(:,1,j), err(j)
+        write(iu, *) store(es_rx:es_rz,j), store(es_vx:es_vz,j),&
+          store(es_ax:es_az,j),store(es_m,j),store(es_den,j),&
+          store(es_h,j),store(es_p,j),store(es_u,j),store(es_t,j),&
+          store(es_bx:es_bz,j), err(j)
     end do
     close(iu)
     ifile = ifile + 1
