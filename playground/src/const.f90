@@ -37,8 +37,16 @@ module const
     es_dbz  = 27,&
     es_c    = 28,&
     es_om   = 29,&
-    es_total = 29,&
+    es_type = 30,&
+    es_total = 30,&
     es_postr = 4
+
+  ! particles types
+  integer, parameter :: &
+    ept_empty     = 0,&
+    ept_real      = 1,&
+    ept_fixed     = 2,&
+    ept_periodic  = 3
 
   ! initial setups
   integer, parameter :: &

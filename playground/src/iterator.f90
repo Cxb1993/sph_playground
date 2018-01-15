@@ -3,18 +3,17 @@ module iterator
   use const
   use circuit1
   use circuit2,         only: c2
-  use BC,               only: reflecParticlesPeriodic, &
-                              createPhantomPeriodic, &
-                              clearPhantomParticles, &
-                              createPhantomFixed, &
-                              realpartnumb, &
-                              artpartnumb, &
-                              needcrosref
+  use BC,               only: reflecPeriodicParticles, &
+                              createPeriodicBorder, &
+                              clearPeriodicParticles, &
+                              createFixedBorders, &
+                              findInsideBorderParticles
   use state,            only: get_difftype,&
                               getdim,&
                               get_tasktype, &
                               ginitvar
-  use neighboursearch,  only: findneighboursKDT
+  use neighboursearch,  only: findneighboursKDT, &
+                              findneighboursN2
 
  implicit none
 
@@ -52,29 +51,30 @@ contains
 
     select case(ivt)
     case (ett_pulse, ett_ring)
-      ! call clearPhantomParticles(store)
-      call createPhantomPeriodic(store, ebc_all)
       call findneighboursKDT(store)
       call c1(store, hfac)
       call c2(store)
-    ! case (ett_soundwave)
-    !   call clearPhantomParticles(pos)
-    !   call reflecParticlesPeriodic(pos, ebc_all)
-    !   call createPhantomPeriodic(pos, ebc_all)
-    !   call findneighboursKDT_V2(pos, h)
-    !   call c1(pos, mas, sk, h, den, om, cf, dcf)
-    !   ! call eos_adiabatic(den, uei, prs, c, gamma)
-    !   call eos_isothermal(den, c(1), prs)
-    !   call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
-    ! case (ett_hydroshock)
-    !   call clearPhantomParticles(pos)
-    !   call createPhantomFixed(pos, ebc_x)
-    !   call createPhantomPeriodic(pos, ebc_y)
-    !   call createPhantomPeriodic(pos, ebc_z)
-    !   call findneighboursKDT_V2(pos, h)
-    !   call c1(pos, mas, sk, h, den, om, cf, dcf)
-    !   call eos_adiabatic(den, uei, prs, c, gamma)
-    !   call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
+    case (ett_soundwave)
+      call clearPeriodicParticles(store)
+      call reflecPeriodicParticles(store, ebc_all)
+      call findInsideBorderParticles(store)
+      call createPeriodicBorder(store, ebc_all)
+      call findneighboursKDT(store)
+      call c1(store, hfac)
+      ! call eos_adiabatic(store, gamma)
+      call eos_isothermal(store)
+      call c2(store)
+    case (ett_hydroshock)
+      call clearPeriodicParticles(store)
+      call reflecPeriodicParticles(store, ebc_y)
+      call reflecPeriodicParticles(store, ebc_z)
+      call findInsideBorderParticles(store)
+      call createPeriodicBorder(store, ebc_y)
+      call createPeriodicBorder(store, ebc_z)
+      call findneighboursKDT(store)
+      call c1(store, hfac)
+      call eos_adiabatic(store, gamma)
+      call c2(store)
     ! case (ett_alfvenwave)
     !   call findneighboursKDT(ptype, pos, h)
     !
@@ -110,14 +110,16 @@ contains
     !   call c1(pos, mas, sk, h, den, om, cf, dcf)
     !   call eos_adiabatic(den, uei, prs, c, gamma)
     !   call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
-    ! case (ett_OTvortex)
-    !   call clearPhantomParticles(pos)
-    !   call reflecParticlesPeriodic(pos, ebc_all)
-    !   call createPhantomPeriodic(pos, ebc_all)
-    !   call findneighboursKDT_V2(pos, h)
-    !   call c1(pos, mas, sk, h, den, om, cf, dcf)
-    !   call eos_adiabatic(den, uei, prs, c, gamma)
-    !   call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
+    case (ett_OTvortex)
+      call clearPeriodicParticles(store)
+      call reflecPeriodicParticles(store, ebc_all)
+      call findInsideBorderParticles(store)
+      call createPeriodicBorder(store, ebc_all)
+      call findneighboursKDT(store)
+      ! call findneighboursN2(store)
+      call c1(store, hfac)
+      call eos_adiabatic(store, gamma)
+      call c2(store)
     case default
       print *, 'Task type was not defined in iterator:145.'
       stop

@@ -3,7 +3,6 @@ module preruncheck
   use state,  only: getdiffisotropic, &
                     getdiffconductivity, &
                     getmhdmagneticpressure
-  use BC,     only: realpartnumb
 
   implicit none
 
@@ -16,7 +15,7 @@ contains
     real, allocatable, intent(in) :: &
       store(:,:)
     integer :: &
-      err = 0, difiso
+      difiso, i
     real :: &
       difcond, mhdmprs
 
@@ -24,37 +23,38 @@ contains
     call getdiffconductivity(difcond)
     call getmhdmagneticpressure(mhdmprs)
 
-    if (minval(store(es_den,1:realpartnumb)) <= 0.) then
-      print*, "# # <!> density <= 0"
-      err = 1
-    end if
-    if (minval(store(es_c,1:realpartnumb)) <= 0.) then
-      print*, "# # <!> csound <= 0"
-      err = 1
-    end if
-    if (minval(store(es_h,1:realpartnumb)) <= 0.) then
-      print*, "# # <!> smoothing length <= 0"
-      err = 1
-    end if
-    if (minval(store(es_p,1:realpartnumb)) <= 0.) then
-      print*, "# # <!> pressure <= 0"
-      err = 1
-    end if
-    if (minval(store(es_u,1:realpartnumb)) <= 0.) then
-      print*, "# # <!> internal energy <= 0"
-      err = 1
-    end if
     if ((mhdmprs <= 0.).and.((s_tt==eeq_magnetohydro).or.(s_tt==eeq_magnetohydrodiffusion))) then
       print* , "# # <!> mhd_magneticconstant <= 0"
-      err = 1
+      stop
     end if
     if ((difiso > 0).and.(difcond <= 0)) then
       print* , "# # <!> diff_conductivity <= 0"
-      err = 1
-    end if
-    if (err == 1) then
-      print*, "# # (Ш_Ш) preruncheck: DOOOMED"
       stop
     end if
+
+    do i = 1,size(store,2)
+      if (store(es_type,i) /= ept_empty) then
+        if (store(es_den,i) <= 0.) then
+          print*, "# # <!> density <= 0"
+          stop
+        end if
+        if (store(es_c,i) <= 0.) then
+          print*, "# # <!> csound <= 0"
+          stop
+        end if
+        if (store(es_h,i) <= 0.) then
+          print*, "# # <!> smoothing length <= 0"
+          stop
+        end if
+        if (store(es_p,i) <= 0.) then
+          print*, "# # <!> pressure <= 0"
+          stop
+        end if
+        if (store(es_u,i) <= 0.) then
+          print*, "# # <!> internal energy <= 0"
+          stop
+        end if
+      end if
+    end do
   end subroutine
 end module

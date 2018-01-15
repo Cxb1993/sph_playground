@@ -8,8 +8,7 @@ module state
             setddwtype, getddwtype, getdim, setdim, sinitvar, &
             ginitvar, setAdvancedDensity, getAdvancedDensity,&
             setArtificialTerms, getArtificialTerms, &
-            setpartnum, getpartnum, scoordsys, gcoordsys, &
-            sorigin, gorigin, &
+            scoordsys, gcoordsys, sorigin, gorigin, &
             setdiffconductivity, getdiffconductivity, &
             setdiffisotropic, getdiffisotropic, &
             setmhdmagneticpressure, getmhdmagneticpressure
@@ -17,12 +16,11 @@ module state
   private
   save
     integer :: &
-      dim = 1, partnumber=-1, &
-      ttype, ddwtype, dtype, icvar=-1, adden = 1, &
+      dim = 1, ttype, ddwtype, dtype, icvar=-1, adden = 1, &
       artts = 1, coordsys = 1, origin = 0, diff_isotropic = 0
     real :: &
       diff_conductivity = 0.,&
-      mhd_magneticconstant = 0.
+      mhd_magneticconstant = 1.
 
   contains
     subroutine setdim(d)
@@ -33,16 +31,6 @@ module state
     pure subroutine getdim(d)
       integer, intent(out) :: d
       d = dim
-    end subroutine
-
-    subroutine setpartnum(d)
-      integer, intent(in) :: d
-      partnumber = d
-    end subroutine
-
-    pure subroutine getpartnum(d)
-      integer, intent(out) :: d
-      d = partnumber
     end subroutine
 
     subroutine set_tasktype(itt)
@@ -91,7 +79,7 @@ module state
         ddwtype = esd_fw
       case default
         ddwtype = esd_fab
-        write(*,blockFormatStr2) ' # # <?>', ' Default d2W/dx2: ', 'fab'
+        write(*,blockFormatStr2) ' # <?>', ' Default d2W/dx2: ', 'fab'
       end select
      !  call calc_params()
     end subroutine setddwtype
@@ -139,7 +127,7 @@ module state
        icvar = ett_hydroshock
      case('alfvenwave')
        icvar = ett_alfvenwave
-     case('OTvortex')
+     case('otvortex')
        icvar = ett_OTvortex
      case default
        print *, 'There is no such initial variable setting : ', itt
@@ -179,7 +167,7 @@ module state
        artts = 0
      case default
        artts = 1
-       write(*,blockFormatStr2) ' # # <?>', ' Default artificial terms: ', 'yes'
+       write(*,blockFormatStr2) ' # <?>', ' Default artificial terms: ', 'yes'
      end select
    end subroutine
 
@@ -197,7 +185,7 @@ module state
        coordsys = 2
      case default
        coordsys = 1
-       write(*,blockFormatStr2) ' # # <?>', ' Default coordinate system: ', 'cartesian'
+       write(*,blockFormatStr2) ' # <?>', ' Default coordinate system: ', 'cartesian'
       end select
    end subroutine
 

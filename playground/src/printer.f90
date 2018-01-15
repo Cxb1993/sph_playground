@@ -1,9 +1,8 @@
 module printer
   use const
   use kernel, only: get_krad
-  use BC,     only: realpartnumb,&
-                    artpartnumb
   use timing, only: addTime
+  use BC,     only: getRealPartNumber
 
   implicit none
 
@@ -20,23 +19,27 @@ contains
     real, allocatable, intent(in) :: &
       store(:,:), err(:)
     real, intent(in)    :: time
-    real                :: kr
+    real                :: kr, e
     character (len=40)  :: fname
-    integer :: iu = 0, j, n
+    integer :: iu = 0, j, n, rn
 
     call system_clock(start)
     call get_krad(kr)
+    call getRealPartNumber(rn)
 
-
-    n = realpartnumb + artpartnumb
+    n = size(store,2)
     write(fname, "(a,i5.5)") 'output/step_', ifile
     open(newunit=iu, file=fname, status='replace', form='formatted')
     write(iu,*) time
     do j = 1, n
+      e = 0.
+      if (j <= rn) e = err(j)
+      if (store(es_type,j) /= ept_empty) then
         write(iu, *) store(es_rx:es_rz,j), store(es_vx:es_vz,j),&
           store(es_ax:es_az,j),store(es_m,j),store(es_den,j),&
           store(es_h,j),store(es_p,j),store(es_u,j),store(es_t,j),&
-          store(es_bx:es_bz,j), err(j)
+          store(es_bx:es_bz,j), e
+      end if
     end do
     close(iu)
     ifile = ifile + 1

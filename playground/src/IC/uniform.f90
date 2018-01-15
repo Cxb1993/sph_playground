@@ -1,12 +1,10 @@
 module uniform
   use const
   use kernel
-  use state,  only: getdim
+  use state,        only: getdim
   use ArrayResize,  only: resize
-  use BC, only: setBorder,&
-                setBorderInside,&
-                realpartnumb
-
+  use BC,           only: setRealPartNumber,&
+                          setBorders
 
   implicit none
 
@@ -15,9 +13,10 @@ module uniform
   private
 
 contains
-  subroutine uniformV4(xmin, xmax, ymin, ymax, zmin, zmax, dxmin, store, dxmax, padding)
+  subroutine uniformV4(xmin, xmax, ymin, ymax, zmin, zmax, dbsz, dxmin, store, dxmax, padding)
     real, allocatable, intent(inout)    :: store(:,:)
-    real, intent(in)            :: xmin, xmax, ymin, ymax, zmin, zmax
+    real, intent(in) :: &
+      xmin, xmax, ymin, ymax, zmin, zmax, dbsz
     real, intent(inout)         :: dxmin
     real, optional, intent(in)  :: dxmax, padding
 
@@ -38,9 +37,9 @@ contains
 
     allocate(store(es_total,1))
     n = 1
-    print *, '# #       x in [',xmin,":",xmax,"]"
-    print *, '# #       y in [',ymin,":",ymax,"]"
-    print *, '# #       z in [',zmin,":",zmax,"]"
+    print *, '#  #       x in [',xmin,":",xmax,"]"
+    print *, '#  #       y in [',ymin,":",ymax,"]"
+    print *, '#  #       z in [',zmin,":",zmax,"]"
 
     if (.not.present(dxmax)) then
       dmx = dxmin
@@ -71,16 +70,18 @@ contains
           if (ptsz < n) then
             call resize(store, ptsz, ptsz*2)
           end if
-          store(es_rx,n) =        pdg*sp + sp*i
-          store(es_ry,n) = d2null*pdg*sp + sp*j
-          store(es_rz,n) = d3null*pdg*sp + sp*k
+          store(:,n) = 0.
+          store(es_rx,n)    =        pdg*sp + sp*i
+          store(es_ry,n)    = d2null*pdg*sp + sp*j
+          store(es_rz,n)    = d3null*pdg*sp + sp*k
+          store(es_type,n)  = ept_real
           n = n + 1
         end do
       end do
     end do
     n = n - 1
-
+    call setRealPartNumber(n)
+    call setBorders(xmin, xmax, ymin, ymax, zmin, zmax, dbsz)
     call resize(store,n,n)
-    realpartnumb = n
   end subroutine uniformV4
 end module uniform

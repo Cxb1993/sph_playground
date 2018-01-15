@@ -8,7 +8,7 @@ module errteylor
   use state,            only: getdim
   use neighboursearch,  only: getneighbours,&
                               isInitialized
-  use BC,               only: realpartnumb
+  use BC,               only: getRealPartNumber
   use printer,          only: AppendLine
 
   implicit none
@@ -37,7 +37,7 @@ contains
     real, intent(inout) :: chi(9)
 
     integer, allocatable :: nlist(:)
-    integer              :: i, j, l, kd, idx
+    integer              :: i, j, l, kd, idx, realpartnumb
     integer(8)           :: tneib, tprint
     real                 :: n2wa, r(3), r11, r22, r33, r12, r13, r23, kr, t(3),&
                             dsum, osum, dchi(9)
@@ -51,6 +51,7 @@ contains
 
     call get_krad(kr)
     call getdim(kd)
+    call getRealPartNumber(realpartnumb)
     chi(1:9) = 0.
     dchi(:) = 0.
     t(:) = 0.
@@ -117,7 +118,7 @@ contains
     real, intent(inout)              :: chi(81)
 
     integer, allocatable :: nlist(:)
-    integer              :: i, j, l, kd, idx, a, b, g, d, ci
+    integer              :: i, j, l, kd, idx, a, b, g, d, ci, realpartnumb
     integer(8)           :: tneib, tprint
     real                 :: r(3), kr, t(3), dr, Hes(3,3), m, dchi(81), dsum, osum
     real, allocatable    :: printres(:)
@@ -129,6 +130,8 @@ contains
 
     call get_krad(kr)
     call getdim(kd)
+    call getRealPartNumber(realpartnumb)
+
     chi(1:81) = 0.
     dchi(:) = 0.
     t(:) = 0.

@@ -14,7 +14,8 @@ module circuit1
   use neighboursearch,  only: getneighbours,&
                               getNeibListL1,&
                               getNeibListL2
-  use BC,               only: getCrossRef, needcrosref, realpartnumb
+  use BC,               only: getRealPartNumber,&
+                              getCrossRef
 
   implicit none
 
@@ -24,13 +25,14 @@ module circuit1
   save
     real, allocatable :: slnint(:), resid(:), dennew(:)
     integer(8) :: start=0, finish=0
+    integer :: realpartnumb
 
 contains
-  subroutine c1_init(n)
-    integer, intent(in) :: n
-    allocate(slnint(n))
-    allocate(resid(n))
-    allocate(dennew(n))
+  subroutine c1_init()
+    call getRealPartNumber(realpartnumb)
+    allocate(slnint(realpartnumb))
+    allocate(resid(realpartnumb))
+    allocate(dennew(realpartnumb))
   end subroutine c1_init
 
   subroutine c1(store, hfac)
@@ -62,9 +64,9 @@ contains
     real :: &
       w, dwdh, r(3), dr, r2, dfdh, fh, hn, nwa(3), &
       allowerror, maxinterr, currinterr, &
-      mb, ma, ha, da, db, ra(3), rb(3), oma
+      mb, ma, ha, da, db, ra(3), rb(3), oma, dtadx(3)
     integer :: &
-      i, rj, pj, la, lb, dim, iter, ktp
+      i, j, rj, la, lb, dim, iter, ktp
     integer(8)           :: t0, tneib
     integer, allocatable :: nlista(:), nlistb(:)
 
@@ -83,16 +85,15 @@ contains
     tneib = 0.
     maxinterr  = 0.
     currinterr = 0.
-    ! print*, nlista
-    ! print*, '1'
+
     do while ((maxval(resid, mask=(resid>0)) > allowerror) .and. (iter < 100))
       maxinterr  = 0.
       iter = iter + 1
       !$omp parallel do default(none)&
-      !$omp private(r, dr, dwdh, w, dfdh, fh, hn, rj, pj, i, la, lb, r2, t0, nlistb)&
-      !$omp private(nwa, currinterr, mb, ma, ha, da, db, ra, rb, oma)&
+      !$omp private(r, dr, dwdh, w, dfdh, fh, hn, j, rj, i, la, lb, r2, t0, nlistb)&
+      !$omp private(nwa, currinterr, mb, ma, ha, da, db, ra, rb, oma, dtadx)&
       !$omp shared(resid, allowerror, dim, hfac, ktp, maxinterr)&
-      !$omp shared(store, nlista, dennew, slnint, needcrosref)&
+      !$omp shared(store, nlista, dennew, slnint)&
       !$omp shared(nw)&
       !$omp reduction(+:tneib)
       do la = 1, size(nlista)
@@ -101,34 +102,28 @@ contains
           dennew(i) = 0.
           oma = 0.
           currinterr = 0.
-          store(es_dtdx:es_dtdz,i) = 0.
+          dtadx(:) = 0.
 
           ma = store(es_m,i)
           ha = slnint(i)
           ra(:) = store(es_rx:es_rz,i)
           da = store(es_den,i)
-          ! print*, i
           call getneighbours(i, nlistb, t0)
           tneib = tneib + t0
           ! print*, nlista
           ! print*, "a=", i, "   neibs=", nlistb, pos(:,i)
           ! read*
           do lb = 1, size(nlistb)
-            pj = nlistb(lb)                 ! phantom
-            if (needcrosref == 1) then
-              rj = getCrossRef(nlistb(lb))  ! real
-            else
-              rj = pj
-            end if
-            ! print*, "b=",lb, "id=",nlistb(lb), "real=", j
-            ! read*
-            rb(:) = store(es_rx:es_rz,pj)
+            j = nlistb(lb)
+            rj = getCrossRef(j)
+
+            rb(:) = store(es_rx:es_rz, j)
             r(:) = ra(:) - rb(:)
             r2 = dot_product(r(:),r(:))
             ! print*, -3
             dr = sqrt(r2)
-            mb = store(es_m,rj)
-            db = store(es_den,rj)
+            mb = store(es_m, rj)
+            db = store(es_den, rj)
             ! print*, -2
             call get_dw_dh(dr, ha, dwdh)
             ! print*, -1
@@ -139,14 +134,12 @@ contains
             currinterr = currinterr + mb/db * w
             if (ktp == esd_2nw) then
               call nw(r(:), ra(:), rb(:), dr, ha, nwa)
-              store(es_dtdx:es_dtdz, i) = store(es_dtdx:es_dtdz, i) &
-                + mb/db*(store(es_t,rj) - store(es_t,i))*nwa(:)
+              dtadx(:) = dtadx(:) + mb/db*(store(es_t, rj) - store(es_t, i))*nwa(:)
             end if
           end do
           ! ---------------------------------------------------------!
           !      There is no particle itself in neighbour list       !
           ! ---------------------------------------------------------!
-          ! print*,'c1', 1
           call get_w(0., ha, w)
           dennew(i) = dennew(i) + ma * w
           currinterr = currinterr + ma/da * w
@@ -172,6 +165,7 @@ contains
           resid(i) = abs(hn - ha) / store(es_h,i)
           slnint(i) = hn
           store(es_om,i) = oma
+          store(es_dtdx:es_dtdz, i) = dtadx(:)
         end if
         ! print *,'c1', dennew(i), slnint(i), om(i)
         ! read*
@@ -200,7 +194,7 @@ contains
     real :: &
       w, r(3), dr, currinterr, ra(3), rb(3), ha, ma, mb, da, db
     integer :: &
-      i, rj, pj, la, lb, dim
+      i, j, la, lb, dim
     integer, allocatable             :: nlista(:), nlistb(:)
     integer(8)                       :: t0, tneib
 
@@ -208,14 +202,15 @@ contains
     call getNeibListL2(nlista)
     call getdim(dim)
 
-    dennew(:) = store(es_den,:)
+    realpartnumb = size(nlista)
+    dennew(:) = store(es_den,1:realpartnumb)
     currinterr = 0.
 
     tneib = 0.
     !$omp parallel do default(none)&
     !$omp private(ra, rb, ha, ma, mb, da, db)&
-    !$omp private(r, dr, w, rj, pj, i, la, lb, nlistb, t0, currinterr)&
-    !$omp shared(store, hfac, dim,nlista, dennew, needcrosref)&
+    !$omp private(r, dr, w, j, i, la, lb, nlistb, t0, currinterr)&
+    !$omp shared(store, hfac, dim,nlista, dennew)&
     !$omp reduction(+:tneib)
     do la = 1, size(nlista)
       i = nlista(la)
@@ -229,15 +224,10 @@ contains
       call getneighbours(i, nlistb, t0)
       tneib = tneib + t0
       do lb = 1, size(nlistb)
-        pj = nlistb(lb)
-        if (needcrosref == 1) then
-          rj = getCrossRef(nlistb(lb))  ! real
-        else
-          rj = pj
-        end if
-        rb(:) = store(es_rx:es_rz,pj)
-        ma = store(es_m,rj)
-        db = store(es_den,rj)
+        j = nlistb(lb)
+        rb(:) = store(es_rx:es_rz, j)
+        ma = store(es_m, j)
+        db = store(es_den, j)
 
         r(:) = ra(:)-rb(:)
         dr = sqrt(dot_product(r(:),r(:)))
@@ -250,7 +240,7 @@ contains
       store(es_h,i) = hfac * (ma / dennew(i))**(1./dim)
     end do
     !$omp end parallel do
-    store(es_den,:) = dennew(:)
+    store(es_den,1:realpartnumb) = dennew(:)
 
     call system_clock(finish)
     call addTime(' circuit1', finish - start - tneib)

@@ -12,8 +12,7 @@ module NeighbourSearch
 
 public findneighboursN2, findneighboursN2plusStatic, findneighboursKDT, &
         getneighbours, getNeibNumbers, destroy, &
-        setStepsize, isInitialized, getNeibListL1, getNeibListL2, &
-        FindPeriodicBorder
+        setStepsize, isInitialized, getNeibListL1, getNeibListL2
 
 private
 save
@@ -68,146 +67,43 @@ contains
     end if
   end subroutine
 
-  subroutine FindPeriodicBorder(pos, pspc, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, &
-                                bx1, bx2, by1, by2, bz1, bz2, &
-                                inbx1, inbx2, inby1, inby2, inbz1, inbz2)
-    use list
-
-    real, allocatable, intent(in)     :: pos(:,:)
-    real, intent(in)                  :: pspc, brdx1, brdx2, brdy1, brdy2, brdz1, brdz2
-    type(intlist), intent(in)         :: bx1, bx2, by1, by2, bz1, bz2
-    integer, allocatable, intent(out) :: inbx1(:), inbx2(:), inby1(:), inby2(:), inbz1(:), inbz2(:)
-
-    real    :: approxPos, approxPosVec(3)
-    integer :: i, nfound
-    type(kdtree2), pointer :: kdtreeStore
-    type(kdtree2_result), allocatable :: kdtree_res(:)
-
-    kdtreeStore => kdtree2_create(pos)
-
-    allocate(kdtree_res(10))
-    allocate(inbx1(bx1%llen()))
-    allocate(inbx2(bx2%llen()))
-    allocate(inby1(by1%llen()))
-    allocate(inby2(by2%llen()))
-    allocate(inbz1(bz1%llen()))
-    allocate(inbz2(bz2%llen()))
-
-    do i=1,bx1%llen()
-      approxPos = brdx2 - (abs(brdx1 - pos(1,bx1%xe(i))))
-      approxPosVec(1) = approxPos
-      approxPosVec(2:3) = pos(2:3,bx1%xe(i))
-      call kdtree2_r_nearest(kdtreeStore, approxPosVec(:), &
-        (pspc/2.)**2, nfound, 10, kdtree_res)
-      if (nfound /= 1) then
-        error stop "FindPeriodicBorder: Found wrond number of candidates for a periodic particle. FIX IT."
-      end if
-      inbx1(i) = kdtree_res(1)%idx
-      ! print*, '--------------------------'
-      ! print*, nfound, kdtree_res(1)%idx, kdtree_res(1)%dis
-      ! print*, 'my pos=', pos(:,bz2%xe(i))
-      ! print*, 'target pos=', approxPosVec
-      ! print*, 'found pos=', pos(:,kdtree_res(1)%idx)
-      ! read*
-    end do
-    do i=1,bx2%llen()
-      approxPos = brdx1 + (abs(brdx2 - pos(1,bx2%xe(i))))
-      approxPosVec(1) = approxPos
-      approxPosVec(2:3) = pos(2:3,bx2%xe(i))
-      call kdtree2_r_nearest(kdtreeStore, approxPosVec(:), &
-        (pspc/2.)**2, nfound, 10, kdtree_res)
-      if (nfound /= 1) then
-        error stop "FindPeriodicBorder: Found wrond number of candidates for a periodic particle. FIX IT."
-      end if
-      inbx2(i) = kdtree_res(1)%idx
-    end do
-
-    do i=1,by1%llen()
-      approxPos = brdy2 - (abs(brdy1 - pos(2,by1%xe(i))))
-      approxPosVec(1) = pos(1,by1%xe(i))
-      approxPosVec(2) = approxPos
-      approxPosVec(3) = pos(3,by1%xe(i))
-      call kdtree2_r_nearest(kdtreeStore, approxPosVec(:), &
-        (pspc/2.)**2, nfound, 10, kdtree_res)
-      if (nfound /= 1) then
-        error stop "FindPeriodicBorder: Found wrond number of candidates for a periodic particle. FIX IT."
-      end if
-      inby1(i) = kdtree_res(1)%idx
-    end do
-    do i=1,by2%llen()
-      approxPos = brdy1 + (abs(brdy2 - pos(2,by2%xe(i))))
-      approxPosVec(1) = pos(1,by2%xe(i))
-      approxPosVec(2) = approxPos
-      approxPosVec(3) = pos(3,by2%xe(i))
-      call kdtree2_r_nearest(kdtreeStore, approxPosVec(:), &
-        (pspc/2.)**2, nfound, 10, kdtree_res)
-      if (nfound /= 1) then
-        error stop "FindPeriodicBorder: Found wrond number of candidates for a periodic particle. FIX IT."
-      end if
-      inby2(i) = kdtree_res(1)%idx
-    end do
-
-    do i=1,bz1%llen()
-      approxPos = brdz2 - (abs(brdz1 - pos(3,bz1%xe(i))))
-      approxPosVec(1:2) = pos(1:2,bz1%xe(i))
-      approxPosVec(3)   = approxPos
-      call kdtree2_r_nearest(kdtreeStore, approxPosVec(:), &
-        (pspc/2.)**2, nfound, 10, kdtree_res)
-      if (nfound /= 1) then
-        error stop "FindPeriodicBorder: Found wrond number of candidates for a periodic particle. FIX IT."
-      end if
-      inbz1(i) = kdtree_res(1)%idx
-    end do
-    do i=1,bz2%llen()
-      approxPos = brdz1 + (abs(brdz2 - pos(3,bz2%xe(i))))
-      approxPosVec(1:2) = pos(1:2,bz2%xe(i))
-      approxPosVec(3)   = approxPos
-      call kdtree2_r_nearest(kdtreeStore, approxPosVec(:), &
-        (pspc/2.)**2, nfound, 10, kdtree_res)
-      if (nfound /= 1) then
-        error stop "FindPeriodicBorder: Found wrond number of candidates for a periodic particle. FIX IT."
-      end if
-      inbz2(i) = kdtree_res(1)%idx
-    end do
-
-    call kdtree2_destroy(kdtreeStore)
-  end subroutine FindPeriodicBorder
-
   subroutine findneighboursKDT(store)
     use kernel, only: getkernelnn => getneibnumber
     use state,  only: getddwtype
-    use BC,     only: realpartnumb,&
-                      artpartnumb
-
+    use BC,     only: getRealPartNumber, getArtPartNumber
     real, allocatable, intent(in)     :: store(:,:)
     type(kdtree2), pointer            :: kdtree
     type(kdtree2_result), allocatable :: kdtree_res(:)
-    integer :: maxresultnum, sn, nfound, nlsz, i, j, al1, tx, ktp
+    integer :: &
+      maxresultnum, sn, nfound, nlsz, i, j, al1, tx, ktp, &
+      realpn, periodpn, fixedpn
     real    :: kr
 
     call system_clock(start)
     call get_krad(kr)
     call getkernelnn(maxresultnum)
     call getddwtype(ktp)
+    call getRealPartNumber(realpn)
+    call getArtPartNumber(periodpn, fixedpn)
+    sn = realpn + periodpn + fixedpn
 
-    sn = realpartnumb+artpartnumb
     kdtree => kdtree2_create(store(es_rx:es_rz,1:sn))
     allocate(kdtree_res(maxresultnum))
     if (.not.allocated(neighbours)) then
-      allocate(neighbours(realpartnumb))
+      allocate(neighbours(realpn))
     end if
 
     if (allocated(alllistlv1)) then
       deallocate(alllistlv1)
     end if
-    allocate(alllistlv1(realpartnumb))
+    allocate(alllistlv1(realpn))
 
     alllistlv1(:) = 0
     !$omp parallel do default(none)&
     !$omp private(i, j, tx, nlsz, nfound, kdtree_res)&
-    !$omp shared(store, kr, neighbours, stepsize, ktp)&
+    !$omp shared(store, kr, neighbours, stepsize, ktp, realpn)&
     !$omp shared(alllistlv1, maxresultnum, kdtree)
-    do i=1,realpartnumb,stepsize
+    do i=1,realpn,stepsize
       alllistlv1(i) = 1
       tx = 1
       call kdtree2_r_nearest_around_point(kdtree, i, 0, (kr * store(es_h,i))**2, nfound, maxresultnum, kdtree_res)
@@ -232,7 +128,7 @@ contains
     !$omp end parallel do
 
     al1 = 1
-    do i = 1,realpartnumb
+    do i = 1,realpn
       if ( alllistlv1(i) == 1 ) then
         alllistlv1(al1) = i
         al1 = al1 + 1
@@ -249,111 +145,146 @@ contains
     call addTime(' neibs', finish - start)
   end subroutine findneighboursKDT
 
-  ! simple list
-  subroutine findneighboursN2(ptype, pos, h)
-    real, allocatable, intent(in)    :: pos(:,:), h(:)
-    integer, allocatable, intent(in) :: ptype(:)
-    integer                          :: sn, i, j, tsz, tix, dim, kt, al1, al2
-    real                             :: r2, r(3), kr
+  subroutine findneighboursN2(store)
+    use BC,     only: getRealPartNumber, getArtPartNumber
+    use kernel, only: getkernelnn => getneibnumber
+
+    real, allocatable, intent(in)    :: store(:,:)
+    integer :: &
+      sn, i, j, tasz, tix, dim, kt, al1, al2, &
+      maxresultnum, realpn, periodpn, fixedpn
+    real                             :: r2, r(3), ra(3), ha, rb(3), kr
 
     call system_clock(start)
 
-    sn = size(pos, dim=2)
-
     call get_krad(kr)
-    call getdim(dim)
-    call getddwtype(kt)
+    call getkernelnn(maxresultnum)
+    call getRealPartNumber(realpn)
+    call getArtPartNumber(periodpn, fixedpn)
+    sn = realpn + periodpn + fixedpn
 
-    if(allocated(neighbours)) then
-      do i=1,sn,stepsize
-        if (ptype(i) /= 0) then
-          if (allocated(neighbours(i)%list)) then
-            deallocate(neighbours(i)%list)
+    if (.not.allocated(neighbours)) then
+      allocate(neighbours(realpn))
+      allocate(alllistlv1(realpn))
+    end if
+
+    alllistlv1(:) = 0
+    !$omp parallel do default(none)&
+    !$omp shared(store, sn, kr, neighbours, dim, stepsize, kt)&
+    !$omp shared(al1, al2, alllistlv1, alllistlv2, maxresultnum)&
+    !$omp private(i, j, tix, r, r2, tasz, ra, rb, ha)
+    do i=1,realpn,stepsize
+      alllistlv1(i) = 1
+      if (.not.(allocated(neighbours(i)%list))) then
+        allocate(neighbours(i)%list(maxresultnum))
+      end if
+      tasz = size(neighbours(i)%list)
+      tix = 0
+      ra(:) = store(es_rx:es_rz, i)
+      ha = store(es_h,i)
+      do j=1,sn
+        if (i /= j) then
+          rb(:) = store(es_rx:es_rz, j)
+          r(:) = ra(:) - rb(:)
+          r2 = dot_product(r(:),r(:))
+          if (r2 < (kr * ha)**2) then
+            tix = tix + 1
+            if (tasz < tix) then
+              call resize(neighbours(i)%list, tasz, tasz * 2)
+              tasz = tasz * 2
+            end if
+            neighbours(i)%list(tix) = j
           end if
         end if
       end do
-      deallocate(neighbours)
-    end if
-
-    allocate(neighbours(sn))
-
-    if (allocated(alllistlv1)) then
-      deallocate(alllistlv1)
-      deallocate(alllistlv2)
-    end if
-
-    allocate(alllistlv1(sn))
-    allocate(alllistlv2(sn))
-
-    ! ---------------------
-    ! what if ss == 1?
-    ! it broke hydroshock
-    ! don't remember the reason
-    !  to check it
-    ! ---------------------
-    ! if (stepsize /= 1) then
-    alllistlv1(:) = 0
-    alllistlv2(:) = 0
-    al1 = 1
-    al2 = 1
-    ! end if
-
-    !$omp parallel do default(none)&
-    !$omp shared(pos, ptype, h, sn, kr, neighbours, dim, stepsize, kt)&
-    !$omp shared(al1, al2, alllistlv1, alllistlv2)&
-    !$omp private(i, j, tix, r, r2, tsz)
-    do i=1,sn,stepsize
-      if (ptype(i) /= 0) then
-        alllistlv2(i) = 1
-        if (.not.(allocated(neighbours(i)%list))) then
-          if (dim == 1) then
-            allocate(neighbours(i)%list(10))
-          else if (dim == 2) then
-            allocate(neighbours(i)%list(50))
-          else
-            allocate(neighbours(i)%list(100))
-          end if
-        end if
-        tix = 0
-        do j=1,sn
-          if (i /= j) then
-            r(:) = pos(:,i) - pos(:,j)
-            r2 = dot_product(r(:),r(:))
-            if (r2 < (kr * h(i))**2 + eps) then
-              tix = tix + 1
-              tsz = size(neighbours(i)%list)
-              if (tsz < tix) then
-                call resize(neighbours(i)%list, tsz, tsz * 2)
-              end if
-              neighbours(i)%list(tix) = j
-              alllistlv2(j) = 1
-            end if
-          end if
-        end do
-        tsz = size(neighbours(i)%list)
-        if (tsz /= tix) then
-          call resize(neighbours(i)%list, tix, tix)
-        end if
-        !$omp critical
-        alllistlv1(al1) = i
-        al1 = al1 + 1
-        !$omp end critical
+      if (tasz /= tix) then
+        call resize(neighbours(i)%list, tix, tix)
       end if
     end do
     !$omp end parallel do
-    al1 = al1 - 1
-    call resize(alllistlv1, al1, al1)
-    do i = 1,sn
-      if ( alllistlv2(i) == 1 ) then
-        alllistlv2(al2) = i
-        al2 = al2 + 1
+
+    al1 = 0
+    do i = 1,realpn
+      if ( alllistlv1(i) == 1 ) then
+        al1 = al1 + 1
+        alllistlv1(al1) = i
       end if
     end do
-    al2 = al2 - 1
-    call resize(alllistlv2, al2, al2)
+    call resize(alllistlv1, al1, al1)
 
     initialized = 1.
+    call system_clock(finish)
+    call addTime(' neibs', finish - start)
+  end subroutine
 
+  subroutine findneighboursFF(store)
+    use BC,     only: getRealPartNumber, getArtPartNumber
+    use kernel, only: getkernelnn => getneibnumber
+
+    real, allocatable, intent(in)    :: store(:,:)
+    integer :: &
+      sn, i, j, tasz, tix, dim, kt, al1, al2, &
+      maxresultnum, realpn, periodpn, fixedpn
+    real                             :: r2, r(3), ra(3), ha, rb(3), kr
+
+    call system_clock(start)
+
+    call get_krad(kr)
+    call getkernelnn(maxresultnum)
+    call getRealPartNumber(realpn)
+    call getArtPartNumber(periodpn, fixedpn)
+    sn = realpn + periodpn + fixedpn
+
+    if (.not.allocated(neighbours)) then
+      allocate(neighbours(realpn))
+      allocate(alllistlv1(realpn))
+    end if
+
+    alllistlv1(:) = 0
+    !$omp parallel do default(none)&
+    !$omp shared(store, sn, kr, neighbours, dim, stepsize, kt)&
+    !$omp shared(al1, alllistlv1, maxresultnum)&
+    !$omp private(i, j, tix, r, r2, tasz, ra, rb, ha)
+    do i=1,realpn,stepsize
+      alllistlv1(i) = 1
+      if (.not.(allocated(neighbours(i)%list))) then
+        allocate(neighbours(i)%list(maxresultnum))
+      end if
+      tasz = size(neighbours(i)%list)
+      tix = 0
+      ra(:) = store(es_rx:es_rz, i)
+      ha = store(es_h,i)
+      do j=1,sn
+        if (i /= j) then
+          rb(:) = store(es_rx:es_rz, j)
+          r(:) = ra(:) - rb(:)
+          r2 = dot_product(r(:),r(:))
+          if (r2 < (kr * ha)**2) then
+            tix = tix + 1
+            if (tasz < tix) then
+              call resize(neighbours(i)%list, tasz, tasz * 2)
+              tasz = tasz * 2
+            end if
+            neighbours(i)%list(tix) = j
+          end if
+        end if
+      end do
+      if (tasz /= tix) then
+        call resize(neighbours(i)%list, tix, tix)
+      end if
+    end do
+    !$omp end parallel do
+
+    al1 = 0
+    do i = 1,realpn
+      if ( alllistlv1(i) == 1 ) then
+        al1 = al1 + 1
+        alllistlv1(al1) = i
+      end if
+    end do
+    call resize(alllistlv1, al1, al1)
+
+    initialized = 1.
     call system_clock(finish)
     call addTime(' neibs', finish - start)
   end subroutine

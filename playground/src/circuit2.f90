@@ -14,13 +14,13 @@ module circuit2
                               get_tasktype, getddwtype, &
                               getAdvancedDensity, &
                               getArtificialTerms, &
-                              getpartnum, &
                               ginitvar, &
                               gorigin, &
                               getdiffisotropic, &
                               getdiffconductivity, &
                               getmhdmagneticpressure
-
+  use BC,               only: getRealPartNumber,&
+                              getCrossRef
   implicit none
 
   public :: c2init, c2
@@ -28,14 +28,14 @@ module circuit2
   private
   save
     integer(8)  :: start=0, finish=0
-    integer     :: s_dim, s_ttp, s_ktp, s_adden, s_artts, s_ivt, initdone = 0, s_origin
+    integer :: &
+      s_dim, s_ttp, s_ktp, s_adden, s_artts, s_ivt, initdone = 0, s_origin, realpartnumb
     real        :: s_kr
-    real, allocatable :: dcftmp(:,:)
 
 contains
 
-  subroutine c2init()
-    integer :: n
+  subroutine c2init(n)
+    integer, intent(in) :: n
 
     call getdim(s_dim)
     call get_krad(s_kr)
@@ -45,31 +45,25 @@ contains
     call getArtificialTerms(s_artts)
     call ginitvar(s_ivt)
     call gorigin(s_origin)
-
-    if (s_ktp == esd_2nw) then
-      call getpartnum(n)
-      allocate(dcftmp(3,n))
-    end if
     initdone = 1
   end subroutine
 
   subroutine c2(store)
-    use BC,     only: getCrossRef, needcrosref
     real, allocatable, intent(inout) :: store(:,:)
 
     real :: &
-      dr, rhoa, rhob, ra(3), rb(3), &
-      qa(3), qb(3), qc, qd(3), r2, &
+      dr, rhoa, rhob, ra(3), rb(3), qa(3), qb(3), qc, qd(3), r2,&
       nwa(3), nwb(3), rab(3), vab(3), vba(3), urab(3), &
       Hesa(3,3), odda, oddb, kta(3,3), ktb(3,3), ktab(3,3), &
       tmpt1(3,3), tmpt2(3,3), tmpt3(3,3), MPa(3,3), MPb(3,3), Mc(3),&
-      difcond, mhdmuzero,&
       dva(3), dua, dha, ddta, dba(3), ba(3), bb(3), va(3), vb(3),&
-      ha, hb, ca, cb, pa, pb, ua, ub, oma, omb, ta, tb, ma, mb
+      ha, hb, ca, cb, pa, pb, ua, ub, oma, omb, ta, tb, ma, mb, &
+      dtadx(3), dtbdx(3), &
+      difcond, mhdmuzero
 
     integer, allocatable :: nlista(:), nlistb(:)
     integer :: &
-      i, rj, pj, la, lb, li, lj, difiso
+      i, j, rj, la, lb, li, lj, difiso
     integer(8)           :: t0, tneib
 
     call system_clock(start)
@@ -78,32 +72,25 @@ contains
     call getdiffconductivity(difcond)
 
     if (initdone == 0) then
-      call c2init()
-    end if
-
-    if (s_ktp == esd_2nw) then
-      dcftmp(:,:) = store(es_dtdx:es_dtdz,:)
-      store(es_dtdx:es_dtdz,:) = 0.
+      call c2init(size(store,2))
     end if
 
     tneib = 0.
     call getNeibListL1(nlista)
     !$omp parallel do default(none)&
     !$omp private(rab, dr, ra, rb, vab, urab, rhoa, rhob, nwa, nwb, qa, qb, qc, qd)&
-    !$omp private(rj, pj, i, r2, odda ,oddb, la, lb)&
+    !$omp private(i, j, rj, r2, odda ,oddb, la, lb)&
     !$omp private(nlistb, Hesa, vba, t0, kta, ktb, ktab)&
     !$omp private(tmpt1, tmpt2, tmpt3, li, lj, MPa, MPb, Mc)&
     !$omp private(ha, hb, ca, cb, pa, pb, ua, ub, oma, omb, ta, tb, ma, mb)&
-    !$omp private(dva, dua, dha, ddta, dba, ba, bb, va, vb)&
-    !$omp shared(store, nlista, dcftmp)&
+    !$omp private(dva, dua, dha, ddta, dba, ba, bb, va, vb, dtadx, dtbdx)&
+    !$omp shared(store, nlista)&
     !$omp shared(s_dim, s_kr, s_ktp, s_ttp, s_adden, s_artts, s_ivt)&
     !$omp shared(nw, hessian, hessian_rr)&
     !$omp shared(difcond, difiso, mhdmuzero)&
-    !$omp shared(needcrosref)&
     !$omp reduction(+:tneib)
     overa: do la = 1, size(nlista)
       i = nlista(la)
-
       rhoa  = store(es_den,i)
       ra(:) = store(es_rx:es_rz,i)
       ba(:) = store(es_bx:es_bz,i)
@@ -115,7 +102,7 @@ contains
       oma = store(es_om,i)
       ta  = store(es_t,i)
       ma  = store(es_m,i)
-
+      dtadx(:) = store(es_dtdx:es_dtdz,i)
       dva(:) = 0.
       dua = 0.
       dha = 0.
@@ -127,7 +114,6 @@ contains
       tmpt3(:,:) = 0.
       kta(:,:) = 0.
       ktb(:,:) = 0.
-
       call getneighbours(i, nlistb, t0)
       tneib = tneib + t0
       select case (s_ttp)
@@ -149,24 +135,22 @@ contains
         end if
       end select
       overb: do lb = 1, size(nlistb)
-        pj = nlistb(lb)
-        if (needcrosref == 1) then
-          rj = getCrossRef(nlistb(lb))  ! real
-        else
-          rj = pj
-        end if
 
-        rhob = store(es_den,rj)
-        rb(:) = store(es_rx:es_rz,pj)
-        bb(:) = store(es_bx:es_bz,rj)
-        vb(:) = store(es_vx:es_vz,rj)
-        hb = store(es_h,rj)
-        cb = store(es_c,rj)
-        pb = store(es_p,rj)
-        ub = store(es_u,rj)
-        omb = store(es_om,rj)
-        tb = store(es_t,rj)
-        mb = store(es_m,rj)
+        j = nlistb(lb)
+        rj = getCrossRef(j)
+
+        rb(:) = store(es_rx:es_rz, j)
+        bb(:) = store(es_bx:es_bz, rj)
+        vb(:) = store(es_vx:es_vz, rj)
+        rhob = store(es_den, rj)
+        hb = store(es_h, rj)
+        cb = store(es_c, rj)
+        pb = store(es_p, rj)
+        ub = store(es_u, rj)
+        omb = store(es_om, rj)
+        tb = store(es_t, rj)
+        mb = store(es_m, rj)
+        dtbdx(:) = store(es_dtdx:es_dtdz, rj)
 
         qa(:) = 0.
         qb(:) = 0.
@@ -198,7 +182,6 @@ contains
                       dot_product(vab(:), qa(:))/(rhoa * oma) + &
                       qc &
                     )
-
         case (eeq_magnetohydro)
           MPa(:,:) = 0.
           MPb(:,:) = 0.
@@ -259,7 +242,6 @@ contains
               end do
             end do
           end if
-
           call nw(rab, ra, rb, dr, ha, nwa)
           call nw(rab, ra, rb, dr, hb, nwb)
 
@@ -285,12 +267,12 @@ contains
           else if (s_ktp == esd_2nw) then
             odda = 1./oma/rhoa/rhoa
             oddb = 1./omb/rhob/rhob
-            qa(1) = dot_product(kta(1,:),dcftmp(:,i))
-            qa(2) = dot_product(kta(2,:),dcftmp(:,i))
-            qa(3) = dot_product(kta(3,:),dcftmp(:,i))
-            qb(1) = dot_product(ktb(1,:),dcftmp(:,rj))
-            qb(2) = dot_product(ktb(2,:),dcftmp(:,rj))
-            qb(3) = dot_product(ktb(3,:),dcftmp(:,rj))
+            qa(1) = dot_product(kta(1,:),dtadx(:))
+            qa(2) = dot_product(kta(2,:),dtadx(:))
+            qa(3) = dot_product(kta(3,:),dtadx(:))
+            qb(1) = dot_product(ktb(1,:),dtbdx(:))
+            qb(2) = dot_product(ktb(2,:),dtbdx(:))
+            qb(3) = dot_product(ktb(3,:),dtbdx(:))
 
             ddta = ddta + mb*( &
               dot_product(qa(:),nwa(:))*odda + dot_product(qb(:),nwb(:))*oddb)
@@ -298,6 +280,7 @@ contains
               print*, "# <!> second deriv id not found"
               stop
           end if
+
         case (eeq_magnetohydrodiffusion)
           MPa(:,:) = 0.
           MPb(:,:) = 0.
@@ -381,12 +364,12 @@ contains
           else if (s_ktp == esd_2nw) then
             odda = 1./oma/rhoa/rhoa
             oddb = 1./omb/rhob/rhob
-            qa(1) = dot_product(kta(1,:),dcftmp(:,i))
-            qa(2) = dot_product(kta(2,:),dcftmp(:,i))
-            qa(3) = dot_product(kta(3,:),dcftmp(:,i))
-            qb(1) = dot_product(ktb(1,:),dcftmp(:,rj))
-            qb(2) = dot_product(ktb(2,:),dcftmp(:,rj))
-            qb(3) = dot_product(ktb(3,:),dcftmp(:,rj))
+            qa(1) = dot_product(kta(1,:),dtadx(:))
+            qa(2) = dot_product(kta(2,:),dtadx(:))
+            qa(3) = dot_product(kta(3,:),dtadx(:))
+            qb(1) = dot_product(ktb(1,:),dtbdx(:))
+            qb(2) = dot_product(ktb(2,:),dtbdx(:))
+            qb(3) = dot_product(ktb(3,:),dtbdx(:))
 
             ddta = ddta + mb*( &
               dot_product(qa(:),nwa(:))*odda + dot_product(qb(:),nwb(:))*oddb)
@@ -418,6 +401,7 @@ contains
           stop
         end select
         ! print*, 4, 95, dha + mb * dot_product(vab(:), nwa(:))
+
         if (s_adden == 1) then
           dha = dha + mb * dot_product(vab(:), nwa(:))
         end if
@@ -445,6 +429,7 @@ contains
         print *, 'Task type was not set in circuit2 outside circle'
         stop
       end select
+
       store(es_ax:es_az,i) = dva(:)
       store(es_du,i) = dua
       store(es_dh,i) = dha
@@ -452,10 +437,6 @@ contains
       store(es_dbx:es_dbz,i) = dba(:)
     end do overa
     !$omp end parallel do
-    if (sum(store(es_ax:es_az,:)) /= 0.) then
-      print*,sum(store(es_ax:es_az,:))
-      read*
-    end if
     call system_clock(finish)
     call addTime(' circuit2', finish - start - tneib)
   end subroutine

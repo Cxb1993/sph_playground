@@ -46,7 +46,7 @@ module args
       artts = ''
       coordsysstr = ''
 
-      print*, "# #"
+      print*, "#  #"
 
       numargs = command_argument_count()
       if ( numargs > 0 )then
@@ -107,40 +107,40 @@ module args
       dtout = tfinish / npic
       call set_difftype(dtype)
 
-      print*, "# #"
-      write(*,blockFormatInt) " # #", "dim:", dim
+      print*, "#  #"
+      write(*,blockFormatInt) " #  #", "dim:", dim
       if (coordsysstr /= '') then
-        write(*,blockFormatStr) " # #", "coordinate system: ", coordsysstr
+        write(*,blockFormatStr) " #  #", "coordinate system: ", coordsysstr
       end if
-      write(*,blockFormatStr) " # #", "equations: ", itype
+      write(*,blockFormatStr) " #  #", "equations: ", itype
       if (initvart /= '') then
         call sinitvar(initvart)
-        write(*,blockFormatStr) " # #", "task type: ", initvart
+        write(*,blockFormatStr) " #  #", "task type: ", initvart
       end if
       call setAdvancedDensity(adden)
-      write(*,blockFormatStr) " # #", "advanced density: ", adden
+      write(*,blockFormatStr) " #  #", "advanced density: ", adden
       if (artts /= '') then
-        write(*,blockFormatStr) " # #", "artificail terms: ", artts
+        write(*,blockFormatStr) " #  #", "artificail terms: ", artts
       end if
-      write(*,blockFormatStr) " # #", "result file: ", errfname
+      write(*,blockFormatStr) " #  #", "result file: ", errfname
       if (kerninflname /= '') then
         call setInfluenceCalc(kerninflname)
-        write(*,blockFormatStr) " # #", "kernel influence file name: ", kerninflname
+        write(*,blockFormatStr) " #  #", "kernel influence file name: ", kerninflname
       end if
       if (ddwtype /= '') then
-        write(*,blockFormatStr) " # #", "kernel type: ", ddwtype
+        write(*,blockFormatStr) " #  #", "kernel type: ", ddwtype
       end if
       call getkernelname(kname)
-      write(*,blockFormatStr) " # #", "kernel name: ", kname
-      write(*,blockFormatFlt) " # #", "print dt: ", dtout
-      write(*,blockFormatFlt) " # #", "hfac: ", sk
-      write(*,blockFormatStr) " # #", "second derivative type: ", dtype
-      write(*,blockFormatStr) " # #", "silent mode: ", silentstr
+      write(*,blockFormatStr) " #  #", "kernel name: ", kname
+      write(*,blockFormatFlt) " #  #", "print dt: ", dtout
+      write(*,blockFormatFlt) " #  #", "hfac: ", sk
+      write(*,blockFormatStr) " #  #", "second derivative type: ", dtype
+      write(*,blockFormatStr) " #  #", "silent mode: ", silentstr
       if (pspc1 > 0) then
-        write(*,blockFormatFlt) " # #", "desired spacing: ", pspc1
+        write(*,blockFormatFlt) " #  #", "desired spacing: ", pspc1
       end if
       if (resol > 0) then
-        write(*,blockFormatInt) " # #", "desired resolution: ", resol
+        write(*,blockFormatInt) " #  #", "desired resolution: ", resol
       end if
 
       call initkernel(dim)

@@ -1,10 +1,8 @@
 program main
-  use BC,               only: bcdestroy => destroy,&
-                              realpartnumb
+  use BC,               only: getRealPartNumber
   use setup,            only: setupV2
   use state,            only: get_tasktype,&
                               ginitvar,&
-                              setpartnum,&
                               getdiffisotropic, &
                               getdiffconductivity, &
                               getmhdmagneticpressure
@@ -54,7 +52,7 @@ program main
     itype, errfname, ktype, dtype
   integer :: &
     n, dim, iter, s_tt, nusedl1, nusedl2, printlen, silent,&
-    ivt, stopiter, resol, difiso
+    ivt, stopiter, resol, difiso, realpartnumb
 
   integer(8) :: &
     tprint
@@ -68,7 +66,6 @@ program main
 
   call setupV2(n, sk, gamma, cv, pspc1, resol, store)
 
-  call setpartnum(n)
   call get_tasktype(s_tt)
   call ginitvar(ivt)
   call getdiffisotropic(difiso)
@@ -91,6 +88,7 @@ program main
   allocate(result(100))
   result(:) = 0.
   result(1) = pspc1
+  call getRealPartNumber(realpartnumb)
   result(2) = realpartnumb
   n = realpartnumb
 
@@ -111,7 +109,7 @@ program main
   err(:) = 0.
 
   call tinit()
-  call c1_init(n)
+  call c1_init()
   stopiter = 0
   print *, "# Finish time = ", tfinish
 
@@ -237,7 +235,7 @@ program main
   ! end select
 
   select case(ivt)
-  case (ett_pulse, ett_OTvortex)
+  case (ett_pulse, ett_OTvortex, ett_ring)
     printlen = 5
   case (ett_sin3)
     call err_sinxet(store, t, err)
@@ -283,7 +281,6 @@ program main
   call neibDestroy()
   call c1destroy()
   call timedestroy()
-  call bcdestroy()
 end program
 
 subroutine set_stepping(i)

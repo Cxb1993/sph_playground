@@ -1,7 +1,7 @@
 module errcalc
   use const
   use omp_lib
-  use BC
+  use BC,               only: getRealPartNumber
   use state,            only: getdim,&
                               get_tasktype,&
                               ginitvar
@@ -19,25 +19,25 @@ module errcalc
 
 contains
 
-subroutine shockTube(store, t, err)
-  use exactshocktube
-  real, allocatable, intent(in)    :: store(:,:)
-  real, allocatable, intent(inout) :: err(:)
-  real, intent(in)                 :: t
+  subroutine shockTube(store, t, err)
+    use exactshocktube
+    real, allocatable, intent(in)    :: store(:,:)
+    real, allocatable, intent(inout) :: err(:)
+    real, intent(in)                 :: t
 
-  integer           :: i, n
-  real, allocatable :: exact(:), xpass(:)
+    integer           :: i, n
+    real, allocatable :: exact(:), xpass(:)
 
-  n = size(store,dim=2)
-  allocate(xpass(n))
-  allocate(exact(n))
-  xpass(:) = store(es_rx,:)
-  call exact_shock(1, t, 1.4, 0., 1., 1./8., 1., 0.1, 0., 0., xpass, exact)
+    call getRealPartNumber(n)
+    allocate(xpass(n))
+    allocate(exact(n))
+    xpass(:) = store(es_rx,1:n)
+    call exact_shock(1, t, 1.4, 0., 1., 1./8., 1., 0.1, 0., 0., xpass, exact)
 
-  do i = 1,n
-    err(i) = abs(store(es_den,i)-exact(i))
-  end do
-end subroutine
+    do i = 1,n
+      err(i) = abs(store(es_den,i)-exact(i))
+    end do
+  end subroutine
 
   subroutine err_T0sxsyet(n, pos, num, t, err)
     integer, intent(in) :: n
