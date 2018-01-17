@@ -148,7 +148,8 @@ program main
       ! dt = .1 * mhd_magneticconstant * minval(den(1:realpartnumb)) * minval(c(1:realpartnumb)) * &
       !           minval(h(1:realpartnumb)) ** 2 / &
       !           merge(maxval(kcf(:,1,1:realpartnumb)), 1., maxval(kcf(:,1,1:realpartnumb))>0)
-      dt = .1 * mhdmuzero &
+      ! dt = .1 * mhdmuzero &
+      dt = 1. * mhdmuzero &
               * minval(store(es_den,1:n)) &
               * minval(store(es_c,1:n)) &
               * minval(store(es_h,1:n)) ** 2 &

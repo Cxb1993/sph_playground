@@ -10,13 +10,13 @@ module BC
   public :: &
     setBorders, setRealPartNumber, getRealPartNumber, reflecPeriodicParticles,&
     createPeriodicBorder, clearPeriodicParticles, createFixedBorders,&
-    findInsideBorderParticles, getCrossRef, getArtPartNumber
+    findInsideBorderParticles, getCrossRef, getArtPartNumber, updateFixedToSymmetric
 
   private
   save
     type(intlist) :: &
       ibx1, ibx2, iby1, iby2, ibz1, ibz2, &
-      crossref
+      crossref, fixedreal, fixedbrdr
     integer(8) :: &
       start=0, finish=0
 
@@ -257,6 +257,7 @@ contains
         end if
         store(es_rx:es_rz,k) = store(es_rx:es_rz,pi)
         store(es_rx,k) = xmax + (store(es_rx,k) - xmin)
+        store(es_type,k) = ept_periodic
         call crossref%append(pi)
         if (dim > 1) then
           if (store(es_ry,k) < boxmin(2)) then
@@ -283,6 +284,7 @@ contains
         end if
         store(es_rx:es_rz,k) = store(es_rx:es_rz,pi)
         store(es_rx,k) = xmin + (store(es_rx,k) - xmax)
+        store(es_type,k) = ept_periodic
         call crossref%append(pi)
         if (dim > 1) then
           if (store(es_ry,k) < boxmin(2)) then
@@ -312,6 +314,7 @@ contains
           end if
           store(es_rx:es_rz,k) = store(es_rx:es_rz,pi)
           store(es_ry,k) = ymax + (store(es_ry,k) - ymin)
+          store(es_type,k) = ept_periodic
           do while (pi > selfcrossref)
             pi = getCrossRef(pi)
           end do
@@ -334,6 +337,7 @@ contains
           end if
           store(es_rx:es_rz,k) = store(es_rx:es_rz,pi)
           store(es_ry,k) = ymin + (store(es_ry,k) - ymax)
+          store(es_type,k) = ept_periodic
           do while (pi > selfcrossref)
             pi = getCrossRef(pi)
           end do
@@ -359,6 +363,7 @@ contains
             end if
             store(es_rx:es_rz,k) = store(es_rx:es_rz,pi)
             store(es_rz,k) = zmax + (store(es_rz,k) - zmin)
+            store(es_type,k) = ept_periodic
             do while (pi > selfcrossref)
               pi = getCrossRef(pi)
             end do
@@ -374,6 +379,7 @@ contains
             end if
             store(es_rx:es_rz,k) = store(es_rx:es_rz,pi)
             store(es_rz,k) = zmin + (store(es_rz,k) - zmax)
+            store(es_type,k) = ept_periodic
             do while (pi > selfcrossref)
               pi = getCrossRef(pi)
             end do
@@ -395,7 +401,7 @@ contains
       i, pi, k, dim, storesize, refidx, prevrfpn
 
     call findInsideBorderParticles(store)
-    
+
     call system_clock(start)
     call getdim(dim)
     storesize = size(store,2)
@@ -405,6 +411,8 @@ contains
       do i=1,ibx1%llen()
         k = k + 1
         pi = ibx1%xe(i)
+        call fixedreal%append(pi)
+        call fixedbrdr%append(k)
         if (storesize < k) then
           call resize(store,storesize, 2*storesize)
           storesize = 2*storesize
@@ -431,6 +439,8 @@ contains
       do i=1,ibx2%llen()
         k = k + 1
         pi = ibx2%xe(i)
+        call fixedreal%append(pi)
+        call fixedbrdr%append(k)
         if (storesize < k) then
           call resize(store,storesize, 2*storesize)
           storesize = 2*storesize
@@ -460,6 +470,8 @@ contains
         do i=1,iby1%llen()
           k = k + 1
           pi = iby1%xe(i)
+          call fixedreal%append(pi)
+          call fixedbrdr%append(k)
           if (storesize < k) then
             call resize(store,storesize, 2*storesize)
             storesize = 2*storesize
@@ -479,6 +491,8 @@ contains
         do i=1,iby2%llen()
           k = k + 1
           pi = iby2%xe(i)
+          call fixedreal%append(pi)
+          call fixedbrdr%append(k)
           if (storesize < k) then
             call resize(store,storesize, 2*storesize)
             storesize = 2*storesize
@@ -501,6 +515,8 @@ contains
           do i=1,ibz1%llen()
             k = k + 1
             pi = ibz1%xe(i)
+            call fixedreal%append(pi)
+            call fixedbrdr%append(k)
             if (storesize < k) then
               call resize(store,storesize, 2*storesize)
               storesize = 2*storesize
@@ -513,6 +529,8 @@ contains
           do i=1,ibz2%llen()
             k = k + 1
             pi = ibz2%xe(i)
+            call fixedreal%append(pi)
+            call fixedbrdr%append(k)
             if (storesize < k) then
               call resize(store,storesize, 2*storesize)
               storesize = 2*storesize
@@ -529,4 +547,23 @@ contains
     call system_clock(finish)
     call addTime(' bc', finish - start)
   end subroutine createFixedBorders
+
+  subroutine updateFixedToSymmetric(store, indexes)
+    real, allocatable, intent(inout) :: store(:,:)
+    integer, dimension(:), intent(in) :: indexes
+
+    integer :: &
+      i, j, ri, bi
+
+    call system_clock(start)
+    do i = 1,fixedreal%llen()
+      ri = fixedreal%xe(i)
+      bi = fixedbrdr%xe(i)
+      do j = 1,size(indexes,1)
+        store(indexes(j),bi) = -store(indexes(j),ri)
+      end do
+    end do
+    call system_clock(finish)
+    call addTime(' bc', finish - start)
+  end subroutine updateFixedToSymmetric
 end module BC

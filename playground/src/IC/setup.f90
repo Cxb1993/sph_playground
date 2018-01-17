@@ -108,6 +108,7 @@ contains
       brdz2 = d3null*1./10.
       bordersize = nb*pspc2
       call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
+      call createFixedBorders(store, ebc_y)
     case (ett_soundwave)
       rho1 = 1.
       g = 5./3.
@@ -365,12 +366,12 @@ contains
           cca(1) = dot_product(ra(:),ra(:))
           if (cca(1) > 0) then
             cca(:) = ra(:)/sqrt(cca(1))
-            store(es_bx:es_bz,i) = 10e-11*cca(1)
-            store(es_vx:es_vz,i) = 10e-2*1.*sin(4.*pi*ra(1)/(brdx2-brdx1))*cca(2)
+            store(es_by,i) = 10e-11
+            store(es_vy,i) = 10e-2*1.*sin(4.*pi*ra(1)/(brdx2-brdx1))
           end if
           store(es_vy,i) = d2null*store(es_vy,i)
-          store(es_vz,i) = d3null*store(es_vz,i)
           store(es_by,i) = d2null*store(es_by,i)
+          store(es_vz,i) = d3null*store(es_vz,i)
           store(es_bz,i) = d3null*store(es_bz,i)
         case (ett_OTvortex)
           store(es_h,i)   = sk * sp

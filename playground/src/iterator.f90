@@ -7,7 +7,8 @@ module iterator
                               createPeriodicBorder, &
                               clearPeriodicParticles, &
                               createFixedBorders, &
-                              findInsideBorderParticles
+                              findInsideBorderParticles, &
+                              updateFixedToSymmetric
   use state,            only: get_difftype,&
                               getdim,&
                               get_tasktype, &
@@ -96,27 +97,22 @@ contains
     !   dbtmp(:,:) = kcf(:,2,:)
     !   call periodic3v2(dbtmp, ebc_all)
     !   kcf(:,2,:) = dbtmp(:,:)
-    ! case(ett_mti)
-    !   call clearPhantomParticles(pos)
-    !   call reflecParticlesPeriodic(pos, ebc_x)
-    !   call createPhantomPeriodic(pos, ebc_x)
-    !   artpn1 = artpartnumb
-    !   call createPhantomFixed(pos, ebc_y)
-    !   artpn2 = artpartnumb
-    !   ! expand all storage and fill [artpn1:artpn2] with what ever I want
-    !   print*, size(pos,dim=2), realpartnumb, artpn1, artpn2
-    !   read*
-    !   call findneighboursKDT_V2(pos, h)
-    !   call c1(pos, mas, sk, h, den, om, cf, dcf)
-    !   call eos_adiabatic(den, uei, prs, c, gamma)
-    !   call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
+    case(ett_mti)
+      call clearPeriodicParticles(store)
+      call reflecPeriodicParticles(store, ebc_x)
+      call findInsideBorderParticles(store)
+      call createPeriodicBorder(store, ebc_x)
+      call findneighboursKDT(store)
+      call updateFixedToSymmetric(store, [es_vx, es_vy, es_vz, es_bx, es_by, es_bz])
+      call c1(store, hfac)
+      call eos_adiabatic(store, gamma)
+      call c2(store)
     case (ett_OTvortex)
       call clearPeriodicParticles(store)
       call reflecPeriodicParticles(store, ebc_all)
       call findInsideBorderParticles(store)
       call createPeriodicBorder(store, ebc_all)
       call findneighboursKDT(store)
-      ! call findneighboursN2(store)
       call c1(store, hfac)
       call eos_adiabatic(store, gamma)
       call c2(store)
