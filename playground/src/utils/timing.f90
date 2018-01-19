@@ -36,13 +36,13 @@ module timing
     integer(8) :: nonzeroval
     integer :: n, i, f
 
-    if (inval == 0) then
-      ! huge error could be here, as it is hardware dependent
-      nonzeroval = 1000
-    else
-      nonzeroval = inval
-    end if
-
+    ! if (inval == 0) then
+    !   ! huge error could be here, as it is hardware dependent
+    !   nonzeroval = 1000
+    ! else
+    !   nonzeroval = inval
+    ! end if
+    nonzeroval = inval
     n = size(names)
     f = 0
 

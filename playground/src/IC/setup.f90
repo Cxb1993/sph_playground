@@ -14,7 +14,9 @@ module setup
                               setdiffisotropic, &
                               setdiffconductivity, &
                               setmhdmagneticpressure
-  use BC,               only: createFixedBorders
+  use BC,               only: createFixedBorders, &
+                              getRealPartNumber, &
+                              getArtPartNumber
   use uniform,          only: uniformV4
   use neighboursearch,  only: getneighbours, &
                               getNeibListL1, &
@@ -28,10 +30,10 @@ module setup
   integer(8) :: start=0, finish=0
 contains
 
-  subroutine setupV2(n, sk, g, cv, pspc1, resol, store)
+  subroutine setupV2(n, sk, gamma, cv, pspc1, resol, store)
     real, allocatable, intent(inout) :: store(:,:)
     real, intent(in)        :: sk, cv
-    real, intent(inout)     :: pspc1, g
+    real, intent(inout)     :: pspc1, gamma
     integer, intent(inout)  :: n, resol
 
     real :: &
@@ -39,7 +41,7 @@ contains
       brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, eA, &
       cca(3), qmatr(3,3), pspc2, theta, phi, bordersize
     integer :: &
-      i, nb, tt, kt, dim, ivt, cs, d2null, d3null
+      i, nb, tt, kt, dim, ivt, cs, d2null, d3null, rpn, fpn, ppn
     ! integer, allocatable :: nlista(:)
 
     call system_clock(start)
@@ -71,7 +73,7 @@ contains
       call setdiffconductivity(1.)
       rho1 = 1.
       prs1 = 1.
-      g = 2.
+      gamma = 2.
 
       brdx1 = -1.
       brdx2 =  1.
@@ -93,7 +95,7 @@ contains
       call setdiffconductivity(0.01)
 
       rho1 = 1.
-      g    = 5./3.
+      gamma    = 5./3.
 
       brdx1 = 0.
       brdx2 = 1./10.
@@ -111,7 +113,7 @@ contains
       call createFixedBorders(store, ebc_y)
     case (ett_soundwave)
       rho1 = 1.
-      g = 5./3.
+      gamma= 5./3.
       eA = 0.1
       prs1 = 1.
 
@@ -129,7 +131,7 @@ contains
       bordersize = nb*pspc2
       call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
     case (ett_hydroshock)
-      g = 1.4
+      gamma= 1.4
       prs1 = 1.
       prs2 = prs1 / 10.
       rho1 = 1.
@@ -160,7 +162,7 @@ contains
       phi = pi/2.
 
       rho1 = 1.
-      g    = 5./3.
+      gamma   = 5./3.
       eA   = 0.1
       prs1 = 0.1
 
@@ -192,7 +194,7 @@ contains
     case (ett_OTvortex)
       prs1 = 0.133
       rho1 = 0.221
-      g    = 5./3.
+      gamma   = 5./3.
 
       brdx1 = 0.
       brdx2 = 1.
@@ -218,189 +220,209 @@ contains
       stop
     end if
 
-    n = size(store,2)
-    write(*,blockFormatInt) " #  #", "allocated particles:", n
+    call getRealPartNumber(rpn)
+    call getArtPartNumber(fpn, ppn)
 
+    write(*,blockFormatInt) " #  #", "       real particles:", rpn
+    write(*,blockFormatInt) " #  #", "      fixed particles:", fpn
+    write(*,blockFormatInt) " #  #", "   periodic particles:", ppn
+    write(*,blockFormatInt) " #  #", " initial storage size:", size(store,2)
+
+    n = rpn + fpn
     !$omp parallel do default(none)&
     !$omp private(i, sp, cca, qmatr)&
     !$omp private(ra)&
-    !$omp shared(n, pspc1, pspc2, store, g, rho1, rho2)&
+    !$omp shared(n, pspc1, pspc2, store, gamma, rho1, rho2)&
     !$omp shared(dim, sk, tt, prs1, prs2, cv)&
     !$omp shared(brdx2, brdx1, brdy2, brdy1, brdz2, brdz1)&
     !$omp shared(ivt, eA, kt, cs, theta, phi, d2null, d3null)
     do i=1,n
-      if (store(es_type,i) /= ept_empty) then
-        ra(1) = store(es_rx,i)
-        ra(2) = store(es_ry,i)
-        ra(3) = store(es_rz,i)
-        store(es_c,i) = cv
-        store(es_om,i) = 1.
-        sp = merge(pspc1, pspc2, ra(1) < 0)
-        select case (ivt)
-        case(ett_sin3)
+      ra(1) = store(es_rx,i)
+      ra(2) = store(es_ry,i)
+      ra(3) = store(es_rz,i)
+      store(es_c,i) = cv
+      store(es_om,i) = 1.
+      sp = merge(pspc1, pspc2, ra(1) < 0)
+      select case (ivt)
+      case(ett_sin3)
+        store(es_h,i) = sk * sp
+        store(es_m,i) = (sp**dim) * rho1
+        store(es_den,i) = rho1
+        ! isotropic case
+        ! kcf(1,1,i) = kcf1
+        ! kcf(2,2,i) = kcf1
+        ! kcf(3,3,i) = kcf1
+        ! if (pos(1,i) < 0) then
+        !   kcf(i) = 1
+        ! else
+        !   kcf(i) = 10
+        ! end if
+        store(es_t,i) = 0
+        if ( dim == 1) then
+          store(es_t,i)  = sin(pi * (ra(1) - brdx1) / abs(brdx2-brdx1))
+        elseif ( dim == 2 ) then
+          store(es_t,i)  = sin(pi * (ra(1) - brdx1) / abs(brdx2-brdx1)) * &
+                   sin(pi * (ra(2) - brdy1) / abs(brdy2-brdy1))
+        elseif ( dim == 3 ) then
+          store(es_t,i)  = sin(pi * (ra(1) - brdx1) / abs(brdx2-brdx1)) * &
+                   sin(pi * (ra(2) - brdy1) / abs(brdy2-brdy1)) * &
+                   sin(pi * (ra(3) - brdz1) / abs(brdz2-brdz1))
+        end if
+      case(ett_shock12)
+        store(es_h,i) = sk * sp
+        store(es_m,i) = (sp**dim) * rho1
+        store(es_den,i) = rho1
+
+        store(es_bx,i) = 0.
+        store(es_by,i) = 1.
+        store(es_bz,i) = 0.
+        if (ra(1) < 0.) then
+          store(es_t,i) = 1.
+        else if (ra(1) > 0.) then
+          store(es_t,i) = 2.
+        else
+          store(es_t,i) = 1.5
+        end if
+      case(ett_pulse)
+        store(es_h,i) = sk * sp
+        store(es_m,i) = (sp**dim) * rho1
+        store(es_den,i) = rho1
+        store(es_u,i)  = prs1/(gamma -1)/rho1
+        store(es_p,i) = prs1
+
+        store(es_bx,i) = 1.
+        store(es_by,i) = 0.
+        store(es_bz,i) = 0.
+        store(es_t,i) = (2.*pi)**(-dim/2.)/(0.1**2)**(dim/2.)*&
+                  exp(-0.5*(ra(1)*ra(1) + ra(2)*ra(2) + ra(3)*ra(3))/(0.1**2))
+      case(ett_ring)
+        store(es_h,i) = sk * sp
+        store(es_m,i) = (sp**dim) * rho1
+        store(es_den,i) = rho1
+        store(es_u,i)  = prs1/(gamma -1)/rho1
+        store(es_p,i) = prs1
+
+        ! initially in cylindric CS, but will be transphered in other system few lines lower
+        store(es_bx,i) = 0.
+        store(es_by,i) = 1.
+        store(es_bz,i) = 0.
+
+        cca(1) = sqrt(ra(1)*ra(1) + ra(2)*ra(2))
+        cca(2) = atan(ra(2),ra(1))
+        cca(3) = ra(3)
+
+        if ( cs == 1 ) then
+          ! cartesian
+          qmatr(1,1) = cos(cca(2))
+          qmatr(1,2) = -sin(cca(2))
+          qmatr(1,3) = 0.
+          qmatr(2,1) = sin(cca(2))
+          qmatr(2,2) = cos(cca(2))
+          qmatr(2,3) = 0.
+          qmatr(3,1) = 0.
+          qmatr(3,2) = 0.
+          qmatr(3,3) = 1.
+
+          store(es_bx:es_bz,i) = matmul(qmatr(:,:), store(es_bx:es_bz,i))
+        end if
+        ! exp[−(1/2)[(r−r0)^2/δr0^2 + φ^2/δφ0^2]]
+        ! δr0 = 0.05 and r0 = 0.3 define a Gaussian ring
+        !  at radius r0 of width δr, and δφ0 = 0.5
+        ! is an initial Gaussian spread about φ=0intheφˆdirection
+        store(es_t,i) = exp(-0.5*((cca(1) - 0.3)**2/(0.05*0.05) + cca(2)*cca(2)/(0.5*0.5)))
+      case (ett_soundwave)
+        store(es_h,i) = sk * sp
+        store(es_den,i) = rho1 * (1. + eA * sin(pi * ra(1)))
+        store(es_m,i) = (sp**dim) * store(es_den,i)
+        store(es_vx,i) = eA*sin(pi*(ra(1)))
+        store(es_p,i) = prs1
+        store(es_u,i)  = prs1/(gamma -1)/rho1
+      case (ett_hydroshock)
+        if (ra(1) <= 0.) then
           store(es_h,i) = sk * sp
-          store(es_m,i) = (sp**dim) * rho1
-          store(es_den,i) = rho1
-          ! isotropic case
-          ! kcf(1,1,i) = kcf1
-          ! kcf(2,2,i) = kcf1
-          ! kcf(3,3,i) = kcf1
-          ! if (pos(1,i) < 0) then
-          !   kcf(i) = 1
-          ! else
-          !   kcf(i) = 10
-          ! end if
-          store(es_t,i) = 0
-          if ( dim == 1) then
-            store(es_t,i)  = sin(pi * (ra(1) - brdx1) / abs(brdx2-brdx1))
-          elseif ( dim == 2 ) then
-            store(es_t,i)  = sin(pi * (ra(1) - brdx1) / abs(brdx2-brdx1)) * &
-                     sin(pi * (ra(2) - brdy1) / abs(brdy2-brdy1))
-          elseif ( dim == 3 ) then
-            store(es_t,i)  = sin(pi * (ra(1) - brdx1) / abs(brdx2-brdx1)) * &
-                     sin(pi * (ra(2) - brdy1) / abs(brdy2-brdy1)) * &
-                     sin(pi * (ra(3) - brdz1) / abs(brdz2-brdz1))
-          end if
-        case(ett_shock12)
-          store(es_h,i) = sk * sp
-          store(es_m,i) = (sp**dim) * rho1
-          store(es_den,i) = rho1
-
-          store(es_bx,i) = 0.
-          store(es_by,i) = 1.
-          store(es_bz,i) = 0.
-          if (ra(1) < 0.) then
-            store(es_t,i) = 1.
-          else if (ra(1) > 0.) then
-            store(es_t,i) = 2.
-          else
-            store(es_t,i) = 1.5
-          end if
-        case(ett_pulse)
-          store(es_h,i) = sk * sp
-          store(es_m,i) = (sp**dim) * rho1
-          store(es_den,i) = rho1
-          store(es_u,i)  = prs1/(g-1)/rho1
-          store(es_p,i) = prs1
-
-          store(es_bx,i) = 1.
-          store(es_by,i) = 0.
-          store(es_bz,i) = 0.
-          store(es_t,i) = (2.*pi)**(-dim/2.)/(0.1**2)**(dim/2.)*&
-                    exp(-0.5*(ra(1)*ra(1) + ra(2)*ra(2) + ra(3)*ra(3))/(0.1**2))
-        case(ett_ring)
-          store(es_h,i) = sk * sp
-          store(es_m,i) = (sp**dim) * rho1
-          store(es_den,i) = rho1
-          store(es_u,i)  = prs1/(g-1)/rho1
-          store(es_p,i) = prs1
-
-          ! initially in cylindric CS, but will be transphered in other system few lines lower
-          store(es_bx,i) = 0.
-          store(es_by,i) = 1.
-          store(es_bz,i) = 0.
-
-          cca(1) = sqrt(ra(1)*ra(1) + ra(2)*ra(2))
-          cca(2) = atan(ra(2),ra(1))
-          cca(3) = ra(3)
-
-          if ( cs == 1 ) then
-            ! cartesian
-            qmatr(1,1) = cos(cca(2))
-            qmatr(1,2) = -sin(cca(2))
-            qmatr(1,3) = 0.
-            qmatr(2,1) = sin(cca(2))
-            qmatr(2,2) = cos(cca(2))
-            qmatr(2,3) = 0.
-            qmatr(3,1) = 0.
-            qmatr(3,2) = 0.
-            qmatr(3,3) = 1.
-
-            store(es_bx:es_bz,i) = matmul(qmatr(:,:), store(es_bx:es_bz,i))
-          end if
-          ! exp[−(1/2)[(r−r0)^2/δr0^2 + φ^2/δφ0^2]]
-          ! δr0 = 0.05 and r0 = 0.3 define a Gaussian ring
-          !  at radius r0 of width δr, and δφ0 = 0.5
-          ! is an initial Gaussian spread about φ=0intheφˆdirection
-          store(es_t,i) = exp(-0.5*((cca(1) - 0.3)**2/(0.05*0.05) + cca(2)*cca(2)/(0.5*0.5)))
-        case (ett_soundwave)
-          store(es_h,i) = sk * sp
-          store(es_den,i) = rho1 * (1. + eA * sin(pi * ra(1)))
-          store(es_m,i) = (sp**dim) * store(es_den,i)
-          store(es_vx,i) = eA*sin(pi*(ra(1)))
-          store(es_p,i) = prs1
-          store(es_u,i)  = prs1/(g-1)/rho1
-        case (ett_hydroshock)
-          if (ra(1) <= 0.) then
-            store(es_h,i) = sk * sp
-            store(es_den,i) = rho1
-            store(es_p,i) = prs1
-            store(es_m,i) = (pspc1**dim) * rho1
-            store(es_u,i)  = prs1/(g-1)/rho1
-          else
-            store(es_h,i) = sk * sp
-            store(es_den,i) = rho2
-            store(es_p,i) = prs2
-            store(es_m,i) = (pspc2**dim) * rho2
-            store(es_u,i)  = prs2/(g-1)/rho2
-          end if
-        case (ett_alfvenwave)
-          store(es_h,i) = sk * sp
-          store(es_m,i) = (sp**dim) * rho1
-
           store(es_den,i) = rho1
           store(es_p,i) = prs1
-          store(es_u,i)  = prs1/(g-1)/rho1
-
-          cca(:) = [cos(theta)*cos(phi), cos(theta)*sin(phi), sin(theta)]
-          store(es_vx,i) = eA*0.
-          store(es_vy,i) = eA*sin(2*pi*(dot_product(ra(:),cca(:))))
-          store(es_vz,i) = eA*cos(2*pi*(dot_product(ra(:),cca(:))))
-          store(es_bx:es_bz,i) = [1.,0.,0.] + store(es_vx:es_vz,i)
-        case(ett_mti)
+          store(es_m,i) = (pspc1**dim) * rho1
+          store(es_u,i)  = prs1/(gamma -1)/rho1
+        else
           store(es_h,i) = sk * sp
-          store(es_m,i) = (sp**dim) * rho1
-          store(es_den,i) = rho1
-          store(es_p,i) = prs1
-          store(es_u,i)  = (3./2.)*(1. - ra(2)/3.)
-          cca(1) = dot_product(ra(:),ra(:))
-          if (cca(1) > 0) then
-            cca(:) = ra(:)/sqrt(cca(1))
-            store(es_by,i) = 10e-11
+          store(es_den,i) = rho2
+          store(es_p,i) = prs2
+          store(es_m,i) = (pspc2**dim) * rho2
+          store(es_u,i)  = prs2/(gamma -1)/rho2
+        end if
+      case (ett_alfvenwave)
+        store(es_h,i) = sk * sp
+        store(es_m,i) = (sp**dim) * rho1
+
+        store(es_den,i) = rho1
+        store(es_p,i) = prs1
+        store(es_u,i)  = prs1/(gamma -1)/rho1
+
+        cca(:) = [cos(theta)*cos(phi), cos(theta)*sin(phi), sin(theta)]
+        store(es_vx,i) = eA*0.
+        store(es_vy,i) = eA*sin(2*pi*(dot_product(ra(:),cca(:))))
+        store(es_vz,i) = eA*cos(2*pi*(dot_product(ra(:),cca(:))))
+        store(es_bx:es_bz,i) = [1.,0.,0.] + store(es_vx:es_vz,i)
+      case(ett_mti)
+        store(es_h,i)   = sk * sp
+        store(es_m,i)   = (sp**dim) * rho1
+        store(es_den,i) = rho1
+        store(es_u,i)   = (3./2.)*(1. - ra(2)/3.)
+        store(es_t,i)   = store(es_u,i)
+        store(es_p,i)   = (gamma - 1.)*store(es_den,i)*store(es_u,i)
+        cca(1) = dot_product(ra(:),ra(:))
+        if (cca(1) > 0) then
+          cca(:) = ra(:)/sqrt(cca(1))
+          store(es_by,i) = 10e-11
+          if (store(es_type,i) == ept_real) then
             store(es_vy,i) = 10e-2*1.*sin(4.*pi*ra(1)/(brdx2-brdx1))
           end if
-          store(es_vy,i) = d2null*store(es_vy,i)
-          store(es_by,i) = d2null*store(es_by,i)
-          store(es_vz,i) = d3null*store(es_vz,i)
-          store(es_bz,i) = d3null*store(es_bz,i)
-        case (ett_OTvortex)
-          store(es_h,i)   = sk * sp
-          store(es_m,i)   = (sp**dim) * rho1
-          store(es_den,i) = rho1
-          store(es_p,i)   = prs1
-          store(es_u,i)   = prs1/(g-1)/rho1
+        end if
+        store(es_vy,i) = d2null*store(es_vy,i)
+        store(es_by,i) = d2null*store(es_by,i)
+        store(es_vz,i) = d3null*store(es_vz,i)
+        store(es_bz,i) = d3null*store(es_bz,i)
+      case (ett_OTvortex)
+        store(es_h,i)   = sk * sp
+        store(es_m,i)   = (sp**dim) * rho1
+        store(es_den,i) = rho1
+        store(es_p,i)   = prs1
+        store(es_u,i)   = prs1/(gamma-1)/rho1
 
-          store(es_vx,i) = -sin(2*pi*ra(2))
-          store(es_vy,i) =  sin(2*pi*ra(1))
-          store(es_vz,i) =  0.01
-          store(es_bx,i) = -1./sqrt(4*pi)*sin(2*pi*ra(2))
-          store(es_by,i) =  1./sqrt(4*pi)*sin(4*pi*ra(1))
-          store(es_bz,i) =  0.
-          if (dim == 1) then
-            store(es_vy:es_vz,i) = 0.
-            store(es_by:es_bz,i) = 0.
-          elseif (dim == 2) then
-            store(es_vz,i) = 0.
-            store(es_bz,i) = 0.
-          end if
-        case default
-          print*, "# <!> There is no such initial condition on IF.f90:525"
-          stop
-        end select
-      end if
+        store(es_vx,i) = -sin(2*pi*ra(2))
+        store(es_vy,i) =  sin(2*pi*ra(1))
+        store(es_vz,i) =  0.01
+        store(es_bx,i) = -1./sqrt(4*pi)*sin(2*pi*ra(2))
+        store(es_by,i) =  1./sqrt(4*pi)*sin(4*pi*ra(1))
+        store(es_bz,i) =  0.
+        if (dim == 1) then
+          store(es_vy:es_vz,i) = 0.
+          store(es_by:es_bz,i) = 0.
+        elseif (dim == 2) then
+          store(es_vz,i) = 0.
+          store(es_bz,i) = 0.
+        end if
+      case default
+        print*, "# <!> There is no such initial condition on IF.f90:525"
+        stop
+      end select
+      ! call printstore(store,i)
+      ! read*
     end do
     !$omp end parallel do
     call system_clock(finish)
     call addTime(' ic', finish - start)
   end subroutine setupV2
+
+  subroutine printstore(s, i)
+    real, allocatable, intent(in) :: s(:,:)
+    integer, intent(in) :: i
+    print*, "========"
+    print*, "i: ", i, "type: ", s(es_type, i)
+    print*, "pos: ", s(es_rx:es_rz, i)
+    print*, "vel: ", s(es_vx:es_vz, i)
+    print*, "acc: ", s(es_ax:es_az, i)
+    print*, "P  : ", s(es_p, i)
+  end subroutine printstore
 end module setup

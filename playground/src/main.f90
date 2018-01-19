@@ -149,7 +149,7 @@ program main
       !           minval(h(1:realpartnumb)) ** 2 / &
       !           merge(maxval(kcf(:,1,1:realpartnumb)), 1., maxval(kcf(:,1,1:realpartnumb))>0)
       ! dt = .1 * mhdmuzero &
-      dt = 1. * mhdmuzero &
+      dt = 1. &
               * minval(store(es_den,1:n)) &
               * minval(store(es_c,1:n)) &
               * minval(store(es_h,1:n)) ** 2 &
@@ -191,7 +191,8 @@ program main
     store(es_vx:es_vz,1:n) = tv(:,:)  + dt * ta(:,:)
     store(es_u,1:n) = store(es_u,1:n) + dt * tdu(:)
     store(es_h,1:n) = store(es_h,1:n) + dt * tdh(:)
-    store(es_t,1:n) = store(es_t,1:n) + dt * tddt(:)
+    ! store(es_t,1:n) = store(es_t,1:n) + dt * tddt(:)
+    store(es_t,1:n) = store(es_u,1:n)/store(es_c,1:n)
     store(es_bx:es_bz,1:n) = store(es_bx:es_bz,1:n) + dt * tdb(:,:)
 
     call iterate(n, sk, gamma, store)
@@ -202,8 +203,9 @@ program main
       store(es_u,1:n) + 0.5*dt*(store(es_du,1:n) - tdu(:))
     store(es_h,1:n) = &
       store(es_h,1:n) + 0.5*dt*(store(es_dh,1:n) - tdh(:))
-    store(es_t,1:n) = &
-      store(es_t,1:n) + 0.5*dt*(store(es_ddt,1:n) - tddt(:))
+    ! store(es_t,1:n) = &
+    !   store(es_t,1:n) + 0.5*dt*(store(es_ddt,1:n) - tddt(:))
+    store(es_t,1:n) = store(es_u,1:n)/store(es_c,1:n)
     store(es_bx:es_bz,1:n) = &
       store(es_bx:es_bz,1:n) + 0.5*dt*(store(es_dbx:es_dbz,1:n) - tdb(:,:))
 
@@ -236,7 +238,7 @@ program main
   ! end select
 
   select case(ivt)
-  case (ett_pulse, ett_OTvortex, ett_ring)
+  case (ett_pulse, ett_OTvortex, ett_ring, ett_mti)
     printlen = 5
   case (ett_sin3)
     call err_sinxet(store, t, err)

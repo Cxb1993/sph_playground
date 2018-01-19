@@ -82,6 +82,6 @@ contains
     n = n - 1
     call setRealPartNumber(n)
     call setBorders(xmin, xmax, ymin, ymax, zmin, zmax, dbsz)
-    call resize(store,n,n)
+    ! call resize(store,n,n)
   end subroutine uniformV4
 end module uniform

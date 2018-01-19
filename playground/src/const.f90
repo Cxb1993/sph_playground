@@ -88,8 +88,8 @@ module const
 
   character(len=*), parameter :: &
     blockFormatFlt  = "(A,A35,F10.7)",&
-    blockFormatInt  = "(A,A34,I6)",&
+    blockFormatInt  = "(A,A34,I8)",&
     blockFormatStr  = "(A,A35,A)",&
-    blockFormatStr2 = "(A,A31,A)"
+    blockFormatStr2 = "(A,A35,A)"
 
 end module

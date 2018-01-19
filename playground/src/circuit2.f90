@@ -59,7 +59,7 @@ contains
       tmpt1(3,3), tmpt2(3,3), tmpt3(3,3), MPa(3,3), MPb(3,3), Mc(3),&
       dva(3), dua, dha, ddta, dba(3), ba(3), bb(3), va(3), vb(3),&
       ha, hb, ca, cb, pa, pb, ua, ub, oma, omb, ta, tb, ma, mb, &
-      dtadx(3), dtbdx(3), &
+      dtadx(3), dtbdx(3), kdtadx(3), kdtbdx(3), &
       difcond, mhdmuzero, &
       drhoadt, consenrg
 
@@ -84,7 +84,7 @@ contains
     !$omp private(qa, qb, qc, qd, qe)&
     !$omp private(rab, dr, ra, rb, vab, urab, rhoa, rhob, nwa, nwb)&
     !$omp private(i, j, rj, r2, odda ,oddb, la, lb, drhoadt)&
-    !$omp private(nlistb, Hesa, vba, t0, kta, ktb, ktab)&
+    !$omp private(nlistb, Hesa, vba, t0, kta, ktb, ktab, kdtadx, kdtbdx)&
     !$omp private(tmpt1, tmpt2, tmpt3, li, lj, MPa, MPb, Mc)&
     !$omp private(ha, hb, ca, cb, pa, pb, ua, ub, oma, omb, ta, tb, ma, mb)&
     !$omp private(dva, dua, dha, ddta, dba, ba, bb, va, vb, dtadx, dtbdx)&
@@ -107,6 +107,7 @@ contains
       ta  = store(es_t,i)
       ma  = store(es_m,i)
       dtadx(:) = store(es_dtdx:es_dtdz,i)
+      kdtadx(:) = 0.
       dva(:) = 0.
       dua = 0.
       dha = 0.
@@ -138,6 +139,16 @@ contains
             end do
           end do
         end if
+        Mc(1) = dot_product(ba(:),ba(:))
+        do li = 1,3
+          do lj = 1,3
+            if (li == lj) then
+              MPa(li,lj) = pa + (0.5*Mc(1) - ba(li)*ba(lj)) /mhdmuzero
+            else
+              MPa(li,lj) = -ba(li)*ba(lj) /mhdmuzero
+            end if
+          end do
+        end do
       end select
       overb: do lb = 1, size(nlistb)
 
@@ -156,7 +167,7 @@ contains
         tb = store(es_t, rj)
         mb = store(es_m, rj)
         dtbdx(:) = store(es_dtdx:es_dtdz, rj)
-
+        kdtbdx(:) = 0.
         qa(:) = 0.
         qb(:) = 0.
         qc    = 0.
@@ -274,15 +285,15 @@ contains
           else if (s_ktp == esd_2nw) then
             odda = 1./oma/rhoa/rhoa
             oddb = 1./omb/rhob/rhob
-            qa(1) = dot_product(kta(1,:),dtadx(:))
-            qa(2) = dot_product(kta(2,:),dtadx(:))
-            qa(3) = dot_product(kta(3,:),dtadx(:))
-            qb(1) = dot_product(ktb(1,:),dtbdx(:))
-            qb(2) = dot_product(ktb(2,:),dtbdx(:))
-            qb(3) = dot_product(ktb(3,:),dtbdx(:))
+            kdtadx(1) = dot_product(kta(1,:),dtadx(:))
+            kdtadx(2) = dot_product(kta(2,:),dtadx(:))
+            kdtadx(3) = dot_product(kta(3,:),dtadx(:))
+            kdtbdx(1) = dot_product(ktb(1,:),dtbdx(:))
+            kdtbdx(2) = dot_product(ktb(2,:),dtbdx(:))
+            kdtbdx(3) = dot_product(ktb(3,:),dtbdx(:))
 
             ddta = ddta + mb*( &
-              dot_product(qa(:),nwa(:))*odda + dot_product(qb(:),nwb(:))*oddb)
+              dot_product(kdtadx(:),nwa(:))*odda + dot_product(kdtbdx(:),nwb(:))*oddb)
             else
               print*, "# <!> second deriv id not found"
               stop
@@ -291,7 +302,7 @@ contains
         case (eeq_magnetohydrodiffusion)
           MPa(:,:) = 0.
           MPb(:,:) = 0.
-          Mc(:)   = 0.
+          Mc(:)    = 0.
           odda = 1./oma/rhoa/rhoa
           oddb = 1./omb/rhob/rhob
           if (difiso == 0) then
@@ -300,6 +311,42 @@ contains
                 ktb(li,lj) = difcond*bb(li)*bb(lj)
               end do
             end do
+          end if
+          ! diffusion
+          if (s_ktp == esd_n2w) then
+            call hessian(rab, ra, rb, ha, Hesa)
+            do li = 1, 3
+              do lj = 1,3
+                tmpt1(li,lj) = tmpt1(li,lj) + mb/rhob * &
+                                (ktb(li,lj) - kta(li,lj)) * nwa(li)
+                tmpt2(li,lj) = tmpt2(li,lj) + mb/rhob * &
+                                (tb - ta) * nwa(lj)
+                tmpt3(li,lj) = tmpt3(li,lj) + kta(li,lj) *&
+                                mb/rhob * (tb - ta) * Hesa(li,lj)
+              end do
+            end do
+          else if ((s_ktp == esd_fw).or.(s_ktp == esd_fab)) then
+            ktab(:,:) = (kta(:,:)+ktb(:,:))/2.
+            call hessian(rab, ra, rb, ha, Hesa)
+            ddta = ddta + mb/rhob * (tb - ta) * &
+              ( dot_product(ktab(1,:),Hesa(1,:)) + &
+                dot_product(ktab(2,:),Hesa(2,:)) + &
+                dot_product(ktab(3,:),Hesa(3,:)) )
+          else if (s_ktp == esd_2nw) then
+            odda = 1./oma/rhoa/rhoa
+            oddb = 1./omb/rhob/rhob
+            kdtadx(1) = dot_product(kta(1,:),dtadx(:))
+            kdtadx(2) = dot_product(kta(2,:),dtadx(:))
+            kdtadx(3) = dot_product(kta(3,:),dtadx(:))
+            kdtbdx(1) = dot_product(ktb(1,:),dtbdx(:))
+            kdtbdx(2) = dot_product(ktb(2,:),dtbdx(:))
+            kdtbdx(3) = dot_product(ktb(3,:),dtbdx(:))
+
+            ddta = ddta + mb*( &
+              dot_product(kdtadx(:),nwa(:))*odda + dot_product(kdtbdx(:),nwb(:))*oddb)
+            else
+              print*, "# <!> second deriv id not found"
+              stop
           end if
 
           if (s_artts == 1) then
@@ -310,15 +357,12 @@ contains
             call art_resistivity(nwa, nwb, Ba, Bb, vab, urab, rhoa, rhob, oma, omb, qe)
           end if
 
-          Mc(1) = dot_product(ba(:),ba(:))
           Mc(2) = dot_product(bb(:),bb(:))
           do li = 1,3
             do lj = 1,3
               if (li == lj) then
-                MPa(li,lj) = pa + (0.5*Mc(1) - ba(li)*ba(lj)) /mhdmuzero
                 MPb(li,lj) = pb + (0.5*Mc(2) - bb(li)*bb(lj)) /mhdmuzero
               else
-                MPa(li,lj) = -ba(li)*ba(lj) /mhdmuzero
                 MPb(li,lj) = -bb(li)*bb(lj) /mhdmuzero
               end if
             end do
@@ -347,42 +391,6 @@ contains
                       vab(:) * dot_product(ba(:),nwa(:)) - &
                       bb(:) * dot_product(vab(:),nwa(:)) &
                     )
-          ! diffusion
-          if (s_ktp == esd_n2w) then
-            call hessian(rab, ra, rb, ha, Hesa)
-            do li = 1, 3
-              do lj = 1,3
-                tmpt1(li,lj) = tmpt1(li,lj) + mb/rhob * &
-                                (ktb(li,lj) - kta(li,lj)) * nwa(li)
-                tmpt2(li,lj) = tmpt2(li,lj) + mb/rhob * &
-                                (tb - ta) * nwa(lj)
-                tmpt3(li,lj) = tmpt3(li,lj) + kta(li,lj) *&
-                                mb/rhob * (tb - ta) * Hesa(li,lj)
-              end do
-            end do
-          else if ((s_ktp == esd_fw).or.(s_ktp == esd_fab)) then
-            ktab(:,:) = (kta(:,:)+ktb(:,:))/2.
-            call hessian(rab, ra, rb, ha, Hesa)
-            ddta = ddta + mb/rhob * (tb - ta) * &
-              ( dot_product(ktab(1,:),Hesa(1,:)) + &
-                dot_product(ktab(2,:),Hesa(2,:)) + &
-                dot_product(ktab(3,:),Hesa(3,:)) )
-          else if (s_ktp == esd_2nw) then
-            odda = 1./oma/rhoa/rhoa
-            oddb = 1./omb/rhob/rhob
-            qa(1) = dot_product(kta(1,:),dtadx(:))
-            qa(2) = dot_product(kta(2,:),dtadx(:))
-            qa(3) = dot_product(kta(3,:),dtadx(:))
-            qb(1) = dot_product(ktb(1,:),dtbdx(:))
-            qb(2) = dot_product(ktb(2,:),dtbdx(:))
-            qb(3) = dot_product(ktb(3,:),dtbdx(:))
-
-            ddta = ddta + mb*( &
-              dot_product(qa(:),nwa(:))*odda + dot_product(qb(:),nwb(:))*oddb)
-            else
-              print*, "# <!> second deriv id not found"
-              stop
-          end if
         ! case(5)
         !   ! 'diff-laplace'
         !   call n2w(rab, h(i), n2wa)
@@ -430,13 +438,14 @@ contains
         print *, 'Task type was not set in circuit2 outside circle'
         stop
       end select
-      ! dva(2) = dva(2) - 10.
+      dva(2) = dva(2) - 1.
       store(es_ax:es_az,i) = dva(:)
-      store(es_du,i) = dua
       store(es_dh,i) = dha
-      store(es_ddt,i) = ddta
+      store(es_ddt,i) = ddta/rhoa
       store(es_dbx:es_dbz,i) = dba(:)
-      consenrg = consenrg + ma*(dot_product(va(:),dva(:)) + dua + &
+      store(es_du,i) = dua + ddta/rhoa
+
+      consenrg = consenrg + ma*(dot_product(va(:),dva(:)) + dua + ddta/rhoa + &
         dot_product(ba(:),dba(:))/rhoa - &
         0.5*dot_product(ba(:),ba(:))/rhoa/rhoa*drhoadt/oma)
     end do overa

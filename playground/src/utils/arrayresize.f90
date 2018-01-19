@@ -6,12 +6,12 @@ module arrayresize
   private
 
   interface resize
-    module procedure i4resize, i8resize, cresize, rresize, resize3r
+    module procedure rsz_i4, i8resize, cresize, rresize, resize3r
   end interface
 
 contains
-  subroutine i4resize(array, oldsize, newsize)
-  ! pure subroutine i4resize(array, oldsize, newsize)
+  ! subroutine rsz_i4(array, oldsize, newsize)
+  pure subroutine rsz_i4(array, oldsize, newsize)
     integer, intent(in)                 :: newsize, oldsize
     integer, intent(inout), allocatable :: array(:)
     integer, allocatable                :: tmp(:)
@@ -19,18 +19,17 @@ contains
 
     iterlimit = min(newsize, oldsize)
     allocate(tmp(newsize))
-    ! print*, 'current size: ', size(array), ' | coppied elements: ', iterlimit
     do i=1,iterlimit
       tmp(i) = array(i)
     end do
     deallocate(array)
     allocate(array(newsize))
-    array(:) = 0
+    array(iterlimit:newsize) = 0
     do i=1,iterlimit
       array(i) = tmp(i)
     end do
     deallocate(tmp)
-  end subroutine
+  end subroutine rsz_i4
 
   pure subroutine i8resize(array, oldsize, newsize)
     integer, intent(in)                    :: newsize, oldsize
@@ -45,6 +44,7 @@ contains
     end do
     deallocate(array)
     allocate(array(newsize))
+    array(iterlimit:newsize) = 0
     do i=1,iterlimit
       array(i) = tmp(i)
     end do
@@ -64,6 +64,7 @@ contains
     end do
     deallocate(array)
     allocate(array(newsize))
+    array(iterlimit:newsize) = 0.
     do i=1,iterlimit
       array(i) = tmp(i)
     end do
@@ -83,6 +84,7 @@ contains
     end do
     deallocate(array)
     allocate(array(newsize))
+    array(iterlimit:newsize) = ""
     do i=1,iterlimit
       array(i) = tmp(i)
     end do
@@ -103,6 +105,7 @@ contains
     end do
     deallocate(array)
     allocate(array(dim1,newsize))
+    array(:,iterlimit:newsize) = 0.
     do i=1,iterlimit
       array(:,i) = tmp(:,i)
     end do

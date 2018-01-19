@@ -84,7 +84,7 @@ contains
     call getkernelnn(maxresultnum)
     call getddwtype(ktp)
     call getRealPartNumber(realpn)
-    call getArtPartNumber(periodpn, fixedpn)
+    call getArtPartNumber(fixedpn, periodpn)
     sn = realpn + periodpn + fixedpn
 
     kdtree => kdtree2_create(store(es_rx:es_rz,1:sn))
@@ -160,7 +160,7 @@ contains
     call get_krad(kr)
     call getkernelnn(maxresultnum)
     call getRealPartNumber(realpn)
-    call getArtPartNumber(periodpn, fixedpn)
+    call getArtPartNumber(fixedpn, periodpn)
     sn = realpn + periodpn + fixedpn
 
     if (.not.allocated(neighbours)) then
@@ -232,7 +232,7 @@ contains
     call get_krad(kr)
     call getkernelnn(maxresultnum)
     call getRealPartNumber(realpn)
-    call getArtPartNumber(periodpn, fixedpn)
+    call getArtPartNumber(fixedpn, periodpn)
     sn = realpn + periodpn + fixedpn
 
     if (.not.allocated(neighbours)) then

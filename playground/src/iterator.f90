@@ -103,7 +103,7 @@ contains
       call findInsideBorderParticles(store)
       call createPeriodicBorder(store, ebc_x)
       call findneighboursKDT(store)
-      call updateFixedToSymmetric(store, [es_vx, es_vy, es_vz, es_bx, es_by, es_bz])
+      ! call updateFixedToSymmetric(store, [es_vx, es_vy, es_vz, es_bx, es_by, es_bz])
       call c1(store, hfac)
       call eos_adiabatic(store, gamma)
       call c2(store)

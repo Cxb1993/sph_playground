@@ -140,7 +140,7 @@ module args
         write(*,blockFormatFlt) " #  #", "desired spacing: ", pspc1
       end if
       if (resol > 0) then
-        write(*,blockFormatInt) " #  #", "desired resolution: ", resol
+        write(*,blockFormatInt) " #  #", "desired resolution:", resol
       end if
 
       call initkernel(dim)

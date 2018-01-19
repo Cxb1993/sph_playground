@@ -34,10 +34,10 @@ contains
     r = realpartnumb
   end subroutine
 
-  pure subroutine getArtPartNumber(p, f)
-    integer, intent(out) :: p, f
-    p = periodpartnumb
+  pure subroutine getArtPartNumber(f, p)
+    integer, intent(out) :: f, p
     f = fixedpartnumb
+    p = periodpartnumb
   end subroutine
 
   pure function getCrossRef(ini) result(oti)
