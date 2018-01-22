@@ -12,6 +12,8 @@ SRC= \
 	utils/list.f90\
 	utils/kdtree2.f90\
 	const.f90\
+	utils/tables.f90\
+	utils/stretchmap.f90\
 	state.f90\
 	BC.f90\
 	preruncheck.f90
@@ -26,6 +28,7 @@ SRC+=kernel/kernel.f90\
 	args.f90\
 	eos.f90\
 	IC/uniform.f90\
+	IC/rhofuncs.f90\
 	IC/setup.f90\
 	IC/initvariables.f90\
 	circuit1.f90\

@@ -22,6 +22,8 @@ module setup
                               getNeibListL1, &
                               getNeibListL2, &
                               findneighboursKDT
+  use stretchmap,       only: set_density_profile
+  use rhofuncs,         only: MTIHopkins2017
   implicit none
 
   public :: setupV2
@@ -111,6 +113,11 @@ contains
       bordersize = nb*pspc2
       call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
       call createFixedBorders(store, ebc_y)
+      call getRealPartNumber(rpn)
+      call getArtPartNumber(fpn, ppn)
+      call set_density_profile(rpn+fpn,store,&
+        brdy1-bordersize,brdy2+bordersize,&
+        rhofunc=MTIHopkins2017,coord=2)
     case (ett_soundwave)
       rho1 = 1.
       gamma= 5./3.

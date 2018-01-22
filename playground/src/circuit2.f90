@@ -313,41 +313,40 @@ contains
             end do
           end if
           ! diffusion
-          if (s_ktp == esd_n2w) then
-            call hessian(rab, ra, rb, ha, Hesa)
-            do li = 1, 3
-              do lj = 1,3
-                tmpt1(li,lj) = tmpt1(li,lj) + mb/rhob * &
-                                (ktb(li,lj) - kta(li,lj)) * nwa(li)
-                tmpt2(li,lj) = tmpt2(li,lj) + mb/rhob * &
-                                (tb - ta) * nwa(lj)
-                tmpt3(li,lj) = tmpt3(li,lj) + kta(li,lj) *&
-                                mb/rhob * (tb - ta) * Hesa(li,lj)
-              end do
-            end do
-          else if ((s_ktp == esd_fw).or.(s_ktp == esd_fab)) then
-            ktab(:,:) = (kta(:,:)+ktb(:,:))/2.
-            call hessian(rab, ra, rb, ha, Hesa)
-            ddta = ddta + mb/rhob * (tb - ta) * &
-              ( dot_product(ktab(1,:),Hesa(1,:)) + &
-                dot_product(ktab(2,:),Hesa(2,:)) + &
-                dot_product(ktab(3,:),Hesa(3,:)) )
-          else if (s_ktp == esd_2nw) then
-            odda = 1./oma/rhoa/rhoa
-            oddb = 1./omb/rhob/rhob
-            kdtadx(1) = dot_product(kta(1,:),dtadx(:))
-            kdtadx(2) = dot_product(kta(2,:),dtadx(:))
-            kdtadx(3) = dot_product(kta(3,:),dtadx(:))
-            kdtbdx(1) = dot_product(ktb(1,:),dtbdx(:))
-            kdtbdx(2) = dot_product(ktb(2,:),dtbdx(:))
-            kdtbdx(3) = dot_product(ktb(3,:),dtbdx(:))
-
-            ddta = ddta + mb*( &
-              dot_product(kdtadx(:),nwa(:))*odda + dot_product(kdtbdx(:),nwb(:))*oddb)
-            else
-              print*, "# <!> second deriv id not found"
-              stop
-          end if
+          ! if (s_ktp == esd_n2w) then
+          !   call hessian(rab, ra, rb, ha, Hesa)
+          !   do li = 1, 3
+          !     do lj = 1,3
+          !       tmpt1(li,lj) = tmpt1(li,lj) + mb/rhob * &
+          !                       (ktb(li,lj) - kta(li,lj)) * nwa(li)
+          !       tmpt2(li,lj) = tmpt2(li,lj) + mb/rhob * &
+          !                       (tb - ta) * nwa(lj)
+          !       tmpt3(li,lj) = tmpt3(li,lj) + kta(li,lj) *&
+          !                       mb/rhob * (tb - ta) * Hesa(li,lj)
+          !     end do
+          !   end do
+          ! else if ((s_ktp == esd_fw).or.(s_ktp == esd_fab)) then
+          !   ktab(:,:) = (kta(:,:)+ktb(:,:))/2.
+          !   call hessian(rab, ra, rb, ha, Hesa)
+          !   ddta = ddta + mb/rhob * (tb - ta) * &
+          !     ( dot_product(ktab(1,:),Hesa(1,:)) + &
+          !       dot_product(ktab(2,:),Hesa(2,:)) + &
+          !       dot_product(ktab(3,:),Hesa(3,:)) )
+          ! else if (s_ktp == esd_2nw) then
+          !   odda = 1./oma/rhoa/rhoa
+          !   oddb = 1./omb/rhob/rhob
+          !   kdtadx(1) = dot_product(kta(1,:),dtadx(:))
+          !   kdtadx(2) = dot_product(kta(2,:),dtadx(:))
+          !   kdtadx(3) = dot_product(kta(3,:),dtadx(:))
+          !   kdtbdx(1) = dot_product(ktb(1,:),dtbdx(:))
+          !   kdtbdx(2) = dot_product(ktb(2,:),dtbdx(:))
+          !   kdtbdx(3) = dot_product(ktb(3,:),dtbdx(:))
+          !   ddta = ddta + mb*( &
+          !     dot_product(kdtadx(:),nwa(:))*odda + dot_product(kdtbdx(:),nwb(:))*oddb)
+          !   else
+          !     print*, "# <!> second deriv id not found"
+          !     stop
+          ! end if
 
           if (s_artts == 1) then
             call art_viscosity(rhoa, rhob, vab, urab, rab, dr, &
@@ -367,7 +366,6 @@ contains
               end if
             end do
           end do
-
           MPa(1,1) = dot_product(MPa(1,:), nwa(:)) + qa(1)
           MPa(2,1) = dot_product(MPa(2,:), nwa(:)) + qa(2)
           MPa(3,1) = dot_product(MPa(3,:), nwa(:)) + qa(3)
