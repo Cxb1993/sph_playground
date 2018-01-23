@@ -4,7 +4,9 @@ module errcalc
   use BC,               only: getRealPartNumber
   use state,            only: getdim,&
                               get_tasktype,&
-                              ginitvar
+                              ginitvar,&
+                              getdiffisotropic,&
+                              getdiffconductivity
   use neighboursearch,  only: getNeibListL1
 
   implicit none
@@ -13,7 +15,7 @@ module errcalc
             err_diff_laplace, err_diff_graddiv, shockTube,&
             soundwaveperturbation_density, &
             soundwaveperturbation_velocity, &
-            diff_artvisc, alfvenwave
+            diff_artvisc, alfvenwave, hcpulse
 
   private
 
@@ -39,6 +41,37 @@ contains
     end do
   end subroutine
 
+  subroutine hcpulse(store, t, err)
+    real, allocatable, intent(in)    :: store(:,:)
+    real, allocatable, intent(inout) :: err(:)
+    real, intent(in)                 :: t
+
+    integer, allocatable :: nlista(:)
+    integer             :: i, j, dim, ivt, diso
+    real                :: exact, x(3), num, dcnd
+
+    call getdim(dim)
+    call getNeibListL1(nlista)
+    call ginitvar(ivt)
+    call getdiffisotropic(diso)
+    call getdiffconductivity(dcnd)
+
+    err(:) = 0.
+
+    do j = 1,size(nlista)
+      i = nlista(j)
+      exact = 0.
+      x(:) = store(es_rx:es_rz,i)
+      num  = store(es_t,i)
+      exact = ((2*pi)**(-dim/2.))/((0.1**2+2*dcnd*t)**(dim/2.))*&
+        exp(-0.5*((x(1)*x(1)+x(2)*x(2)+x(3)*x(3))/(0.1**2+2*dcnd*t)))
+      err(i) = (exact - num)*(exact - num)
+      ! print*, exact, num
+      ! read*
+      ! err(i) = dot_product(exact(1) - num(1,i), exact(1) - num(1,i))
+    end do
+  end subroutine hcpulse
+
   subroutine err_T0sxsyet(n, pos, num, t, err)
     integer, intent(in) :: n
     real, intent(in)    :: pos(3,n), num(n), t
@@ -49,14 +82,10 @@ contains
 
     print*, 'Not ready to NBS will divide to random number'
 
-    !$OMP PARALLEL
-    !$OMP DO PRIVATE(exact)
     do i=1,n
       exact = sin(pi*(pos(1,i)+1.)/2.) * sin(pi*(pos(2,i)+1.)/2.) * exp(-2.*(pi/2.)**2 * 0.1 * t)
       err(i) = abs(exact - num(i))
     end do
-    !$OMP END DO
-    !$OMP END PARALLEL
   end subroutine err_T0sxsyet
 
   subroutine err_sinxet(store, t, err)

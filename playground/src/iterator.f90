@@ -107,6 +107,7 @@ contains
       call c1(store, hfac)
       call eos_adiabatic(store, gamma)
       call c2(store)
+      store(es_vy,:) = store(es_vy,:) - 1.
     case (ett_OTvortex)
       call clearPeriodicParticles(store)
       call reflecPeriodicParticles(store, ebc_all)

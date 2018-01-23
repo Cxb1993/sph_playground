@@ -14,7 +14,7 @@ contains
     type(c_ptr), allocatable, target :: platform_ids(:)
 
     ! Get platform count to allocate an array.
-    print *, clGetPlatformIDs(0, C_NULL_PTR, num_platforms)
+    print *, clGetPlatformIDs(1, C_NULL_PTR, num_platforms)
     print *, 'Num Platforms: ', num_platforms
 
     ! Allocate an array to hold platforms.

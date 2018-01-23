@@ -71,7 +71,8 @@ contains
       stop
     case (ett_pulse, ett_ring)
       call setmhdmagneticpressure(1.)
-      call setdiffisotropic(0)
+      ! call setdiffisotropic(0)
+      call setdiffisotropic(1)
       call setdiffconductivity(1.)
       rho1 = 1.
       prs1 = 1.
@@ -294,14 +295,14 @@ contains
         store(es_h,i) = sk * sp
         store(es_m,i) = (sp**dim) * rho1
         store(es_den,i) = rho1
-        store(es_u,i)  = prs1/(gamma -1)/rho1
         store(es_p,i) = prs1
 
         store(es_bx,i) = 1.
         store(es_by,i) = 0.
         store(es_bz,i) = 0.
-        store(es_t,i) = (2.*pi)**(-dim/2.)/(0.1**2)**(dim/2.)*&
-                  exp(-0.5*(ra(1)*ra(1) + ra(2)*ra(2) + ra(3)*ra(3))/(0.1**2))
+        store(es_t,i)  = ((2.*pi)**(-dim/2.))/((0.1**2)**(dim/2.))*&
+          exp(-0.5*(ra(1)*ra(1) + ra(2)*ra(2) + ra(3)*ra(3))/(0.1**2))
+        store(es_u,i)  = store(es_t,i)
       case(ett_ring)
         store(es_h,i) = sk * sp
         store(es_m,i) = (sp**dim) * rho1
@@ -337,34 +338,35 @@ contains
         !  at radius r0 of width δr, and δφ0 = 0.5
         ! is an initial Gaussian spread about φ=0intheφˆdirection
         store(es_t,i) = exp(-0.5*((cca(1) - 0.3)**2/(0.05*0.05) + cca(2)*cca(2)/(0.5*0.5)))
+        store(es_u,i)  = store(es_t,i)
       case (ett_soundwave)
-        store(es_h,i) = sk * sp
+        store(es_h,i)   = sk * sp
         store(es_den,i) = rho1 * (1. + eA * sin(pi * ra(1)))
-        store(es_m,i) = (sp**dim) * store(es_den,i)
-        store(es_vx,i) = eA*sin(pi*(ra(1)))
-        store(es_p,i) = prs1
-        store(es_u,i)  = prs1/(gamma -1)/rho1
+        store(es_m,i)   = (sp**dim) * store(es_den,i)
+        store(es_vx,i)  = eA*sin(pi*(ra(1)))
+        store(es_p,i)   = prs1
+        store(es_u,i)   = prs1/(gamma -1)/rho1
       case (ett_hydroshock)
         if (ra(1) <= 0.) then
-          store(es_h,i) = sk * sp
+          store(es_h,i)   = sk * sp
           store(es_den,i) = rho1
-          store(es_p,i) = prs1
-          store(es_m,i) = (pspc1**dim) * rho1
-          store(es_u,i)  = prs1/(gamma -1)/rho1
+          store(es_p,i)   = prs1
+          store(es_m,i)   = (pspc1**dim) * rho1
+          store(es_u,i)   = prs1/(gamma -1)/rho1
         else
-          store(es_h,i) = sk * sp
+          store(es_h,i)   = sk * sp
           store(es_den,i) = rho2
-          store(es_p,i) = prs2
-          store(es_m,i) = (pspc2**dim) * rho2
-          store(es_u,i)  = prs2/(gamma -1)/rho2
+          store(es_p,i)   = prs2
+          store(es_m,i)   = (pspc2**dim) * rho2
+          store(es_u,i)   = prs2/(gamma -1)/rho2
         end if
       case (ett_alfvenwave)
         store(es_h,i) = sk * sp
         store(es_m,i) = (sp**dim) * rho1
 
         store(es_den,i) = rho1
-        store(es_p,i) = prs1
-        store(es_u,i)  = prs1/(gamma -1)/rho1
+        store(es_p,i)   = prs1
+        store(es_u,i)   = prs1/(gamma -1)/rho1
 
         cca(:) = [cos(theta)*cos(phi), cos(theta)*sin(phi), sin(theta)]
         store(es_vx,i) = eA*0.
@@ -426,7 +428,7 @@ contains
     real, allocatable, intent(in) :: s(:,:)
     integer, intent(in) :: i
     print*, "========"
-    print*, "i: ", i, "type: ", s(es_type, i)
+    print*, "i  :", i, "type: ", s(es_type, i)
     print*, "pos: ", s(es_rx:es_rz, i)
     print*, "vel: ", s(es_vx:es_vz, i)
     print*, "acc: ", s(es_ax:es_az, i)

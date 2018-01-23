@@ -15,7 +15,8 @@ program main
                               err_soundwave_d => soundwaveperturbation_density, &
                               err_soundwave_v => soundwaveperturbation_velocity, &
                               err_diff_artvisc => diff_artvisc, &
-                              err_alfvenwave => alfvenwave
+                              err_alfvenwave => alfvenwave,&
+                              err_hcpulse => hcpulse
   use args,             only: fillargs
   use errteylor,        only: etlaplace => laplace,&
                               etgraddiv => graddiv
@@ -58,6 +59,7 @@ program main
     tprint
 
   ! call runcltest()
+  ! read*
   print *, '##############################################'
   print *, '#####'
 
@@ -87,11 +89,10 @@ program main
 
   allocate(result(100))
   result(:) = 0.
-  result(1) = pspc1
+  result(1) = resol
   call getRealPartNumber(realpartnumb)
   result(2) = realpartnumb
   n = realpartnumb
-
   t = 0.
   dt = 0.
   ltout = 0.
@@ -238,25 +239,23 @@ program main
   ! end select
 
   select case(ivt)
-  case (ett_pulse, ett_OTvortex, ett_ring, ett_mti)
-    printlen = 5
+  case (ett_OTvortex, ett_ring, ett_mti)
+  case (ett_pulse)
+    call err_hcpulse(store, t, err)
   case (ett_sin3)
     call err_sinxet(store, t, err)
-    printlen = 5
   case (ett_soundwave)
     ! call err_soundwave_v(pos, vel, t, err)
     call err_soundwave_d(store, t, err)
-    printlen = 5
   case (ett_hydroshock)
     call err_shockTube(store, t, err)
-    printlen = 5
   case (ett_alfvenwave)
     call err_alfvenwave(store, t, err)
-    printlen = 5
   case default
     print *, ivt, 'Task type was not sen in l2 error evaluation main:267.'
     stop
   end select
+  printlen = 5
 
   call getNeibNumbers(nusedl1, nusedl2)
   result(3) = merge(sqrt(sum(err)/nusedl1), 0., nusedl1 > 0)

@@ -436,7 +436,6 @@ contains
         print *, 'Task type was not set in circuit2 outside circle'
         stop
       end select
-      dva(2) = dva(2) - 1.
       store(es_ax:es_az,i) = dva(:)
       store(es_dh,i) = dha
       store(es_ddt,i) = ddta/rhoa
