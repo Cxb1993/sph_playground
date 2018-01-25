@@ -48,7 +48,8 @@ contains
 
     integer, allocatable :: nlista(:)
     integer             :: i, j, dim, ivt, diso
-    real                :: exact, x(3), num, dcnd
+    real :: &
+      exact, x(3), num, dcnd, eps, pifac, ekt, ektd2, ektsq, epsdm1
 
     call getdim(dim)
     call getNeibListL1(nlista)
@@ -57,14 +58,26 @@ contains
     call getdiffconductivity(dcnd)
 
     err(:) = 0.
+    eps = 0.1
+    pifac =(2*pi)**(-dim/2.)
+    ekt = eps**2 + 2*dcnd*t
+    ektd2 = ekt**(dim/2.)
+    ektsq = ekt**(1./2.)
+    epsdm1= eps**(dim-1)
+
 
     do j = 1,size(nlista)
       i = nlista(j)
       exact = 0.
       x(:) = store(es_rx:es_rz,i)
       num  = store(es_t,i)
-      exact = ((2*pi)**(-dim/2.))/((0.1**2+2*dcnd*t)**(dim/2.))*&
-        exp(-0.5*((x(1)*x(1)+x(2)*x(2)+x(3)*x(3))/(0.1**2+2*dcnd*t)))
+      if (diso==1) then
+        exact = pifac/ektd2*&
+          exp(-0.5*((x(1)*x(1)+x(2)*x(2)+x(3)*x(3))/ekt))
+      else
+        exact = pifac/epsdm1/ektsq*&
+          exp(-0.5*(x(1)*x(1)/ekt + (x(2)*x(2)+x(3)*x(3))/eps/eps))
+      end if
       err(i) = (exact - num)*(exact - num)
       ! print*, exact, num
       ! read*

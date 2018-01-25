@@ -266,7 +266,7 @@ module state
      case('no')
        statevars(ec_silent) = 0
      case('')
-       statevars(ec_silent) = 1
+       statevars(ec_silent) = 0
      case default
        print *, 'There is no such silent mode: ', i
        stop
