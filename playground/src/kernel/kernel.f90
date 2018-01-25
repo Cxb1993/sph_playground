@@ -7,7 +7,8 @@ module kernel
   implicit none
 
   public :: nw, get_dw_dh, get_w, initkernel, &
-            n2w, get_krad, hessian, getkernelname, hessian_rr, getneibnumber
+            n2w, get_krad, hessian, getkernelname,&
+            hessian_rr, getneibnumber, precalcKernel
   save
     integer :: dim
     procedure (ainw), pointer :: nw => null()
@@ -36,7 +37,8 @@ module kernel
     end interface
 
   private
-  real :: storekdf(100)
+  integer, parameter :: kernelres=1001
+  real :: sf(kernelres), sdf(kernelres), sddf(kernelres), dk
 
 contains
   pure subroutine getkernelname(kname)
@@ -68,10 +70,11 @@ contains
 
     hessian_rr => hessian_rr_fab_cart
 
-    call precalcKDF()
+    ! call precalcKernel()
 
     if (cs == 1) then
       nw => nw_cart
+      ! nw => nw_cart_precalc
       if (kt == esd_n2w) then
         hessian => hessian_ddw_cart
       else if (kt == esd_fab) then
@@ -101,18 +104,24 @@ contains
     end if
   end subroutine
 
- subroutine precalcKDF()
-   real    :: dq, df
-   integer :: i, np
+ subroutine precalcKernel()
+   real    :: q, dq, f
+   integer :: i
 
-   np = size(storekdf)
-   dq = krad/np
-   storekdf(1) = 0.
-   do i = 2,np
-     call kdf(dq*i, df)
-     storekdf(i) = wCv * df / (dq*i)
+   dq = krad/(kernelres-1)
+   dk = dq
+   do i = 1,kernelres
+     q = dq*(i-1)
+     call kf(q, f)
+     sf(i) = wCv * f
+     call kdf(q, f)
+     sdf(i) = wCv * f
+     call kddf(q, f)
+     sddf(i) = wCv * f
+     ! print*, i, nint(q/dk)+1, dq*(i-1), sf(i), sdf(i), sddf(i)
    end do
- end subroutine precalcKDF
+   ! read*
+ end subroutine precalcKernel
 
   ! ---------!
   ! W kernel !------------------------------------------------------------------
@@ -142,16 +151,14 @@ contains
     nw(:) = wCv * df * rab(:) / h**(dim+2) / q
   end subroutine nw_cart
 
-  ! pure subroutine nw_cart_precalc(rab, ra, rb, dr, h, nw)
-  !   real, intent(in)  :: rab(3), ra(3), rb(3), dr, h
-  !   real, intent(out) :: nw(3)
-  !   real              :: df, q
-  !
-  !   q = dr / h
-  !   call kdf(q, df)
-  !
-  !   nw(:) = wCv * df * rab(:) / h**(dim+2) / q
-  ! end subroutine nw_cart
+  pure subroutine nw_cart_precalc(rab, ra, rb, dr, h, nw)
+    real, intent(in)  :: rab(3), ra(3), rb(3), dr, h
+    real, intent(out) :: nw(3)
+    real              :: df, q
+
+    q = dr / h
+    nw(:) = sdf(nint(q/dk)+1) * rab(:) / h**(dim+2) / q
+  end subroutine nw_cart_precalc
 
   pure subroutine nw_cyl(rab, ra, rb, dr, h, nw)
     ! get cylindrical nabla kernel for cartesian input

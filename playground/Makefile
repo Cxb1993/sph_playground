@@ -14,7 +14,6 @@ SRC= \
 	const.f90\
 	utils/tables.f90\
 	utils/stretchmap.f90\
-	state.f90\
 	BC.f90\
 	utils/dumper.f90\
 	preruncheck.f90
@@ -22,6 +21,7 @@ SRC= \
 SRC+=kernel/base_$(kernel).f90
 
 SRC+=kernel/kernel.f90\
+	state.f90\
 	utils/neighboursearch.f90\
 	printer.f90\
 	err_shocktube.f90\
