@@ -377,9 +377,7 @@ module state
    end subroutine
 
    subroutine printstate()
-     use kernel,  only: getkernelname
-
-     character (len=100) :: kname
+     use kernel_base,  only: kernelname
 
      print *, '##############################################'
      print *, '#####'
@@ -447,8 +445,7 @@ module state
        write(*,blockFormatStr) " #   #", "second derivative type: ", "Two First Derivatives"
      end select
 
-     call getkernelname(kname)
-     write(*,blockFormatStr) " #   #", "kernel name: ", kname
+     write(*,blockFormatStr) " #   #", "kernel name: ", kernelname
      write(*,blockFormatFlt) " #   #", "print dt: ", statevars(ec_tfinish) / statevars(ec_npics)
      write(*,blockFormatFlt) " #   #", "stop time: ", statevars(ec_tfinish)
      write(*,blockFormatFlt) " #   #", "hfac: ", statevars(ec_hfac)

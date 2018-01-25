@@ -16,8 +16,7 @@ module args
                         setsilentmode,&
                         setLastPrint,&
                         setUseDumps
-  use kernel,     only: initkernel, &
-                        getkernelname
+  use kernel,     only: initkernel
 
   implicit none
 

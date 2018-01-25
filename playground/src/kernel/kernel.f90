@@ -1,13 +1,14 @@
 module kernel
   use const
+  use kernel_base
   use state, only:  gcoordsys, &
                     getddwtype, &
                     setdim
-  use base_kernel
+
   implicit none
 
   public :: nw, get_dw_dh, get_w, initkernel, &
-            n2w, get_krad, hessian, getkernelname,&
+            n2w, get_krad, hessian,&
             hessian_rr, getneibnumber, precalcKernel
   save
     integer :: dim
@@ -41,11 +42,6 @@ module kernel
   real :: sf(kernelres), sdf(kernelres), sddf(kernelres), dk
 
 contains
-  pure subroutine getkernelname(kname)
-    character (len=*), intent(out) :: kname
-    kname = kernelname
-  end subroutine
-
   pure subroutine get_krad(kr)
     real, intent(out) :: kr
     kr = krad
@@ -231,8 +227,7 @@ contains
     n2w = wCv*(ddf + (dim - 1) * df / q)/h**(dim + 2)
   end subroutine n2w_cart
 
-  ! pure
-  pure subroutine n2w(r, h, on2w)
+  subroutine n2w(r, h, on2w)
     real, intent(in)  :: r(3), h
     real, intent(out) :: on2w
     integer :: ktype
@@ -352,7 +347,7 @@ contains
   !   end if
   ! end subroutine hessian_rr_n2w_cart
 
-  pure subroutine hessian_ddw_cart(rab, ra, rb, h, Hes)
+  subroutine hessian_ddw_cart(rab, ra, rb, h, Hes)
   ! subroutine hessian_ddw_cart(rab, ra, rb, h, Hes)
     real, intent(in)  :: rab(3), ra(3), rb(3), h
     real, intent(out) :: Hes(3,3)

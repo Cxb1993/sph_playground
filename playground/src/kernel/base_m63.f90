@@ -1,4 +1,4 @@
-module base_kernel
+module kernel_base
   use const
   implicit none
 
@@ -89,4 +89,4 @@ module base_kernel
       end if
     end if
   end subroutine
-end module
+end module kernel_base
