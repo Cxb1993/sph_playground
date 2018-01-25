@@ -1,11 +1,21 @@
 program main
-  use BC,               only: getRealPartNumber
+  use BC,               only: initBorders
   use setup,            only: setupV2
-  use state,            only: get_tasktype,&
+  use state,            only: get_equations,&
                               ginitvar,&
                               getdiffisotropic, &
                               getdiffconductivity, &
-                              getmhdmagneticpressure
+                              getmhdmagneticpressure,&
+                              printstate,&
+                              gettfinish,&
+                              getnpics,&
+                              getresolution,&
+                              getsilentmode,&
+                              getPartNumber,&
+                              getHfac,&
+                              getGamma,&
+                              getresultfile,&
+                              getUseDumps
   use iterator,         only: iterate
   use printer,          only: Output, AppendLine
   use errcalc,          only: err_diff_laplace, &
@@ -30,6 +40,8 @@ program main
                               getNeibListL1
   use arrayresize,      only: resize
   use timing,           only: addTime
+  use dumper,           only: dump, restore,&
+                              dumpclean => clean
 
   use preruncheck
   use const
@@ -45,34 +57,58 @@ program main
   real, allocatable, dimension(:,:) :: &
     store
   real :: &
-    dt, t, dtout, ltout, tfinish, npic,&
-    pspc1, gamma, sk, cv = 1., &
+    dt, t, dtout, ltout, tfinish,&
+    gamma, hfac, cv = 1., &
     mhdmuzero, difcond
     ! , chi(81)
   character (len=100) :: &
-    itype, errfname, ktype, dtype
+    errfname
   integer :: &
-    n, dim, iter, s_tt, nusedl1, nusedl2, printlen, silent,&
-    ivt, stopiter, resol, difiso, realpartnumb
+    n, iter, s_tt, nusedl1, nusedl2, printlen, silent,&
+    ivt, stopiter, resol, difiso, realpartnumb, npics, usedumps
 
   integer(8) :: &
     tprint
 
+  logical :: thereisdump
+
+  print*, "##############################################"
+  print*, "#####"
+  print*, "#   #   .HELLO WORLD. Setup in progress."
+  print*, "#####"
+  print*, "##############################################"
+
+  inquire(file='output/fulldump', exist=thereisdump)
   ! call runcltest()
   ! read*
-  print *, '##############################################'
-  print *, '#####'
+  call fillargs()
 
-  call fillargs(dim, pspc1, resol,&
-                itype, ktype, dtype, errfname, dtout, npic, tfinish, sk, silent)
+  t = 0.
 
-  call setupV2(n, sk, gamma, cv, pspc1, resol, store)
+  if (thereisdump) then
+    call restore(store, t)
+  else
+    call setupV2(n, cv, store)
+  end if
 
-  call get_tasktype(s_tt)
+  call initBorders()
+
+  call get_equations(s_tt)
   call ginitvar(ivt)
   call getdiffisotropic(difiso)
   call getdiffconductivity(difcond)
   call getmhdmagneticpressure(mhdmuzero)
+
+  call gettfinish(tfinish)
+  call getnpics(npics)
+  call getsilentmode(silent)
+  call getresolution(resol)
+  call getGamma(gamma)
+  call getHfac(hfac)
+  call getresultfile(errfname)
+  call getUseDumps(usedumps)
+
+  dtout = tfinish/npics
 
   select case(s_tt)
   case (eeq_hydro, eeq_diffusion, eeq_magnetohydro, eeq_magnetohydrodiffusion)
@@ -84,16 +120,14 @@ program main
     stop
   end select
 
-  print *, '#####'
-  print *, '##############################################'
+  call printstate()
 
   allocate(result(100))
   result(:) = 0.
   result(1) = resol
-  call getRealPartNumber(realpartnumb)
+  call getPartNumber(r=realpartnumb)
   result(2) = realpartnumb
   n = realpartnumb
-  t = 0.
   dt = 0.
   ltout = 0.
   iter = 0.
@@ -118,8 +152,9 @@ program main
     print *, '# Initial setup printed'
     call Output(t, store, sqerr)
   end if
+
   call checkVarsReady(s_tt, store)
-  call iterate(n, sk, gamma, store)
+  call iterate(n, hfac, gamma, store)
   select case(s_tt)
   case(eeq_hydro, eeq_magnetohydro, eeq_diffusion, eeq_magnetohydrodiffusion)
     ! stopiter = 1
@@ -134,7 +169,6 @@ program main
   end select
 
   do while ((t < tfinish + eps0).and.(stopiter==0))
-    ! call Output(t, ptype, pos, vel, acc, mas, den, h, prs, iu, cf, sqerr)
     select case(s_tt)
     case(eeq_hydro)
       dt = .3 * minval(store(es_h,1:n)) / maxval(store(es_c,1:n))
@@ -169,12 +203,9 @@ program main
     end if
     ! print *, 0, 0
     if (t >= ltout) then
-      ! print*, maxval(kcf), minval(den), minval(c), minval(h)
-      ! read*
+      if (usedumps == 1) call dump(store, t)
+      if (silent == 0) call Output(t, store, err)
       print *, "#", iter, "t=", t, "dt=", dt, 'min h=', minval(store(es_h,1:n)), 'max h=', maxval(store(es_h,1:n))
-      if ( silent == 0) then
-        call Output(t, store, err)
-      end if
       ltout = ltout + dtout
     end if
 
@@ -196,7 +227,7 @@ program main
     store(es_t,1:n) = store(es_u,1:n)/store(es_c,1:n)
     store(es_bx:es_bz,1:n) = store(es_bx:es_bz,1:n) + dt * tdb(:,:)
 
-    call iterate(n, sk, gamma, store)
+    call iterate(n, hfac, gamma, store)
 
     store(es_vx:es_vz,1:n) = &
       store(es_vx:es_vz,1:n) + 0.5*dt*(store(es_ax:es_az,1:n) - ta(:,:))
@@ -270,7 +301,7 @@ program main
       call Output(t, store, sqerr)
     end if
   end if
-  result(5) = sk
+  result(5) = hfac
   call resize(result, printlen, printlen)
   call AppendLine(result, errfname, tprint)
 
@@ -283,6 +314,7 @@ program main
   call neibDestroy()
   call c1destroy()
   call timedestroy()
+  call dumpclean()
 end program
 
 subroutine set_stepping(i)

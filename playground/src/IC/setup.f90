@@ -6,17 +6,21 @@ module setup
   use const
   use kernel,           only: get_krad, &
                               get_w
-  use state,            only: get_tasktype,&
+  use state,            only: get_equations,&
                               getddwtype,&
                               getdim,&
                               ginitvar,&
                               gcoordsys,&
                               setdiffisotropic, &
                               setdiffconductivity, &
-                              setmhdmagneticpressure
+                              setmhdmagneticpressure,&
+                              gethfac,&
+                              getresolution,&
+                              getspacing,&
+                              getPartNumber,&
+                              setGamma
   use BC,               only: createFixedBorders, &
-                              getRealPartNumber, &
-                              getArtPartNumber
+                              getPeriodPartNumber
   use uniform,          only: uniformV4
   use neighboursearch,  only: getneighbours, &
                               getNeibListL1, &
@@ -32,27 +36,31 @@ module setup
   integer(8) :: start=0, finish=0
 contains
 
-  subroutine setupV2(n, sk, gamma, cv, pspc1, resol, store)
+  subroutine setupV2(n, cv, store)
     real, allocatable, intent(inout) :: store(:,:)
-    real, intent(in)        :: sk, cv
-    real, intent(inout)     :: pspc1, gamma
-    integer, intent(inout)  :: n, resol
+    real, intent(in)        :: cv
+    integer, intent(inout)  :: n
 
     real :: &
       ra(3), kr, prs1, prs2, rho1, rho2, sp, &
       brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, eA, &
-      cca(3), qmatr(3,3), pspc2, theta, phi, bordersize
+      cca(3), qmatr(3,3), pspc2, theta, phi, bordersize,&
+      hfac, pspc1, gamma
     integer :: &
-      i, nb, tt, kt, dim, ivt, cs, d2null, d3null, rpn, fpn, ppn
+      i, nb, tt, kt, dim, ivt, cs, d2null, d3null, &
+      rpn, fpn, ppn, resol
     ! integer, allocatable :: nlista(:)
 
     call system_clock(start)
     call getddwtype(kt)
-    call get_tasktype(tt)
+    call get_equations(tt)
     call get_krad(kr)
     call getdim(dim)
     call ginitvar(ivt)
     call gcoordsys(cs)
+    call gethfac(hfac)
+    call getresolution(resol)
+    call getspacing(pspc1)
 
     d2null = 1
     d3null = 1
@@ -63,7 +71,7 @@ contains
       d3null = 0
     end if
 
-    nb = int(kr*sk) + 1
+    nb = int(kr*hfac) + 1
 
     select case(ivt)
     case(ett_sin3, ett_shock12)
@@ -114,8 +122,8 @@ contains
       bordersize = nb*pspc2
       call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
       call createFixedBorders(store, ebc_y)
-      call getRealPartNumber(rpn)
-      call getArtPartNumber(fpn, ppn)
+      call getPartNumber(rpn,fpn)
+      call getPeriodPartNumber(ppn)
       call set_density_profile(rpn+fpn,store,&
         brdy1-bordersize,brdy2+bordersize,&
         rhofunc=MTIHopkins2017,coord=2)
@@ -182,7 +190,7 @@ contains
       end if
       pspc1 = (brdx2-brdx1)/resol
       pspc2 = pspc1
-      nb = int(kr*sk*2)
+      nb = int(kr*hfac*2)
       if (dim > 1) then
         brdy1 = 0.
         brdy2 = 1./sin(theta)
@@ -211,7 +219,7 @@ contains
       end if
       pspc1 = (brdx2-brdx1)/resol
       pspc2 = pspc1
-      nb = int(kr*sk*2)
+      nb = int(kr*hfac*2)
       brdy1 = 0. * d2null
       brdy2 = 1. * d2null
       brdz1 = -pspc1 * nb * d3null
@@ -219,7 +227,7 @@ contains
       bordersize = nb*pspc2
       call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
     case default
-      print *, 'Problem was not set in IC.f90: line 220.'
+      print *, 'Problem was not set in setup.f90: line 222.'
       stop
     end select
 
@@ -228,20 +236,14 @@ contains
       stop
     end if
 
-    call getRealPartNumber(rpn)
-    call getArtPartNumber(fpn, ppn)
-
-    write(*,blockFormatInt) " #  #", "       real particles:", rpn
-    write(*,blockFormatInt) " #  #", "      fixed particles:", fpn
-    write(*,blockFormatInt) " #  #", "   periodic particles:", ppn
-    write(*,blockFormatInt) " #  #", " initial storage size:", size(store,2)
-
+    call getPartNumber(rpn,fpn)
+    call getPeriodPartNumber(ppn)
     n = rpn + fpn
     !$omp parallel do default(none)&
     !$omp private(i, sp, cca, qmatr)&
     !$omp private(ra)&
     !$omp shared(n, pspc1, pspc2, store, gamma, rho1, rho2)&
-    !$omp shared(dim, sk, tt, prs1, prs2, cv)&
+    !$omp shared(dim, hfac, tt, prs1, prs2, cv)&
     !$omp shared(brdx2, brdx1, brdy2, brdy1, brdz2, brdz1)&
     !$omp shared(ivt, eA, kt, cs, theta, phi, d2null, d3null)
     do i=1,n
@@ -253,7 +255,7 @@ contains
       sp = merge(pspc1, pspc2, ra(1) < 0)
       select case (ivt)
       case(ett_sin3)
-        store(es_h,i) = sk * sp
+        store(es_h,i) = hfac * sp
         store(es_m,i) = (sp**dim) * rho1
         store(es_den,i) = rho1
         ! isotropic case
@@ -277,7 +279,7 @@ contains
                    sin(pi * (ra(3) - brdz1) / abs(brdz2-brdz1))
         end if
       case(ett_shock12)
-        store(es_h,i) = sk * sp
+        store(es_h,i) = hfac * sp
         store(es_m,i) = (sp**dim) * rho1
         store(es_den,i) = rho1
 
@@ -292,7 +294,7 @@ contains
           store(es_t,i) = 1.5
         end if
       case(ett_pulse)
-        store(es_h,i) = sk * sp
+        store(es_h,i) = hfac * sp
         store(es_m,i) = (sp**dim) * rho1
         store(es_den,i) = rho1
         store(es_p,i) = prs1
@@ -304,7 +306,7 @@ contains
           exp(-0.5*(ra(1)*ra(1) + ra(2)*ra(2) + ra(3)*ra(3))/(0.1**2))
         store(es_u,i)  = store(es_t,i)
       case(ett_ring)
-        store(es_h,i) = sk * sp
+        store(es_h,i) = hfac * sp
         store(es_m,i) = (sp**dim) * rho1
         store(es_den,i) = rho1
         store(es_u,i)  = prs1/(gamma -1)/rho1
@@ -340,7 +342,7 @@ contains
         store(es_t,i) = exp(-0.5*((cca(1) - 0.3)**2/(0.05*0.05) + cca(2)*cca(2)/(0.5*0.5)))
         store(es_u,i)  = store(es_t,i)
       case (ett_soundwave)
-        store(es_h,i)   = sk * sp
+        store(es_h,i)   = hfac * sp
         store(es_den,i) = rho1 * (1. + eA * sin(pi * ra(1)))
         store(es_m,i)   = (sp**dim) * store(es_den,i)
         store(es_vx,i)  = eA*sin(pi*(ra(1)))
@@ -348,20 +350,20 @@ contains
         store(es_u,i)   = prs1/(gamma -1)/rho1
       case (ett_hydroshock)
         if (ra(1) <= 0.) then
-          store(es_h,i)   = sk * sp
+          store(es_h,i)   = hfac * sp
           store(es_den,i) = rho1
           store(es_p,i)   = prs1
           store(es_m,i)   = (pspc1**dim) * rho1
           store(es_u,i)   = prs1/(gamma -1)/rho1
         else
-          store(es_h,i)   = sk * sp
+          store(es_h,i)   = hfac * sp
           store(es_den,i) = rho2
           store(es_p,i)   = prs2
           store(es_m,i)   = (pspc2**dim) * rho2
           store(es_u,i)   = prs2/(gamma -1)/rho2
         end if
       case (ett_alfvenwave)
-        store(es_h,i) = sk * sp
+        store(es_h,i) = hfac * sp
         store(es_m,i) = (sp**dim) * rho1
 
         store(es_den,i) = rho1
@@ -374,7 +376,7 @@ contains
         store(es_vz,i) = eA*cos(2*pi*(dot_product(ra(:),cca(:))))
         store(es_bx:es_bz,i) = [1.,0.,0.] + store(es_vx:es_vz,i)
       case(ett_mti)
-        store(es_h,i)   = sk * sp
+        store(es_h,i)   = hfac * sp
         store(es_m,i)   = (sp**dim) * rho1
         store(es_den,i) = rho1
         store(es_u,i)   = (3./2.)*(1. - ra(2)/3.)
@@ -384,7 +386,7 @@ contains
         if (cca(1) > 0) then
           cca(:) = ra(:)/sqrt(cca(1))
           store(es_by,i) = 10e-11
-          if (store(es_type,i) == ept_real) then
+          if (int(store(es_type,i)) == ept_real) then
             store(es_vy,i) = 10e-2*1.*sin(4.*pi*ra(1)/(brdx2-brdx1))
           end if
         end if
@@ -393,7 +395,7 @@ contains
         store(es_vz,i) = d3null*store(es_vz,i)
         store(es_bz,i) = d3null*store(es_bz,i)
       case (ett_OTvortex)
-        store(es_h,i)   = sk * sp
+        store(es_h,i)   = hfac * sp
         store(es_m,i)   = (sp**dim) * rho1
         store(es_den,i) = rho1
         store(es_p,i)   = prs1
@@ -420,6 +422,7 @@ contains
       ! read*
     end do
     !$omp end parallel do
+    call setGamma(gamma)
     call system_clock(finish)
     call addTime(' ic', finish - start)
   end subroutine setupV2

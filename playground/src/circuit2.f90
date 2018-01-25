@@ -10,17 +10,16 @@ module circuit2
   use neighboursearch,  only: getneighbours,&
                               getNeibListL1,&
                               getNeibListL2
-  use state,            only: get_difftype, getdim, &
-                              get_tasktype, getddwtype, &
+  use state,            only: getdim, &
+                              get_equations, getddwtype, &
                               getAdvancedDensity, &
                               getArtificialTerms, &
                               ginitvar, &
-                              gorigin, &
                               getdiffisotropic, &
                               getdiffconductivity, &
-                              getmhdmagneticpressure
-  use BC,               only: getRealPartNumber,&
-                              getCrossRef
+                              getmhdmagneticpressure,&
+                              getPartNumber
+  use BC,               only: getCrossRef
   implicit none
 
   public :: c2init, c2
@@ -29,22 +28,19 @@ module circuit2
   save
     integer(8)  :: start=0, finish=0
     integer :: &
-      s_dim, s_ttp, s_ktp, s_adden, s_artts, s_ivt, initdone = 0, s_origin, realpartnumb
+      s_dim, s_ttp, s_ktp, s_adden, s_artts, s_ivt, initdone = 0
     real        :: s_kr
 
 contains
 
-  subroutine c2init(n)
-    integer, intent(in) :: n
-
+  subroutine c2init()
     call getdim(s_dim)
     call get_krad(s_kr)
-    call get_tasktype(s_ttp)
+    call get_equations(s_ttp)
     call getddwtype(s_ktp)
     call getAdvancedDensity(s_adden)
     call getArtificialTerms(s_artts)
     call ginitvar(s_ivt)
-    call gorigin(s_origin)
     initdone = 1
   end subroutine
 
@@ -74,7 +70,7 @@ contains
     call getdiffconductivity(difcond)
 
     if (initdone == 0) then
-      call c2init(size(store,2))
+      call c2init()
     end if
 
     tneib = 0.
@@ -172,6 +168,7 @@ contains
         qb(:) = 0.
         qc    = 0.
         qd(:) = 0.
+        qe    = 0.
         rab(:) = ra(:) - rb(:)
         r2 = dot_product(rab(:),rab(:))
         dr = sqrt(r2)

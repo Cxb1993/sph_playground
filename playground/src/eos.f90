@@ -1,7 +1,7 @@
 module eos
   use omp_lib
   use const
-  use state,  only: get_tasktype
+  use state,  only: get_equations
   use neighboursearch,  only: getNeibListL1
 
 

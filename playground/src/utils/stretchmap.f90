@@ -300,55 +300,6 @@ end function get_mass
 !  Same as above, but fills a table
 !+
 !------------------------------------
-!
-! version that integrates along spherical radius
-!
-subroutine get_mass_tab_r(masstab,rhotab,rtab)
- real, intent(in)  :: rhotab(:),rtab(:)
- real, intent(out) :: masstab(size(rhotab))
- real :: dr,ri,dmi,dmprev,rprev
- integer :: i
-
- masstab(1) = 0.
- dmprev     = 0.
- rprev      = rtab(1)
- do i=2,size(rhotab)
-    ri     = rtab(i)
-    dr     = ri - rprev
-    dmi    = ri*ri*rhotab(i)*dr
-    masstab(i) = masstab(i-1) + 0.5*(dmi + dmprev) ! trapezoidal rule
-    dmprev = dmi
-    rprev  = ri
- enddo
- masstab(:) = 4.*pi*masstab(:)
-
-end subroutine get_mass_tab_r
-!
-! version that integrates along cylindrical radius
-!
-subroutine get_mass_tab_rcyl(masstab,rhotab,rtab)
- real, intent(in)  :: rhotab(:),rtab(:)
- real, intent(out) :: masstab(size(rhotab))
- real :: dr,ri,dmi,dmprev,rprev
- integer :: i
-
- masstab(1) = 0.
- dmprev     = 0.
- rprev      = rtab(1)
- do i=2,size(rhotab)
-    ri     = rtab(i)
-    dr     = ri - rprev
-    dmi    = ri*rhotab(i)*dr
-    masstab(i) = masstab(i-1) + 0.5*(dmi + dmprev) ! trapezoidal rule
-    dmprev = dmi
-    rprev  = ri
- enddo
- masstab(:) = 2.*pi*masstab(:)
-
-end subroutine get_mass_tab_rcyl
-!
-! version that integrates along a cartesian direction
-!
 subroutine get_mass_tab(masstab,rhotab,xtab)
  real, intent(in)  :: rhotab(:),xtab(:)
  real, intent(out) :: masstab(size(rhotab))

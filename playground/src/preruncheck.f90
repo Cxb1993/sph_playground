@@ -33,7 +33,7 @@ contains
     end if
 
     do i = 1,size(store,2)
-      if (store(es_type,i) /= ept_empty) then
+      if (int(store(es_type,i)) /= ept_empty) then
         if (store(es_den,i) <= 0.) then
           print*, "# # <!> density <= 0"
           stop

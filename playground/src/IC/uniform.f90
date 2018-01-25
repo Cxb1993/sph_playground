@@ -1,10 +1,8 @@
 module uniform
   use const
   use kernel
-  use state,        only: getdim
+  use state,        only: getdim, setBorders, setPartNumber
   use ArrayResize,  only: resize
-  use BC,           only: setRealPartNumber,&
-                          setBorders
 
   implicit none
 
@@ -37,9 +35,6 @@ contains
 
     allocate(store(es_total,1))
     n = 1
-    print *, '#  #       x in [',xmin,":",xmax,"]"
-    print *, '#  #       y in [',ymin,":",ymax,"]"
-    print *, '#  #       z in [',zmin,":",zmax,"]"
 
     if (.not.present(dxmax)) then
       dmx = dxmin
@@ -80,8 +75,7 @@ contains
       end do
     end do
     n = n - 1
-    call setRealPartNumber(n)
+    call setPartNumber(r=n,f=0)
     call setBorders(xmin, xmax, ymin, ymax, zmin, zmax, dbsz)
-    ! call resize(store,n,n)
   end subroutine uniformV4
 end module uniform

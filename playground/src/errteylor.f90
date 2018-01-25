@@ -5,31 +5,26 @@ module errteylor
   use kernel,           only: n2w, &
                               hessian, &
                               get_krad
-  use state,            only: getdim
+  use state,            only: getdim,&
+                              getPartNumber,&
+                              getkerninflfilename
   use neighboursearch,  only: getneighbours,&
                               isInitialized
-  use BC,               only: getRealPartNumber
   use printer,          only: AppendLine
 
   implicit none
 
-  public :: laplace, graddiv, setStepsize, setInfluenceCalc
+  public :: laplace, graddiv, setStepsize
 
   private
   save
   integer    :: stepsize = 1
   integer(8) :: start=0, finish=0
-  character (len=100) :: kinfname = ''
 
 contains
   subroutine setStepsize(i)
     integer, intent(in) :: i
     stepsize = i
-  end subroutine
-
-  subroutine setInfluenceCalc(fname)
-    character (len=*), intent(in) :: fname
-    kinfname = adjustl(fname)
   end subroutine
 
   subroutine laplace(pos, mas, den, h, chi)
@@ -42,6 +37,7 @@ contains
     real                 :: n2wa, r(3), r11, r22, r33, r12, r13, r23, kr, t(3),&
                             dsum, osum, dchi(9)
     real, allocatable    :: printres(:)
+    character(len=50) :: kinfname
 
     allocate(printres(6))
 
@@ -51,7 +47,8 @@ contains
 
     call get_krad(kr)
     call getdim(kd)
-    call getRealPartNumber(realpartnumb)
+    call getPartNumber(r=realpartnumb)
+    call getkerninflfilename(kinfname)
     chi(1:9) = 0.
     dchi(:) = 0.
     t(:) = 0.
@@ -122,15 +119,17 @@ contains
     integer(8)           :: tneib, tprint
     real                 :: r(3), kr, t(3), dr, Hes(3,3), m, dchi(81), dsum, osum
     real, allocatable    :: printres(:)
-
+    character(len=50) :: kinfname
     allocate(printres(6))
 
 
     call system_clock(start)
 
+    call getkerninflfilename(kinfname)
     call get_krad(kr)
     call getdim(kd)
-    call getRealPartNumber(realpartnumb)
+    call getPartNumber(r=realpartnumb)
+
 
     chi(1:81) = 0.
     dchi(:) = 0.

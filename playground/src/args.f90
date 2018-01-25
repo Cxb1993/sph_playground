@@ -1,13 +1,21 @@
 module args
   use const
-  use errteylor,  only: setInfluenceCalc
-  use state,      only: set_tasktype,&
+  use state,      only: set_equations,&
                         setddwtype,&
-                        set_difftype,&
                         sinitvar,&
                         setAdvancedDensity, &
                         setArtificialTerms, &
-                        scoordsys
+                        scoordsys,&
+                        setresultfile,&
+                        setkerninflfilename,&
+                        setnpics,&
+                        settfinish,&
+                        setresolution,&
+                        setspacing,&
+                        sethfac,&
+                        setsilentmode,&
+                        setLastPrint,&
+                        setUseDumps
   use kernel,     only: initkernel, &
                         getkernelname
 
@@ -16,37 +24,34 @@ module args
   public :: fillargs
 
   contains
-    subroutine fillargs(dim, pspc1, resol, itype, ddwtype, dtype, errfname, dtout, npic, tfinish, sk, silent)
-      real, intent(inout)                 :: pspc1, dtout, npic, tfinish, sk
-      integer, intent(inout)              :: dim, silent, resol
-      character (len=100), intent(inout)  :: itype, ddwtype, errfname, dtype
-      character (len=100)                 :: kname
-
-      integer                             :: numargs, curargnum
-      character (len=100)                 :: argkey, argval1, silentstr, kerninflname, initvart,&
-                                             adden, artts, coordsysstr
+    subroutine fillargs()
+      real :: &
+        pspc1, dtout, tfinish, hfac
+      integer :: &
+        numargs, curargnum, npic,dim, silent, resol
+      character (len=100) :: &
+        eqs, resultfile, ddwtype,&
+        argkey, argval1, silentstr, kerninflname, initvart,&
+        adden, artts, coordsysstr, usedumps
       real :: tmp
 
       dim   = 1
-      itype = 'chi-laplace'
+      eqs = ''
       pspc1 = 0
       resol = 0
-      errfname = 'runresult.info'
+      resultfile = ''
       ddwtype = ''
-      kname = ''
       tfinish = 1.
-      npic = 200.
-      sk = 1.2
-      dtype = 'diff'
+      npic = 200
+      hfac = 1.2
       silent = 0
-      silentstr = 'no'
+      silentstr = ''
       kerninflname = ''
       initvart = ''
-      adden = 'yes'
+      adden = ''
       artts = ''
       coordsysstr = ''
-
-      print*, "#  #"
+      usedumps = ''
 
       numargs = command_argument_count()
       if ( numargs > 0 )then
@@ -59,14 +64,14 @@ module args
           case('--dim')
             read(argval1, fmt="(i5)") dim
           case('--equations')
-            itype = adjustl(argval1)
+            eqs = adjustl(argval1)
           case('--spacing')
             read(argval1, *) pspc1
           case('--resolution')
             read(argval1, *) tmp
             resol = int(tmp)
-          case('--errfilename')
-            errfname = adjustl(argval1)
+          case('--resultfile')
+            resultfile = adjustl(argval1)
           case('--kerninfluencefile')
             kerninflname = adjustl(argval1)
           case('--ddw')
@@ -74,16 +79,9 @@ module args
           case('--tfinish')
             read(argval1, *) tfinish
           case('--hfac')
-            read(argval1, *) sk
-          case('--difftype')
-            dtype = adjustl(argval1)
+            read(argval1, *) hfac
           case('--silent')
-            if (argval1 == "yes") then
-              silent = 1
-            else
-              silent = 0
-            end if
-            silentstr = argval1
+            silentstr = adjustl(argval1)
           case('--initvar')
             initvart = adjustl(argval1)
           case('--useadvanceddensity')
@@ -92,6 +90,8 @@ module args
             artts = adjustl(argval1)
           case('--coordsys')
             coordsysstr = adjustl(argval1)
+          case('--usedumps')
+            usedumps = adjustl(argval1)
           case default
             print*, 'argument not found: ', argkey
             stop
@@ -100,49 +100,23 @@ module args
         end do
       end if
 
+      call setnpics(npic)
+      call settfinish(tfinish)
+      call setresultfile(resultfile)
+      call setkerninflfilename(kerninflname)
+      call sinitvar(initvart)
       call scoordsys(coordsysstr)
       call setArtificialTerms(artts)
-      call set_tasktype(itype)
+      call set_equations(eqs)
       call setddwtype(ddwtype)
       dtout = tfinish / npic
-      call set_difftype(dtype)
-
-      print*, "#  #"
-      write(*,blockFormatInt) " #  #", "dim:", dim
-      if (coordsysstr /= '') then
-        write(*,blockFormatStr) " #  #", "coordinate system: ", coordsysstr
-      end if
-      write(*,blockFormatStr) " #  #", "equations: ", itype
-      if (initvart /= '') then
-        call sinitvar(initvart)
-        write(*,blockFormatStr) " #  #", "task type: ", initvart
-      end if
-      call setAdvancedDensity(adden)
-      write(*,blockFormatStr) " #  #", "advanced density: ", adden
-      if (artts /= '') then
-        write(*,blockFormatStr) " #  #", "artificail terms: ", artts
-      end if
-      write(*,blockFormatStr) " #  #", "result file: ", errfname
-      if (kerninflname /= '') then
-        call setInfluenceCalc(kerninflname)
-        write(*,blockFormatStr) " #  #", "kernel influence file name: ", kerninflname
-      end if
-      if (ddwtype /= '') then
-        write(*,blockFormatStr) " #  #", "kernel type: ", ddwtype
-      end if
-      call getkernelname(kname)
-      write(*,blockFormatStr) " #  #", "kernel name: ", kname
-      write(*,blockFormatFlt) " #  #", "print dt: ", dtout
-      write(*,blockFormatFlt) " #  #", "hfac: ", sk
-      write(*,blockFormatStr) " #  #", "second derivative type: ", dtype
-      write(*,blockFormatStr) " #  #", "silent mode: ", silentstr
-      if (pspc1 > 0) then
-        write(*,blockFormatFlt) " #  #", "desired spacing: ", pspc1
-      end if
-      if (resol > 0) then
-        write(*,blockFormatInt) " #  #", "desired resolution:", resol
-      end if
-
       call initkernel(dim)
+      call sethfac(hfac)
+      call setsilentmode(silentstr)
+      call setspacing(pspc1)
+      call setresolution(resol)
+      call setAdvancedDensity(adden)
+      call setLastPrint(0)
+      call setUseDumps(usedumps)
     end subroutine fillargs
 end module

@@ -6,7 +6,7 @@ module base_kernel
 
   private
 
-    character (len=10) :: kernelname=' M6/3 '
+    character (len=10) :: kernelname='M6/3'
 
     real :: knorm(3) = [ 1./120., 7./(478. * pi), 1./(120. * pi) ]
     real :: fwcl(3) = [4., 9.31505/2.25, 9.6429/2.25]

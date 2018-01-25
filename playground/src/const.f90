@@ -6,6 +6,38 @@ module const
   integer, parameter :: &
     e_none = -1
 
+  ! store of state
+  integer, parameter :: &
+    ec_dim = 1,&
+    ec_eqs = 2,&
+    ec_ddw = 3,&
+    ec_ics = 4,&
+    ec_adden = 5,&
+    ec_artts = 6,&
+    ec_coordsys = 7,&
+    ec_disotropic = 8,&
+    ec_dcondconst = 9,&
+    ec_muzero = 10,&
+    ec_tfinish = 11,&
+    ec_npics = 12,&
+    ec_hfac = 13,&
+    ec_silent = 14,&
+    ec_resolution = 15,&
+    ec_spacing = 16,&
+    ec_xmin = 17,&
+    ec_xmax = 18,&
+    ec_ymin = 19,&
+    ec_ymax = 20,&
+    ec_zmin = 21,&
+    ec_zmax = 22,&
+    ec_bordsize = 23,&
+    ec_realpn = 24,&
+    ec_fixedpn = 25,&
+    ec_gamma = 26,&
+    ec_lastprint = 27,&
+    ec_usedumps = 28,&
+    ec_total = 28
+
   ! store of data
   integer, parameter :: &
     es_rx   = 1,&
@@ -88,7 +120,7 @@ module const
 
   character(len=*), parameter :: &
     blockFormatFlt  = "(A,A35,F10.7)",&
-    blockFormatInt  = "(A,A34,I8)",&
+    blockFormatInt  = "(A,A35,I8)",&
     blockFormatStr  = "(A,A35,A)",&
     blockFormatStr2 = "(A,A35,A)"
 

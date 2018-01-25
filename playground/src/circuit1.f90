@@ -6,7 +6,8 @@ module circuit1
                               getddwtype, &
                               gcoordsys, &
                               ginitvar, &
-                              getAdvancedDensity
+                              getAdvancedDensity,&
+                              getPartNumber
   use kernel,           only: get_krad, &
                               get_dw_dh, &
                               nw, &
@@ -14,8 +15,7 @@ module circuit1
   use neighboursearch,  only: getneighbours,&
                               getNeibListL1,&
                               getNeibListL2
-  use BC,               only: getRealPartNumber,&
-                              getCrossRef
+  use BC,               only: getCrossRef
 
   implicit none
 
@@ -29,7 +29,7 @@ module circuit1
 
 contains
   subroutine c1_init()
-    call getRealPartNumber(realpartnumb)
+    call getPartNumber(r=realpartnumb)
     allocate(slnint(realpartnumb))
     allocate(resid(realpartnumb))
     allocate(dennew(realpartnumb))
@@ -226,7 +226,7 @@ contains
       do lb = 1, size(nlistb)
         j = nlistb(lb)
         rb(:) = store(es_rx:es_rz, j)
-        ma = store(es_m, j)
+        mb = store(es_m, j)
         db = store(es_den, j)
 
         r(:) = ra(:)-rb(:)

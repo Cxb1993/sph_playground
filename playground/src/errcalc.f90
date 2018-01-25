@@ -1,12 +1,12 @@
 module errcalc
   use const
   use omp_lib
-  use BC,               only: getRealPartNumber
   use state,            only: getdim,&
-                              get_tasktype,&
+                              get_equations,&
                               ginitvar,&
                               getdiffisotropic,&
-                              getdiffconductivity
+                              getdiffconductivity,&
+                              getPartNumber
   use neighboursearch,  only: getNeibListL1
 
   implicit none
@@ -30,7 +30,7 @@ contains
     integer           :: i, n
     real, allocatable :: exact(:), xpass(:)
 
-    call getRealPartNumber(n)
+    call getPartNumber(r=n)
     allocate(xpass(n))
     allocate(exact(n))
     xpass(:) = store(es_rx,1:n)

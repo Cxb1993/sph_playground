@@ -2,15 +2,18 @@ module BC
   use list
   use const
   use timing,       only: addTime
-  use state,        only: getdim
+  use state,        only: getdim,&
+                          getBorders,&
+                          getPartNumber,&
+                          setPartNumber
   use arrayresize,  only: resize
 
   implicit none
 
   public :: &
-    setBorders, setRealPartNumber, getRealPartNumber, reflecPeriodicParticles,&
+    initBorders, reflecPeriodicParticles,&
     createPeriodicBorder, clearPeriodicParticles, createFixedBorders,&
-    findInsideBorderParticles, getCrossRef, getArtPartNumber, updateFixedToSymmetric
+    findInsideBorderParticles, getCrossRef, getPeriodPartNumber, updateFixedToSymmetric
 
   private
   save
@@ -20,39 +23,34 @@ module BC
     integer(8) :: &
       start=0, finish=0
 
-    integer :: realpartnumb, fixedpartnumb, periodpartnumb, initdone=0
+    integer :: periodpartnumb, selfrefnumb, initdone=0
     real    :: xmin, xmax, ymin, ymax, zmin, zmax, bordersize
     real    :: boxmax(3), boxmin(3)
 
 contains
-  subroutine setRealPartNumber(r)
-    integer, intent(in) :: r
-    realpartnumb = r
-  end subroutine
-  pure subroutine getRealPartNumber(r)
-    integer, intent(out) :: r
-    r = realpartnumb
-  end subroutine
-
-  pure subroutine getArtPartNumber(f, p)
-    integer, intent(out) :: f, p
-    f = fixedpartnumb
+  pure subroutine getPeriodPartNumber(p)
+    integer, intent(out) :: p
     p = periodpartnumb
   end subroutine
 
   pure function getCrossRef(ini) result(oti)
     integer, intent(in) :: ini
     integer oti
-    if (ini <= realpartnumb + fixedpartnumb) then
+    if (ini <= selfrefnumb) then
       oti = ini
     else
-      oti = crossref%xe(ini-(realpartnumb + fixedpartnumb))
+      oti = crossref%xe(ini-(selfrefnumb))
     end if
   end function getCrossRef
 
-  subroutine setBorders(x1,x2,y1,y2,z1,z2,db)
-    real, intent(in) :: &
+  subroutine initBorders()
+    real :: &
       x1,x2,y1,y2,z1,z2,db
+    integer :: &
+      realpartnumb,fixedpartnumb
+
+    call getBorders(x1,x2,y1,y2,z1,z2,db)
+    call getPartNumber(r=realpartnumb,f=fixedpartnumb)
 
     bordersize = db
     xmin = x1
@@ -63,11 +61,12 @@ contains
     zmax = z2
     boxmax(:) = [xmax, ymax, zmax] - bordersize
     boxmin(:) = [xmin, ymin, zmin] + bordersize
+    selfrefnumb = realpartnumb + fixedpartnumb
+
+    initdone=1
   end subroutine
 
-  subroutine clearPeriodicParticles(store)
-    real, allocatable, intent(inout) :: store(:,:)
-
+  subroutine clearPeriodicParticles()
     periodpartnumb = 0
     call crossref%clearfast()
     call ibx1%clearfast()
@@ -81,10 +80,12 @@ contains
   subroutine reflecPeriodicParticles(store, refdir)
     real, allocatable, intent(inout) :: store(:,:)
     integer, intent(in) :: refdir
-    integer :: i, dim
+    integer :: i, dim, realpartnumb, fixedpartnumb
     real :: edgemax(3), edgemin(3), dxmin(3), dxmax(3)
 
     call system_clock(start)
+    if (initdone==0) call initBorders()
+    call getPartNumber(r=realpartnumb,f=fixedpartnumb)
 
     edgemax(1) = xmax
     edgemax(2) = ymax
@@ -177,13 +178,14 @@ contains
 
     call system_clock(start)
     call getdim(dim)
+    if (initdone==0) call initBorders()
 
     ! TODO
     ! check if it is possible to do with KDT
     storesize = size(store,2)
     if (dim == 1) then
       do i=1,storesize
-        if ((store(es_type,i) == ept_real).or.(store(es_type,i) == ept_fixed)) then
+        if ((int(store(es_type,i)) == ept_real).or.(int(store(es_type,i)) == ept_fixed)) then
           ra(:) = store(es_rx:es_rz,i)
           if (ra(1) < boxmin(1)) then
             call ibx1%append(i)
@@ -194,7 +196,7 @@ contains
       end do
     else if (dim == 2) then
       do i=1,storesize
-        if ((store(es_type,i) == ept_real).or.(store(es_type,i) == ept_fixed)) then
+        if ((int(store(es_type,i)) == ept_real).or.(int(store(es_type,i)) == ept_fixed)) then
           ra(:) = store(es_rx:es_rz,i)
           if (ra(1) < boxmin(1)) then
             call ibx1%append(i)
@@ -210,7 +212,7 @@ contains
       end do
     else if (dim == 3) then
       do i=1,storesize
-        if ((store(es_type,i) == ept_real).or.(store(es_type,i) == ept_fixed)) then
+        if ((int(store(es_type,i)) == ept_real).or.(int(store(es_type,i)) == ept_fixed)) then
           ra(:) = store(es_rx:es_rz,i)
           if (ra(1) < boxmin(1)) then
             call ibx1%append(i)
@@ -238,10 +240,16 @@ contains
     real, allocatable, intent(inout) :: store(:,:)
     integer, intent(in) :: targetSide
 
-    integer :: i, pi, k, dim, storesize, prevpn, selfcrossref
+    integer :: &
+      i, pi, k, dim, storesize, prevpn, selfcrossref,&
+      realpartnumb, fixedpartnumb
 
     call system_clock(start)
+
+    if (initdone==0) call initBorders()
     call getdim(dim)
+    call getPartNumber(r=realpartnumb,f=fixedpartnumb)
+
     storesize = size(store,2)
     prevpn = realpartnumb + fixedpartnumb + periodpartnumb
     selfcrossref = realpartnumb + fixedpartnumb
@@ -389,6 +397,7 @@ contains
       end if
     end if
     periodpartnumb = periodpartnumb + (k - prevpn)
+
     call system_clock(finish)
     call addTime(' bc', finish - start)
   end subroutine createPeriodicBorder
@@ -398,12 +407,17 @@ contains
     integer, intent(in) :: targetSide
 
     integer :: &
-      i, pi, k, dim, storesize, refidx, prevrfpn
+      i, pi, k, dim, storesize, prevrfpn,&
+      realpartnumb, fixedpartnumb
 
     call findInsideBorderParticles(store)
 
     call system_clock(start)
+
+    if (initdone==0) call initBorders()
     call getdim(dim)
+    call getPartNumber(r=realpartnumb, f=fixedpartnumb)
+
     storesize = size(store,2)
     prevrfpn = realpartnumb + fixedpartnumb
     k = prevrfpn
@@ -544,6 +558,9 @@ contains
       end if
     end if
     fixedpartnumb = fixedpartnumb + (k - prevrfpn)
+    call setPartNumber(f=fixedpartnumb)
+    selfrefnumb = realpartnumb+fixedpartnumb
+
     call system_clock(finish)
     call addTime(' bc', finish - start)
   end subroutine createFixedBorders

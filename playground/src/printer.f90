@@ -2,7 +2,9 @@ module printer
   use const
   use kernel, only: get_krad
   use timing, only: addTime
-  use BC,     only: getRealPartNumber
+  use state,  only: getPartNumber,&
+                    getLastPrint,&
+                    setLastPrint
 
   implicit none
 
@@ -10,7 +12,6 @@ module printer
 
   private
 
-  integer, save :: ifile = 0
   integer(8) :: start=0, finish=0
 
 
@@ -21,11 +22,12 @@ contains
     real, intent(in)    :: time
     real                :: kr, e
     character (len=40)  :: fname
-    integer :: iu = 0, j, n, rn
+    integer :: iu = 0, j, n, rn, ifile
 
     call system_clock(start)
     call get_krad(kr)
-    call getRealPartNumber(rn)
+    call getPartNumber(r=rn)
+    call getLastPrint(ifile)
 
     n = size(store,2)
     write(fname, "(a,i5.5)") 'output/step_', ifile
@@ -34,8 +36,8 @@ contains
     do j = 1, n
       e = 0.
       if (j <= rn) e = err(j)
-      if (store(es_type,j) /= ept_empty) then
-      ! if (store(es_type,j) == ept_real) then
+      if (int(store(es_type,j)) /= ept_empty) then
+      ! if (int(store(es_type,j)) == ept_real) then
         write(iu, *) store(es_rx:es_rz,j), store(es_vx:es_vz,j),&
           store(es_ax:es_az,j),store(es_m,j),store(es_den,j),&
           store(es_h,j),store(es_p,j),store(es_u,j),store(es_t,j),&
@@ -43,7 +45,7 @@ contains
       end if
     end do
     close(iu)
-    ifile = ifile + 1
+    call setLastPrint(ifile + 1)
     call system_clock(finish)
     call addTime(' printer', finish - start)
   end subroutine Output

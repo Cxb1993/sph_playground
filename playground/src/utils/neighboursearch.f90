@@ -69,8 +69,8 @@ contains
 
   subroutine findneighboursKDT(store)
     use kernel, only: getkernelnn => getneibnumber
-    use state,  only: getddwtype
-    use BC,     only: getRealPartNumber, getArtPartNumber
+    use state,  only: getddwtype, getPartNumber
+    use BC,     only: getPeriodPartNumber
     real, allocatable, intent(in)     :: store(:,:)
     type(kdtree2), pointer            :: kdtree
     type(kdtree2_result), allocatable :: kdtree_res(:)
@@ -83,8 +83,8 @@ contains
     call get_krad(kr)
     call getkernelnn(maxresultnum)
     call getddwtype(ktp)
-    call getRealPartNumber(realpn)
-    call getArtPartNumber(fixedpn, periodpn)
+    call getPartNumber(realpn,fixedpn)
+    call getPeriodPartNumber(periodpn)
     sn = realpn + periodpn + fixedpn
 
     kdtree => kdtree2_create(store(es_rx:es_rz,1:sn))
@@ -146,7 +146,8 @@ contains
   end subroutine findneighboursKDT
 
   subroutine findneighboursN2(store)
-    use BC,     only: getRealPartNumber, getArtPartNumber
+    use state,  only: getPartNumber
+    use BC,     only: getPeriodPartNumber
     use kernel, only: getkernelnn => getneibnumber
 
     real, allocatable, intent(in)    :: store(:,:)
@@ -159,8 +160,8 @@ contains
 
     call get_krad(kr)
     call getkernelnn(maxresultnum)
-    call getRealPartNumber(realpn)
-    call getArtPartNumber(fixedpn, periodpn)
+    call getPartNumber(realpn, fixedpn)
+    call getPeriodPartNumber(periodpn)
     sn = realpn + periodpn + fixedpn
 
     if (.not.allocated(neighbours)) then
@@ -172,78 +173,6 @@ contains
     !$omp parallel do default(none)&
     !$omp shared(store, sn, kr, neighbours, dim, stepsize, kt)&
     !$omp shared(al1, al2, alllistlv1, alllistlv2, maxresultnum)&
-    !$omp private(i, j, tix, r, r2, tasz, ra, rb, ha)
-    do i=1,realpn,stepsize
-      alllistlv1(i) = 1
-      if (.not.(allocated(neighbours(i)%list))) then
-        allocate(neighbours(i)%list(maxresultnum))
-      end if
-      tasz = size(neighbours(i)%list)
-      tix = 0
-      ra(:) = store(es_rx:es_rz, i)
-      ha = store(es_h,i)
-      do j=1,sn
-        if (i /= j) then
-          rb(:) = store(es_rx:es_rz, j)
-          r(:) = ra(:) - rb(:)
-          r2 = dot_product(r(:),r(:))
-          if (r2 < (kr * ha)**2) then
-            tix = tix + 1
-            if (tasz < tix) then
-              call resize(neighbours(i)%list, tasz, tasz * 2)
-              tasz = tasz * 2
-            end if
-            neighbours(i)%list(tix) = j
-          end if
-        end if
-      end do
-      if (tasz /= tix) then
-        call resize(neighbours(i)%list, tix, tix)
-      end if
-    end do
-    !$omp end parallel do
-
-    al1 = 0
-    do i = 1,realpn
-      if ( alllistlv1(i) == 1 ) then
-        al1 = al1 + 1
-        alllistlv1(al1) = i
-      end if
-    end do
-    call resize(alllistlv1, al1, al1)
-
-    initialized = 1.
-    call system_clock(finish)
-    call addTime(' neibs', finish - start)
-  end subroutine
-
-  subroutine findneighboursFF(store)
-    use BC,     only: getRealPartNumber, getArtPartNumber
-    use kernel, only: getkernelnn => getneibnumber
-
-    real, allocatable, intent(in)    :: store(:,:)
-    integer :: &
-      sn, i, j, tasz, tix, dim, kt, al1, al2, &
-      maxresultnum, realpn, periodpn, fixedpn
-    real                             :: r2, r(3), ra(3), ha, rb(3), kr
-
-    call system_clock(start)
-
-    call get_krad(kr)
-    call getkernelnn(maxresultnum)
-    call getRealPartNumber(realpn)
-    call getArtPartNumber(fixedpn, periodpn)
-    sn = realpn + periodpn + fixedpn
-
-    if (.not.allocated(neighbours)) then
-      allocate(neighbours(realpn))
-      allocate(alllistlv1(realpn))
-    end if
-
-    alllistlv1(:) = 0
-    !$omp parallel do default(none)&
-    !$omp shared(store, sn, kr, neighbours, dim, stepsize, kt)&
-    !$omp shared(al1, alllistlv1, maxresultnum)&
     !$omp private(i, j, tix, r, r2, tasz, ra, rb, ha)
     do i=1,realpn,stepsize
       alllistlv1(i) = 1

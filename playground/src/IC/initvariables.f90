@@ -5,7 +5,7 @@ module InitVariables
   use ArrayResize,  only: resize
   use const
   use kernel,       only: get_krad
-  use state,        only: get_tasktype,&
+  use state,        only: get_equations,&
                           getddwtype,&
                           getdim
   use BC
