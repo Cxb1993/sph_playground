@@ -1,8 +1,0 @@
-execute:
-	path: "execute"
-	args: ["2 diff-graddiv 0.06 201703221156-diff-graddiv-2D-2nw 2nw 100 1.98 symm"]
-	cwd: "/Users/sergeibiriukov/_git/moca_study/fortran/playground"
-
-"execute 2":
-	path: "/Users/sergeibiriukov/_git/moca_study/fortran/playground/execute"
-	args: ["1 chi-graddiv 0.06 runresult.info n2w 100 1.98 diff yes"]
