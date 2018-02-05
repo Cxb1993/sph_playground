@@ -472,6 +472,7 @@ write(*,blockFormatInt) " #   #", "desired resolution:", int(statevars(ec_resolu
      write(*,blockFormatInt) " #   #", "fixed particles: ", int(statevars(ec_fixedpn))
      write(*,blockFormatFlt) " #   #", "adiabatic gamma: ", statevars(ec_gamma)
 
+
      print*, "#   #"
      print*, "#####"
      print*, "##############################################"

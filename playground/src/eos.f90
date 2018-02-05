@@ -9,6 +9,15 @@ module eos
   private
 contains
 
+  ! if ((gamma * store(es_p,i) / store(es_den,i)) < 0) then
+  !   print*, i, gamma, store(es_p,i), store(es_den,i)
+  !   print*, i, (gamma - 1), store(es_den,i), store(es_u,i)
+  !   read*
+  ! end if
+  ! if (store(es_den,i) == 0.) then
+  !   print*, store(es_den,i)
+  !   read*
+  ! end if
   subroutine eos_adiabatic(store, gamma)
     real, allocatable, intent(inout)  :: store(:,:)
     real, intent(in)                  :: gamma

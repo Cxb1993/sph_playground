@@ -4,9 +4,13 @@ module rhofuncs
  public :: MTIHopkins2017
 
 contains
-  pure function MTIHopkins2017(r) result(f)
-    real, intent(in)  :: r
-    real              :: f
-    f = (1. - r/3.)**(-(1. + 1./3.)/(1./3.))
+  function MTIHopkins2017(y) result(f)
+    real, intent(in)  :: y
+    real              :: f, g, h
+    h = 3.
+    g = -1.
+    f = (h - y)**(1. - g*h)
+    ! f = 1.
+    ! f = (0.76 + (0.1-y)*1.28*10)
   end function MTIHopkins2017
 end module

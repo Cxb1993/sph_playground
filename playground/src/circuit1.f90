@@ -19,13 +19,13 @@ module circuit1
 
   implicit none
 
-  public :: c1_init, c1, destroy
+  public :: c1, destroy
 
   private
   save
     real, allocatable :: slnint(:), resid(:), dennew(:)
     integer(8) :: start=0, finish=0
-    integer :: realpartnumb
+    integer :: realpartnumb, initdone=0
 
 contains
   subroutine c1_init()
@@ -33,6 +33,7 @@ contains
     allocate(slnint(realpartnumb))
     allocate(resid(realpartnumb))
     allocate(dennew(realpartnumb))
+    initdone = 1
   end subroutine c1_init
 
   subroutine c1(store, hfac)
@@ -40,6 +41,10 @@ contains
     real, intent(in) :: hfac
 
     integer :: ad
+
+    if (initdone /= 1) then
+      call c1_init()
+    end if
 
     call getAdvancedDensity(ad)
 

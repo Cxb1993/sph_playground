@@ -55,6 +55,7 @@ contains
       tmpt1(3,3), tmpt2(3,3), tmpt3(3,3), MPa(3,3), MPb(3,3), Mc(3),&
       dva(3), dua, dha, ddta, dba(3), ba(3), bb(3), va(3), vb(3),&
       ha, hb, ca, cb, pa, pb, ua, ub, oma, omb, ta, tb, ma, mb, &
+      uba(3), ubb(3), dvaterm(3), dvbterm(3),&
       dtadx(3), dtbdx(3), kdtadx(3), kdtbdx(3), &
       difcond, mhdmuzero, &
       drhoadt, consenrg
@@ -84,6 +85,7 @@ contains
     !$omp private(tmpt1, tmpt2, tmpt3, li, lj, MPa, MPb, Mc)&
     !$omp private(ha, hb, ca, cb, pa, pb, ua, ub, oma, omb, ta, tb, ma, mb)&
     !$omp private(dva, dua, dha, ddta, dba, ba, bb, va, vb, dtadx, dtbdx)&
+    !$omp private(uba, ubb, dvaterm, dvbterm)&
     !$omp shared(store, nlista)&
     !$omp shared(s_dim, s_kr, s_ktp, s_ttp, s_adden, s_artts, s_ivt)&
     !$omp shared(nw, hessian, hessian_rr)&
@@ -94,6 +96,7 @@ contains
       rhoa  = store(es_den,i)
       ra(:) = store(es_rx:es_rz,i)
       ba(:) = store(es_bx:es_bz,i)
+      uba(:) = ba(:)/sqrt(dot_product(ba(:),ba(:)))
       va(:) = store(es_vx:es_vz,i)
       ha  = store(es_h,i)
       ca  = store(es_c,i)
@@ -116,43 +119,56 @@ contains
       tmpt3(:,:) = 0.
       kta(:,:) = 0.
       ktb(:,:) = 0.
-      call getneighbours(i, nlistb, t0)
+
       tneib = tneib + t0
+      MPa(:,:) = 0.
+      Mc(1) = dot_product(ba(:),ba(:))
+      do li = 1,3
+        do lj = 1,3
+          if (li == lj) then
+            MPa(li,lj) = pa + (0.5*Mc(1) - ba(li)*ba(lj)) /mhdmuzero
+          else
+            MPa(li,lj) = -ba(li)*ba(lj) /mhdmuzero
+          end if
+        end do
+      end do
       select case (s_ttp)
       case (eeq_diffusion, eeq_magnetohydrodiffusion)
         if (difiso == 1) then
-          kta(:,1) = [difcond,0.,0.]
-          kta(:,2) = [0.,difcond,0.]
-          kta(:,3) = [0.,0.,difcond]
+          kta(1,1) = difcond
+          kta(2,2) = difcond
+          kta(3,3) = difcond
 
-          ktb(:,1) = [difcond,0.,0.]
-          ktb(:,2) = [0.,difcond,0.]
-          ktb(:,3) = [0.,0.,difcond]
+          ktb(1,1) = difcond
+          ktb(2,2) = difcond
+          ktb(3,3) = difcond
         else
-          do li = 1, 3
-            do lj = 1,3
-              kta(li,lj) = difcond*ba(li)*ba(lj)
+          if ((ra(2) >= 0.).and.(ra(2) < 1./30.)) then
+            kta(1,1) = difcond
+            kta(2,2) = difcond
+            kta(3,3) = difcond
+          else if ((ra(2) > 2./30.).and.(ra(2) <= 1./10.)) then
+            kta(1,1) = difcond
+            kta(2,2) = difcond
+            kta(3,3) = difcond
+          else
+            do li = 1, 3
+              do lj = 1,3
+                kta(li,lj) = difcond*uba(li)*uba(lj)
+              end do
             end do
-          end do
+          end if
         end if
-        Mc(1) = dot_product(ba(:),ba(:))
-        do li = 1,3
-          do lj = 1,3
-            if (li == lj) then
-              MPa(li,lj) = pa + (0.5*Mc(1) - ba(li)*ba(lj)) /mhdmuzero
-            else
-              MPa(li,lj) = -ba(li)*ba(lj) /mhdmuzero
-            end if
-          end do
-        end do
       end select
-      overb: do lb = 1, size(nlistb)
 
+      call getneighbours(i, nlistb, t0)
+      overb: do lb = 1, size(nlistb)
         j = nlistb(lb)
         rj = getCrossRef(j)
 
         rb(:) = store(es_rx:es_rz, j)
         bb(:) = store(es_bx:es_bz, rj)
+        ubb(:) = bb(:)/sqrt(dot_product(bb(:),bb(:)))
         vb(:) = store(es_vx:es_vz, rj)
         rhob = store(es_den, rj)
         hb = store(es_h, rj)
@@ -192,12 +208,12 @@ contains
             call art_termcond(nwa, nwb, urab, pa, pb, ua, ub, rhoa, rhob, oma, omb, qc)
           end if
 
-          dva(:) = dva(:) - mb * ( &
+          dva(:) = dva(:) - mb * (&
                       (pa * nwa(:) + qa(:)) / (rhoa**2 * oma) + &
                       (pb * nwb(:) + qb(:)) / (rhob**2 * omb) &
                     )
 
-          dua   = dua + mb * ( &
+          dua   = dua + mb * (&
                       dot_product(vab(:), pa * nwa(:)) / (rhoa**2 * oma) - &
                       dot_product(vab(:), qa(:))/(rhoa * oma) + &
                       qc &
@@ -205,7 +221,7 @@ contains
         case (eeq_magnetohydro)
           MPa(:,:) = 0.
           MPb(:,:) = 0.
-          Mc(:)   = 0.
+          Mc(:)    = 0.
           if (s_artts == 1) then
             call art_viscosity(rhoa, rhob, vab, urab, rab, dr, &
                                 s_dim, ca, cb, ha, hb, qa, qb)
@@ -297,53 +313,61 @@ contains
           end if
 
         case (eeq_magnetohydrodiffusion)
-          MPa(:,:) = 0.
           MPb(:,:) = 0.
           Mc(:)    = 0.
           odda = 1./oma/rhoa/rhoa
           oddb = 1./omb/rhob/rhob
           if (difiso == 0) then
-            do li = 1, 3
-              do lj = 1,3
-                ktb(li,lj) = difcond*bb(li)*bb(lj)
+            ktb(:,:) = 0.
+            if ((ra(2) > 0.).and.(ra(2)<1./30.)) then
+              ktb(1,1) = difcond
+              ktb(2,2) = difcond
+              ktb(3,3) = difcond
+            else if ((ra(2) > 2./30.).and.(ra(2)<1./10.)) then
+              ktb(1,1) = difcond
+              ktb(2,2) = difcond
+              ktb(3,3) = difcond
+            else
+              do li = 1, 3
+                do lj = 1,3
+                  ktb(li,lj) = difcond*ubb(li)*ubb(lj)
+                end do
               end do
-            end do
+            end if
           end if
           ! diffusion
-          ! if (s_ktp == esd_n2w) then
-          !   call hessian(rab, ra, rb, ha, Hesa)
-          !   do li = 1, 3
-          !     do lj = 1,3
-          !       tmpt1(li,lj) = tmpt1(li,lj) + mb/rhob * &
-          !                       (ktb(li,lj) - kta(li,lj)) * nwa(li)
-          !       tmpt2(li,lj) = tmpt2(li,lj) + mb/rhob * &
-          !                       (tb - ta) * nwa(lj)
-          !       tmpt3(li,lj) = tmpt3(li,lj) + kta(li,lj) *&
-          !                       mb/rhob * (tb - ta) * Hesa(li,lj)
-          !     end do
-          !   end do
-          ! else if ((s_ktp == esd_fw).or.(s_ktp == esd_fab)) then
-          !   ktab(:,:) = (kta(:,:)+ktb(:,:))/2.
-          !   call hessian(rab, ra, rb, ha, Hesa)
-          !   ddta = ddta + mb/rhob * (tb - ta) * &
-          !     ( dot_product(ktab(1,:),Hesa(1,:)) + &
-          !       dot_product(ktab(2,:),Hesa(2,:)) + &
-          !       dot_product(ktab(3,:),Hesa(3,:)) )
-          ! else if (s_ktp == esd_2nw) then
-          !   odda = 1./oma/rhoa/rhoa
-          !   oddb = 1./omb/rhob/rhob
-          !   kdtadx(1) = dot_product(kta(1,:),dtadx(:))
-          !   kdtadx(2) = dot_product(kta(2,:),dtadx(:))
-          !   kdtadx(3) = dot_product(kta(3,:),dtadx(:))
-          !   kdtbdx(1) = dot_product(ktb(1,:),dtbdx(:))
-          !   kdtbdx(2) = dot_product(ktb(2,:),dtbdx(:))
-          !   kdtbdx(3) = dot_product(ktb(3,:),dtbdx(:))
-          !   ddta = ddta + mb*( &
-          !     dot_product(kdtadx(:),nwa(:))*odda + dot_product(kdtbdx(:),nwb(:))*oddb)
-          !   else
-          !     print*, "# <!> second deriv id not found"
-          !     stop
-          ! end if
+          if (s_ktp == esd_n2w) then
+            call hessian(rab, ra, rb, ha, Hesa)
+            do li = 1, 3
+              do lj = 1,3
+                tmpt1(li,lj) = tmpt1(li,lj) + mb/rhob * &
+                                (ktb(li,lj) - kta(li,lj)) * nwa(li)
+                tmpt2(li,lj) = tmpt2(li,lj) + mb/rhob * &
+                                (tb - ta) * nwa(lj)
+                tmpt3(li,lj) = tmpt3(li,lj) + kta(li,lj) *&
+                                mb/rhob * (tb - ta) * Hesa(li,lj)
+              end do
+            end do
+          else if ((s_ktp == esd_fw).or.(s_ktp == esd_fab)) then
+            ktab(:,:) = (kta(:,:)+ktb(:,:))/2.
+            call hessian(rab, ra, rb, ha, Hesa)
+            ddta = ddta + mb/rhob * (tb - ta) * &
+              ( dot_product(ktab(1,:),Hesa(1,:)) + &
+                dot_product(ktab(2,:),Hesa(2,:)) + &
+                dot_product(ktab(3,:),Hesa(3,:)) )
+          else if (s_ktp == esd_2nw) then
+            kdtadx(1) = dot_product(kta(1,:),dtadx(:))
+            kdtadx(2) = dot_product(kta(2,:),dtadx(:))
+            kdtadx(3) = dot_product(kta(3,:),dtadx(:))
+            kdtbdx(1) = dot_product(ktb(1,:),dtbdx(:))
+            kdtbdx(2) = dot_product(ktb(2,:),dtbdx(:))
+            kdtbdx(3) = dot_product(ktb(3,:),dtbdx(:))
+            ddta = ddta + mb*( &
+              dot_product(kdtadx(:),nwa(:))*odda + dot_product(kdtbdx(:),nwb(:))*oddb)
+            else
+              print*, "# <!> second deriv id not found"
+              stop
+          end if
 
           if (s_artts == 1) then
             call art_viscosity(rhoa, rhob, vab, urab, rab, dr, &
@@ -357,26 +381,27 @@ contains
           do li = 1,3
             do lj = 1,3
               if (li == lj) then
-                MPb(li,lj) = pb + (0.5*Mc(2) - bb(li)*bb(lj)) /mhdmuzero
+                MPb(li,lj) = pb + (0.5*Mc(2) - bb(li)*bb(lj))/mhdmuzero
               else
-                MPb(li,lj) = -bb(li)*bb(lj) /mhdmuzero
+                MPb(li,lj) = -bb(li)*bb(lj)/mhdmuzero
               end if
             end do
           end do
-          MPa(1,1) = dot_product(MPa(1,:), nwa(:)) + qa(1)
-          MPa(2,1) = dot_product(MPa(2,:), nwa(:)) + qa(2)
-          MPa(3,1) = dot_product(MPa(3,:), nwa(:)) + qa(3)
 
-          MPb(1,1) = dot_product(MPb(1,:), nwb(:)) + qb(1)
-          MPb(2,1) = dot_product(MPb(2,:), nwb(:)) + qb(2)
-          MPb(3,1) = dot_product(MPb(3,:), nwb(:)) + qb(3)
+          dvaterm(1) = dot_product(MPa(1,:), nwa(:)) + qa(1)
+          dvaterm(2) = dot_product(MPa(2,:), nwa(:)) + qa(2)
+          dvaterm(3) = dot_product(MPa(3,:), nwa(:)) + qa(3)
+
+          dvbterm(1) = dot_product(MPb(1,:), nwb(:)) + qb(1)
+          dvbterm(2) = dot_product(MPb(2,:), nwb(:)) + qb(2)
+          dvbterm(3) = dot_product(MPb(3,:), nwb(:)) + qb(3)
 
           dva(:) = dva(:) - mb * ( &
-                      MPa(:,1) / (rhoa**2 * oma) + &
-                      MPb(:,1) / (rhob**2 * omb) &
+                      dvaterm(:) / (rhoa**2 * oma) + &
+                      dvbterm(:) / (rhob**2 * omb) &
                     ) - qd(:)
 
-          dua   = dua + mb * ( &
+          dua    = dua + mb * ( &
                       dot_product(vab(:), nwa(:))*pa/(rhoa**2 * oma) - &
                       dot_product(vab(:), qa(:))/(rhoa * oma) + &
                       qc + qe&
@@ -437,6 +462,7 @@ contains
       store(es_dh,i) = dha
       store(es_ddt,i) = ddta/rhoa
       store(es_dbx:es_dbz,i) = dba(:)
+      ! store(es_du,i) = dua
       store(es_du,i) = dua + ddta/rhoa
 
       consenrg = consenrg + ma*(dot_product(va(:),dva(:)) + dua + ddta/rhoa + &

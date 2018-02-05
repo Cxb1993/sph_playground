@@ -30,8 +30,7 @@ program main
   use args,             only: fillargs
   use errteylor,        only: etlaplace => laplace,&
                               etgraddiv => graddiv
-  use circuit1,         only: c1_init, &
-                              c1destroy => destroy
+  use circuit1,         only: c1destroy => destroy
   use timing,           only: printTimes,&
                               tinit => init, &
                               timedestroy => destroy
@@ -64,7 +63,7 @@ program main
   character (len=100) :: &
     errfname
   integer :: &
-    n, iter, s_tt, nusedl1, nusedl2, printlen, silent,&
+    i, n, iter, s_tt, nusedl1, nusedl2, printlen, silent,&
     ivt, stopiter, resol, difiso, realpartnumb, npics, usedumps
 
   integer(8) :: &
@@ -144,17 +143,17 @@ program main
   err(:) = 0.
 
   call tinit()
-  call c1_init()
   stopiter = 0
   print *, "# Finish time = ", tfinish
+
+  call checkVarsReady(s_tt, store)
+  call iterate(n, hfac, gamma, store)
 
   if (silent == 0) then
     print *, '# Initial setup printed'
     call Output(t, store, sqerr)
   end if
 
-  call checkVarsReady(s_tt, store)
-  call iterate(n, hfac, gamma, store)
   select case(s_tt)
   case(eeq_hydro, eeq_magnetohydro, eeq_diffusion, eeq_magnetohydrodiffusion)
     ! stopiter = 1
@@ -184,11 +183,11 @@ program main
       !           minval(h(1:realpartnumb)) ** 2 / &
       !           merge(maxval(kcf(:,1,1:realpartnumb)), 1., maxval(kcf(:,1,1:realpartnumb))>0)
       ! dt = .1 * mhdmuzero &
-      dt = 1.*0.1&
+      dt = 1.*mhdmuzero*1e6&
               * minval(store(es_den,1:n)) &
               * minval(store(es_c,1:n)) &
               * minval(store(es_h,1:n)) ** 2 &
-              / merge(difcond, maxval(store(es_bx:es_bz,1:n)), difiso == 1)
+              / difcond
     ! case (5,6,7,8)
     !   ! 'diff-laplass'      ! 'diff-graddiv'
     !   stopiter = 1
@@ -206,7 +205,9 @@ program main
       if (usedumps == 1) call dump(store, t)
       if (silent == 0) call Output(t, store, err)
       print *, "#", iter, "t=", t, "dt=", dt, 'min h=', minval(store(es_h,1:n)), 'max h=', maxval(store(es_h,1:n))
-      ltout = ltout + dtout
+      do while(ltout <= t)
+        ltout = ltout + dtout
+      end do
     end if
 
     tr(:,:) = store(es_rx:es_rz,1:n)
@@ -224,7 +225,7 @@ program main
     store(es_u,1:n) = store(es_u,1:n) + dt * tdu(:)
     store(es_h,1:n) = store(es_h,1:n) + dt * tdh(:)
     ! store(es_t,1:n) = store(es_t,1:n) + dt * tddt(:)
-    store(es_t,1:n) = store(es_u,1:n)/store(es_c,1:n)
+    store(es_t,1:n) = store(es_u,1:n)
     store(es_bx:es_bz,1:n) = store(es_bx:es_bz,1:n) + dt * tdb(:,:)
 
     call iterate(n, hfac, gamma, store)
@@ -236,38 +237,14 @@ program main
     store(es_h,1:n) = &
       store(es_h,1:n) + 0.5*dt*(store(es_dh,1:n) - tdh(:))
     ! store(es_t,1:n) = &
-    !   store(es_t,1:n) + 0.5*dt*(store(es_ddt,1:n) - tddt(:))
-    store(es_t,1:n) = store(es_u,1:n)/store(es_c,1:n)
+      ! store(es_t,1:n) + 0.5*dt*(store(es_ddt,1:n) - tddt(:))
+    store(es_t,1:n) = store(es_u,1:n)
     store(es_bx:es_bz,1:n) = &
       store(es_bx:es_bz,1:n) + 0.5*dt*(store(es_dbx:es_dbz,1:n) - tdb(:,:))
 
     t = t + dt
     iter = iter + 1
   end do
-  ! print*, 11111
-  !----------------------------------------!
-  !         l2 error calc evaluatopn       !
-  !----------------------------------------!
-  ! select case(s_tt)
-  ! case(1, 2, 3, 4)
-  !   ! mooved to ivt check below
-  !   ! the rest should be mooved as well
-  ! case(7, 8)
-  !   ! 'hydroshock' ! chi-laplace ! 'infslb'
-  !   ! there was empty
-  ! case(5)
-  !   ! 'diff-laplace'
-  !   call err_diff_laplace(pos, acc, err)
-  ! case(6)
-  !   ! 'diff-graddiv'
-  !   call err_diff_graddiv(ptype, pos, acc, err)
-  ! case(10)
-  !   ! diff-artvisc
-  !   call err_diff_artvisc(pos, acc, err)
-  ! case default
-  !   print *, 'Task type was not set in l2 error evaluation main.f90: line 229.'
-  !   stop
-  ! end select
 
   select case(ivt)
   case (ett_OTvortex, ett_ring, ett_mti)

@@ -36,6 +36,7 @@ contains
     do j = 1, n
       e = 0.
       if (j <= rn) e = err(j)
+      ! if (int(store(es_type,j)) /= ept_empty).or.() then
       if (int(store(es_type,j)) /= ept_empty) then
       ! if (int(store(es_type,j)) == ept_real) then
         write(iu, *) store(es_rx:es_rz,j), store(es_vx:es_vz,j),&

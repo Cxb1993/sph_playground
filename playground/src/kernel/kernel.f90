@@ -150,7 +150,7 @@ contains
   pure subroutine nw_cart_precalc(rab, ra, rb, dr, h, nw)
     real, intent(in)  :: rab(3), ra(3), rb(3), dr, h
     real, intent(out) :: nw(3)
-    real              :: df, q
+    real              :: q
 
     q = dr / h
     nw(:) = sdf(nint(q/dk)+1) * rab(:) / h**(dim+2) / q

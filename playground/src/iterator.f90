@@ -11,7 +11,8 @@ module iterator
                               updateFixedToSymmetric
   use state,            only: getdim,&
                               get_equations, &
-                              ginitvar
+                              ginitvar,&
+                              getPartNumber
   use neighboursearch,  only: findneighboursKDT, &
                               findneighboursN2
 
@@ -38,11 +39,12 @@ contains
     integer, intent(in) :: n
     real, intent(in)    :: hfac, gamma
 
-    integer             :: dim, ttp, ivt
+    integer             :: dim, ttp, ivt, rpn, fpn
 
     call getdim(dim)
     call get_equations(ttp)
     call ginitvar(ivt)
+    call getPartNumber(r=rpn, f=fpn)
 
     if (initialised == 0) then
       call initIterate(n)
@@ -54,7 +56,7 @@ contains
       call c1(store, hfac)
       call c2(store)
     case (ett_soundwave)
-      call clearPeriodicParticles()
+      call clearPeriodicParticles(store)
       call reflecPeriodicParticles(store, ebc_all)
       call findInsideBorderParticles(store)
       call createPeriodicBorder(store, ebc_all)
@@ -64,7 +66,7 @@ contains
       call eos_isothermal(store)
       call c2(store)
     case (ett_hydroshock)
-      call clearPeriodicParticles()
+      call clearPeriodicParticles(store)
       call reflecPeriodicParticles(store, ebc_y)
       call reflecPeriodicParticles(store, ebc_z)
       call findInsideBorderParticles(store)
@@ -96,7 +98,7 @@ contains
     !   call periodic3v2(dbtmp, ebc_all)
     !   kcf(:,2,:) = dbtmp(:,:)
     case(ett_mti)
-      call clearPeriodicParticles()
+      call clearPeriodicParticles(store)
       call reflecPeriodicParticles(store, ebc_x)
       call findInsideBorderParticles(store)
       call createPeriodicBorder(store, ebc_x)
@@ -105,9 +107,9 @@ contains
       call c1(store, hfac)
       call eos_adiabatic(store, gamma)
       call c2(store)
-      store(es_vy,:) = store(es_vy,:) - 1.
+      store(es_ay,1:rpn) = store(es_ay,1:rpn) - 1.
     case (ett_OTvortex)
-      call clearPeriodicParticles()
+      call clearPeriodicParticles(store)
       call reflecPeriodicParticles(store, ebc_all)
       call findInsideBorderParticles(store)
       call createPeriodicBorder(store, ebc_all)

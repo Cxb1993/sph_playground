@@ -86,7 +86,6 @@ contains
     call getPartNumber(realpn,fixedpn)
     call getPeriodPartNumber(periodpn)
     sn = realpn + periodpn + fixedpn
-
     kdtree => kdtree2_create(store(es_rx:es_rz,1:sn))
     allocate(kdtree_res(maxresultnum))
     if (.not.allocated(neighbours)) then

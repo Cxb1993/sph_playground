@@ -28,12 +28,12 @@ SRC+=state.f90\
 	errteylor.f90\
 	args.f90\
 	eos.f90\
+	circuit1.f90\
+	circuit2.f90\
 	IC/uniform.f90\
 	IC/rhofuncs.f90\
 	IC/setup.f90\
 	IC/initvariables.f90\
-	circuit1.f90\
-	circuit2.f90\
 	errcalc.f90\
 	iterator.f90\
 	main.f90

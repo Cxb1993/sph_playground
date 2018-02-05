@@ -2,7 +2,8 @@ module preruncheck
   use const
   use state,  only: getdiffisotropic, &
                     getdiffconductivity, &
-                    getmhdmagneticpressure
+                    getmhdmagneticpressure,&
+                    getPartNumber
 
   implicit none
 
@@ -15,13 +16,14 @@ contains
     real, allocatable, intent(in) :: &
       store(:,:)
     integer :: &
-      difiso, i
+      difiso, i, rpn, fpn
     real :: &
       difcond, mhdmprs
 
     call getdiffisotropic(difiso)
     call getdiffconductivity(difcond)
     call getmhdmagneticpressure(mhdmprs)
+    call getPartNumber(rpn, fpn)
 
     if ((mhdmprs <= 0.).and.((s_tt==eeq_magnetohydro).or.(s_tt==eeq_magnetohydrodiffusion))) then
       print* , "# # <!> mhd_magneticconstant <= 0"
@@ -32,7 +34,7 @@ contains
       stop
     end if
 
-    do i = 1,size(store,2)
+    do i = 1,rpn+fpn
       if (int(store(es_type,i)) /= ept_empty) then
         if (store(es_den,i) <= 0.) then
           print*, "# # <!> density <= 0"

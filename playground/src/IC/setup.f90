@@ -18,9 +18,13 @@ module setup
                               getresolution,&
                               getspacing,&
                               getPartNumber,&
+                              setPartNumber,&
                               setGamma
   use BC,               only: createFixedBorders, &
-                              getPeriodPartNumber
+                              getPeriodPartNumber,&
+                              createPeriodicBorder,&
+                              findInsideBorderParticles,&
+                              clearPeriodicParticles
   use uniform,          only: uniformV4
   use neighboursearch,  only: getneighbours, &
                               getNeibListL1, &
@@ -28,6 +32,8 @@ module setup
                               findneighboursKDT
   use stretchmap,       only: set_density_profile
   use rhofuncs,         only: MTIHopkins2017
+  use circuit1, only: c1
+  use circuit2, only: c2
   implicit none
 
   public :: setupV2
@@ -102,11 +108,14 @@ contains
       call createFixedBorders(store, ebc_all)
     case (ett_mti)
       call setmhdmagneticpressure(0.00000125663706)
+      ! call setdiffisotropic(edi_iso)
       call setdiffisotropic(1)
-      call setdiffconductivity(0.01)
+      ! call setdiffisotropic(edi_mtih2017)
+      ! call setdiffisotropic(0)
+      call setdiffconductivity(0.1)
 
-      rho1 = 1.
-      gamma    = 5./3.
+      rho1  = 1.
+      gamma = 5./3.
 
       brdx1 = 0.
       brdx2 = 1./10.
@@ -123,7 +132,6 @@ contains
       call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
       call createFixedBorders(store, ebc_y)
       call getPartNumber(rpn,fpn)
-      call getPeriodPartNumber(ppn)
       call set_density_profile(rpn+fpn,store,&
         brdy1-bordersize,brdy2+bordersize,&
         rhofunc=MTIHopkins2017,coord=2)
@@ -238,6 +246,8 @@ contains
 
     call getPartNumber(rpn,fpn)
     call getPeriodPartNumber(ppn)
+    call setGamma(gamma)
+
     n = rpn + fpn
     !$omp parallel do default(none)&
     !$omp private(i, sp, cca, qmatr)&
@@ -385,15 +395,18 @@ contains
         cca(1) = dot_product(ra(:),ra(:))
         if (cca(1) > 0) then
           cca(:) = ra(:)/sqrt(cca(1))
-          store(es_by,i) = 10e-11
           if (int(store(es_type,i)) == ept_real) then
-            store(es_vy,i) = 10e-2*1.*sin(4.*pi*ra(1)/(brdx2-brdx1))
+            store(es_vy,i) = 1e-4*&
+              sqrt(gamma * store(es_p,i) / store(es_den,i))*&
+              sin(4.*pi*ra(1)/(brdx2-brdx1))
           end if
         end if
+        store(es_bx,i) = d2null*1e-11
+        store(es_by,i) = 0.
+        store(es_bz,i) = 0.
+        store(es_vx,i) = 0.
         store(es_vy,i) = d2null*store(es_vy,i)
-        store(es_by,i) = d2null*store(es_by,i)
         store(es_vz,i) = d3null*store(es_vz,i)
-        store(es_bz,i) = d3null*store(es_bz,i)
       case (ett_OTvortex)
         store(es_h,i)   = hfac * sp
         store(es_m,i)   = (sp**dim) * rho1
@@ -422,7 +435,18 @@ contains
       ! read*
     end do
     !$omp end parallel do
-    call setGamma(gamma)
+
+    select case(ivt)
+    case(ett_mti)
+      call setPartNumber(r=rpn+fpn,f=0)
+      call clearPeriodicParticles(store)
+      call findInsideBorderParticles(store)
+      call createPeriodicBorder(store, ebc_x)
+      call findneighboursKDT(store)
+      call c1(store, hfac)
+      call setPartNumber(r=rpn, f=fpn)
+    end select
+
     call system_clock(finish)
     call addTime(' ic', finish - start)
   end subroutine setupV2

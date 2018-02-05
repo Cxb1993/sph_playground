@@ -118,6 +118,11 @@ module const
     esd_fw  = 402,&
     esd_2nw = 403
 
+  integer, parameter :: &
+    edi_iso = 500,&
+    edi_aniso = 501,&
+    edi_mtih2017 = 502
+
   character(len=*), parameter :: &
     blockFormatFlt  = "(A,A35,F10.7)",&
     blockFormatInt  = "(A,A35,I8)",&
