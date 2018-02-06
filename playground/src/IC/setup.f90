@@ -98,10 +98,10 @@ contains
       end if
       pspc1 = (brdx2-brdx1)/resol
       pspc2 = pspc1
-      brdy1 = -d2null*1.
-      brdy2 =  d2null*1.
-      brdz1 = -d3null*1.
-      brdz2 =  d3null*1.
+      brdy1 = -pspc1*nb*2*d2null
+      brdy2 =  pspc1*nb*2*d2null
+      brdz1 = -pspc1*nb*2*d3null
+      brdz2 =  pspc1*nb*2*d3null
       bordersize = nb*pspc2
       call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
       call createFixedBorders(store, ebc_x)
