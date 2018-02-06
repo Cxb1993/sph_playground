@@ -7,7 +7,8 @@ module circuit1
                               gcoordsys, &
                               ginitvar, &
                               getAdvancedDensity,&
-                              getPartNumber
+                              getPartNumber,&
+                              gethfac
   use kernel,           only: get_krad, &
                               get_dw_dh, &
                               nw, &
@@ -36,9 +37,8 @@ contains
     initdone = 1
   end subroutine c1_init
 
-  subroutine c1(store, hfac)
+  subroutine c1(store)
     real, allocatable, intent(inout) :: store(:,:)
-    real, intent(in) :: hfac
 
     integer :: ad
 
@@ -49,9 +49,9 @@ contains
     call getAdvancedDensity(ad)
 
     if (ad == 1) then
-      call c1advanced(store, hfac)
+      call c1advanced(store)
     else
-      call c1simple(store, hfac)
+      call c1simple(store)
       store(es_om,:) = 1.
     end if
   end subroutine
@@ -62,14 +62,13 @@ contains
     deallocate(dennew)
   end subroutine
 
-  subroutine c1advanced(store, hfac)
+  subroutine c1advanced(store)
     real, allocatable, intent(inout) :: store(:,:)
-    real, intent(in)     :: hfac
 
     real :: &
       w, dwdh, r(3), dr, r2, dfdh, fh, hn, nwa(3), &
       allowerror, maxinterr, currinterr, &
-      mb, ma, ha, da, db, ra(3), rb(3), oma, dtadx(3)
+      mb, ma, ha, da, db, ra(3), rb(3), oma, dtadx(3), hfac
     integer :: &
       i, j, rj, la, lb, dim, iter, ktp
     integer(8)           :: t0, tneib
@@ -79,6 +78,7 @@ contains
 
     call getdim(dim)
     call getddwtype(ktp)
+    call gethfac(hfac)
 
     call getNeibListL1(nlista)
     allowerror = 1e-8
@@ -193,11 +193,10 @@ contains
   end subroutine
 
 ! Direct density summation
-  subroutine c1simple(store, hfac)
+  subroutine c1simple(store)
     real, allocatable, intent(inout) :: store(:,:)
-    real,              intent(in)    :: hfac
     real :: &
-      w, r(3), dr, currinterr, ra(3), rb(3), ha, ma, mb, da, db
+      w, r(3), dr, currinterr, ra(3), rb(3), ha, ma, mb, da, db, hfac
     integer :: &
       i, j, la, lb, dim
     integer, allocatable             :: nlista(:), nlistb(:)
@@ -206,6 +205,7 @@ contains
     call system_clock(start)
     call getNeibListL2(nlista)
     call getdim(dim)
+    call gethfac(hfac)
 
     realpartnumb = size(nlista)
     dennew(:) = store(es_den,1:realpartnumb)

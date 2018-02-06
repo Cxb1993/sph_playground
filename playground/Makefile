@@ -33,7 +33,7 @@ SRC+=state.f90\
 	IC/uniform.f90\
 	IC/rhofuncs.f90\
 	IC/setup.f90\
-	IC/initvariables.f90\
+	IC/initvar.f90\
 	errcalc.f90\
 	iterator.f90\
 	main.f90

@@ -183,11 +183,17 @@ contains
   subroutine findInsideBorderParticles(store)
     real, allocatable, intent(in) :: store(:,:)
     integer :: i, dim, storesize
-    real :: ra(3)
+    real :: ra(3), paddingmin(3), paddingmax(3)
 
     call system_clock(start)
     call getdim(dim)
     if (initdone==0) call initBorders()
+    paddingmin(1) = xmin+bordersize/10
+    paddingmin(2) = ymin+bordersize/10
+    paddingmin(3) = zmin+bordersize/10
+    paddingmax(1) = xmax-bordersize/10
+    paddingmax(2) = ymax-bordersize/10
+    paddingmax(3) = zmax-bordersize/10
 
     ! TODO
     ! check if it is possible to do with KDT
@@ -197,9 +203,13 @@ contains
         if ((int(store(es_type,i)) == ept_real).or.(int(store(es_type,i)) == ept_fixed)) then
           ra(:) = store(es_rx:es_rz,i)
           if (ra(1) < boxmin(1)) then
-            call ibx1%append(i)
+            if (ra(1) > paddingmin(1)) then
+              call ibx1%append(i)
+            end if
           else if (ra(1) > boxmax(1)) then
-            call ibx2%append(i)
+            if (ra(1) < paddingmax(1)) then
+              call ibx2%append(i)
+            end if
           end if
         end if
       end do
@@ -208,14 +218,22 @@ contains
         if ((int(store(es_type,i)) == ept_real).or.(int(store(es_type,i)) == ept_fixed)) then
           ra(:) = store(es_rx:es_rz,i)
           if (ra(1) < boxmin(1)) then
-            call ibx1%append(i)
+            if (ra(1) > paddingmin(1)) then
+              call ibx1%append(i)
+            end if
           else if (ra(1) > boxmax(1)) then
-            call ibx2%append(i)
+            if (ra(1) < paddingmax(1)) then
+              call ibx2%append(i)
+            end if
           end if
           if (ra(2) < boxmin(2)) then
-            call iby1%append(i)
+            if (ra(2) > paddingmin(2)) then
+              call iby1%append(i)
+            end if
           else if (ra(2) > boxmax(2)) then
-            call iby2%append(i)
+            if (ra(2) < paddingmax(2)) then
+              call iby2%append(i)
+            end if
           end if
         end if
       end do
@@ -224,19 +242,31 @@ contains
         if ((int(store(es_type,i)) == ept_real).or.(int(store(es_type,i)) == ept_fixed)) then
           ra(:) = store(es_rx:es_rz,i)
           if (ra(1) < boxmin(1)) then
-            call ibx1%append(i)
+            if (ra(1) > paddingmin(1)) then
+              call ibx1%append(i)
+            end if
           else if (ra(1) > boxmax(1)) then
-            call ibx2%append(i)
+            if (ra(1) < paddingmax(1)) then
+              call ibx2%append(i)
+            end if
           end if
           if (ra(2) < boxmin(2)) then
-            call iby1%append(i)
+            if (ra(2) > paddingmin(2)) then
+              call iby1%append(i)
+            end if
           else if (ra(2) > boxmax(2)) then
-            call iby2%append(i)
+            if (ra(2) < paddingmax(2)) then
+              call iby2%append(i)
+            end if
           end if
           if (ra(3) < boxmin(3)) then
-            call ibz1%append(i)
+            if (ra(3) > paddingmin(3)) then
+              call ibz1%append(i)
+            end if
           else if (ra(3) > boxmax(3)) then
-            call ibz2%append(i)
+            if (ra(3) < paddingmax(3)) then
+              call ibz2%append(i)
+            end if
           end if
         end if
       end do

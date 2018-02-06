@@ -33,11 +33,11 @@ contains
     initialised = 1
   end subroutine
 
-  subroutine iterate(n, hfac, gamma, store)
+  subroutine iterate(n, gamma, store)
     real, allocatable, intent(inout) :: &
       store(:,:)
     integer, intent(in) :: n
-    real, intent(in)    :: hfac, gamma
+    real, intent(in)    :: gamma
 
     integer             :: dim, ttp, ivt, rpn, fpn
 
@@ -51,9 +51,17 @@ contains
     end if
 
     select case(ivt)
+    case (ett_shock12)
+      call clearPeriodicParticles(store)
+      call findInsideBorderParticles(store)
+      call createPeriodicBorder(store, ebc_y)
+
+      call findneighboursKDT(store)
+      call c1(store)
+      call c2(store)
     case (ett_pulse, ett_ring)
       call findneighboursKDT(store)
-      call c1(store, hfac)
+      call c1(store)
       call c2(store)
     case (ett_soundwave)
       call clearPeriodicParticles(store)
@@ -61,7 +69,7 @@ contains
       call findInsideBorderParticles(store)
       call createPeriodicBorder(store, ebc_all)
       call findneighboursKDT(store)
-      call c1(store, hfac)
+      call c1(store)
       ! call eos_adiabatic(store, gamma)
       call eos_isothermal(store)
       call c2(store)
@@ -73,7 +81,7 @@ contains
       call createPeriodicBorder(store, ebc_y)
       call createPeriodicBorder(store, ebc_z)
       call findneighboursKDT(store)
-      call c1(store, hfac)
+      call c1(store)
       call eos_adiabatic(store, gamma)
       call c2(store)
     ! case (ett_alfvenwave)
@@ -104,7 +112,7 @@ contains
       call createPeriodicBorder(store, ebc_x)
       call findneighboursKDT(store)
       ! call updateFixedToSymmetric(store, [es_vx, es_vy, es_vz, es_bx, es_by, es_bz])
-      call c1(store, hfac)
+      call c1(store)
       call eos_adiabatic(store, gamma)
       call c2(store)
       store(es_ay,1:rpn) = store(es_ay,1:rpn) - 1.
@@ -114,7 +122,7 @@ contains
       call findInsideBorderParticles(store)
       call createPeriodicBorder(store, ebc_all)
       call findneighboursKDT(store)
-      call c1(store, hfac)
+      call c1(store)
       call eos_adiabatic(store, gamma)
       call c2(store)
     case default

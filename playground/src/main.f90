@@ -130,14 +130,14 @@ program main
   dt = 0.
   ltout = 0.
   iter = 0.
+  allocate(tdu(n))
+  allocate(tdh(n))
   allocate(tr(3,n))
   allocate(tv(3,n))
   allocate(ta(3,n))
-  allocate(tdb(3,n))
-  allocate(tdu(n))
-  allocate(tdh(n))
   allocate(tddt(n))
   allocate(err(1:n))
+  allocate(tdb(3,n))
   allocate(sqerr(1:n))
 
   err(:) = 0.
@@ -147,7 +147,7 @@ program main
   print *, "# Finish time = ", tfinish
 
   call checkVarsReady(s_tt, store)
-  call iterate(n, hfac, gamma, store)
+  call iterate(n, gamma, store)
 
   if (silent == 0) then
     print *, '# Initial setup printed'
@@ -228,7 +228,7 @@ program main
     store(es_t,1:n) = store(es_u,1:n)
     store(es_bx:es_bz,1:n) = store(es_bx:es_bz,1:n) + dt * tdb(:,:)
 
-    call iterate(n, hfac, gamma, store)
+    call iterate(n, gamma, store)
 
     store(es_vx:es_vz,1:n) = &
       store(es_vx:es_vz,1:n) + 0.5*dt*(store(es_ax:es_az,1:n) - ta(:,:))
@@ -247,7 +247,7 @@ program main
   end do
 
   select case(ivt)
-  case (ett_OTvortex, ett_ring, ett_mti)
+  case (ett_OTvortex, ett_ring, ett_mti, ett_shock12)
   case (ett_pulse)
     call err_hcpulse(store, t, err)
   case (ett_sin3)
@@ -260,7 +260,7 @@ program main
   case (ett_alfvenwave)
     call err_alfvenwave(store, t, err)
   case default
-    print *, ivt, 'Task type was not sen in l2 error evaluation main:267.'
+    print *, ivt, 'Task type was not sen in l2 error evaluation src/main.f90:263.'
     stop
   end select
   printlen = 5

@@ -80,13 +80,34 @@ contains
     nb = int(kr*hfac) + 1
 
     select case(ivt)
-    case(ett_sin3, ett_shock12)
+    case(ett_sin3)
       print*, "Not set yet. FIX ME. IC.f90. line 103."
       stop
+    case (ett_shock12)
+      call setmhdmagneticpressure(1.)
+      call setdiffisotropic(0)
+      call setdiffconductivity(1.)
+      rho1 = 1.
+      prs1 = 1.
+      gamma = 2.
+
+      brdx1 = -1.
+      brdx2 =  1.
+      if (resol == 0) then
+        resol = int((brdx2-brdx1)/pspc1)
+      end if
+      pspc1 = (brdx2-brdx1)/resol
+      pspc2 = pspc1
+      brdy1 = -d2null*1.
+      brdy2 =  d2null*1.
+      brdz1 = -d3null*1.
+      brdz2 =  d3null*1.
+      bordersize = nb*pspc2
+      call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
+      call createFixedBorders(store, ebc_x)
     case (ett_pulse, ett_ring)
       call setmhdmagneticpressure(1.)
       call setdiffisotropic(0)
-      ! call setdiffisotropic(1)
       call setdiffconductivity(1.)
       rho1 = 1.
       prs1 = 1.
@@ -292,10 +313,11 @@ contains
         store(es_h,i) = hfac * sp
         store(es_m,i) = (sp**dim) * rho1
         store(es_den,i) = rho1
-
-        store(es_bx,i) = 0.
-        store(es_by,i) = 1.
+        store(es_p,i) = prs1
+        store(es_bx,i) = 1.
+        store(es_by,i) = 0.
         store(es_bz,i) = 0.
+
         if (ra(1) < 0.) then
           store(es_t,i) = 1.
         else if (ra(1) > 0.) then
@@ -303,6 +325,7 @@ contains
         else
           store(es_t,i) = 1.5
         end if
+        store(es_u,i)  = store(es_t,i)
       case(ett_pulse)
         store(es_h,i) = hfac * sp
         store(es_m,i) = (sp**dim) * rho1
@@ -392,6 +415,8 @@ contains
         store(es_u,i)   = (3./2.)*(1. - ra(2)/3.)
         store(es_t,i)   = store(es_u,i)
         store(es_p,i)   = (gamma - 1.)*store(es_den,i)*store(es_u,i)
+        store(es_bx:es_bz,i) = 0.
+        store(es_vx:es_vz,i) = 0.
         cca(1) = dot_product(ra(:),ra(:))
         if (cca(1) > 0) then
           cca(:) = ra(:)/sqrt(cca(1))
@@ -401,12 +426,7 @@ contains
               sin(4.*pi*ra(1)/(brdx2-brdx1))
           end if
         end if
-        store(es_bx,i) = d2null*1e-11
-        store(es_by,i) = 0.
-        store(es_bz,i) = 0.
-        store(es_vx,i) = 0.
-        store(es_vy,i) = d2null*store(es_vy,i)
-        store(es_vz,i) = d3null*store(es_vz,i)
+        store(es_bx,i) = 1e-11
       case (ett_OTvortex)
         store(es_h,i)   = hfac * sp
         store(es_m,i)   = (sp**dim) * rho1
@@ -443,7 +463,7 @@ contains
       call findInsideBorderParticles(store)
       call createPeriodicBorder(store, ebc_x)
       call findneighboursKDT(store)
-      call c1(store, hfac)
+      call c1(store)
       call setPartNumber(r=rpn, f=fpn)
     end select
 
