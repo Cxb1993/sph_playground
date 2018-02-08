@@ -143,21 +143,21 @@ contains
           ktb(2,2) = difcond
           ktb(3,3) = difcond
         else
-          if ((ra(2) >= 0.).and.(ra(2) < 1./30.)) then
-            kta(1,1) = difcond
-            kta(2,2) = difcond
-            kta(3,3) = difcond
-          else if ((ra(2) > 2./30.).and.(ra(2) <= 1./10.)) then
-            kta(1,1) = difcond
-            kta(2,2) = difcond
-            kta(3,3) = difcond
-          else
+          ! if ((ra(2) >= 0.).and.(ra(2) < 1./30.)) then
+          !   kta(1,1) = difcond
+          !   kta(2,2) = difcond
+          !   kta(3,3) = difcond
+          ! else if ((ra(2) > 2./30.).and.(ra(2) <= 1./10.)) then
+          !   kta(1,1) = difcond
+          !   kta(2,2) = difcond
+          !   kta(3,3) = difcond
+          ! else
             do li = 1, 3
               do lj = 1,3
                 kta(li,lj) = difcond*uba(li)*uba(lj)
               end do
             end do
-          end if
+          ! end if
         end if
       end select
 
@@ -270,7 +270,7 @@ contains
         case (eeq_diffusion)
           if (difiso == 0) then
             do li = 1, 3
-              do lj = 1,3
+              do lj = 1, 3
                 ktb(li,lj) = difcond*bb(li)*bb(lj)
               end do
             end do
@@ -279,12 +279,12 @@ contains
           if (s_ktp == esd_n2w) then
             call hessian(rab, ra, rb, ha, Hesa)
             do li = 1, 3
-              do lj = 1,3
+              do lj = 1, 3
                 tmpt1(li,lj) = tmpt1(li,lj) + mb/rhob * &
                                 (ktb(li,lj) - kta(li,lj)) * nwa(li)
                 tmpt2(li,lj) = tmpt2(li,lj) + mb/rhob * &
                                 (tb - ta) * nwa(lj)
-                tmpt3(li,lj) = tmpt3(li,lj) + kta(li,lj) *&
+                tmpt3(li,lj) = tmpt3(li,lj) + kta(li,lj) * &
                                 mb/rhob * (tb - ta) * Hesa(li,lj)
               end do
             end do

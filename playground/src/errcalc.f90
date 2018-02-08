@@ -15,7 +15,8 @@ module errcalc
             err_diff_laplace, err_diff_graddiv, shockTube,&
             soundwaveperturbation_density, &
             soundwaveperturbation_velocity, &
-            diff_artvisc, alfvenwave, hcpulse
+            diff_artvisc, alfvenwave, hcpulse,&
+            hcring
 
   private
 
@@ -84,6 +85,43 @@ contains
       ! err(i) = dot_product(exact(1) - num(1,i), exact(1) - num(1,i))
     end do
   end subroutine hcpulse
+
+  subroutine hcring(store, t, err)
+    real, allocatable, intent(in)    :: store(:,:)
+    real, allocatable, intent(inout) :: err(:)
+    real, intent(in)                 :: t
+
+    integer, allocatable :: nlista(:)
+    integer             :: i, j, dim, ivt, diso
+    real :: &
+      exact, x(3), num, dcnd, eps, pifac,&
+      ekt, ektd2, ektsq, epsdm1, rho, phi
+
+    call getdim(dim)
+    call getNeibListL1(nlista)
+    call ginitvar(ivt)
+    call getdiffisotropic(diso)
+    call getdiffconductivity(dcnd)
+
+    err(:) = 0.
+    eps = 0.1
+    pifac =(2*pi)**(-dim/2.)
+    ekt = eps**2 + 2*dcnd*t
+    ektd2 = ekt**(dim/2.)
+    ektsq = ekt**(1./2.)
+    epsdm1= eps**(dim-1)
+
+    do j = 1,size(nlista)
+      i = nlista(j)
+      exact = 0.
+      x(:) = store(es_rx:es_rz,i)
+      rho = sqrt(x(1)*x(1) + x(2)*x(2))
+      phi = atan(x(2),x(1))
+      exact = exp(-0.5*((rho - 0.3)**2/(0.05*0.05) + (phi*phi)/(0.5*0.5 + 2.*1.*t/rho/rho)))
+      num  = store(es_t,i)
+      err(i) = (exact - num)*(exact - num)
+    end do
+  end subroutine hcring
 
   subroutine err_T0sxsyet(n, pos, num, t, err)
     integer, intent(in) :: n

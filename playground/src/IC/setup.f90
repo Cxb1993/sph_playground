@@ -103,7 +103,7 @@ contains
       brdz1 = -pspc1*nb*2*d3null
       brdz2 =  pspc1*nb*2*d3null
       bordersize = nb*pspc2
-      call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
+      call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store)
       call createFixedBorders(store, ebc_x)
     case (ett_pulse, ett_ring)
       call setmhdmagneticpressure(1.)

@@ -26,7 +26,8 @@ program main
                               err_soundwave_v => soundwaveperturbation_velocity, &
                               err_diff_artvisc => diff_artvisc, &
                               err_alfvenwave => alfvenwave,&
-                              err_hcpulse => hcpulse
+                              err_hcpulse => hcpulse,&
+                              err_hcring => hcring
   use args,             only: fillargs
   use errteylor,        only: etlaplace => laplace,&
                               etgraddiv => graddiv
@@ -247,7 +248,9 @@ program main
   end do
 
   select case(ivt)
-  case (ett_OTvortex, ett_ring, ett_mti, ett_shock12)
+  case (ett_OTvortex, ett_mti, ett_shock12)
+  case (ett_ring)
+    call err_hcring(store, t, err)
   case (ett_pulse)
     call err_hcpulse(store, t, err)
   case (ett_sin3)
