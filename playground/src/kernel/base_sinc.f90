@@ -1,22 +1,27 @@
-module sinc4
+module kernel_base
   use const
   implicit none
 
-  public :: kf, kdf, kddf, wCv, krad, kernelname, setdimbase
+  public :: kf, kdf, kddf, krad, kernelname, setdimbase, wCv, fwc, returnneibnum
 
   private
 
-    real :: n2C(3) = (/ 0.752215013260841, 0.580312175515428, 0.458917516950931 /)
+    real :: knorm(3) = (/ 0.752215013260841, 0.580312175515428, 0.458917516950931 /)
+    real :: fwcl(3) = [0., 0., 0.]
     character (len=10) :: kernelname = ' sinc4 '
-    real :: krad = 2.0, wCv
-    integer :: dim
+    real :: krad = 2.0, wCv, fwc
+    integer :: maxneibnum(3) = [50, 100, 200]
+    integer :: dim, returnneibnum
   contains
 
-  subroutine setdimbase(d)
-    integer, intent(in) :: d
-    dim = d
-    wCv = n2C(dim)
-  end subroutine
+    subroutine setdimbase(d)
+      integer, intent(in) :: d
+
+      dim = d
+      wCv = knorm(dim)
+      fwc = fwcl(dim)
+      returnneibnum = maxneibnum(dim)
+    end subroutine
 
   pure subroutine kf(q, f)
     real, intent(in)  :: q
@@ -75,4 +80,4 @@ module sinc4
       ddf = .0
     end if
   end subroutine
-end module
+end module kernel_base
