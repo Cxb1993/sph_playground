@@ -55,6 +55,8 @@ module state
         statevars(ec_eqs) = eeq_diffusion
       case('mhd')
         statevars(ec_eqs) = eeq_magnetohydrodiffusion
+      case('hydi')
+        statevars(ec_eqs) = eeq_hydrodiffusion
       case('')
         statevars(ec_eqs) = eeq_magnetohydrodiffusion
       case default
@@ -109,6 +111,8 @@ module state
        statevars(ec_ics) = ett_alfvenwave
      case('otvortex')
        statevars(ec_ics) = ett_OTvortex
+     case('boilingtank')
+       statevars(ec_ics) = ett_boilingtank
      case('')
        statevars(ec_ics) = ett_pulse
      case default

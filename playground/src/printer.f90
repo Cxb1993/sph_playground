@@ -36,9 +36,9 @@ contains
     do j = 1, n
       e = 0.
       if (j <= rn) e = err(j)
-      ! if (int(store(es_type,j)) /= ept_empty).or.() then
+      if (int(store(es_type,j)) /= ept_empty) then
       ! if (int(store(es_type,j)) /= ept_empty) then
-      if (int(store(es_type,j)) == ept_real) then
+      ! if (int(store(es_type,j)) == ept_real) then
         write(iu, *) store(es_rx:es_rz,j), store(es_vx:es_vz,j),&
           store(es_ax:es_az,j),store(es_m,j),store(es_den,j),&
           store(es_h,j),store(es_p,j),store(es_u,j),store(es_t,j),&

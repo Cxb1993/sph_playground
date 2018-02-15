@@ -90,7 +90,8 @@ module const
     ett_soundwave   = 105,&
     ett_hydroshock  = 106,&
     ett_alfvenwave  = 107,&
-    ett_OTvortex    = 108
+    ett_OTvortex    = 108,&
+    ett_boilingtank = 109
 
   ! borders definitions
   integer, parameter :: &
@@ -110,7 +111,8 @@ module const
     eeq_hydro                 = 300,&
     eeq_diffusion             = 301,&
     eeq_magnetohydro          = 302,&
-    eeq_magnetohydrodiffusion = 303
+    eeq_magnetohydrodiffusion = 303,&
+    eeq_hydrodiffusion        = 304
 
   integer, parameter :: &
     esd_fab = 400,&

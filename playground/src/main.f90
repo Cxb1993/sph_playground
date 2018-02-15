@@ -111,12 +111,12 @@ program main
   dtout = tfinish/npics
 
   select case(s_tt)
-  case (eeq_hydro, eeq_diffusion, eeq_magnetohydro, eeq_magnetohydrodiffusion)
+  case (eeq_hydro, eeq_diffusion, eeq_magnetohydro, eeq_magnetohydrodiffusion, eeq_hydrodiffusion)
   ! case (5, 6, 7, 8, 10)
     ! 'diff-laplass' ! 'diff-graddiv' ! diff-artvisc
     ! call set_stepping(10**dim)
   case default
-    print *, 'Particle turn-off was not set main.f90: line 75.'
+    print *, 'Particle turn-off was not set ./src/main.f90:119'
     stop
   end select
 
@@ -156,15 +156,9 @@ program main
   end if
 
   select case(s_tt)
-  case(eeq_hydro, eeq_magnetohydro, eeq_diffusion, eeq_magnetohydrodiffusion)
-    ! stopiter = 1
-  ! case(7, 8, 9)
-  !   ! who knows....
-  ! case(5, 6, 10)
-  !   ! 'diff-laplace' ! 'diff-graddiv' ! diff-artvisc
-  !   stopiter = 1
+  case(eeq_hydro, eeq_magnetohydro, eeq_diffusion, eeq_magnetohydrodiffusion, eeq_hydrodiffusion)
   case default
-    print *, 'EQS type was not sen in while interuption main.f90: line 139.'
+    print *, 'EQS type was not sen in while interuption ./src/main.f90:161'
     stop
   end select
 
@@ -173,9 +167,11 @@ program main
     case(eeq_hydro)
       dt = .3 * minval(store(es_h,1:n)) / maxval(store(es_c,1:n))
     case(eeq_magnetohydro)
-      dt = .1 * minval(store(es_h,1:n)) / maxval(store(es_c,1:n))
-    case(eeq_diffusion)
-      dt = .1 * minval(store(es_den,1:n)) &
+      dt = .1*1e-3*minval(store(es_h,1:n))&
+            /maxval(store(es_c,1:n))&
+            /maxval(store(es_bx:es_bz,1:n))
+    case(eeq_diffusion, eeq_hydrodiffusion)
+      dt = .01 * minval(store(es_den,1:n)) &
               * minval(store(es_c,1:n)) &
               * minval(store(es_h,1:n)) ** 2 &
               / merge(difcond, maxval(store(es_bx:es_bz,1:n)), difiso == 1)
@@ -248,7 +244,7 @@ program main
   end do
 
   select case(ivt)
-  case (ett_OTvortex, ett_mti, ett_shock12)
+  case (ett_OTvortex, ett_mti, ett_shock12, ett_boilingtank)
   case (ett_ring)
     call err_hcring(store, t, err)
   case (ett_pulse)

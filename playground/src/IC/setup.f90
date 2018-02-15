@@ -103,7 +103,7 @@ contains
       brdz1 = -pspc1*nb*2*d3null
       brdz2 =  pspc1*nb*2*d3null
       bordersize = nb*pspc2
-      call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store)
+      call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
       call createFixedBorders(store, ebc_x)
     case (ett_pulse, ett_ring)
       call setmhdmagneticpressure(1.)
@@ -237,6 +237,10 @@ contains
       bordersize = nb*pspc2
       call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, dxmax=pspc2, padding=0.5)
     case (ett_OTvortex)
+      call setmhdmagneticpressure(1.)
+      call setdiffisotropic(0)
+      call setdiffconductivity(1.)
+
       prs1 = 0.133
       rho1 = 0.221
       gamma   = 5./3.
@@ -255,6 +259,31 @@ contains
       brdz2 =  pspc1 * nb * d3null
       bordersize = nb*pspc2
       call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
+    case (ett_boilingtank)
+      call setdiffisotropic(1)
+      call setdiffconductivity(1.)
+
+      rho1  = 1.
+      gamma = 5./3.
+
+      brdx1 = -0.5
+      brdx2 =  0.5
+      if (resol == 0) then
+        resol = int((brdx2-brdx1)/pspc1)
+      end if
+      pspc1 = (brdx2-brdx1)/resol
+      pspc2 = pspc1
+      brdy1 = 0.
+      brdy2 = d2null*1.
+      brdz1 = 0.
+      brdz2 = d3null*1.
+      bordersize = nb*pspc2
+      call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
+      call createFixedBorders(store, ebc_y)
+      call getPartNumber(rpn,fpn)
+      ! call set_density_profile(rpn+fpn,store,&
+      !   brdy1-bordersize,brdy2+bordersize,&
+      !   rhofunc=MTIHopkins2017,coord=2)
     case default
       print *, 'Problem was not set in setup.f90: line 222.'
       stop
@@ -323,6 +352,7 @@ contains
         else if (ra(1) > 0.) then
           store(es_t,i) = 2.
         else
+          ! store(es_t,i) = 2.
           store(es_t,i) = 1.5
         end if
         store(es_u,i)  = store(es_t,i)
@@ -447,6 +477,23 @@ contains
           store(es_vz,i) = 0.
           store(es_bz,i) = 0.
         end if
+      case (ett_boilingtank)
+        store(es_h,i)   = hfac * sp
+        store(es_m,i)   = (sp**dim) * rho1
+        store(es_den,i) = rho1
+        store(es_u,i)   = 1.
+        store(es_t,i)   = 1.
+        if (store(es_type,i) == ept_fixed) then
+          if (ra(2) < brdy1) then
+            if ((ra(1) > -0.075).and.(ra(1) < 0.075)) then
+              store(es_t,i) = 10.
+              store(es_u,i) = 10.
+            end if
+          end if
+        end if
+        store(es_p,i)   = (gamma - 1.)*store(es_den,i)*store(es_u,i)
+        store(es_bx:es_by,i) = 1.
+        store(es_vx:es_vz,i) = 0.
       case default
         print*, "# <!> There is no such initial condition on IF.f90:525"
         stop
@@ -457,7 +504,7 @@ contains
     !$omp end parallel do
 
     select case(ivt)
-    case(ett_mti)
+    case(ett_mti, ett_boilingtank)
       call setPartNumber(r=rpn+fpn,f=0)
       call clearPeriodicParticles(store)
       call findInsideBorderParticles(store)

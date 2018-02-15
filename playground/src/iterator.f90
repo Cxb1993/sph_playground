@@ -125,6 +125,16 @@ contains
       call c1(store)
       call eos_adiabatic(store, gamma)
       call c2(store)
+    case(ett_boilingtank)
+      call clearPeriodicParticles(store)
+      call reflecPeriodicParticles(store, ebc_x)
+      call findInsideBorderParticles(store)
+      call createPeriodicBorder(store, ebc_x)
+      call findneighboursKDT(store)
+      call c1(store)
+      call eos_adiabatic(store, gamma)
+      call c2(store)
+      store(es_ay,1:rpn) = store(es_ay,1:rpn) - .5
     case default
       print *, 'Task type was not defined in iterator:145.'
       stop

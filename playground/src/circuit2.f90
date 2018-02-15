@@ -133,7 +133,7 @@ contains
         end do
       end do
       select case (s_ttp)
-      case (eeq_diffusion, eeq_magnetohydrodiffusion)
+      case (eeq_diffusion, eeq_magnetohydrodiffusion, eeq_hydrodiffusion)
         if (difiso == 1) then
           kta(1,1) = difcond
           kta(2,2) = difcond
@@ -218,6 +218,63 @@ contains
                       dot_product(vab(:), qa(:))/(rhoa * oma) + &
                       qc &
                     )
+        case (eeq_hydrodiffusion)
+          if (s_artts == 1) then
+            call art_viscosity(rhoa, rhob, vab, urab, rab, dr, s_dim, ca, cb, ha, hb, qa, qb)
+            call art_termcond(nwa, nwb, urab, pa, pb, ua, ub, rhoa, rhob, oma, omb, qc)
+          end if
+          dva(:) = dva(:) - mb * (&
+                      (pa * nwa(:) + qa(:)) / (rhoa**2 * oma) + &
+                      (pb * nwb(:) + qb(:)) / (rhob**2 * omb) &
+                    )
+          dua   = dua + mb * (&
+                      dot_product(vab(:), pa * nwa(:)) / (rhoa**2 * oma) - &
+                      dot_product(vab(:), qa(:))/(rhoa * oma) + &
+                      qc &
+                    )
+          if (difiso == 0) then
+            do li = 1, 3
+              do lj = 1, 3
+                ktb(li,lj) = difcond*ubb(li)*ubb(lj)
+              end do
+            end do
+          end if
+
+          if (s_ktp == esd_n2w) then
+            call hessian(rab, ra, rb, ha, Hesa)
+            do li = 1, 3
+              do lj = 1, 3
+                tmpt1(li,lj) = tmpt1(li,lj) + mb/rhob * &
+                                (ktb(li,lj) - kta(li,lj)) * nwa(li)
+                tmpt2(li,lj) = tmpt2(li,lj) + mb/rhob * &
+                                (tb - ta) * nwa(lj)
+                tmpt3(li,lj) = tmpt3(li,lj) + kta(li,lj) * &
+                                mb/rhob * (tb - ta) * Hesa(li,lj)
+              end do
+            end do
+          else if ((s_ktp == esd_fw).or.(s_ktp == esd_fab)) then
+            ktab(:,:) = (kta(:,:)+ktb(:,:))/2.
+            call hessian(rab, ra, rb, ha, Hesa)
+            ddta = ddta + mb/rhob * (tb - ta) * &
+              ( dot_product(ktab(1,:),Hesa(1,:)) + &
+                dot_product(ktab(2,:),Hesa(2,:)) + &
+                dot_product(ktab(3,:),Hesa(3,:)) )
+          else if (s_ktp == esd_2nw) then
+            odda = 1./oma/rhoa/rhoa
+            oddb = 1./omb/rhob/rhob
+            kdtadx(1) = dot_product(kta(1,:),dtadx(:))
+            kdtadx(2) = dot_product(kta(2,:),dtadx(:))
+            kdtadx(3) = dot_product(kta(3,:),dtadx(:))
+            kdtbdx(1) = dot_product(ktb(1,:),dtbdx(:))
+            kdtbdx(2) = dot_product(ktb(2,:),dtbdx(:))
+            kdtbdx(3) = dot_product(ktb(3,:),dtbdx(:))
+
+            ddta = ddta + mb*( &
+              dot_product(kdtadx(:),nwa(:))*odda + dot_product(kdtbdx(:),nwb(:))*oddb)
+            else
+              print*, "# <!> second deriv id not found"
+              stop
+          end if
         case (eeq_magnetohydro)
           MPa(:,:) = 0.
           MPb(:,:) = 0.
@@ -271,7 +328,7 @@ contains
           if (difiso == 0) then
             do li = 1, 3
               do lj = 1, 3
-                ktb(li,lj) = difcond*bb(li)*bb(lj)
+                ktb(li,lj) = difcond*ubb(li)*ubb(lj)
               end do
             end do
           end if
@@ -319,21 +376,21 @@ contains
           oddb = 1./omb/rhob/rhob
           if (difiso == 0) then
             ktb(:,:) = 0.
-            if ((ra(2) > 0.).and.(ra(2)<1./30.)) then
-              ktb(1,1) = difcond
-              ktb(2,2) = difcond
-              ktb(3,3) = difcond
-            else if ((ra(2) > 2./30.).and.(ra(2)<1./10.)) then
-              ktb(1,1) = difcond
-              ktb(2,2) = difcond
-              ktb(3,3) = difcond
-            else
+            ! if ((ra(2) > 0.).and.(ra(2)<1./30.)) then
+            !   ktb(1,1) = difcond
+            !   ktb(2,2) = difcond
+            !   ktb(3,3) = difcond
+            ! else if ((ra(2) > 2./30.).and.(ra(2)<1./10.)) then
+            !   ktb(1,1) = difcond
+            !   ktb(2,2) = difcond
+            !   ktb(3,3) = difcond
+            ! else
               do li = 1, 3
                 do lj = 1,3
                   ktb(li,lj) = difcond*ubb(li)*ubb(lj)
                 end do
               end do
-            end if
+            ! end if
           end if
           ! diffusion
           if (s_ktp == esd_n2w) then
@@ -411,25 +468,6 @@ contains
                       vab(:) * dot_product(ba(:),nwa(:)) - &
                       bb(:) * dot_product(vab(:),nwa(:)) &
                     )
-        ! case(5)
-        !   ! 'diff-laplace'
-        !   call n2w(rab, h(i), n2wa)
-        !   dv(:,i)  = dv(:,i) + mas(j)/den(j) * vba(:) * n2wa
-        !   ! call get_hessian(rab, h(i), Hes)
-        !   ! kcfij(:) = 2. * kcf(:,i) * kcf(:,j) / (kcf(:,i) + kcf(:,j))
-        !   ! dcf(1,i) = dcf(1,i) - mas(j) / (den(i) * den(j)) * (cf(1,i) - cf(1,j)) * &
-        !   !           (kcfij(1)*Hes(1,1) + kcfij(2)*Hes(2,2) + kcfij(3)*Hes(3,3))
-        ! case(6)
-        !   call hessian(rab, pos(:,i), pos(:,j), h(i), Hesa)
-        !   dv(1,i) = dv(1,i) + mas(j)/den(j) * dot_product(vba,Hesa(:,1))
-        !   dv(2,i) = dv(2,i) + mas(j)/den(j) * dot_product(vba,Hesa(:,2))
-        !   dv(3,i) = dv(3,i) + mas(j)/den(j) * dot_product(vba,Hesa(:,3))
-        ! case(10)
-        !   ! diff-artvisc
-        !   call hessian_rr(rab, h(i), Hesa)
-        !   dv(1,i) = dv(1,i) - mas(j)/den(j) * dot_product(vab, Hesa(:,1))
-        !   dv(2,i) = dv(2,i) - mas(j)/den(j) * dot_product(vab, Hesa(:,2))
-        !   dv(3,i) = dv(3,i) - mas(j)/den(j) * dot_product(vab, Hesa(:,3))
         case default
           print *, 'Task type was not defined in circuit2.f90: line 240.'
           stop
@@ -441,7 +479,7 @@ contains
       end if
       select case (s_ttp)
       case(eeq_hydro, eeq_magnetohydro)
-      case(eeq_diffusion, eeq_magnetohydrodiffusion)
+      case(eeq_diffusion, eeq_magnetohydrodiffusion, eeq_hydrodiffusion)
         if (s_ktp == esd_n2w) then
           do li = 1,3
             do lj = 1,3

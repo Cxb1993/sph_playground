@@ -1,4 +1,4 @@
-module base_kernel
+module kernel_base
   use const
 
   implicit none
@@ -9,7 +9,7 @@ module base_kernel
 
     real :: knorm(3) = [ 2./3., 10./(7. * pi), 1./(pi) ]
     real :: fwcl(3)  = [ 6., 6.32261, 6.6666666 ]
-    integer :: maxneibnum(3) = [35, 350, 700]
+    integer :: maxneibnum(3) = [35, 70, 150]
 
     real :: krad = 2., wCv, fwc
     integer :: dim, returnneibnum
@@ -80,4 +80,4 @@ module base_kernel
       end if
     end if
   end subroutine kddf
-end module
+end module kernel_base
