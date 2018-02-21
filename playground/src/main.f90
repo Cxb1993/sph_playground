@@ -59,7 +59,7 @@ program main
   real :: &
     dt, t, dtout, ltout, tfinish,&
     gamma, hfac, cv = 1., &
-    mhdmuzero, difcond
+    mhdmuzero, difcond, dedt
     ! , chi(81)
   character (len=100) :: &
     errfname
@@ -148,7 +148,7 @@ program main
   print *, "# Finish time = ", tfinish
 
   call checkVarsReady(s_tt, store)
-  call iterate(n, gamma, store)
+  call iterate(n, gamma, store, dedt)
 
   if (silent == 0) then
     print *, '# Initial setup printed'
@@ -201,7 +201,7 @@ program main
     if (t >= ltout) then
       if (usedumps == 1) call dump(store, t)
       if (silent == 0) call Output(t, store, err)
-      print *, "#", iter, "t=", t, "dt=", dt, 'min h=', minval(store(es_h,1:n)), 'max h=', maxval(store(es_h,1:n))
+      print *, "#", iter, "t=", t, "dt=", dt, 'min h=', minval(store(es_h,1:n)), 'max h=', maxval(store(es_h,1:n)), "dedt=", dedt
       do while(ltout <= t)
         ltout = ltout + dtout
       end do
@@ -225,7 +225,7 @@ program main
     store(es_t,1:n) = store(es_u,1:n)
     store(es_bx:es_bz,1:n) = store(es_bx:es_bz,1:n) + dt * tdb(:,:)
 
-    call iterate(n, gamma, store)
+    call iterate(n, gamma, store, dedt)
 
     store(es_vx:es_vz,1:n) = &
       store(es_vx:es_vz,1:n) + 0.5*dt*(store(es_ax:es_az,1:n) - ta(:,:))

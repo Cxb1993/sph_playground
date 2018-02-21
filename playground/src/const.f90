@@ -31,12 +31,13 @@ module const
     ec_zmin = 21,&
     ec_zmax = 22,&
     ec_bordsize = 23,&
-    ec_realpn = 24,&
-    ec_fixedpn = 25,&
-    ec_gamma = 26,&
-    ec_lastprint = 27,&
-    ec_usedumps = 28,&
-    ec_total = 28
+    ec_padding = 24,&
+    ec_realpn = 25,&
+    ec_fixedpn = 26,&
+    ec_gamma = 27,&
+    ec_lastprint = 28,&
+    ec_usedumps = 29,&
+    ec_total = 29
 
   ! store of data
   integer, parameter :: &

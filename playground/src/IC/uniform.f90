@@ -76,6 +76,6 @@ contains
     end do
     n = n - 1
     call setPartNumber(r=n,f=0)
-    call setBorders(xmin, xmax, ymin, ymax, zmin, zmax, dbsz)
+    call setBorders(xmin, xmax, ymin, ymax, zmin, zmax, dbsz, pdg*sp)
   end subroutine uniformV4
 end module uniform

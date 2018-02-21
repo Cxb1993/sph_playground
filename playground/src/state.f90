@@ -22,7 +22,8 @@ module state
             setState, getState,&
             setGamma, getGamma,&
             setLastPrint,getLastPrint,&
-            setUseDumps, getUseDumps
+            setUseDumps, getUseDumps,&
+            getEqComponent
 
   private
   save
@@ -68,6 +69,31 @@ module state
       integer, intent(out) :: ott
       ott = int(statevars(ec_eqs))
     end subroutine get_equations
+    subroutine getEqComponent(ecHydro, ecMagneto, ecDiff)
+      integer, intent(out) :: ecHydro, ecMagneto, ecDiff
+      ecHydro = 0
+      ecMagneto = 0
+      ecDiff = 0
+      select case(int(statevars(ec_eqs)))
+      case(eeq_hydro)
+        ecHydro = 1
+      case(eeq_magnetohydro)
+        ecHydro = 1
+        ecMagneto = 1
+      case(eeq_diffusion)
+        ecDiff = 1
+      case(eeq_magnetohydrodiffusion)
+        ecHydro = 1
+        ecMagneto = 1
+        ecDiff = 1
+      case(eeq_hydrodiffusion)
+        ecHydro = 1
+        ecDiff = 1
+      case default
+        print *, 'Wrong equations ./src/state.f90:94 ', int(statevars(ec_eqs))
+        stop
+      end select
+    end subroutine getEqComponent
 
     subroutine setddwtype(itt)
       character (len=*), intent(in) :: itt
@@ -299,10 +325,11 @@ module state
      o = statevars(ec_spacing)
    end subroutine
 
-   subroutine setBorders(x1,x2,y1,y2,z1,z2,db)
+   subroutine setBorders(x1,x2,y1,y2,z1,z2,bs,pd)
      real, intent(in) :: &
-       x1,x2,y1,y2,z1,z2,db
-     statevars(ec_bordsize) = db
+       x1,x2,y1,y2,z1,z2,bs,pd
+     statevars(ec_bordsize) = bs
+     statevars(ec_padding) = pd
      statevars(ec_xmin) = x1
      statevars(ec_xmax) = x2
      statevars(ec_ymin) = y1
@@ -310,10 +337,11 @@ module state
      statevars(ec_zmin) = z1
      statevars(ec_zmax) = z2
    end subroutine
-   subroutine getBorders(x1,x2,y1,y2,z1,z2,db)
+   subroutine getBorders(x1,x2,y1,y2,z1,z2,bs,pd)
      real, intent(out) :: &
-       x1,x2,y1,y2,z1,z2,db
-     db = statevars(ec_bordsize)
+       x1,x2,y1,y2,z1,z2,bs,pd
+     bs = statevars(ec_bordsize)
+     pd = statevars(ec_padding)
      x1 = statevars(ec_xmin)
      x2 = statevars(ec_xmax)
      y1 = statevars(ec_ymin)

@@ -24,7 +24,7 @@ module BC
       start=0, finish=0
 
     integer :: periodpartnumb, selfrefnumb, initdone=0
-    real    :: xmin, xmax, ymin, ymax, zmin, zmax, bordersize
+    real    :: xmin, xmax, ymin, ymax, zmin, zmax, bordersize, padding
     real    :: boxmax(3), boxmin(3)
 
 contains
@@ -45,14 +45,15 @@ contains
 
   subroutine initBorders()
     real :: &
-      x1,x2,y1,y2,z1,z2,db
+      x1,x2,y1,y2,z1,z2,db,bs,pd
     integer :: &
       realpartnumb,fixedpartnumb
 
-    call getBorders(x1,x2,y1,y2,z1,z2,db)
+    call getBorders(x1,x2,y1,y2,z1,z2,bs,pd)
     call getPartNumber(r=realpartnumb,f=fixedpartnumb)
 
-    bordersize = db
+    bordersize = bs
+    padding = pd
     xmin = x1
     xmax = x2
     ymin = y1
@@ -188,12 +189,26 @@ contains
     call system_clock(start)
     call getdim(dim)
     if (initdone==0) call initBorders()
-    paddingmin(1) = xmin+bordersize/10
-    paddingmin(2) = ymin+bordersize/10
-    paddingmin(3) = zmin+bordersize/10
-    paddingmax(1) = xmax-bordersize/10
-    paddingmax(2) = ymax-bordersize/10
-    paddingmax(3) = zmax-bordersize/10
+    ! paddingmin(1) = xmin+bordersize/20
+    ! paddingmin(2) = ymin+bordersize/20
+    ! paddingmin(3) = zmin+bordersize/20
+    ! paddingmax(1) = xmax-bordersize/20
+    ! paddingmax(2) = ymax-bordersize/20
+    ! paddingmax(3) = zmax-bordersize/20
+    paddingmin(1) = xmin
+    paddingmin(2) = ymin
+    paddingmin(3) = zmin
+    paddingmax(1) = xmax
+    paddingmax(2) = ymax
+    paddingmax(3) = zmax
+    if (padding == 0) then
+      paddingmin(1) = xmin+padding/10
+      paddingmin(2) = ymin+padding/10
+      paddingmin(3) = zmin+padding/10
+      paddingmax(1) = xmax-padding/10
+      paddingmax(2) = ymax-padding/10
+      paddingmax(3) = zmax-padding/10
+    end if
 
     ! TODO
     ! check if it is possible to do with KDT

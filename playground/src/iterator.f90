@@ -33,11 +33,12 @@ contains
     initialised = 1
   end subroutine
 
-  subroutine iterate(n, gamma, store)
+  subroutine iterate(n, gamma, store, maxconsenrg)
     real, allocatable, intent(inout) :: &
       store(:,:)
     integer, intent(in) :: n
     real, intent(in)    :: gamma
+    real, intent(out) :: maxconsenrg
 
     integer             :: dim, ttp, ivt, rpn, fpn
 
@@ -58,11 +59,11 @@ contains
 
       call findneighboursKDT(store)
       call c1(store)
-      call c2(store)
+      call c2(store, maxconsenrg)
     case (ett_pulse, ett_ring)
       call findneighboursKDT(store)
       call c1(store)
-      call c2(store)
+      call c2(store, maxconsenrg)
     case (ett_soundwave)
       call clearPeriodicParticles(store)
       call reflecPeriodicParticles(store, ebc_all)
@@ -72,7 +73,7 @@ contains
       call c1(store)
       ! call eos_adiabatic(store, gamma)
       call eos_isothermal(store)
-      call c2(store)
+      call c2(store, maxconsenrg)
     case (ett_hydroshock)
       call clearPeriodicParticles(store)
       call reflecPeriodicParticles(store, ebc_y)
@@ -83,7 +84,7 @@ contains
       call findneighboursKDT(store)
       call c1(store)
       call eos_adiabatic(store, gamma)
-      call c2(store)
+      call c2(store, maxconsenrg)
     ! case (ett_alfvenwave)
     !   call findneighboursKDT(ptype, pos, h)
     !
@@ -114,7 +115,7 @@ contains
       ! call updateFixedToSymmetric(store, [es_vx, es_vy, es_vz, es_bx, es_by, es_bz])
       call c1(store)
       call eos_adiabatic(store, gamma)
-      call c2(store)
+      call c2(store, maxconsenrg)
       store(es_ay,1:rpn) = store(es_ay,1:rpn) - 1.
     case (ett_OTvortex)
       call clearPeriodicParticles(store)
@@ -124,7 +125,7 @@ contains
       call findneighboursKDT(store)
       call c1(store)
       call eos_adiabatic(store, gamma)
-      call c2(store)
+      call c2(store, maxconsenrg)
     case(ett_boilingtank)
       call clearPeriodicParticles(store)
       call reflecPeriodicParticles(store, ebc_x)
@@ -133,7 +134,7 @@ contains
       call findneighboursKDT(store)
       call c1(store)
       call eos_adiabatic(store, gamma)
-      call c2(store)
+      call c2(store, maxconsenrg)
       store(es_ay,1:rpn) = store(es_ay,1:rpn) - .5
     case default
       print *, 'Task type was not defined in iterator:145.'
@@ -141,38 +142,3 @@ contains
     end select
   end subroutine iterate
 end module
-
-! select case (ttp)
-! case (1, 2, 3, 4, 9)
-!   ! mooved to ivt check
-! case(5)
-!   ! 'diff-laplace'
-!   print*, "FIX ME. I should depend on IVT not EQS"
-!   call findneighboursN2plusStatic(ptype, pos, h)
-!   select case(dtp)
-!   case(1)
-!     call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
-!   case(2)
-!     call c1(ptype, pos, mas, sk, h, den, om, cf, dcf, kcf)
-!     call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
-!   case default
-!     print *, 'Diff type is not set in iterator'
-!     stop
-!   end select
-! case(6)
-!   ! 'diff-graddiv'
-!   print*, "FIX ME. I should depend on IVT not EQS"
-!   call findneighboursN2plusStatic(ptype, pos, h)
-!   call c1(ptype, pos, mas, sk, h, den, om, cf, dcf, kcf)
-!   call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
-! case(7,8)
-! case(10)
-!   ! diff-artvisc
-!   print*, "FIX ME. I should depend on IVT not EQS"
-!   ! call findneighboursN2plus(ptype, pos, h)
-!   call findneighboursKDT(ptype, pos, h)
-!   call c2(c, ptype, pos, vel, acc, mas, den, h, om, prs, uei, due, dh, cf, dcf, kcf)
-! case default
-!   print *, 'Task type was not defined in iterator.f90: line 140.'
-!   stop
-! end select
