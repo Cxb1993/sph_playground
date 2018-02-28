@@ -67,7 +67,7 @@ contains
     integer, allocatable :: nlista(:), nlistb(:)
     integer :: &
       i, j, rj, la, lb, li, lj, difiso
-    integer(8)           :: t0, tneib
+    integer(8) :: t0, tneib
 
     call system_clock(start)
     call getmhdmagneticpressure(mhdmuzero)
@@ -79,7 +79,8 @@ contains
     end if
 
     maxconsenrg = 0
-    tneib = 0.
+    tneib = 0
+    t0 = 0
     consenrg = 0.
     call getNeibListL1(nlista)
     !$omp parallel do default(none)&
@@ -126,7 +127,6 @@ contains
       kta(:,:) = 0.
       ktb(:,:) = 0.
 
-      tneib = tneib + t0
       MPa(:,:) = 0.
       Mc(1) = dot_product(ba(:),ba(:))
 
@@ -170,6 +170,7 @@ contains
       end if
 
       call getneighbours(i, nlistb, t0)
+      tneib = tneib + t0
       overb: do lb = 1, size(nlistb)
         j = nlistb(lb)
         rj = getCrossRef(j)
@@ -347,7 +348,7 @@ contains
       ! store(es_du,i) = dua
       store(es_du,i) = dua + ddta/rhoa
 
-      consenrg = consenrg + ma*(dot_product(va(:),dva(:)) + dua + ddta/rhoa + &
+      consenrg = consenrg + ma*(dot_product(va(:),dva(:)) + dua + &
         dot_product(ba(:),dba(:))/rhoa - &
         0.5*dot_product(ba(:),ba(:))/rhoa/rhoa*drhoadt/oma)
     end do overa

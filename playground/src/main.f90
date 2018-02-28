@@ -1,4 +1,5 @@
 program main
+  ! use cudafor
   use BC,               only: initBorders
   use setup,            only: setupV2
   use state,            only: get_equations,&
@@ -152,6 +153,7 @@ program main
 
   if (silent == 0) then
     print *, '# Initial setup printed'
+    print *, '#-------------------------------------------------'
     call Output(t, store, sqerr)
   end if
 
@@ -180,7 +182,7 @@ program main
       !           minval(h(1:realpartnumb)) ** 2 / &
       !           merge(maxval(kcf(:,1,1:realpartnumb)), 1., maxval(kcf(:,1,1:realpartnumb))>0)
       ! dt = .1 * mhdmuzero &
-      dt = 1.*mhdmuzero*1e6&
+      dt = 1.*mhdmuzero*1e4&
               * minval(store(es_den,1:n)) &
               * minval(store(es_c,1:n)) &
               * minval(store(es_h,1:n)) ** 2 &
@@ -201,7 +203,13 @@ program main
     if (t >= ltout) then
       if (usedumps == 1) call dump(store, t)
       if (silent == 0) call Output(t, store, err)
-      print *, "#", iter, "t=", t, "dt=", dt, 'min h=', minval(store(es_h,1:n)), 'max h=', maxval(store(es_h,1:n)), "dedt=", dedt
+      write(*, fmt="(A,I7, A,F12.7, A,F12.7, A,F10.7,A,F10.7,A, A,F12.7)") &
+        " #", iter, &
+        " | t=", t, &
+        " | dt=", dt, &
+        " | h=[", minval(store(es_h,1:n)), ":", maxval(store(es_h,1:n)), "]",&
+        " | dedt=", dedt
+
       do while(ltout <= t)
         ltout = ltout + dtout
       end do

@@ -451,7 +451,7 @@ contains
         if (cca(1) > 0) then
           cca(:) = ra(:)/sqrt(cca(1))
           if (int(store(es_type,i)) == ept_real) then
-            store(es_vy,i) = 1e-4*&
+            store(es_vy,i) = 1e-2*&
               sqrt(gamma * store(es_p,i) / store(es_den,i))*&
               sin(4.*pi*ra(1)/(brdx2-brdx1))
           end if
