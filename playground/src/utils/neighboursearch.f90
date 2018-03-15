@@ -12,7 +12,8 @@ module NeighbourSearch
 
 public findneighboursN2, findneighboursN2plusStatic, findneighboursKDT, &
         getneighbours, getNeibNumbers, destroy, &
-        setStepsize, isInitialized, getNeibListL1, getNeibListL2
+        setStepsize, isInitialized, getNeibListL1, getNeibListL2,&
+        findneighboursN2once
 
 private
 save
@@ -107,8 +108,10 @@ contains
       tx = 1
       call kdtree2_r_nearest_around_point(kdtree, i, 0, (kr * store(es_h,i))**2, nfound, maxresultnum, kdtree_res)
       if (maxresultnum < nfound) then
-        print*, "Need at least ", nfound, " particles."
-        error stop "KDTree neibsearch result was truncated."
+        print*, "# <!> need at least ", nfound, " particles."
+        print*, "# <!> current max is ", maxresultnum
+        print*, "# <!> pos = [", store(es_rx:es_rz,i), "]; hfac = ", store(es_h,i)
+        error stop "# <!> KDTree neibsearch result was truncated."
       end if
       if (.not.(allocated(neighbours(i)%list))) then
         allocate(neighbours(i)%list(nfound-1))
@@ -383,14 +386,21 @@ contains
     call addTime(' neibs', dt)
   end subroutine getneighbours
 
-  subroutine findneighboursN2once(idx, pos, h, nlist)
-    real, allocatable, intent(in)       :: pos(:,:), h(:)
+  subroutine findneighboursN2once(idx, store, nlist)
+    use state,  only: getPartNumber
+    use BC,     only: getPeriodPartNumber
+
+    real, allocatable, intent(in)       :: store(:,:)
     integer, allocatable, intent(inout) :: nlist(:)
     integer, intent(in)                 :: idx
-    integer                             :: sn, j, tsz, tix, dim
+    integer :: &
+      sn, j, tsz, tix, dim, realpn, periodpn, fixedpn
     real                                :: r2, r(3), kr
 
-    sn = size(pos, dim=2)
+    call getPartNumber(realpn, fixedpn)
+    call getPeriodPartNumber(periodpn)
+    sn = realpn + periodpn + fixedpn
+
     call get_krad(kr)
     call getdim(dim)
 
@@ -407,9 +417,9 @@ contains
     tix = 0
     do j = 1,sn
       if ( j /= idx ) then
-        r(:) = pos(:,idx) - pos(:,j)
+        r(:) = store(es_rx:es_rz,idx) - store(es_rx:es_rz,j)
         r2 = dot_product(r(:),r(:))
-        if (r2 < (kr * h(idx))**2 + eps) then
+        if (r2 < (kr * store(es_h,idx))**2 + eps) then
           tix = tix + 1
           tsz = size(nlist)
           if (tsz < tix) then

@@ -66,7 +66,6 @@ contains
     ektsq = ekt**(1./2.)
     epsdm1= eps**(dim-1)
 
-
     do j = 1,size(nlista)
       i = nlista(j)
       exact = 0.

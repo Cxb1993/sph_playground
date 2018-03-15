@@ -37,7 +37,8 @@ module const
     ec_gamma = 27,&
     ec_lastprint = 28,&
     ec_usedumps = 29,&
-    ec_total = 29
+    ec_dtprint = 30,&
+    ec_total = 30
 
   ! store of data
   integer, parameter :: &
@@ -92,7 +93,8 @@ module const
     ett_hydroshock  = 106,&
     ett_alfvenwave  = 107,&
     ett_OTvortex    = 108,&
-    ett_boilingtank = 109
+    ett_boilingtank = 109,&
+    ett_mtilowres   = 110
 
   ! borders definitions
   integer, parameter :: &
@@ -113,7 +115,8 @@ module const
     eeq_diffusion             = 301,&
     eeq_magnetohydro          = 302,&
     eeq_magnetohydrodiffusion = 303,&
-    eeq_hydrodiffusion        = 304
+    eeq_hydrodiffusion        = 304,&
+    eeq_kd2                   = 305
 
   integer, parameter :: &
     esd_fab = 400,&
@@ -127,9 +130,9 @@ module const
     edi_mtih2017 = 502
 
   character(len=*), parameter :: &
-    blockFormatFlt  = "(A,A35,F10.7)",&
-    blockFormatInt  = "(A,A35,I8)",&
-    blockFormatStr  = "(A,A35,A)",&
-    blockFormatStr2 = "(A,A35,A)"
+    blockFormatFlt  = "(A,A50,F16.10)",&
+    blockFormatInt  = "(A,A50,I8)",&
+    blockFormatStr  = "(A,A50,A)",&
+    blockFormatStr2 = "(A,A50,A)"
 
 end module

@@ -1,6 +1,7 @@
 module errteylor
   use omp_lib
 
+  use const
   use timing,           only: addTime
   use kernel,           only: n2w, &
                               hessian, &
@@ -8,8 +9,8 @@ module errteylor
   use state,            only: getdim,&
                               getPartNumber,&
                               getkerninflfilename
-  use neighboursearch,  only: getneighbours,&
-                              isInitialized
+  use neighboursearch,  only: findneighboursN2once
+
   use printer,          only: AppendLine
 
   implicit none
@@ -27,15 +28,15 @@ contains
     stepsize = i
   end subroutine
 
-  subroutine laplace(pos, mas, den, h, chi)
-    real, allocatable, intent(in)    :: mas(:), den(:), pos(:,:), h(:)
+  subroutine laplace(store, chi)
+    real, allocatable, intent(in)    :: store(:,:)
     real, intent(inout) :: chi(9)
 
     integer, allocatable :: nlist(:)
     integer              :: i, j, l, kd, idx, realpartnumb
     integer(8)           :: tneib, tprint
     real                 :: n2wa, r(3), r11, r22, r33, r12, r13, r23, kr, t(3),&
-                            dsum, osum, dchi(9)
+                            dsum, osum, dchi(9), Hesa(3,3)
     real, allocatable    :: printres(:)
     character(len=50) :: kinfname
 
@@ -53,7 +54,7 @@ contains
     dchi(:) = 0.
     t(:) = 0.
     idx = int(realpartnumb/2)
-    call getneighbours(idx, nlist, tneib)
+    call findneighboursN2once(idx, store, nlist)
     i = idx
 
     dsum = 0.
@@ -61,31 +62,33 @@ contains
 
     do l = 1,size(nlist)
       j = nlist(l)
-      r(:) = pos(:,j) - pos(:,i)
+      r(:) = store(es_rx:es_rz,j) - store(es_rx:es_rz,i)
       r11 = r(1)*r(1)
       r22 = r(2)*r(2)
       r33 = r(3)*r(3)
       r12 = r(1)*r(2)
       r13 = r(1)*r(3)
       r23 = r(2)*r(3)
-      call n2w(r, h(i), n2wa)
 
+      ! call hessian(r, store(es_rx:es_rz,i), store(es_rx:es_rz,j), store(es_h,i), Hesa)
+      ! n2wa = Hesa(1,1) + Hesa(2,2) + Hesa(3,3)
+      call n2w(r, store(es_h,i), n2wa)
       ! call GradDivW(r, h(i), n2wa)
       ! call get_Hesobian(r, h(i), Hes)
-      t(:) = t(:) + mas(j)/den(j) * r(:) * n2wa
+      t(:) = t(:) + store(es_m,j)/store(es_den,j) * r(:) * n2wa
 
-      dchi(1) = 0.5 * mas(j)/den(j) * r11 * n2wa ! Hes(1,1)
+      dchi(1) = 0.5 * store(es_m,j)/store(es_den,j) * r11 * n2wa ! Hes(1,1)
       if ( kd > 1 ) then
-        dchi(2) = 0.5 * mas(j)/den(j) * r12 * n2wa ! Hes(1,2)
-        dchi(5) = 0.5 * mas(j)/den(j) * r22 * n2wa ! Hes(2,2)
-        dchi(4) = 0.5 * mas(j)/den(j) * r12 * n2wa ! Hes(1,2)
+        dchi(2) = 0.5 * store(es_m,j)/store(es_den,j) * r12 * n2wa ! Hes(1,2)
+        dchi(5) = 0.5 * store(es_m,j)/store(es_den,j) * r22 * n2wa ! Hes(2,2)
+        dchi(4) = 0.5 * store(es_m,j)/store(es_den,j) * r12 * n2wa ! Hes(1,2)
       end if
       if ( kd == 3 ) then
-        dchi(3) = 0.5 * mas(j)/den(j) * r13 * n2wa ! Hes(1,3)
-        dchi(6) = 0.5 * mas(j)/den(j) * r23 * n2wa ! Hes(2,3)
-        dchi(9) = 0.5 * mas(j)/den(j) * r33 * n2wa ! Hes(3,3)
-        dchi(8) = 0.5 * mas(j)/den(j) * r23 * n2wa ! Hes(2,3)
-        dchi(7) = 0.5 * mas(j)/den(j) * r13 * n2wa ! Hes(1,3)
+        dchi(3) = 0.5 * store(es_m,j)/store(es_den,j) * r13 * n2wa ! Hes(1,3)
+        dchi(6) = 0.5 * store(es_m,j)/store(es_den,j) * r23 * n2wa ! Hes(2,3)
+        dchi(9) = 0.5 * store(es_m,j)/store(es_den,j) * r33 * n2wa ! Hes(3,3)
+        dchi(8) = 0.5 * store(es_m,j)/store(es_den,j) * r23 * n2wa ! Hes(2,3)
+        dchi(7) = 0.5 * store(es_m,j)/store(es_den,j) * r13 * n2wa ! Hes(1,3)
       end if
       chi(:) = chi(:) + dchi(:)
       if ( kinfname /= '' ) then
@@ -136,7 +139,8 @@ contains
     t(:) = 0.
 
     idx = int(realpartnumb/2)
-    call getneighbours(idx, nlist, tneib)
+    ! call findneighboursN2once(idx, store, nlist)
+    error stop "fix max,den,pos -> store"
     i = idx
     do l = 1,size(nlist)
       j = nlist(l)

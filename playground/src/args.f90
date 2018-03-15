@@ -15,8 +15,8 @@ module args
                         sethfac,&
                         setsilentmode,&
                         setLastPrint,&
-                        setUseDumps
-  use kernel,     only: initkernel
+                        setUseDumps,&
+                        setdim
 
   implicit none
 
@@ -25,7 +25,7 @@ module args
   contains
     subroutine fillargs()
       real :: &
-        pspc1, dtout, tfinish, hfac
+        pspc1, tfinish, hfac
       integer :: &
         numargs, curargnum, npic,dim, silent, resol
       character (len=100) :: &
@@ -34,7 +34,7 @@ module args
         adden, artts, coordsysstr, usedumps
       real :: tmp
 
-      dim   = 1
+      dim = 0
       eqs = ''
       pspc1 = 0
       resol = 0
@@ -66,6 +66,8 @@ module args
             eqs = adjustl(argval1)
           case('--spacing')
             read(argval1, *) pspc1
+          case('--nsnapshots')
+            read(argval1, *) npic
           case('--resolution')
             read(argval1, *) tmp
             resol = int(tmp)
@@ -108,8 +110,6 @@ module args
       call setArtificialTerms(artts)
       call set_equations(eqs)
       call setddwtype(ddwtype)
-      dtout = tfinish / npic
-      call initkernel(dim)
       call sethfac(hfac)
       call setsilentmode(silentstr)
       call setspacing(pspc1)
@@ -117,5 +117,6 @@ module args
       call setAdvancedDensity(adden)
       call setLastPrint(0)
       call setUseDumps(usedumps)
+      call setdim(dim)
     end subroutine fillargs
 end module

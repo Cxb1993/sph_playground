@@ -16,7 +16,13 @@ program main
                               getHfac,&
                               getGamma,&
                               getresultfile,&
-                              getUseDumps
+                              getUseDumps,&
+                              set_equations,&
+                              getState,&
+                              settfinish,&
+                              getdim,&
+                              getLastPrint,&
+                              setdtprint, getdtprint
   use iterator,         only: iterate
   use printer,          only: Output, AppendLine
   use errcalc,          only: err_diff_laplace, &
@@ -43,6 +49,8 @@ program main
   use timing,           only: addTime
   use dumper,           only: dump, restore,&
                               dumpclean => clean
+  use kernel,           only: initkernel
+
 
   use preruncheck
   use const
@@ -60,18 +68,21 @@ program main
   real :: &
     dt, t, dtout, ltout, tfinish,&
     gamma, hfac, cv = 1., &
-    mhdmuzero, difcond, dedt
-    ! , chi(81)
+    mhdmuzero, difcond, dedt, sumdedt, dedtprev, chi(81)
   character (len=100) :: &
     errfname
   integer :: &
     i, n, iter, s_tt, nusedl1, nusedl2, printlen, silent,&
-    ivt, stopiter, resol, difiso, realpartnumb, npics, usedumps
+    ivt, stopiter, resol, difiso, realpartnumb, npics, usedumps,&
+    dim, lastnpic
 
   integer(8) :: &
     tprint
 
-  logical :: thereisdump
+  logical :: thereisdump, needtoswitch
+
+  ! call runcltest()
+  ! read*
 
   print*, "##############################################"
   print*, "#####"
@@ -80,26 +91,34 @@ program main
   print*, "##############################################"
 
   inquire(file='output/fulldump', exist=thereisdump)
-  ! call runcltest()
-  ! read*
   call fillargs()
 
   t = 0.
-
   if (thereisdump) then
-    call restore(store, t)
+    call restore('output/fulldump', store, t)
   else
-    call setupV2(n, cv, store)
-  end if
+    inquire(file='output/finaldump', exist=thereisdump)
+    if (thereisdump) then
+      call restore('output/finaldump', store, t)
+    else
+      call getdim(dim)
+      call initkernel(dim)
 
-  call initBorders()
+      call getLastPrint(lastnpic)
+      call getnpics(npics)
+      call gettfinish(tfinish)
+      dtout = (tfinish-t)/(npics - lastnpic)
+      call setdtprint(dtout)
+
+      call setupV2(n, cv, store)
+    end if
+  end if
 
   call get_equations(s_tt)
   call ginitvar(ivt)
   call getdiffisotropic(difiso)
   call getdiffconductivity(difcond)
   call getmhdmagneticpressure(mhdmuzero)
-
   call gettfinish(tfinish)
   call getnpics(npics)
   call getsilentmode(silent)
@@ -108,18 +127,23 @@ program main
   call getHfac(hfac)
   call getresultfile(errfname)
   call getUseDumps(usedumps)
+  call getdtprint(dtout)
+  call getLastPrint(lastnpic)
 
-  dtout = tfinish/npics
+  call getdim(dim)
+  call initkernel(dim)
+  call initBorders()
+  call tinit()
 
-  select case(s_tt)
-  case (eeq_hydro, eeq_diffusion, eeq_magnetohydro, eeq_magnetohydrodiffusion, eeq_hydrodiffusion)
-  ! case (5, 6, 7, 8, 10)
-    ! 'diff-laplass' ! 'diff-graddiv' ! diff-artvisc
-    ! call set_stepping(10**dim)
-  case default
-    print *, 'Particle turn-off was not set ./src/main.f90:119'
-    stop
-  end select
+  ! select case(s_tt)
+  ! case (eeq_hydro, eeq_diffusion, eeq_magnetohydro, eeq_magnetohydrodiffusion, eeq_hydrodiffusion)
+  ! ! case (5, 6, 7, 8, 10)
+  !   ! 'diff-laplass' ! 'diff-graddiv' ! diff-artvisc
+  !   ! call set_stepping(10**dim)
+  ! case default
+  !   print *, 'Particle turn-off was not set ./src/main.f90:119'
+  !   stop
+  ! end select
 
   call printstate()
 
@@ -143,35 +167,44 @@ program main
   allocate(sqerr(1:n))
 
   err(:) = 0.
-
-  call tinit()
   stopiter = 0
+  sumdedt = 0.
   print *, "# Finish time = ", tfinish
 
   call checkVarsReady(s_tt, store)
-  call iterate(n, gamma, store, dedt)
 
   if (silent == 0) then
+    call Output(t, store, sqerr)
     print *, '# Initial setup printed'
     print *, '#-------------------------------------------------'
-    call Output(t, store, sqerr)
   end if
 
-  select case(s_tt)
-  case(eeq_hydro, eeq_magnetohydro, eeq_diffusion, eeq_magnetohydrodiffusion, eeq_hydrodiffusion)
-  case default
-    print *, 'EQS type was not sen in while interuption ./src/main.f90:161'
-    stop
-  end select
+  if (s_tt /= eeq_kd2) then
+    call iterate(n, gamma, store, dedt)
+  else
+    stopiter = 1
+  end if
+  sumdedt = sumdedt + dedt
 
   do while ((t < tfinish + eps0).and.(stopiter==0))
+    ! if (needtoswitch.and.(t > (tfinish/2.))) then
+    !   call set_equations('mhd')
+    !   s_tt = eeq_magnetohydrodiffusion
+    !   needtoswitch = .false.
+    !   print*, maxval(store(es_bx:es_bz,1:n)), minval(store(es_bx,1:n))
+    ! end if
+
     select case(s_tt)
+    case(eeq_kd2)
+      dt = 0.
     case(eeq_hydro)
-      dt = .3 * minval(store(es_h,1:n)) / maxval(store(es_c,1:n))
+      dt = .01 * minval(store(es_h,1:n)) / maxval(store(es_c,1:n))
     case(eeq_magnetohydro)
-      dt = .1*1e-3*minval(store(es_h,1:n))&
+      dt = .1*1e-5*minval(store(es_h,1:n))&
             /maxval(store(es_c,1:n))&
             /maxval(store(es_bx:es_bz,1:n))
+      ! dt = .1*minval(store(es_h,1:n))&
+      !       /maxval(store(es_c,1:n))
     case(eeq_diffusion, eeq_hydrodiffusion)
       dt = .01 * minval(store(es_den,1:n)) &
               * minval(store(es_c,1:n)) &
@@ -181,16 +214,14 @@ program main
       ! dt = .1 * mhd_magneticconstant * minval(den(1:realpartnumb)) * minval(c(1:realpartnumb)) * &
       !           minval(h(1:realpartnumb)) ** 2 / &
       !           merge(maxval(kcf(:,1,1:realpartnumb)), 1., maxval(kcf(:,1,1:realpartnumb))>0)
-      ! dt = .1 * mhdmuzero &
+      ! dt = .3 * minval(store(es_h,1:n)) / maxval(store(es_c,1:n))
       dt = 1.*mhdmuzero*1e4&
               * minval(store(es_den,1:n)) &
               * minval(store(es_c,1:n)) &
-              * minval(store(es_h,1:n)) ** 2 &
+              * minval(store(es_h,1:n))**2 &
               / difcond
-    ! case (5,6,7,8)
-    !   ! 'diff-laplass'      ! 'diff-graddiv'
-    !   stopiter = 1
-    !   dt = 0.
+      ! print*, t
+      ! print*, minval(store(es_den,1:n)), minval(store(es_c,1:n)), minval(store(es_p,1:n)), minval(store(es_u,1:n))
     case default
       print *, 'Task type time increment was not set main.f90: line 150.'
       stop
@@ -203,12 +234,13 @@ program main
     if (t >= ltout) then
       if (usedumps == 1) call dump(store, t)
       if (silent == 0) call Output(t, store, err)
-      write(*, fmt="(A,I7, A,F12.7, A,F12.7, A,F10.7,A,F10.7,A, A,F12.7)") &
+      write(*, fmt="(A,I7, A,F12.7, A,F12.7, A,F10.7,A,F10.7,A, A,F12.7, A,F12.7)") &
         " #", iter, &
         " | t=", t, &
         " | dt=", dt, &
         " | h=[", minval(store(es_h,1:n)), ":", maxval(store(es_h,1:n)), "]",&
-        " | dedt=", dedt
+        " | dedt=", dedt*dt,&
+        " | S(dedt)=", sumdedt
 
       do while(ltout <= t)
         ltout = ltout + dtout
@@ -232,6 +264,8 @@ program main
     ! store(es_t,1:n) = store(es_t,1:n) + dt * tddt(:)
     store(es_t,1:n) = store(es_u,1:n)
     store(es_bx:es_bz,1:n) = store(es_bx:es_bz,1:n) + dt * tdb(:,:)
+    dedtprev = dedt
+    sumdedt = sumdedt + dedt*dt
 
     call iterate(n, gamma, store, dedt)
 
@@ -246,46 +280,56 @@ program main
     store(es_t,1:n) = store(es_u,1:n)
     store(es_bx:es_bz,1:n) = &
       store(es_bx:es_bz,1:n) + 0.5*dt*(store(es_dbx:es_dbz,1:n) - tdb(:,:))
+    sumdedt = sumdedt + 0.5*dt*(dedt - dedtprev)
 
     t = t + dt
     iter = iter + 1
   end do
 
-  select case(ivt)
-  case (ett_OTvortex, ett_mti, ett_shock12, ett_boilingtank)
-  case (ett_ring)
-    call err_hcring(store, t, err)
-  case (ett_pulse)
-    call err_hcpulse(store, t, err)
-  case (ett_sin3)
-    call err_sinxet(store, t, err)
-  case (ett_soundwave)
-    ! call err_soundwave_v(pos, vel, t, err)
-    call err_soundwave_d(store, t, err)
-  case (ett_hydroshock)
-    call err_shockTube(store, t, err)
-  case (ett_alfvenwave)
-    call err_alfvenwave(store, t, err)
-  case default
-    print *, ivt, 'Task type was not sen in l2 error evaluation src/main.f90:263.'
-    stop
-  end select
-  printlen = 5
+  if (s_tt /= eeq_kd2) then
+    select case(ivt)
+    case (ett_OTvortex, ett_mti, ett_shock12, ett_boilingtank, ett_mtilowres)
+    case (ett_ring)
+      call err_hcring(store, t, err)
+    case (ett_pulse)
+      call err_hcpulse(store, t, err)
+    case (ett_sin3)
+      call err_sinxet(store, t, err)
+    case (ett_soundwave)
+      ! call err_soundwave_v(pos, vel, t, err)
+      call err_soundwave_d(store, t, err)
+    case (ett_hydroshock)
+      call err_shockTube(store, t, err)
+    case (ett_alfvenwave)
+      call err_alfvenwave(store, t, err)
+    case default
+      print *, ivt, 'Task type was not sen in l2 error evaluation ./src/main.f90:270'
+      stop
+    end select
+    printlen = 5
 
-  call getNeibNumbers(nusedl1, nusedl2)
-  result(3) = merge(sqrt(sum(err)/nusedl1), 0., nusedl1 > 0)
-  !----------------------------------------!
-  !          teylor error evaluation       !
-  !----------------------------------------!
+    call getNeibNumbers(nusedl1, nusedl2)
+    result(3) = merge(sqrt(sum(err)/nusedl1), 0., nusedl1 > 0)
+  else
+    !----------------------------------------!
+    !          teylor error evaluation       !
+    !----------------------------------------!
+    call etlaplace(store, chi)
+    result(4) = sum(chi(1:9))/dim
+    result(6:14) = chi(1:9)
+    printlen = 14
+  end if
 
   if (nusedl1 /= 0) then
     sqerr(:) = sqrt(err(:))
-    print *, "#", iter, "t=", t
-    if (silent == 0) then
-      call Output(t, store, sqerr)
-    end if
+    write(*, fmt="(A,I7, A,F12.7)") &
+      " #", iter, &
+      " | t=", t
+    if (silent == 0) call Output(t, store, sqerr)
+    if (usedumps == 1) call dump(store, t)
   end if
   result(5) = hfac
+  ! print*, printlen
   call resize(result, printlen, printlen)
   call AppendLine(result, errfname, tprint)
 
@@ -296,7 +340,7 @@ program main
   print *, '##############################################'
 
   call neibDestroy()
-  call c1destroy()
+  if (s_tt /= eeq_kd2) call c1destroy()
   call timedestroy()
   call dumpclean()
 end program

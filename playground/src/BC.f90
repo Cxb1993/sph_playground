@@ -534,7 +534,7 @@ contains
       end do
     end if
     if (dim > 1) then
-      if ((targetSide == ebc_all).or.(targetSide == ebc_y)) then
+      if ((targetSide == ebc_all).or.(targetSide == ebc_y).or.(targetSide == ebc_y1)) then
         do i=1,iby1%llen()
           k = k + 1
           pi = iby1%xe(i)
@@ -556,6 +556,8 @@ contains
             end if
           end if
         end do
+      end if
+      if ((targetSide == ebc_all).or.(targetSide == ebc_y).or.(targetSide == ebc_y2)) then
         do i=1,iby2%llen()
           k = k + 1
           pi = iby2%xe(i)

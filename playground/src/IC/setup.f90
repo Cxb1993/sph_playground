@@ -31,7 +31,7 @@ module setup
                               getNeibListL2, &
                               findneighboursKDT
   use stretchmap,       only: set_density_profile
-  use rhofuncs,         only: MTIHopkins2017
+  use rhofuncs
   use circuit1, only: c1
   use circuit2, only: c2
   implicit none
@@ -133,7 +133,7 @@ contains
       call setdiffisotropic(1)
       ! call setdiffisotropic(edi_mtih2017)
       ! call setdiffisotropic(0)
-      call setdiffconductivity(0.1)
+      call setdiffconductivity(0.01)
 
       rho1  = 1.
       gamma = 5./3.
@@ -156,6 +156,39 @@ contains
       call set_density_profile(rpn+fpn,store,&
         brdy1-bordersize,brdy2+bordersize,&
         rhofunc=MTIHopkins2017,coord=2)
+    case (ett_mtilowres)
+      call setmhdmagneticpressure(0.00000125663706)
+      call setdiffisotropic(1)
+      ! call setdiffisotropic(0)
+      call setdiffconductivity(0.1)
+
+      rho1  = 1.
+      gamma = 5./3.
+
+      brdx1 = -1.
+      ! brdx1 =  0.
+      brdx2 =  1.
+      if (resol == 0) then
+        resol = int((brdx2-brdx1)/pspc1)
+      end if
+      pspc1 = (brdx2-brdx1)/resol
+      pspc2 = pspc1
+      ! brdy1 =  0.
+      ! brdy2 =  1.
+      brdy1 = -2.
+      brdy2 =  2.
+      brdz1 = 0.
+      brdz2 = d3null*1.
+      bordersize = nb*pspc2
+      call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
+      ! call createFixedBorders(store, ebc_y)
+      call getPartNumber(rpn,fpn)
+      call set_density_profile(rpn+fpn,store,&
+        -2.,2.,&
+        rhofunc=MTILowresHopkins2017,coord=2)
+      ! call set_density_profile(rpn+fpn,store,&
+      !   brdy1-bordersize,brdy2+bordersize,&
+      !   rhofunc=MTIHopkins2017,coord=2)
     case (ett_soundwave)
       rho1 = 1.
       gamma= 5./3.
@@ -285,7 +318,7 @@ contains
       !   brdy1-bordersize,brdy2+bordersize,&
       !   rhofunc=MTIHopkins2017,coord=2)
     case default
-      print *, 'Problem was not set in setup.f90: line 222.'
+      print *, 'Problem was not set in ./src/IC/setup.f90:288'
       stop
     end select
 
@@ -343,8 +376,8 @@ contains
         store(es_m,i) = (sp**dim) * rho1
         store(es_den,i) = rho1
         store(es_p,i) = prs1
-        store(es_bx,i) = 1.
-        store(es_by,i) = 0.
+        store(es_bx,i) = 0.
+        store(es_by,i) = 1.
         store(es_bz,i) = 0.
 
         if (ra(1) < 0.) then
@@ -457,6 +490,25 @@ contains
           end if
         end if
         store(es_bx,i) = 1e-11
+      case(ett_mtilowres)
+        store(es_h,i)   = hfac * sp
+        store(es_m,i)   = (sp**dim) * rho1
+        store(es_den,i) = rho1
+        store(es_u,i)   = (3./2.)*(1. - abs(ra(2))/3.)
+        store(es_t,i)   = store(es_u,i)
+        store(es_p,i)   = (gamma - 1.)*store(es_den,i)*store(es_u,i)
+        store(es_bx:es_bz,i) = 0.
+        store(es_vx:es_vz,i) = 0.
+        store(es_bx,i) = 1e-11
+        ! if (int(store(es_type,i)) == ept_real) then
+        !   cca(1) = dot_product(ra(:),ra(:))
+        !   if (cca(1) > 0) then
+        !     cca(:) = ra(:)/sqrt(cca(1))
+        !       store(es_vy,i) = 1e-4*&
+        !         sqrt(gamma * store(es_p,i) / store(es_den,i))*&
+        !         sin(4.*pi*ra(1)/(brdx2-brdx1))
+        !   end if
+        ! end if
       case (ett_OTvortex)
         store(es_h,i)   = hfac * sp
         store(es_m,i)   = (sp**dim) * rho1
@@ -504,7 +556,7 @@ contains
     !$omp end parallel do
 
     select case(ivt)
-    case(ett_mti, ett_boilingtank)
+    case(ett_mti, ett_mtilowres)
       call setPartNumber(r=rpn+fpn,f=0)
       call clearPeriodicParticles(store)
       call findInsideBorderParticles(store)

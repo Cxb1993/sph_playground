@@ -40,7 +40,7 @@ contains
     real, intent(in)    :: gamma
     real, intent(out) :: maxconsenrg
 
-    integer             :: dim, ttp, ivt, rpn, fpn
+    integer             :: dim, ttp, ivt, rpn, fpn, i
 
     call getdim(dim)
     call get_equations(ttp)
@@ -112,11 +112,23 @@ contains
       call findInsideBorderParticles(store)
       call createPeriodicBorder(store, ebc_x)
       call findneighboursKDT(store)
-      ! call updateFixedToSymmetric(store, [es_vx, es_vy, es_vz, es_bx, es_by, es_bz])
       call c1(store)
       call eos_adiabatic(store, gamma)
       call c2(store, maxconsenrg)
       store(es_ay,1:rpn) = store(es_ay,1:rpn) - 1.
+    case(ett_mtilowres)
+      call clearPeriodicParticles(store)
+      call reflecPeriodicParticles(store, ebc_x)
+      call findInsideBorderParticles(store)
+      call createPeriodicBorder(store, ebc_x)
+      call findneighboursKDT(store)
+      call c1(store)
+      call eos_adiabatic(store, gamma)
+      call c2(store, maxconsenrg)
+      do i = 1,rpn
+        if (store(es_ry,i) > 0) store(es_ay,i) = store(es_ay,i) - 1.
+        if (store(es_ry,i) < 0) store(es_ay,i) = store(es_ay,i) + 1.
+      end do
     case (ett_OTvortex)
       call clearPeriodicParticles(store)
       call reflecPeriodicParticles(store, ebc_all)
@@ -126,18 +138,8 @@ contains
       call c1(store)
       call eos_adiabatic(store, gamma)
       call c2(store, maxconsenrg)
-    case(ett_boilingtank)
-      call clearPeriodicParticles(store)
-      call reflecPeriodicParticles(store, ebc_x)
-      call findInsideBorderParticles(store)
-      call createPeriodicBorder(store, ebc_x)
-      call findneighboursKDT(store)
-      call c1(store)
-      call eos_adiabatic(store, gamma)
-      call c2(store, maxconsenrg)
-      store(es_ay,1:rpn) = store(es_ay,1:rpn) - .5
     case default
-      print *, 'Task type was not defined in iterator:145.'
+      print *, 'Task type was not defined in ./src/iterator.f90:140'
       stop
     end select
   end subroutine iterate

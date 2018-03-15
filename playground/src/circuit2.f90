@@ -43,7 +43,7 @@ contains
     call getAdvancedDensity(s_adden)
     call getArtificialTerms(s_artts)
     call ginitvar(s_ivt)
-    call getEqComponent(doHydro, doMagneto, doDiffusion)
+    ! call getEqComponent(doHydro, doMagneto, doDiffusion)
     initdone = 1
   end subroutine
 
@@ -73,7 +73,9 @@ contains
     call getmhdmagneticpressure(mhdmuzero)
     call getdiffisotropic(difiso)
     call getdiffconductivity(difcond)
-
+    call getEqComponent(doHydro, doMagneto, doDiffusion)
+    ! print*, doHydro, doMagneto, doDiffusion
+    ! read*
     if (initdone == 0) then
       call c2init()
     end if
@@ -132,10 +134,10 @@ contains
 
       if (doMagneto == 1) then
         do li = 1,3
-          MPa(li,li) = (0.5*Mc(1) - ba(li)*ba(li)) /mhdmuzero
+          MPa(li,li) = (0.5*Mc(1) - ba(li)*ba(li))/mhdmuzero
           do lj = 1,3
             if (li /= lj) then
-              MPa(li,lj) = -ba(li)*ba(lj) /mhdmuzero
+              MPa(li,lj) = -ba(li)*ba(lj)/mhdmuzero
             end if
           end do
         end do
@@ -199,7 +201,7 @@ contains
         dr = sqrt(r2)
         vab(:) = va(:) - vb(:)
         vba(:) = vb(:) - va(:)
-        urab(:) = rab(:) / dr
+        urab(:) = rab(:)/dr
         Hesb(:,:) = 0.
 
         call nw(rab, ra(:), rb(:), dr, ha, nwa)
@@ -222,8 +224,9 @@ contains
                     )
 
           dua   = dua + mb * (&
-                      dot_product(vab(:), pa * nwa(:)) / (rhoa**2 * oma) - &
-                      dot_product(vab(:), qa(:))/(rhoa * oma) + &
+                      ( dot_product(vab(:), pa * nwa(:)) +&
+                        dot_product(vab(:), qa(:)) )&
+                      /(rhoa**2 * oma) +&
                       qc &
                     )
         end if
@@ -347,7 +350,6 @@ contains
       store(es_dbx:es_dbz,i) = dba(:)
       ! store(es_du,i) = dua
       store(es_du,i) = dua + ddta/rhoa
-
       consenrg = consenrg + ma*(dot_product(va(:),dva(:)) + dua + &
         dot_product(ba(:),dba(:))/rhoa - &
         0.5*dot_product(ba(:),ba(:))/rhoa/rhoa*drhoadt/oma)

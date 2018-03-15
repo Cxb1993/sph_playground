@@ -23,6 +23,7 @@ module state
             setGamma, getGamma,&
             setLastPrint,getLastPrint,&
             setUseDumps, getUseDumps,&
+            setdtprint, getdtprint,&
             getEqComponent
 
   private
@@ -33,16 +34,12 @@ module state
   contains
     subroutine setdim(d)
       integer, intent(in) :: d
-      if ((d > 0).and.(d < 4)) then
-        statevars(ec_dim) = d
-      else
-        print *, 'Wrong dimmentions: ', d
-        stop
-      end if
+      statevars(ec_dim) = d
     end subroutine
     pure subroutine getdim(d)
       integer, intent(out) :: d
       d = int(statevars(ec_dim))
+      if (d == 0) error stop "# <!> DIM is 0"
     end subroutine
 
     subroutine set_equations(itt)
@@ -58,6 +55,8 @@ module state
         statevars(ec_eqs) = eeq_magnetohydrodiffusion
       case('hydi')
         statevars(ec_eqs) = eeq_hydrodiffusion
+      case('kd2')
+        statevars(ec_eqs) = eeq_kd2
       case('')
         statevars(ec_eqs) = eeq_magnetohydrodiffusion
       case default
@@ -123,6 +122,8 @@ module state
        statevars(ec_ics) = ett_sin3
      case('mti')
        statevars(ec_ics) = ett_mti
+     case('mtilowres')
+       statevars(ec_ics) = ett_mtilowres
      case('shock12')
        statevars(ec_ics) = ett_shock12
      case('pulse')
@@ -286,6 +287,15 @@ module state
    pure subroutine gethfac(o)
      real, intent(out) :: o
      o = statevars(ec_hfac)
+   end subroutine
+
+   subroutine setdtprint(i)
+     real, intent(in) :: i
+     statevars(ec_dtprint) = i
+   end subroutine
+   pure subroutine getdtprint(o)
+     real, intent(out) :: o
+     o = statevars(ec_dtprint)
    end subroutine
 
    subroutine setsilentmode(i)
@@ -478,7 +488,7 @@ module state
      end select
 
      write(*,blockFormatStr) " #   #", "kernel name: ", kernelname
-     write(*,blockFormatFlt) " #   #", "print dt: ", statevars(ec_tfinish) / statevars(ec_npics)
+     write(*,blockFormatFlt) " #   #", "print dt: ", statevars(ec_dtprint)
      write(*,blockFormatFlt) " #   #", "stop time: ", statevars(ec_tfinish)
      write(*,blockFormatFlt) " #   #", "hfac: ", statevars(ec_hfac)
 
