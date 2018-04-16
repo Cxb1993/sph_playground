@@ -76,7 +76,7 @@ contains
       else if (kt == esd_fab) then
         hessian => hessian_fab_cart
       else if (kt == esd_2nw) then
-        ! no more actions
+        hessian => null()
       else if (kt == esd_fw) then
         hessian => hessian_fw_cart
       else
@@ -353,9 +353,6 @@ contains
     real, intent(out) :: Hes(3,3)
     real              :: r2, dr, df, ddf, q
     real              :: r11, r12, r13, r22, r23, r33, cstart, dfq
-    integer :: ktype
-
-    call getddwtype(ktype)
 
     r2 = dot_product(rab,ra(:)-rb(:))
 

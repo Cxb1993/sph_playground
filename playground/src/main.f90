@@ -169,15 +169,22 @@ program main
   err(:) = 0.
   stopiter = 0
   sumdedt = 0.
-  print *, "# Finish time = ", tfinish
-
-  call checkVarsReady(s_tt, store)
 
   if (silent == 0) then
     call Output(t, store, sqerr)
-    print *, '# Initial setup printed'
-    print *, '#-------------------------------------------------'
+    print *, '#  #-------------------------------------------------'
+    print *, '#  # Initial setup printed'
+    write(*, fmt="(A,I7, A,F12.7, A,F12.7, A,F10.7,A,F10.7,A, A,F12.7, A,F12.7)") &
+      " #  #", iter, &
+      " | t=", t, &
+      " | dt=", dt, &
+      " | h=[", minval(store(es_h,1:n)), ":", maxval(store(es_h,1:n)), "]",&
+      " | dedt=", dedt*dt,&
+      " | S(dedt)=", sumdedt
+    print *, '#  #-------------------------------------------------'
   end if
+
+  call checkVarsReady(s_tt, store)
 
   if (s_tt /= eeq_kd2) then
     call iterate(n, gamma, store, dedt)
@@ -186,6 +193,9 @@ program main
   end if
   sumdedt = sumdedt + dedt
 
+  do while(ltout <= t)
+    ltout = ltout + dtout
+  end do
   do while ((t < tfinish + eps0).and.(stopiter==0))
     ! if (needtoswitch.and.(t > (tfinish/2.))) then
     !   call set_equations('mhd')
@@ -215,7 +225,7 @@ program main
       !           minval(h(1:realpartnumb)) ** 2 / &
       !           merge(maxval(kcf(:,1,1:realpartnumb)), 1., maxval(kcf(:,1,1:realpartnumb))>0)
       ! dt = .3 * minval(store(es_h,1:n)) / maxval(store(es_c,1:n))
-      dt = 1.*mhdmuzero*1e4&
+      dt = 1.*mhdmuzero*1e6&
               * minval(store(es_den,1:n)) &
               * minval(store(es_c,1:n)) &
               * minval(store(es_h,1:n))**2 &

@@ -16,7 +16,13 @@ contains
     g = -0.75
     h = 1. - g*0.5
     ! f = g*y + h
-    if (y < 0) f = 0.00869531*(-4. - y)**4
-    if (y > 0) f = 0.00869531*(-4. + y)**4
+    if (y < 0) f = -1./10.**6/1.5/5.*(-5. - y)**9
+    if (y > 0) f = -1./10.**6/1.5/5.*(-5. + y)**9
   end function MTILowresHopkins2017
+
+  function uniRho(y) result(f)
+    real, intent(in)  :: y
+    real :: f
+    f = 0.5
+  end function uniRho
 end module

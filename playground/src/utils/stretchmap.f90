@@ -211,10 +211,11 @@ subroutine set_density_profile(np,store,min,max,rhofunc,rhotab,xtab,start,coord)
            rhoi = rhofunc(xi)
         endif
         xt(icoord) = xi
-        store(es_rx,i) = xt(1)
-        store(es_ry,i) = xt(2)
-        store(es_rz,i) = xt(3)
-        store(es_h,i) = hi*(rhozero/rhoi)**(1./3.)
+        store(es_rx,i)  = xt(1)
+        store(es_ry,i)  = xt(2)
+        store(es_rz,i)  = xt(3)
+        store(es_h,i)   = hi*(rhozero/rhoi)**(1./3.)
+        store(es_den,i) = rhoi
         if (its >= maxits) error stop 'set_density_profile: Stretch mapping not converged'
       endif
     enddo

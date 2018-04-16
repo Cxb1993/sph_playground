@@ -6,7 +6,8 @@ module circuit2
                               get_krad, &
                               n2w, &
                               nw, &
-                              hessian_rr
+                              hessian_rr,&
+                              get_w
   use neighboursearch,  only: getneighbours,&
                               getNeibListL1,&
                               getNeibListL2
@@ -58,7 +59,7 @@ contains
       Hesa(3,3), Hesb(3,3), odda, oddb, kta(3,3), ktb(3,3), ktab(3,3), &
       tmpt1(3,3), tmpt2(3,3), tmpt3(3,3), MPa(3,3), MPb(3,3), Mc(3),&
       dva(3), dua, dha, ddta, dba(3), ba(3), bb(3), va(3), vb(3),&
-      ha, hb, ca, cb, pa, pb, ua, ub, oma, omb, ta, tb, ma, mb, &
+      ha, hb, ca, cb, pa, pb, ua, ub, oma, omb, ta, tb, ma, mb, wa, wb,&
       uba(3), ubb(3), dvaterm(3), dvbterm(3),&
       dtadx(3), dtbdx(3), kdtadx(3), kdtbdx(3), &
       difcond, mhdmuzero, &
@@ -91,7 +92,7 @@ contains
     !$omp private(i, j, rj, r2, odda ,oddb, la, lb, drhoadt)&
     !$omp private(nlistb, Hesa, Hesb, vba, t0, kta, ktb, ktab, kdtadx, kdtbdx)&
     !$omp private(tmpt1, tmpt2, tmpt3, li, lj, MPa, MPb, Mc)&
-    !$omp private(ha, hb, ca, cb, pa, pb, ua, ub, oma, omb, ta, tb, ma, mb)&
+    !$omp private(ha, hb, ca, cb, pa, pb, ua, ub, oma, omb, ta, tb, ma, mb, wa, wb)&
     !$omp private(dva, dua, dha, ddta, dba, ba, bb, va, vb, dtadx, dtbdx)&
     !$omp private(uba, ubb, dvaterm, dvbterm)&
     !$omp shared(store, nlista)&
@@ -153,21 +154,24 @@ contains
           ktb(2,2) = difcond
           ktb(3,3) = difcond
         else
-          ! if ((ra(2) >= 0.).and.(ra(2) < 1./30.)) then
+          ! if ((ra(2) >= 0.).and.(ra(2) < 1./3.)) then
           !   kta(1,1) = difcond
           !   kta(2,2) = difcond
           !   kta(3,3) = difcond
-          ! else if ((ra(2) > 2./30.).and.(ra(2) <= 1./10.)) then
+          ! else if (ra(2) > 2./3.) then
           !   kta(1,1) = difcond
           !   kta(2,2) = difcond
           !   kta(3,3) = difcond
           ! else
-            do li = 1, 3
-              do lj = 1,3
-                kta(li,lj) = difcond*uba(li)*uba(lj)
-              end do
-            end do
+          !   do li = 1, 3
+          !     do lj = 1,3
+          !       kta(li,lj) = difcond*uba(li)*uba(lj)
+          !     end do
+          !   end do
           ! end if
+            do li = 1, 3
+                kta(li,li) = difcond*uba(li)*uba(li)
+            end do
         end if
       end if
 
@@ -202,11 +206,21 @@ contains
         vab(:) = va(:) - vb(:)
         vba(:) = vb(:) - va(:)
         urab(:) = rab(:)/dr
+        ! print*, urab(1)*urab(1), urab(2)*urab(2), urab(3)*urab(3)
+        ! read*
         Hesb(:,:) = 0.
 
-        call nw(rab, ra(:), rb(:), dr, ha, nwa)
-        call nw(rab, ra(:), rb(:), dr, hb, nwb)
-
+        ! call nw(rab, ra(:), rb(:), dr, ha, nwa)
+        ! call nw(rab, ra(:), rb(:), dr, hb, nwb)
+        ! print*, nwa
+        ! print*, nwb
+        call get_w(dr, ha, wa)
+        call get_w(dr, hb, wb)
+        nwa(:) = -2.*(239./231.)*wa*rab(:)/ha/ha
+        nwb(:) = -2.*(239./231.)*wb*rab(:)/hb/hb
+        ! print*, nwa
+        ! print*, nwb
+        ! read*
         drhoadt = drhoadt + mb * dot_product(vab(:),nwa(:))
         if (s_adden == 1) then
           dha = dha + mb * dot_product(vab(:), nwa(:))
@@ -233,44 +247,48 @@ contains
 
         if (doDiffusion == 1) then
           if (difiso == 0) then
-            ! if ((ra(2) > 0.).and.(ra(2)<1./30.)) then
+            ! if ((ra(2) > 0.).and.(ra(2) < 1./3.)) then
             !   ktb(1,1) = difcond
             !   ktb(2,2) = difcond
             !   ktb(3,3) = difcond
-            ! else if ((ra(2) > 2./30.).and.(ra(2)<1./10.)) then
+            ! else if (ra(2) > 2./3.) then
             !   ktb(1,1) = difcond
             !   ktb(2,2) = difcond
             !   ktb(3,3) = difcond
             ! else
-              do li = 1, 3
-                do lj = 1,3
-                  ktb(li,lj) = difcond*ubb(li)*ubb(lj)
-                end do
-              end do
+            !   do li = 1, 3
+            !     do lj = 1,3
+            !       ktb(li,lj) = difcond*ubb(li)*ubb(lj)
+            !     end do
+            !   end do
             ! end if
+            do li = 1, 3
+                ktb(li,li) = difcond*ubb(li)*ubb(li)
+            end do
           end if
 
-          if (s_ktp == esd_n2w) then
-            call hessian(rab, ra, rb, ha, Hesa)
-            do li = 1, 3
-              do lj = 1, 3
-                tmpt1(li,lj) = tmpt1(li,lj) + mb/rhob * &
-                                (ktb(li,lj) - kta(li,lj)) * nwa(li)
-                tmpt2(li,lj) = tmpt2(li,lj) + mb/rhob * &
-                                (tb - ta) * nwa(lj)
-                tmpt3(li,lj) = tmpt3(li,lj) + kta(li,lj) * &
-                                mb/rhob * (tb - ta) * Hesa(li,lj)
-              end do
-            end do
-          else if ((s_ktp == esd_fw).or.(s_ktp == esd_fab)) then
+          if (s_ktp /= esd_2nw) then
+          ! if (s_ktp == esd_n2w) then
+          !   call hessian(rab, ra, rb, ha, Hesa)
+          !   do li = 1, 3
+          !     do lj = 1, 3
+          !       tmpt1(li,lj) = tmpt1(li,lj) + mb/rhob * &
+          !                       (ktb(li,lj) - kta(li,lj)) * nwa(li)
+          !       tmpt2(li,lj) = tmpt2(li,lj) + mb/rhob * &
+          !                       (tb - ta) * nwa(lj)
+          !       tmpt3(li,lj) = tmpt3(li,lj) + kta(li,lj) * &
+          !                       mb/rhob * (tb - ta) * Hesa(li,lj)
+          !     end do
+          !   end do
+          ! else if ((s_ktp == esd_fw).or.(s_ktp == esd_fab)) then
             ktab(:,:) = (kta(:,:)+ktb(:,:))/2.
             call hessian(rab, ra, rb, ha, Hesa)
             ! call hessian(rab, ra, rb, hb, Hesb)
             ! Hesa(:,:) = 0.5*(Hesa(:,:)+Hesb(:,:))
             ddta = ddta + mb/rhob * (tb - ta) * &
-              ( dot_product(ktab(1,:),Hesa(1,:)) + &
+               (dot_product(ktab(1,:),Hesa(1,:)) + &
                 dot_product(ktab(2,:),Hesa(2,:)) + &
-                dot_product(ktab(3,:),Hesa(3,:)) )
+                dot_product(ktab(3,:),Hesa(3,:)))
           else if (s_ktp == esd_2nw) then
             odda = 1./oma/rhoa/rhoa
             oddb = 1./omb/rhob/rhob
@@ -415,14 +433,6 @@ contains
     real, intent(out) :: qe
     real              :: vsigB, Bab(3), vabxurab(3)
     qe = 0.
-    ! projv = dot_product(vab(:),urab(:))
-    ! avBb = 0.5*alpha*mb/rhob/rhob
-    ! avBa = 0.5*alpha*ma/rhoa/rhoa
-    ! grkernj = grkern(q2j,qj)*hj21*hj21*cnormk*gradh(1,j)
-    ! grkerni = grkern(q2i,qi)*hi41*cnormk*gradhi
-    ! vsigB = sqrt((dvx - projv*runix)**2 + (dvy - projv*runiy)**2 + (dvz - projv*runiz)**2)
-    ! dBdissterm = (avBa*grkerni + avBb*grkernj)*vsigB
-    ! qe = -0.25*dBdissterm*dot_product(bab(:),bab(:))
     Bab(:) = Ba(:) - Bb(:)
     vabxurab(1) = vab(2)*urab(3) - vab(3)*urab(2)
     vabxurab(2) = vab(3)*urab(1) - vab(1)*urab(3)

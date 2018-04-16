@@ -103,7 +103,8 @@ contains
       brdz1 = -pspc1*nb*2*d3null
       brdz2 =  pspc1*nb*2*d3null
       bordersize = nb*pspc2
-      call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
+      ! call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
+      call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store)
       call createFixedBorders(store, ebc_x)
     case (ett_pulse, ett_ring)
       call setmhdmagneticpressure(1.)
@@ -126,7 +127,14 @@ contains
       brdz2 =  d3null*1.
       bordersize = nb*pspc2
       call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
+      ! call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store)
       call createFixedBorders(store, ebc_all)
+      ! call getPartNumber(rpn,fpn)
+      ! call set_density_profile(rpn+fpn,store,&
+      !   brdx1-bordersize,brdx2+bordersize,&
+      !   rhofunc=uniRho,coord=1)
+      ! print*, store(es_den,100:110)
+      ! read*
     case (ett_mti)
       call setmhdmagneticpressure(0.00000125663706)
       ! call setdiffisotropic(edi_iso)
@@ -183,9 +191,9 @@ contains
       call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
       ! call createFixedBorders(store, ebc_y)
       call getPartNumber(rpn,fpn)
-      call set_density_profile(rpn+fpn,store,&
-        -2.,2.,&
-        rhofunc=MTILowresHopkins2017,coord=2)
+      ! call set_density_profile(rpn+fpn,store,&
+      !   -2.,2.,&
+      !   rhofunc=MTILowresHopkins2017,coord=2)
       ! call set_density_profile(rpn+fpn,store,&
       !   brdy1-bordersize,brdy2+bordersize,&
       !   rhofunc=MTIHopkins2017,coord=2)
