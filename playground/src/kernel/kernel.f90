@@ -389,6 +389,47 @@ contains
     end if
   end subroutine
 
+  subroutine hessian_w_cart(rab, ra, rb, h, Hes)
+    real, intent(in)  :: rab(3), ra(3), rb(3), h
+    real, intent(out) :: Hes(3,3)
+    real              :: r2, dr, df, ddf, q
+    real              :: r11, r12, r13, r22, r23, r33, cstart, dfq
+
+    r2 = dot_product(rab,ra(:)-rb(:))
+
+    r11 = rab(1)*rab(1)/r2
+    r12 = rab(1)*rab(2)/r2
+    r13 = rab(1)*rab(3)/r2
+    r22 = rab(2)*rab(2)/r2
+    r23 = rab(2)*rab(3)/r2
+    r33 = rab(3)*rab(3)/r2
+    cstart = wCv/h**(dim+2)
+    Hes(:,:) = 0.
+
+    dr = sqrt(r2)
+
+    q = dr / h
+
+    call kddf(q, ddf)
+    call kdf(q, df)
+
+    dfq = df/q
+
+    Hes(1,1) = cstart*(ddf*r11 + dfq*(1 - r11))    ! d2/dx2   ! Wxx
+    if ( dim /= 1 ) then
+      Hes(1,2) = cstart*(ddf*r12 - dfq*r12)          ! d2/dydx  ! Wxy
+      Hes(2,1) = Hes(1,2)                            ! d2/dxdy  ! Wyx
+      Hes(2,2) = cstart*(ddf*r22 + dfq*(1 - r22))    ! d2/dy2   ! Wyy
+      if ( dim == 3 ) then
+        Hes(1,3) = cstart*(ddf*r13 - dfq*r13)          ! d2/dzdx  ! Wxz
+        Hes(3,1) = Hes(1,3)                            ! d2/dxdz  ! Wzx
+        Hes(2,3) = cstart*(ddf*r23 - dfq*r23)          ! d2/dxdz  ! Wyz
+        Hes(3,2) = Hes(2,3)                            ! d2/dydz  ! Wzy
+        Hes(3,3) = cstart*(ddf*r33 + dfq*(1 - r33))    ! d2/dz2   ! Wzz
+      end if
+    end if
+  end subroutine
+
   pure subroutine hessian_fab_cart(rab, ra, rb, h, Hes)
     real, intent(in)  :: rab(3), ra(3), rb(3), h
     real, intent(out) :: Hes(3,3)

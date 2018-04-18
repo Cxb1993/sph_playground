@@ -140,7 +140,8 @@ contains
             if (ktp == esd_2nw) then
               ! call nw(r(:), ra(:), rb(:), dr, ha, nwa)
               ! dtadx(:) = dtadx(:) + mb/db*(store(es_t, rj) - store(es_t, i))*nwa(:)
-              dtadx(:) = dtadx(:) + mb/db*(store(es_t, rj) - store(es_t, i))*(-2.*239./231.*w*r(:)/ha/ha)
+              ! dtadx(:) = dtadx(:) + mb/db*(store(es_t, rj) - store(es_t, i))*(-2.*(239./231.)*w*r(:)/ha/ha)
+              dtadx(:) = dtadx(:) + mb/db*(store(es_t, rj) - store(es_t, i))*(-2.*(1.591)*w*r(:)/ha/ha)
             end if
           end do
           ! ---------------------------------------------------------!

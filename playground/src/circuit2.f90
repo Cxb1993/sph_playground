@@ -216,8 +216,10 @@ contains
         ! print*, nwb
         call get_w(dr, ha, wa)
         call get_w(dr, hb, wb)
-        nwa(:) = -2.*(239./231.)*wa*rab(:)/ha/ha
-        nwb(:) = -2.*(239./231.)*wb*rab(:)/hb/hb
+        ! nwa(:) = -2.*(239./231.)*wa*rab(:)/ha/ha
+        ! nwb(:) = -2.*(239./231.)*wb*rab(:)/hb/hb
+        nwa(:) = -2.*(1.591)*wa*rab(:)/ha/ha
+        nwb(:) = -2.*(1.591)*wb*rab(:)/hb/hb
         ! print*, nwa
         ! print*, nwb
         ! read*

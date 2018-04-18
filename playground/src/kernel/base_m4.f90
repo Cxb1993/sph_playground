@@ -13,7 +13,7 @@ module kernel_base
 
     real :: krad = 2., wCv, fwc
     integer :: dim, returnneibnum
-    character (len=10) :: kernelname='cubic'
+    character (len=10) :: kernelname='M4'
 
  contains
    subroutine setdimbase(d)
