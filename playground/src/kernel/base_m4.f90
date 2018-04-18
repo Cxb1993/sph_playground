@@ -8,7 +8,7 @@ module kernel_base
   private
 
     real :: knorm(3) = [ 2./3., 10./(7. * pi), 1./(pi) ]
-    real :: fwcl(3)  = [ 6., 6.27413149563, 6.68071435721]
+    real :: fwcl(3)  = [ 6., 6.3226, 6.66400]
     integer :: maxneibnum(3) = [35, 70, 150]
 
     real :: krad = 2., wCv, fwc
