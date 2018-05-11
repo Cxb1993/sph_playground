@@ -210,16 +210,16 @@ contains
         ! read*
         Hesb(:,:) = 0.
 
-        ! call nw(rab, ra(:), rb(:), dr, ha, nwa)
-        ! call nw(rab, ra(:), rb(:), dr, hb, nwb)
+        call nw(rab, ra(:), rb(:), dr, ha, nwa)
+        call nw(rab, ra(:), rb(:), dr, hb, nwb)
         ! print*, nwa
         ! print*, nwb
-        call get_w(dr, ha, wa)
-        call get_w(dr, hb, wb)
+        ! call get_w(dr, ha, wa)
+        ! call get_w(dr, hb, wb)
         ! nwa(:) = -2.*(239./231.)*wa*rab(:)/ha/ha
         ! nwb(:) = -2.*(239./231.)*wb*rab(:)/hb/hb
-        nwa(:) = -2.*(1.58065)*wa*rab(:)/ha/ha
-        nwb(:) = -2.*(1.58065)*wb*rab(:)/hb/hb
+        ! nwa(:) = -2.*(1.5)*wa*rab(:)/ha/ha
+        ! nwb(:) = -2.*(1.5)*wb*rab(:)/hb/hb
         ! print*, nwa
         ! print*, nwb
         ! read*

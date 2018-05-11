@@ -141,7 +141,7 @@ contains
               ! call nw(r(:), ra(:), rb(:), dr, ha, nwa)
               ! dtadx(:) = dtadx(:) + mb/db*(store(es_t, rj) - store(es_t, i))*nwa(:)
               ! dtadx(:) = dtadx(:) + mb/db*(store(es_t, rj) - store(es_t, i))*(-2.*(239./231.)*w*r(:)/ha/ha)
-              dtadx(:) = dtadx(:) + mb/db*(store(es_t, rj) - store(es_t, i))*(-2.*(1.58065)*w*r(:)/ha/ha)
+              dtadx(:) = dtadx(:) + mb/db*(store(es_t, rj) - store(es_t, i))*(-2.*(1.5)*w*r(:)/ha/ha)
             end if
           end do
           ! ---------------------------------------------------------!
