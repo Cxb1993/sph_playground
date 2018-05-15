@@ -225,12 +225,12 @@ program main
       !           minval(h(1:realpartnumb)) ** 2 / &
       !           merge(maxval(kcf(:,1,1:realpartnumb)), 1., maxval(kcf(:,1,1:realpartnumb))>0)
       ! dt = .3 * minval(store(es_h,1:n)) / maxval(store(es_c,1:n))
-      dt = 1.*mhdmuzero*1e6&
+      dt = 1.*mhdmuzero&
               * minval(store(es_den,1:n)) &
               * minval(store(es_c,1:n)) &
               * minval(store(es_h,1:n))**2 &
               / difcond
-      ! print*, t
+      ! print*, dt
       ! print*, minval(store(es_den,1:n)), minval(store(es_c,1:n)), minval(store(es_p,1:n)), minval(store(es_u,1:n))
     case default
       print *, 'Task type time increment was not set main.f90: line 150.'
