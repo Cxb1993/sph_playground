@@ -136,7 +136,7 @@ contains
       ! print*, store(es_den,100:110)
       ! read*
     case (ett_mti)
-      call setmhdmagneticpressure(0.00000125663706)
+      call setmhdmagneticpressure(1.)
       ! call setdiffisotropic(edi_iso)
       call setdiffisotropic(1)
       ! call setdiffisotropic(edi_mtih2017)
@@ -165,7 +165,7 @@ contains
         brdy1-bordersize,brdy2+bordersize,&
         rhofunc=MTIHopkins2017,coord=2)
     case (ett_mtilowres)
-      call setmhdmagneticpressure(0.00000125663706)
+      call setmhdmagneticpressure(1.)
       call setdiffisotropic(1)
       ! call setdiffisotropic(0)
       call setdiffconductivity(0.1)
