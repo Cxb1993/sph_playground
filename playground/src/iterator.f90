@@ -126,8 +126,15 @@ contains
       call eos_adiabatic(store, gamma)
       call c2(store, maxconsenrg)
       do i = 1,rpn
-        if (store(es_ry,i) > 0.05) store(es_ay,i) = store(es_ay,i) - 1.
-        if (store(es_ry,i) < -0.05) store(es_ay,i) = store(es_ay,i) + 1.
+        store(es_ay,i) = store(es_ay,i) - erf(store(es_ry,i) * 8.)
+        ! print*, "if (store(es_ry,i) > 0.00001) store(es_ay,i) = store(es_ay,i) - 1."
+        ! print*, "if (store(es_ry,i) < -0.00001) store(es_ay,i) = store(es_ay,i) + 1."
+        ! print*, -erf(store(es_ry,i) * 8.)
+        ! print*, store(es_ry,i)*8.
+        ! print*, '----'
+        ! read*
+        ! if (store(es_ry,i) > 0.00001) store(es_ay,i) = store(es_ay,i) - 1.
+        ! if (store(es_ry,i) < -0.00001) store(es_ay,i) = store(es_ay,i) + 1.
       end do
     case (ett_OTvortex)
       call clearPeriodicParticles(store)
