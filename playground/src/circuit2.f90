@@ -158,12 +158,12 @@ contains
           !   kta(1,1) = difcond
           !   kta(2,2) = difcond
           !   kta(3,3) = difcond
-          ! else if (ra(2) > 2./3.) then
+          ! else if (ra(2) > 1.) then
           !   kta(1,1) = difcond
           !   kta(2,2) = difcond
           !   kta(3,3) = difcond
           ! else
-          !   do li = 1, 3
+          !   do li = 1,3
           !     do lj = 1,3
           !       kta(li,lj) = difcond*uba(li)*uba(lj)
           !     end do
@@ -253,12 +253,12 @@ contains
             !   ktb(1,1) = difcond
             !   ktb(2,2) = difcond
             !   ktb(3,3) = difcond
-            ! else if (ra(2) > 2./3.) then
+            ! else if (ra(2) > 1.) then
             !   ktb(1,1) = difcond
             !   ktb(2,2) = difcond
             !   ktb(3,3) = difcond
             ! else
-            !   do li = 1, 3
+            !   do li = 1,3
             !     do lj = 1,3
             !       ktb(li,lj) = difcond*ubb(li)*ubb(lj)
             !     end do
