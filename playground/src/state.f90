@@ -51,6 +51,8 @@ module state
         statevars(ec_eqs) = eeq_magnetohydro
       case('diffusion')
         statevars(ec_eqs) = eeq_diffusion
+      case('limfluxdif')
+        statevars(ec_eqs) = eeq_limflaxdif
       case('mhd')
         statevars(ec_eqs) = eeq_magnetohydrodiffusion
       case('hydi')
@@ -81,6 +83,8 @@ module state
         ecMagneto = 1
       case(eeq_diffusion)
         ecDiff = 1
+      case(eeq_limflaxdif)
+        ecDiff = 1
       case(eeq_magnetohydrodiffusion)
         ecHydro = 1
         ecMagneto = 1
@@ -89,7 +93,7 @@ module state
         ecHydro = 1
         ecDiff = 1
       case default
-        print *, 'Wrong equations ./src/state.f90:94 ', int(statevars(ec_eqs))
+        print *, 'Wrong equations ./src/state.f90:96 ', int(statevars(ec_eqs))
         stop
       end select
     end subroutine getEqComponent

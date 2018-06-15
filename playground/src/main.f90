@@ -68,7 +68,8 @@ program main
   real :: &
     dt, t, dtout, ltout, tfinish,&
     gamma, hfac, cv = 1., &
-    mhdmuzero, difcond, dedt, sumdedt, dedtprev, chi(81)
+    mhdmuzero, difcond, dedt, sumdedt, dedtprev, chi(81),&
+    flaxlimc
   character (len=100) :: &
     errfname
   integer :: &
@@ -220,6 +221,12 @@ program main
               * minval(store(es_c,1:n)) &
               * minval(store(es_h,1:n)) ** 2 &
               / merge(difcond, maxval(store(es_bx:es_bz,1:n)), difiso == 1)
+    case(eeq_limflaxdif)
+      flaxlimc = 1.
+      dt = .01 * minval(store(es_den,1:n)) &
+              * minval(store(es_kappa,1:n)) &
+              * minval(store(es_h,1:n)) ** 2 &
+              / maxval(store(es_fluxlim,1:n)) / flaxlimc
     case (eeq_magnetohydrodiffusion)
       ! dt = .1 * mhd_magneticconstant * minval(den(1:realpartnumb)) * minval(c(1:realpartnumb)) * &
       !           minval(h(1:realpartnumb)) ** 2 / &
@@ -233,7 +240,7 @@ program main
       ! print*, dt
       ! print*, minval(store(es_den,1:n)), minval(store(es_c,1:n)), minval(store(es_p,1:n)), minval(store(es_u,1:n))
     case default
-      print *, 'Task type time increment was not set main.f90: line 150.'
+      print *, 'Task type time increment was not set ./src/main.f90:236'
       stop
     end select
     if (t + dt > tfinish) then

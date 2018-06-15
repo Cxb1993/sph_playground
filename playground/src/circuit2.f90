@@ -20,7 +20,8 @@ module circuit2
                               getdiffconductivity, &
                               getmhdmagneticpressure,&
                               getPartNumber, &
-                              getEqComponent
+                              getEqComponent,&
+                              getLimitFluxDif
   use BC,               only: getCrossRef
   implicit none
 
@@ -31,7 +32,7 @@ module circuit2
     integer(8)  :: start=0, finish=0
     integer :: &
       s_dim, s_ttp, s_ktp, s_adden, s_artts, s_ivt, initdone = 0,&
-      doHydro, doMagneto, doDiffusion
+      doHydro, doMagneto, doDiffusion, doLimiter
     real        :: s_kr
 
 contains
@@ -63,7 +64,7 @@ contains
       uba(3), ubb(3), dvaterm(3), dvbterm(3),&
       dtadx(3), dtbdx(3), kdtadx(3), kdtbdx(3), &
       difcond, mhdmuzero, &
-      drhoadt, consenrg
+      drhoadt, consenrg, fluxlimR
 
     integer, allocatable :: nlista(:), nlistb(:)
     integer :: &
@@ -75,6 +76,7 @@ contains
     call getdiffisotropic(difiso)
     call getdiffconductivity(difcond)
     call getEqComponent(doHydro, doMagneto, doDiffusion)
+    call getLimitFluxDif(doLimiter)
     ! print*, doHydro, doMagneto, doDiffusion
     ! read*
     if (initdone == 0) then
@@ -142,9 +144,48 @@ contains
             end if
           end do
         end do
+        ! diffusion done with respect to magnetic fields
+        if (doDiffusion == 1) then
+          if (difiso == 1) then
+            kta(1,1) = difcond
+            kta(2,2) = difcond
+            kta(3,3) = difcond
+
+            ktb(1,1) = difcond
+            ktb(2,2) = difcond
+            ktb(3,3) = difcond
+          else
+            ! mti-like diffusion only for middle layer
+            ! if ((ra(2) >= 0.).and.(ra(2) < 1./3.)) then
+            !   kta(1,1) = difcond
+            !   kta(2,2) = difcond
+            !   kta(3,3) = difcond
+            ! else if (ra(2) > 1.) then
+            !   kta(1,1) = difcond
+            !   kta(2,2) = difcond
+            !   kta(3,3) = difcond
+            ! else
+            !   do li = 1,3
+            !     do lj = 1,3
+            !       kta(li,lj) = difcond*uba(li)*uba(lj)
+            !     end do
+            !   end do
+            ! end if
+            do li = 1, 3
+                kta(li,li) = difcond*uba(li)*uba(li)
+            end do
+          end if
+        end if
       end if
 
       if (doDiffusion == 1) then
+        if (doLimiter == 1) then
+          ! R = abs(grad(rho*ksi))/kappa/rho^2/ksi
+          fluxlimR = 1.
+          ! state(es_fluxlim,i) = (2. + R)/(6. + 3.*R + R*R)
+          state(es_fluxlim,i) = 1.
+        end if
+
         if (difiso == 1) then
           kta(1,1) = difcond
           kta(2,2) = difcond
@@ -153,25 +194,10 @@ contains
           ktb(1,1) = difcond
           ktb(2,2) = difcond
           ktb(3,3) = difcond
-        else
-          ! if ((ra(2) >= 0.).and.(ra(2) < 1./3.)) then
-          !   kta(1,1) = difcond
-          !   kta(2,2) = difcond
-          !   kta(3,3) = difcond
-          ! else if (ra(2) > 1.) then
-          !   kta(1,1) = difcond
-          !   kta(2,2) = difcond
-          !   kta(3,3) = difcond
-          ! else
-          !   do li = 1,3
-          !     do lj = 1,3
-          !       kta(li,lj) = difcond*uba(li)*uba(lj)
-          !     end do
-          !   end do
-          ! end if
-            do li = 1, 3
-                kta(li,li) = difcond*uba(li)*uba(li)
-            end do
+        ! else
+        !   do li = 1, 3
+        !       kta(li,li) = difcond*uba(li)*uba(li)
+        !   end do
         end if
       end if
 
@@ -206,8 +232,6 @@ contains
         vab(:) = va(:) - vb(:)
         vba(:) = vb(:) - va(:)
         urab(:) = rab(:)/dr
-        ! print*, urab(1)*urab(1), urab(2)*urab(2), urab(3)*urab(3)
-        ! read*
         Hesb(:,:) = 0.
 
         call nw(rab, ra(:), rb(:), dr, ha, nwa)
@@ -248,27 +272,28 @@ contains
         end if
 
         if (doDiffusion == 1) then
-          if (difiso == 0) then
-            ! if ((ra(2) > 0.).and.(ra(2) < 1./3.)) then
-            !   ktb(1,1) = difcond
-            !   ktb(2,2) = difcond
-            !   ktb(3,3) = difcond
-            ! else if (ra(2) > 1.) then
-            !   ktb(1,1) = difcond
-            !   ktb(2,2) = difcond
-            !   ktb(3,3) = difcond
-            ! else
-            !   do li = 1,3
-            !     do lj = 1,3
-            !       ktb(li,lj) = difcond*ubb(li)*ubb(lj)
-            !     end do
-            !   end do
-            ! end if
-            do li = 1, 3
-                ktb(li,li) = difcond*ubb(li)*ubb(li)
-            end do
-          end if
-
+          ! if (difiso == 0) then
+          !   ! mti-like diffusion definiotion
+          !   ! if ((ra(2) > 0.).and.(ra(2) < 1./3.)) then
+          !   !   ktb(1,1) = difcond
+          !   !   ktb(2,2) = difcond
+          !   !   ktb(3,3) = difcond
+          !   ! else if (ra(2) > 1.) then
+          !   !   ktb(1,1) = difcond
+          !   !   ktb(2,2) = difcond
+          !   !   ktb(3,3) = difcond
+          !   ! else
+          !   !   do li = 1,3
+          !   !     do lj = 1,3
+          !   !       ktb(li,lj) = difcond*ubb(li)*ubb(lj)
+          !   !     end do
+          !   !   end do
+          !   ! end if
+          !   ! regular anisodiffusion
+          !   ! do li = 1, 3
+          !   !     ktb(li,li) = difcond*ubb(li)*ubb(li)
+          !   ! end do
+          ! end if
           if (s_ktp /= esd_2nw) then
           ! if (s_ktp == esd_n2w) then
           !   call hessian(rab, ra, rb, ha, Hesa)

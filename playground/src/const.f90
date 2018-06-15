@@ -42,38 +42,40 @@ module const
 
   ! store of data
   integer, parameter :: &
-    es_rx   = 1,&
-    es_ry   = 2,&
-    es_rz   = 3,&
-    es_vx   = 4,&
-    es_vy   = 5,&
-    es_vz   = 6,&
-    es_ax   = 7,&
-    es_ay   = 8,&
-    es_az   = 9,&
-    es_m    = 10,&
-    es_den  = 11,&
-    es_h    = 12,&
-    es_dh   = 13,&
-    es_p    = 14,&
-    es_u    = 15,&
-    es_du   = 16,&
-    es_t    = 17,&
-    es_dtdx = 18,&
-    es_dtdy = 19,&
-    es_dtdz = 20,&
-    es_ddt  = 21,&
-    es_bx   = 22,&
-    es_by   = 23,&
-    es_bz   = 24,&
-    es_dbx  = 25,&
-    es_dby  = 26,&
-    es_dbz  = 27,&
-    es_c    = 28,&
-    es_om   = 29,&
-    es_type = 30,&
-    es_total = 30,&
-    es_postr = 4
+    es_rx       = 1,&
+    es_ry       = 2,&
+    es_rz       = 3,&
+    es_vx       = 4,&
+    es_vy       = 5,&
+    es_vz       = 6,&
+    es_ax       = 7,&
+    es_ay       = 8,&
+    es_az       = 9,&
+    es_m        = 10,&
+    es_den      = 11,&
+    es_h        = 12,&
+    es_dh       = 13,&
+    es_p        = 14,&
+    es_u        = 15,&
+    es_du       = 16,&
+    es_t        = 17,&
+    es_kappa    = 18,&
+    es_fluxlim  = 19,&
+    es_dtdx     = 20,&
+    es_dtdy     = 21,&
+    es_dtdz     = 22,&
+    es_ddt      = 23,&
+    es_bx       = 24,&
+    es_by       = 25,&
+    es_bz       = 26,&
+    es_dbx      = 27,&
+    es_dby      = 28,&
+    es_dbz      = 29,&
+    es_c        = 30,&
+    es_om       = 31,&
+    es_type     = 32,&
+    es_total    = 32,&
+    es_postr    = 4
 
   ! particles types
   integer, parameter :: &
@@ -116,7 +118,8 @@ module const
     eeq_magnetohydro          = 302,&
     eeq_magnetohydrodiffusion = 303,&
     eeq_hydrodiffusion        = 304,&
-    eeq_kd2                   = 305
+    eeq_kd2                   = 305,&
+    eeq_limflaxdif            = 306
 
   integer, parameter :: &
     esd_fab = 400,&

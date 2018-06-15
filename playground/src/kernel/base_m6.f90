@@ -11,7 +11,7 @@ module kernel_base
     real :: knorm(3) = [ 1./120., 7./(478. * pi), 1./(120. * pi) ]
     real :: fwcl(3) = [4., 9.31505/2.25, 9.6429/2.25]
     ! integer :: maxneibnum(3) = [15, 15**2, 15**3]
-    integer :: maxneibnum(3) = [10, 10000, 150]
+    integer :: maxneibnum(3) = [50, 10000, 150]
     real :: krad = 3.
 
     real :: wCv, fwc
