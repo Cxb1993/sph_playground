@@ -1,7 +1,7 @@
 program main
   ! use cudafor
   use BC,               only: initBorders
-  use setup,            only: setupV2
+  use IC,               only: setupV2
   use state,            only: get_equations,&
                               ginitvar,&
                               getdiffisotropic, &
@@ -112,6 +112,7 @@ program main
       call setdtprint(dtout)
 
       call setupV2(n, cv, store)
+
     end if
   end if
 
@@ -170,6 +171,7 @@ program main
   err(:) = 0.
   stopiter = 0
   sumdedt = 0.
+  dedt = 0.
 
   if (silent == 0) then
     call Output(t, store, sqerr)
@@ -221,7 +223,7 @@ program main
               * minval(store(es_c,1:n)) &
               * minval(store(es_h,1:n)) ** 2 &
               / merge(difcond, maxval(store(es_bx:es_bz,1:n)), difiso == 1)
-    case(eeq_limflaxdif)
+    case(eeq_hyrad)
       flaxlimc = 1.
       dt = .01 * minval(store(es_den,1:n)) &
               * minval(store(es_kappa,1:n)) &

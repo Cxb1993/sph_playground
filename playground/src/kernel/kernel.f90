@@ -1,9 +1,10 @@
 module kernel
+  use errprinter, only: error
   use const
   use kernel_base
-  use state, only:  gcoordsys, &
-                    getddwtype, &
-                    setdim
+  use state,      only: gcoordsys, &
+                        getddwtype, &
+                        setdim
 
   implicit none
 
@@ -11,31 +12,41 @@ module kernel
             n2w, get_krad, hessian,&
             hessian_rr, getneibnumber, precalcKernel
   save
-    integer :: dim
-    procedure (ainw), pointer :: nw => null()
-    procedure (aihesw), pointer :: hessian => null()
-    procedure (aihesrrw), pointer :: hessian_rr => null()
 
-    abstract interface
-      subroutine ainw(rab, ra, rb, dr, h, onw)
-        real, intent(out) :: onw(3)
-        real, intent (in) :: rab(3), ra(3), rb(3), dr, h
-      end subroutine ainw
-    end interface
+  integer :: dim
 
-    abstract interface
-      subroutine aihesw(rab, ra, rb, h, hesw)
-        real, intent(out) :: hesw(3,3)
-        real, intent (in) :: rab(3), ra(3), rb(3), h
-      end subroutine aihesw
-    end interface
+  procedure (ainw),     pointer :: nw         => null()
+  procedure (ain2w),    pointer :: n2w        => null()
+  procedure (aihesw),   pointer :: hessian    => null()
+  procedure (aihesrrw), pointer :: hessian_rr => null()
 
-    abstract interface
-      pure subroutine aihesrrw(rab, h, hesrrw)
-        real, intent(out) :: hesrrw(3,3)
-        real, intent (in) :: rab(3), h
-      end subroutine aihesrrw
-    end interface
+  abstract interface
+    subroutine ainw(rab, ra, rb, dr, h, onw)
+      real, intent(out) :: onw(3)
+      real, intent (in) :: rab(3), ra(3), rb(3), dr, h
+    end subroutine ainw
+  end interface
+
+  abstract interface
+    subroutine aihesw(rab, ra, rb, h, hesw)
+      real, intent(out) :: hesw(3,3)
+      real, intent (in) :: rab(3), ra(3), rb(3), h
+    end subroutine aihesw
+  end interface
+
+  abstract interface
+    pure subroutine aihesrrw(rab, h, hesrrw)
+      real, intent(out) :: hesrrw(3,3)
+      real, intent (in) :: rab(3), h
+    end subroutine aihesrrw
+  end interface
+
+  abstract interface
+    pure subroutine ain2w(rab, h, on2w)
+      real, intent(out) :: on2w
+      real, intent (in) :: rab(3), h
+    end subroutine ain2w
+  end interface
 
   private
   integer, parameter :: kernelres=1001
@@ -63,27 +74,30 @@ contains
 
     call gcoordsys(cs)
     call getddwtype(kt)
-
-    hessian_rr => hessian_rr_fab_cart
-
     ! call precalcKernel()
 
     if (cs == 1) then
       nw => nw_cart
+      hessian_rr => hessian_rr_fab_cart
       ! nw => nw_cart_precalc
       if (kt == esd_n2w) then
         hessian => hessian_ddw_cart
+        n2w     => n2w_cart
       else if (kt == esd_fab) then
         hessian => hessian_fab_cart
+        n2w     => Fab_cart
       else if (kt == esd_2nw) then
         hessian => null()
+        n2w     => null()
       else if (kt == esd_fw) then
         hessian => hessian_fw_cart
+        n2w     => FW_cart
       else
         error stop "Wrong kernel type in kernel init."
       end if
     else if (cs == 2) then
       nw => nw_cyl
+
       if (kt == esd_n2w) then
         hessian => hessian_ddw_cyl
       else if (kt == esd_fab) then
@@ -93,10 +107,10 @@ contains
       else if (kt == esd_fw) then
         ! hessian => hessian_fw_cart
       else
-        error stop "Wrong kernel type in kernel init."
+        call error('Wrong kernel type', '', __FILE__, __LINE__)
       end if
     else
-      error stop "Wrong CS in kernel init."
+      call error('Wrong coordinate system', '', __FILE__, __LINE__)
     end if
   end subroutine
 
@@ -216,7 +230,7 @@ contains
   end subroutine Fab_cart
 
   pure subroutine n2w_cart(r, h, n2w)
-    real, intent(in)  :: r(:), h
+    real, intent(in)  :: r(3), h
     real, intent(out) :: n2w
     real              :: df, ddf, q
 
@@ -226,40 +240,6 @@ contains
     call kdf(q, df)
     n2w = wCv*(ddf + (dim - 1) * df / q)/h**(dim + 2)
   end subroutine n2w_cart
-
-  subroutine n2w(r, h, on2w)
-    real, intent(in)  :: r(3), h
-    real, intent(out) :: on2w
-    integer :: ktype
-
-    integer :: cs
-    call gcoordsys(cs)
-    call getddwtype(ktype)
-
-    if (cs == 1) then
-      if (ktype == esd_n2w) then
-        call n2w_cart(r, h, on2w)
-      else if (ktype == esd_fab) then
-        call Fab_cart(r, h, on2w)
-      else if (ktype == esd_fw) then
-        call FW_cart(r, h, on2w)
-      else
-        error stop "Wrong kernel type in n2w"
-      end if
-    else if (cs == 2) then
-      ! if (ktype == 1) then
-      !   call get_on2w(r, h, n2w)
-      ! else if (ktype == 2) then
-      !   call get_Fab(r, h, n2w)
-      ! else if (ktype == 4) then
-      !   call get_FW(r, h, n2w)
-      ! else
-      !   error stop "Wrong kernel type in n2w"
-      ! end if
-    else
-      error stop "Wrong CS in \nabla W"
-    end if
-  end subroutine n2w
 
   pure subroutine hessian_rr_fab_cart(r, h, Hes)
     ! subroutine get_hessian_rr(r, h, Hes)

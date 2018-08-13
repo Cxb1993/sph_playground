@@ -23,6 +23,6 @@ contains
   function uniRho(y) result(f)
     real, intent(in)  :: y
     real :: f
-    f = 0.5
+    f = y
   end function uniRho
 end module

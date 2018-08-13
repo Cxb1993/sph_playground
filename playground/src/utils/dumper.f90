@@ -19,7 +19,7 @@ module dumper
     subroutine dump(store, t)
       real, allocatable, intent(in) :: store(:,:)
       real, intent(in) :: t
-      integer :: udump, umap, rn, fn
+      integer :: udump, umap
       real :: statetmp(ec_total)
       character(len=50) :: rfn, kfn
 
@@ -77,7 +77,7 @@ module dumper
     end subroutine restore
 
     subroutine clean()
-      integer :: nu, du, snu, sdu
+      integer :: nu, snu
       open(newunit=nu, iostat=snu, file="output/newfulldump", status='old')
       ! open(newunit=du, iostat=sdu, file="output/fulldump", status='old')
       if (snu == 0) close(nu, status='delete')

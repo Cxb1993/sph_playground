@@ -1,10 +1,10 @@
 module preruncheck
   use const
-  use state,  only: getdiffisotropic, &
-                    getdiffconductivity, &
-                    getmhdmagneticpressure,&
-                    getPartNumber
-
+  use state,      only: getdiffisotropic, &
+                        getdiffconductivity, &
+                        getmhdmagneticpressure,&
+                        getPartNumber
+  use errprinter, only: error
   implicit none
 
   public checkVarsReady
@@ -53,8 +53,7 @@ contains
           stop
         end if
         if (store(es_u,i) <= 0.) then
-          print*, "# # <!> internal energy <= 0"
-          stop
+          call error('internal energy <= 0', '', __FILE__, __LINE__)
         end if
       end if
     end do

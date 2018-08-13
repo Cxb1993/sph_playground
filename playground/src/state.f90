@@ -1,6 +1,7 @@
 module state
 
   use const
+  use errprinter, only: error
 
   implicit none
 
@@ -51,47 +52,44 @@ module state
         statevars(ec_eqs) = eeq_magnetohydro
       case('diffusion')
         statevars(ec_eqs) = eeq_diffusion
-      case('limfluxdif')
-        statevars(ec_eqs) = eeq_limflaxdif
       case('mhd')
         statevars(ec_eqs) = eeq_magnetohydrodiffusion
       case('hydi')
         statevars(ec_eqs) = eeq_hydrodiffusion
       case('kd2')
         statevars(ec_eqs) = eeq_kd2
-      case('')
-        statevars(ec_eqs) = eeq_magnetohydrodiffusion
+      case('hyrad')
+        statevars(ec_eqs) = eeq_hyrad
       case default
-        print *, 'Wrong equations: ', itt
-        stop
+        call error('Wrong equations', itt, __FILE__, __LINE__)
       end select
     end subroutine set_equations
     pure subroutine get_equations(ott)
       integer, intent(out) :: ott
       ott = int(statevars(ec_eqs))
     end subroutine get_equations
-    subroutine getEqComponent(ecHydro, ecMagneto, ecDiff)
-      integer, intent(out) :: ecHydro, ecMagneto, ecDiff
-      ecHydro = 0
-      ecMagneto = 0
-      ecDiff = 0
+    subroutine getEqComponent(eqSet)
+      integer, intent(out) :: eqSet(eqs_total)
+      eqSet(:) = 0
+
       select case(int(statevars(ec_eqs)))
       case(eeq_hydro)
-        ecHydro = 1
+        eqSet(eqs_hydro) = 1
       case(eeq_magnetohydro)
-        ecHydro = 1
-        ecMagneto = 1
+        eqSet(eqs_hydro) = 1
+        eqSet(eqs_magneto) = 1
       case(eeq_diffusion)
-        ecDiff = 1
-      case(eeq_limflaxdif)
-        ecDiff = 1
+        eqSet(eqs_diff) = 1
+      case(eeq_hyrad)
+        eqSet(eqs_fld) = 1
+        eqSet(eqs_hydro) = 1
       case(eeq_magnetohydrodiffusion)
-        ecHydro = 1
-        ecMagneto = 1
-        ecDiff = 1
+        eqSet(eqs_hydro) = 1
+        eqSet(eqs_magneto) = 1
+        eqSet(eqs_diff) = 1
       case(eeq_hydrodiffusion)
-        ecHydro = 1
-        ecDiff = 1
+        eqSet(eqs_hydro) = 1
+        eqSet(eqs_diff) = 1
       case default
         print *, 'Wrong equations ./src/state.f90:96 ', int(statevars(ec_eqs))
         stop
@@ -144,11 +142,10 @@ module state
        statevars(ec_ics) = ett_OTvortex
      case('boilingtank')
        statevars(ec_ics) = ett_boilingtank
-     case('')
-       statevars(ec_ics) = ett_pulse
+     case('fld_gauss')
+       statevars(ec_ics) = ett_fld_gauss
      case default
-       print *, 'There is no such initial variable setting : ', itt
-       stop
+       call error('There is no such initial variable', itt, __FILE__, __LINE__)
      end select
    end subroutine
    pure subroutine ginitvar(ott)
@@ -227,6 +224,7 @@ module state
      statevars(ec_disotropic) = i
    end subroutine
    pure subroutine getdiffisotropic(o)
+   ! subroutine getdiffisotropic(o)
      integer, intent(out) :: o
      o = int(statevars(ec_disotropic))
    end subroutine

@@ -138,10 +138,10 @@ contains
             oma = oma + mb * dwdh
             currinterr = currinterr + mb/db * w
             if (ktp == esd_2nw) then
-              ! call nw(r(:), ra(:), rb(:), dr, ha, nwa)
-              ! dtadx(:) = dtadx(:) + mb/db*(store(es_t, rj) - store(es_t, i))*nwa(:)
+              call nw(r(:), ra(:), rb(:), dr, ha, nwa)
+              dtadx(:) = dtadx(:) + mb/db*(store(es_t, rj) - store(es_t, i))*nwa(:)
               ! dtadx(:) = dtadx(:) + mb/db*(store(es_t, rj) - store(es_t, i))*(-2.*(239./231.)*w*r(:)/ha/ha)
-              dtadx(:) = dtadx(:) + mb/db*(store(es_t, rj) - store(es_t, i))*(-2.*(1.5)*w*r(:)/ha/ha)
+              ! dtadx(:) = dtadx(:) + mb/db*(store(es_t, rj) - store(es_t, i))*(-2.*(1.5)*w*r(:)/ha/ha)
             end if
           end do
           ! ---------------------------------------------------------!
@@ -156,31 +156,23 @@ contains
 
           call get_dw_dh(0., ha, dwdh)
           oma = oma + ma * dwdh
-          ! -(**)----------------------------------------------------!
-          ! print*,'c1', 4, om(i), mas(i), dwdh
           oma = 1. - oma * (-ha / (dim * dennew(i)))
-          ! print*,'c1', 5, i, om(i), slnint(i), dim, den(i)
           dfdh = - dim * dennew(i) * oma / ha
-          ! print*,'c1', 7, den(i), om(i), slnint(i)
           fh  = ma * (hfac / ha) ** dim - dennew(i)
-          ! print*,'c1', 8, dfdh
           hn = ha - fh / dfdh
           if (hn <= 0.) then
             error stop "Negative smoothing length in c1 advanced"
           end if
-          ! print*,'c1', 9
           resid(i) = abs(hn - ha) / store(es_h,i)
           slnint(i) = hn
           store(es_om,i) = oma
           store(es_dtdx:es_dtdz, i) = dtadx(:)
         end if
-        ! print *,'c1', dennew(i), slnint(i), om(i)
-        ! read*
       end do
       !$omp end parallel do
       store(es_den,1:realpartnumb) = dennew(:)
     end do
-    ! print*, '2'
+
     if (iter > 10) then
       print*, "Warn: density NR: solution took ", iter, "iterations, with max norm error", maxval(resid, mask=(resid>0))
     end if

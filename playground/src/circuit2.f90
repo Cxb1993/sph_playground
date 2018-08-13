@@ -20,8 +20,7 @@ module circuit2
                               getdiffconductivity, &
                               getmhdmagneticpressure,&
                               getPartNumber, &
-                              getEqComponent,&
-                              getLimitFluxDif
+                              getEqComponent
   use BC,               only: getCrossRef
   implicit none
 
@@ -32,7 +31,7 @@ module circuit2
     integer(8)  :: start=0, finish=0
     integer :: &
       s_dim, s_ttp, s_ktp, s_adden, s_artts, s_ivt, initdone = 0,&
-      doHydro, doMagneto, doDiffusion, doLimiter
+      eqSet(eqs_total)
     real        :: s_kr
 
 contains
@@ -45,7 +44,7 @@ contains
     call getAdvancedDensity(s_adden)
     call getArtificialTerms(s_artts)
     call ginitvar(s_ivt)
-    ! call getEqComponent(doHydro, doMagneto, doDiffusion)
+    call getEqComponent(eqSet)
     initdone = 1
   end subroutine
 
@@ -55,16 +54,18 @@ contains
 
     real :: &
       qa(3), qb(3), qc, qd(3), qe, &
-      dr, rhoa, rhob, ra(3), rb(3), r2,&
-      nwa(3), nwb(3), rab(3), vab(3), vba(3), urab(3), &
-      Hesa(3,3), Hesb(3,3), odda, oddb, kta(3,3), ktb(3,3), ktab(3,3), &
-      tmpt1(3,3), tmpt2(3,3), tmpt3(3,3), MPa(3,3), MPb(3,3), Mc(3),&
-      dva(3), dua, dha, ddta, dba(3), ba(3), bb(3), va(3), vb(3),&
-      ha, hb, ca, cb, pa, pb, ua, ub, oma, omb, ta, tb, ma, mb, wa, wb,&
-      uba(3), ubb(3), dvaterm(3), dvbterm(3),&
+      dr, rhoa, rhob, ra(3), rb(3), r2, &
+      rab(3), vab(3), vba(3), urab(3), &
+      odda, oddb, kta(3,3), ktb(3,3), ktab(3,3), &
+      tmpt1(3,3), tmpt2(3,3), tmpt3(3,3), MPa(3,3), MPb(3,3), Mc(3), &
+      dva(3), dua, dha, ddta, dba(3), ba(3), bb(3), va(3), vb(3), &
+      ha, hb, ca, cb, pa, pb, ua, ub, oma, omb, ta, tb, ma, mb, &
+      wa, wb, nwa(3), nwb(3), n2wa, n2wb, Hesa(3,3), Hesb(3,3), &
+      uba(3), ubb(3), dvaterm(3), dvbterm(3), &
       dtadx(3), dtbdx(3), kdtadx(3), kdtbdx(3), &
       difcond, mhdmuzero, &
-      drhoadt, consenrg, fluxlimR
+      drhoadt, consenrg, &
+      prada, pradb, radinteration
 
     integer, allocatable :: nlista(:), nlistb(:)
     integer :: &
@@ -75,10 +76,9 @@ contains
     call getmhdmagneticpressure(mhdmuzero)
     call getdiffisotropic(difiso)
     call getdiffconductivity(difcond)
-    call getEqComponent(doHydro, doMagneto, doDiffusion)
-    call getLimitFluxDif(doLimiter)
-    ! print*, doHydro, doMagneto, doDiffusion
+    ! print*, eqSet
     ! read*
+
     if (initdone == 0) then
       call c2init()
     end if
@@ -90,15 +90,17 @@ contains
     call getNeibListL1(nlista)
     !$omp parallel do default(none)&
     !$omp private(qa, qb, qc, qd, qe)&
-    !$omp private(rab, dr, ra, rb, vab, urab, rhoa, rhob, nwa, nwb)&
+    !$omp private(rab, dr, ra, rb, vab, urab, rhoa, rhob)&
     !$omp private(i, j, rj, r2, odda ,oddb, la, lb, drhoadt)&
-    !$omp private(nlistb, Hesa, Hesb, vba, t0, kta, ktb, ktab, kdtadx, kdtbdx)&
+    !$omp private(nlistb, vba, t0, kta, ktb, ktab, kdtadx, kdtbdx)&
     !$omp private(tmpt1, tmpt2, tmpt3, li, lj, MPa, MPb, Mc)&
-    !$omp private(ha, hb, ca, cb, pa, pb, ua, ub, oma, omb, ta, tb, ma, mb, wa, wb)&
+    !$omp private(ha, hb, ca, cb, pa, pb, ua, ub, oma, omb, ta, tb, ma, mb)&
+    !$omp private(wa, wb, n2wa, n2wb, nwa, nwb, Hesa, Hesb)&
     !$omp private(dva, dua, dha, ddta, dba, ba, bb, va, vb, dtadx, dtbdx)&
     !$omp private(uba, ubb, dvaterm, dvbterm)&
+    !$omp private(prada, pradb, radinteration)&
     !$omp shared(store, nlista)&
-    !$omp shared(doHydro, doMagneto, doDiffusion)&
+    !$omp shared(eqSet)&
     !$omp shared(s_dim, s_kr, s_ktp, s_ttp, s_adden, s_artts, s_ivt)&
     !$omp shared(nw, hessian, hessian_rr)&
     !$omp shared(difcond, difiso, mhdmuzero)&
@@ -135,7 +137,11 @@ contains
       MPa(:,:) = 0.
       Mc(1) = dot_product(ba(:),ba(:))
 
-      if (doMagneto == 1) then
+      prada = 0.
+      pradb = 0.
+      radinteration = 0.
+
+      if (eqSet(eqs_magneto) == 1) then
         do li = 1,3
           MPa(li,li) = (0.5*Mc(1) - ba(li)*ba(li))/mhdmuzero
           do lj = 1,3
@@ -145,7 +151,7 @@ contains
           end do
         end do
         ! diffusion done with respect to magnetic fields
-        if (doDiffusion == 1) then
+        if (eqSet(eqs_diff) == 1) then
           if (difiso == 1) then
             kta(1,1) = difcond
             kta(2,2) = difcond
@@ -178,13 +184,13 @@ contains
         end if
       end if
 
-      if (doDiffusion == 1) then
-        if (doLimiter == 1) then
-          ! R = abs(grad(rho*ksi))/kappa/rho^2/ksi
-          fluxlimR = 1.
-          ! state(es_fluxlim,i) = (2. + R)/(6. + 3.*R + R*R)
-          state(es_fluxlim,i) = 1.
-        end if
+      if (eqSet(eqs_diff) == 1) then
+        ! if (doLimiter == 1) then
+        !   ! R = abs(grad(rho*ksi))/kappa/rho^2/ksi
+        !   fluxlimR = 1.
+        !   ! state(es_fluxlim,i) = (2. + R)/(6. + 3.*R + R*R)
+        !   state(es_fluxlim,i) = 1.
+        ! end if
 
         if (difiso == 1) then
           kta(1,1) = difcond
@@ -199,6 +205,13 @@ contains
         !       kta(li,li) = difcond*uba(li)*uba(li)
         !   end do
         end if
+      end if
+
+      if (eqSet(eqs_fld) == 1) then
+        prada = 1./3.*rhoa*ta
+        radinteration = c * kappa * rhoa * ta - 4. * kappa * sigma_b * (u(i) / cv)**4
+        dua  = radinteration
+        ddta = -radinteration*rhoa
       end if
 
       call getneighbours(i, nlistb, t0)
@@ -252,15 +265,40 @@ contains
           dha = dha + mb * dot_product(vab(:), nwa(:))
         end if
 
-        if (doHydro == 1) then
+        if (eqSet(eqs_fld) == 1) then
+          pradb = 1./3.*rhob*tb
+
+          if (s_ktp /= esd_2nw) then
+            ktab(:,:) = (kta(:,:)+ktb(:,:))/2.
+            ! call hessian(rab, ra, rb, ha, Hesa)
+            call n2w(rab, ha, n2wa)
+            call n2w(rab, hb, n2wb)
+            ddta = ddta + mb/rhob/2. * (Da * n2wa + Db * n2wb) * (prada - pradb) &
+                        - prada/rhoa*dot_product(vba,nwa)
+          else
+            odda = 1./oma/rhoa/rhoa
+            oddb = 1./omb/rhob/rhob
+            kdtadx(1) = dot_product(kta(1,:),dtadx(:))
+            kdtadx(2) = dot_product(kta(2,:),dtadx(:))
+            kdtadx(3) = dot_product(kta(3,:),dtadx(:))
+            kdtbdx(1) = dot_product(ktb(1,:),dtbdx(:))
+            kdtbdx(2) = dot_product(ktb(2,:),dtbdx(:))
+            kdtbdx(3) = dot_product(ktb(3,:),dtbdx(:))
+
+            ddta = ddta + mb*( &
+              dot_product(kdtadx(:),nwa(:))*odda + dot_product(kdtbdx(:),nwb(:))*oddb)
+          end if
+        end if
+
+        if (eqSet(eqs_hydro) == 1) then
           if (s_artts == 1) then
             call art_viscosity(rhoa, rhob, vab, urab, rab, dr, s_dim, ca, cb, ha, hb, qa, qb)
             call art_termcond(nwa, nwb, urab, pa, pb, ua, ub, rhoa, rhob, oma, omb, qc)
           end if
 
           dva(:) = dva(:) - mb * (&
-                      (pa * nwa(:) + qa(:)) / (rhoa**2 * oma) + &
-                      (pb * nwb(:) + qb(:)) / (rhob**2 * omb) &
+                      ((pa + prada) * nwa(:) + qa(:)) / (rhoa**2 * oma) + &
+                      ((pb + pradb) * nwb(:) + qb(:)) / (rhob**2 * omb) &
                     )
 
           dua   = dua + mb * (&
@@ -271,29 +309,29 @@ contains
                     )
         end if
 
-        if (doDiffusion == 1) then
-          ! if (difiso == 0) then
-          !   ! mti-like diffusion definiotion
-          !   ! if ((ra(2) > 0.).and.(ra(2) < 1./3.)) then
-          !   !   ktb(1,1) = difcond
-          !   !   ktb(2,2) = difcond
-          !   !   ktb(3,3) = difcond
-          !   ! else if (ra(2) > 1.) then
-          !   !   ktb(1,1) = difcond
-          !   !   ktb(2,2) = difcond
-          !   !   ktb(3,3) = difcond
-          !   ! else
-          !   !   do li = 1,3
-          !   !     do lj = 1,3
-          !   !       ktb(li,lj) = difcond*ubb(li)*ubb(lj)
-          !   !     end do
-          !   !   end do
-          !   ! end if
-          !   ! regular anisodiffusion
-          !   ! do li = 1, 3
-          !   !     ktb(li,li) = difcond*ubb(li)*ubb(li)
-          !   ! end do
-          ! end if
+        if (eqSet(eqs_diff) == 1) then
+          if (difiso == 0) then
+            ! mti-like diffusion definiotion
+            ! if ((ra(2) > 0.).and.(ra(2) < 1./3.)) then
+            !   ktb(1,1) = difcond
+            !   ktb(2,2) = difcond
+            !   ktb(3,3) = difcond
+            ! else if (ra(2) > 1.) then
+            !   ktb(1,1) = difcond
+            !   ktb(2,2) = difcond
+            !   ktb(3,3) = difcond
+            ! else
+            !   do li = 1,3
+            !     do lj = 1,3
+            !       ktb(li,lj) = difcond*ubb(li)*ubb(lj)
+            !     end do
+            !   end do
+            ! end if
+            ! regular anisodiffusion
+            do li = 1, 3
+                ktb(li,li) = difcond*ubb(li)*ubb(li)
+            end do
+          end if
           if (s_ktp /= esd_2nw) then
           ! if (s_ktp == esd_n2w) then
           !   call hessian(rab, ra, rb, ha, Hesa)
@@ -334,7 +372,7 @@ contains
           end if
         end if
 
-        if (doMagneto == 1) then
+        if (eqSet(eqs_magneto) == 1) then
           MPb(:,:) = 0.
           Mc(:)    = 0.
           odda = 1./oma/rhoa/rhoa
@@ -380,7 +418,8 @@ contains
       if ( s_adden == 1 ) then
         dha =  (- ha / (s_dim * rhoa)) * dha / oma
       end if
-      if (doDiffusion == 1) then
+
+      if (eqSet(eqs_diff) == 1) then
         ! if (s_ktp == esd_n2w) then
           do li = 1,3
             do lj = 1,3
@@ -389,12 +428,13 @@ contains
           end do
         ! end if
       end if
+
       store(es_ax:es_az,i) = dva(:)
       store(es_dh,i) = dha
       store(es_ddt,i) = ddta/rhoa
       store(es_dbx:es_dbz,i) = dba(:)
-      ! store(es_du,i) = dua
-      store(es_du,i) = dua + ddta/rhoa
+      store(es_du,i) = dua
+      ! store(es_du,i) = dua + ddta/rhoa
       consenrg = consenrg + ma*(dot_product(va(:),dva(:)) + dua + &
         dot_product(ba(:),dba(:))/rhoa - &
         0.5*dot_product(ba(:),ba(:))/rhoa/rhoa*drhoadt/oma)

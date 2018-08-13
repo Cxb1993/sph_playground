@@ -6,6 +6,7 @@ kernel=zipm6
 endif
 
 SRC= \
+	utils/errprinter.f90\
 	utils/arrayresize.f90\
 	utils/timing.f90\
 	utils/map.f90\
@@ -32,7 +33,7 @@ SRC+=state.f90\
 	circuit2.f90\
 	IC/uniform.f90\
 	IC/rhofuncs.f90\
-	IC/setup.f90\
+	IC/IC.f90\
 	IC/initvar.f90\
 	errcalc.f90\
 	iterator.f90\
@@ -84,13 +85,14 @@ endif
 FC=gfortran
 
 FFLAGS=-fdefault-real-8 -fdefault-double-8 \
- 				-flto -Ofast
+ 				-flto -Ofast -cpp
 
 ifeq ($(debug),t)
 FFLAGS=-fdefault-real-8 -fdefault-double-8\
  				-O0 -g \
 				-Wall -Wextra -Warray-temporaries -Wconversion -fimplicit-none -fbacktrace\
-				-ffree-line-length-0 -fcheck=all -ffpe-trap=zero,overflow,underflow,invalid -finit-real=nan
+				-ffree-line-length-0 -fcheck=all -ffpe-trap=zero,overflow,underflow,invalid -finit-real=nan\
+				-cpp
 endif
 ifeq ($(debug),p)
 FFLAGS=-pg -no-pie -fdefault-real-8 -fdefault-double-8 -flto -Ofast
@@ -154,4 +156,4 @@ memleakcheck:
 .PHONY: execute
 
 clean:
-	rm -rf obj/*; rm -rf mod/*; rm -r *.png; rm execute; rm -f output/*
+	rm -rf obj/* || rm -rf mod/* || rm -r *.png || rm execute || rm -rf ./output/*

@@ -85,7 +85,7 @@ subroutine set_density_profile(np,store,min,max,rhofunc,rhotab,xtab,start,coord)
  real :: x(3),xt(3),xmin,xmax,xold,xi,xminbisect,xmaxbisect
  real :: xprev,func,dfunc,rhoi,rho_at_min
  real, allocatable  :: xtable(:),masstab(:)
- integer            :: i,its,igeom,icoord,istart,ierr,nt
+ integer            :: i,its,icoord,istart,ierr,nt
  logical            :: bisect
 
  if (present(rhofunc) .or. present(rhotab)) then
@@ -142,7 +142,7 @@ subroutine set_density_profile(np,store,min,max,rhofunc,rhotab,xtab,start,coord)
     endif
 
     !$omp parallel do default(none) &
-    !$omp shared(np,store,rhozero,igeom,rhotab,xtable,masstab,nt) &
+    !$omp shared(np,store,rhozero,rhotab,xtable,masstab,nt) &
     !$omp shared(xmin,xmax,totmass,icoord,istart) &
     !$omp private(x,xold,xt,fracmassold,its,xprev,xi,hi,rhoi) &
     !$omp private(func,dfunc,xminbisect,xmaxbisect,bisect)

@@ -67,9 +67,7 @@ contains
     initdone=1
   end subroutine
 
-  subroutine clearPeriodicParticles(store)
-    real, allocatable, intent(inout) :: store(:,:)
-    integer :: i, realpartnumb, fixedpartnumb
+  subroutine clearPeriodicParticles()
 
     periodpartnumb = 0
     ! do i = 1,size(store,2)

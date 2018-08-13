@@ -96,7 +96,8 @@ module const
     ett_alfvenwave  = 107,&
     ett_OTvortex    = 108,&
     ett_boilingtank = 109,&
-    ett_mtilowres   = 110
+    ett_mtilowres   = 110,&
+    ett_fld_gauss   = 111
 
   ! borders definitions
   integer, parameter :: &
@@ -119,7 +120,7 @@ module const
     eeq_magnetohydrodiffusion = 303,&
     eeq_hydrodiffusion        = 304,&
     eeq_kd2                   = 305,&
-    eeq_limflaxdif            = 306
+    eeq_hyrad                 = 306
 
   integer, parameter :: &
     esd_fab = 400,&
@@ -128,9 +129,16 @@ module const
     esd_2nw = 403
 
   integer, parameter :: &
-    edi_iso = 500,&
-    edi_aniso = 501,&
-    edi_mtih2017 = 502
+    edi_iso       = 500,&
+    edi_aniso     = 501,&
+    edi_mtih2017  = 502
+
+  integer, parameter :: &
+    eqs_hydro   = 1,&
+    eqs_magneto = 2,&
+    eqs_diff    = 3,&
+    eqs_fld     = 4,&
+    eqs_total   = 4
 
   character(len=*), parameter :: &
     blockFormatFlt  = "(A,A50,F16.10)",&
