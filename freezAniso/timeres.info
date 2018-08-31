@@ -1,0 +1,51 @@
+  ##############################################
+ #####
+ #   #   .HELLO WORLD. Setup in progress.
+ #####
+ ##############################################
+ # <?>                                 Default d2W/dx2: fab
+ #  # ---   ---   ---   ---   ---   ---   ---   ---   ---
+ #  #           restored from output/fulldump dump t =    96.0001556134
+ #  # ---   ---   ---   ---   ---   ---   ---   ---   ---
+ ##############################################
+ #####
+ #   #
+ #   #                                             dim:        2
+ #   #                               coordinate system: Cartesian
+ #   #                                       equations: Hydro
+ #   #                                advanced density: yes
+ #   #                                artificail terms: yes
+ #   #                                     result file: result.info
+ #   #                      kernel influence file name: influence.info
+ #   #                          second derivative type: Direct Derivative
+ #   #                                     kernel name: M6
+ #   #                                        print dt:     1.0000000000
+ #   #                                       stop time:   400.0000000000
+ #   #                                            hfac:     1.0000000000
+ #   #                                     silent mode: no
+ #   #                               use restore dumps: yes
+ #   #                               desired resolution:      64
+ #   #                            x in [  -1.0000000000000000      :   1.0000000000000000      ]
+ #   #                            y in [  -2.0000000000000000      :   2.0000000000000000      ]
+ #   #                            z in [   0.0000000000000000      :   0.0000000000000000      ]
+ #   #                                     border size:     0.1250000000
+ #   #                                  real particles:     8192
+ #   #                                 fixed particles:        0
+ #   #                                 adiabatic gamma:     1.6666666667
+ #   #
+ #####
+ ##############################################
+##############################################
+ #####    Times:
+ # # dumper         :        2.271603
+ # #  printer       :       46.387454
+ # #  bc            :      311.697698
+ # #  neibs         :    56928.445200
+ # #  circuit1      :    55920.774318
+ # #  circuit2      :   142354.079646
+ # #  total time    :   255563.655919
+ ##############################################
+ #####  Results:
+ # #   l2-error:         0.0000000000
+ # #  chi-error:         0.0000000000
+ ##############################################
