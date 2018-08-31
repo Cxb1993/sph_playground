@@ -265,30 +265,30 @@ contains
           dha = dha + mb * dot_product(vab(:), nwa(:))
         end if
 
-        if (eqSet(eqs_fld) == 1) then
-          pradb = 1./3.*rhob*tb
-
-          if (s_ktp /= esd_2nw) then
-            ktab(:,:) = (kta(:,:)+ktb(:,:))/2.
-            ! call hessian(rab, ra, rb, ha, Hesa)
-            call n2w(rab, ha, n2wa)
-            call n2w(rab, hb, n2wb)
-            ! ddta = ddta + mb/rhob/2. * (Da * n2wa + Db * n2wb) * (prada - pradb) &
-                        ! - prada/rhoa*dot_product(vba,nwa)
-          else
-            odda = 1./oma/rhoa/rhoa
-            oddb = 1./omb/rhob/rhob
-            kdtadx(1) = dot_product(kta(1,:),dtadx(:))
-            kdtadx(2) = dot_product(kta(2,:),dtadx(:))
-            kdtadx(3) = dot_product(kta(3,:),dtadx(:))
-            kdtbdx(1) = dot_product(ktb(1,:),dtbdx(:))
-            kdtbdx(2) = dot_product(ktb(2,:),dtbdx(:))
-            kdtbdx(3) = dot_product(ktb(3,:),dtbdx(:))
-
-            ddta = ddta + mb*( &
-              dot_product(kdtadx(:),nwa(:))*odda + dot_product(kdtbdx(:),nwb(:))*oddb)
-          end if
-        end if
+        ! if (eqSet(eqs_fld) == 1) then
+        !   pradb = 1./3.*rhob*tb
+        !
+        !   if ((s_ktp == esd_fw).or.(s_ktp == esd_fab).or.(s_ktp == esd_n2w)) then
+        !     ktab(:,:) = (kta(:,:)+ktb(:,:))/2.
+        !     ! call hessian(rab, ra, rb, ha, Hesa)
+        !     call n2w(rab, ha, n2wa)
+        !     call n2w(rab, hb, n2wb)
+        !     ! ddta = ddta + mb/rhob/2. * (Da * n2wa + Db * n2wb) * (prada - pradb) &
+        !                 ! - prada/rhoa*dot_product(vba,nwa)
+        !   else if (s_ktp == esd_2nw_ds) then
+        !     odda = 1./oma/rhoa/rhoa
+        !     oddb = 1./omb/rhob/rhob
+        !     kdtadx(1) = dot_product(kta(1,:),dtadx(:))
+        !     kdtadx(2) = dot_product(kta(2,:),dtadx(:))
+        !     kdtadx(3) = dot_product(kta(3,:),dtadx(:))
+        !     kdtbdx(1) = dot_product(ktb(1,:),dtbdx(:))
+        !     kdtbdx(2) = dot_product(ktb(2,:),dtbdx(:))
+        !     kdtbdx(3) = dot_product(ktb(3,:),dtbdx(:))
+        !
+        !     ddta = ddta + mb*( &
+        !       dot_product(kdtadx(:),nwa(:))*odda + dot_product(kdtbdx(:),nwb(:))*oddb)
+        !   end if
+        ! end if
 
         if (eqSet(eqs_hydro) == 1) then
           if (s_artts == 1) then
@@ -332,7 +332,7 @@ contains
                 ktb(li,li) = difcond*ubb(li)*ubb(li)
             end do
           end if
-          if (s_ktp /= esd_2nw) then
+          if ((s_ktp == esd_fw).or.(s_ktp == esd_fab).or.(s_ktp == esd_n2w)) then
           ! if (s_ktp == esd_n2w) then
           !   call hessian(rab, ra, rb, ha, Hesa)
           !   do li = 1, 3
@@ -354,7 +354,7 @@ contains
                (dot_product(ktab(1,:),Hesa(1,:)) + &
                 dot_product(ktab(2,:),Hesa(2,:)) + &
                 dot_product(ktab(3,:),Hesa(3,:)))
-          else if (s_ktp == esd_2nw) then
+          else if (s_ktp == esd_2nw_ds) then
             odda = 1./oma/rhoa/rhoa
             oddb = 1./omb/rhob/rhob
             kdtadx(1) = dot_product(kta(1,:),dtadx(:))
@@ -366,9 +366,19 @@ contains
 
             ddta = ddta + mb*( &
               dot_product(kdtadx(:),nwa(:))*odda + dot_product(kdtbdx(:),nwb(:))*oddb)
-            else
-              print*, "# <!> second deriv id not found"
-              stop
+          else if (s_ktp == esd_2nw_sd) then
+            kdtadx(1) = dot_product(kta(1,:),dtadx(:))
+            kdtadx(2) = dot_product(kta(2,:),dtadx(:))
+            kdtadx(3) = dot_product(kta(3,:),dtadx(:))
+            kdtbdx(1) = dot_product(ktb(1,:),dtbdx(:))
+            kdtbdx(2) = dot_product(ktb(2,:),dtbdx(:))
+            kdtbdx(3) = dot_product(ktb(3,:),dtbdx(:))
+
+            ddta = ddta + mb/oma/rhoa*( &
+            dot_product(kdtbdx(:) - kdtadx(:),nwa(:)))
+          else
+            print*, "# <!> second deriv id not found"
+            stop
           end if
         end if
 

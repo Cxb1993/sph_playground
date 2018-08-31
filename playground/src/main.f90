@@ -131,11 +131,12 @@ program main
   call getUseDumps(usedumps)
   call getdtprint(dtout)
   call getLastPrint(lastnpic)
-
   call getdim(dim)
+
   call initkernel(dim)
   call initBorders()
   call tinit()
+  ! call diffinit()
 
   ! select case(s_tt)
   ! case (eeq_hydro, eeq_diffusion, eeq_magnetohydro, eeq_magnetohydrodiffusion, eeq_hydrodiffusion)

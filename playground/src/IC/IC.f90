@@ -26,7 +26,8 @@ module IC
                               createPeriodicBorder,&
                               findInsideBorderParticles,&
                               clearPeriodicParticles
-  use uniform,          only: uniformV4
+  use placeUniform,     only: uniformV4
+  use placeClose,       only: closepacked
   use neighboursearch,  only: getneighbours, &
                               getNeibListL1, &
                               getNeibListL2, &
@@ -127,9 +128,10 @@ contains
       brdz1 = -d3null*1.
       brdz2 =  d3null*1.
       bordersize = nb*pspc2
-      call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
-      ! call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store)
-      call createFixedBorders(store, ebc_all)
+      ! call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
+      ! call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
+      call closepacked(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store)
+      ! call createFixedBorders(store, ebc_all)
       ! call getPartNumber(rpn,fpn)
       ! call set_density_profile(rpn+fpn,store,&
       !   brdx1-bordersize,brdx2+bordersize,&

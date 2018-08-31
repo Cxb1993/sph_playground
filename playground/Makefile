@@ -1,9 +1,9 @@
 #! /usr/bin/make -f
 
-ifndef kernel
-$(warning base kernel name not provided, `zipm6` will be used)
-kernel=zipm6
-endif
+# ifndef kernel
+# $(warning base kernel name not provided, `zipm6` will be used)
+# kernel=zipm6
+# endif
 
 SRC= \
 	utils/errprinter.f90\
@@ -31,7 +31,8 @@ SRC+=state.f90\
 	eos.f90\
 	circuit1.f90\
 	circuit2.f90\
-	IC/uniform.f90\
+	IC/placeUniform.f90\
+	IC/placeClose.f90\
 	IC/rhofuncs.f90\
 	IC/IC.f90\
 	IC/initvar.f90\
@@ -48,36 +49,36 @@ SUBOBJ=$(addprefix obj/, $(OBJ))
 
 # $(warning $(SRC))
 
-ifndef dim
-$(warning dimention is not set, `dim=1` will be used)
-dim=1
-endif
-ifndef kt
-$(warning kernel type is not set, `kt=n2w` will be used)
-kt=n2w
-endif
-ifndef hf
-$(warning hfac is not set, `hf=1.` will be used)
-hf=1.
-endif
-ifndef dtype
-$(warning dtype is not set, `dtype=diff` will be used)
-dtype=diff
-endif
-ifndef silent
-$(warning silent is not set, `silent=no` will be used)
-silent=yes
-endif
-ifndef taskcheck
-taskcheck=chi-laplace
-endif
+# ifndef dim
+# $(warning dimention is not set, `dim=1` will be used)
+# dim=1
+# endif
+# ifndef kt
+# $(warning kernel type is not set, `kt=n2w` will be used)
+# kt=n2w
+# endif
+# ifndef hf
+# $(warning hfac is not set, `hf=1.` will be used)
+# hf=1.
+# endif
+# ifndef dtype
+# $(warning dtype is not set, `dtype=diff` will be used)
+# dtype=diff
+# endif
+# ifndef silent
+# $(warning silent is not set, `silent=no` will be used)
+# silent=yes
+# endif
+# ifndef taskcheck
+# taskcheck=chi-laplace
+# endif
+
 ifndef debug
 debug=f
 endif
 ifndef useomp
 useomp=t
 endif
-
 ifndef xperf
 xperf=f
 endif
@@ -156,4 +157,27 @@ memleakcheck:
 .PHONY: execute
 
 clean:
-	rm -rf obj/* || rm -rf mod/* || rm -r *.png || rm execute || rm -rf ./output/*
+	@ rm -rf obj/*      2>/dev/null || true
+	@ rm -rf mod/*      2>/dev/null || true
+	@ rm -r *.png       2>/dev/null || true
+	@ rm execute        2>/dev/null || true
+	@ rm -rf ./output/* 2>/dev/null || true
+
+test-aniso-pulse:
+	@ echo "Working on test of anisotropic pulse diffusion on 64x64 particles"
+	@ echo "" > result.info
+	@ make clean >> result.info
+	@ make kernel=m6 >> result.info
+	@ echo "2nw-+"
+	@ ./execute --dim 2 --equations diffusion --initvar pulse --resolution 64 --ddw 2nw-+ --tfinish .05 --hfac 1. --silent yes --nsnapshots 1 --resultfile result.info > /dev/null
+	@ echo "error = `cat result.info | tail -1 | awk '{print$$3 - 1.5243192042757111E-002}'`"
+	@ make clean >> result.info
+	@ make kernel=m6 >> result.info
+	@ echo "n2w"
+	@ ./execute --dim 2 --equations diffusion --initvar pulse --resolution 64 --ddw n2w --tfinish .05 --hfac 1. --silent yes --nsnapshots 1 --resultfile result.info > /dev/null
+	@ echo "error = `cat result.info | tail -1 | awk '{print$$3 - 1.3239024204043728E-002}'`"
+	@ make clean >> result.info
+	@ make kernel=m6 >> result.info
+	@ echo "fab"
+	@ ./execute --dim 2 --equations diffusion --initvar pulse --resolution 64 --ddw fab --tfinish .05 --hfac 1. --silent yes --nsnapshots 1 --resultfile result.info > /dev/null
+	@ echo "error = `cat result.info | tail -1 | awk '{print$$3 - 0.51047906860760883}'`"

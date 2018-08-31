@@ -1,4 +1,4 @@
-module uniform
+module placeUniform
   use const
   use kernel
   use state,        only: getdim, setBorders, setPartNumber
@@ -78,4 +78,4 @@ contains
     call setPartNumber(r=n,f=0)
     call setBorders(xmin, xmax, ymin, ymax, zmin, zmax, dbsz, pdg*sp)
   end subroutine uniformV4
-end module uniform
+end module placeUniform

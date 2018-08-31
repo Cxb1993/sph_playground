@@ -103,8 +103,10 @@ module state
         statevars(ec_ddw) = esd_n2w
       case('fab')
         statevars(ec_ddw) = esd_fab
-      case('2nw')
-        statevars(ec_ddw) = esd_2nw
+      case('2nw-+')
+        statevars(ec_ddw) = esd_2nw_ds
+      case('2nw+-')
+        statevars(ec_ddw) = esd_2nw_sd
       case('fw')
         statevars(ec_ddw) = esd_fw
       case default
@@ -475,8 +477,8 @@ module state
        write(*,blockFormatStr) " #   #", "artificail terms: ", "no"
      end if
 
-     write(*,blockFormatStr) " #   #", "result file: ", resfilename, ""
-     write(*,blockFormatStr) " #   #", "kernel influence file name: ", kerninflname, ""
+     write(*,blockFormatStr) " #   #", "result file: ", trim(resfilename)
+     write(*,blockFormatStr) " #   #", "kernel influence file name: ", trim(kerninflname)
 
      select case(int(statevars(ec_ddw)))
      case(esd_fab)
@@ -485,8 +487,10 @@ module state
        write(*,blockFormatStr) " #   #", "second derivative type: ", "New Brookshaw"
      case(esd_n2w)
        write(*,blockFormatStr) " #   #", "second derivative type: ", "Direct Derivative"
-     case(esd_2nw)
-       write(*,blockFormatStr) " #   #", "second derivative type: ", "Two First Derivatives"
+     case(esd_2nw_ds)
+       write(*,blockFormatStr) " #   #", "second derivative type: ", "Two First Derivatives (-/+)"
+     case(esd_2nw_sd)
+       write(*,blockFormatStr) " #   #", "second derivative type: ", "Two First Derivatives (+/-)"
      end select
 
      write(*,blockFormatStr) " #   #", "kernel name: ", kernelname

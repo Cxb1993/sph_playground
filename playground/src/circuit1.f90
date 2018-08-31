@@ -66,13 +66,17 @@ contains
     real, allocatable, intent(inout) :: store(:,:)
 
     real :: &
-      w, dwdh, r(3), dr, r2, dfdh, fh, hn, nwa(3), &
+      w, dwdh, r(3), dr, r2, dfdh, fh, hn, &
       allowerror, maxinterr, currinterr, &
-      mb, ma, ha, da, db, ra(3), rb(3), oma, dtadx(3), hfac
+      mb, ma, ha, hb, da, db, ra(3), rb(3), oma, omb, &
+      dtadx(3), hfac, &
+      nwa(3), nwb(3), ta, tb
     integer :: &
       i, j, rj, la, lb, dim, iter, ktp
-    integer(8)           :: t0, tneib
-    integer, allocatable :: nlista(:), nlistb(:)
+    integer(8) :: &
+      t0, tneib
+    integer, allocatable :: &
+      nlista(:), nlistb(:)
 
     call system_clock(start)
 
@@ -107,7 +111,7 @@ contains
           dennew(i) = 0.
           oma = 0.
           currinterr = 0.
-          dtadx(:) = 0.
+          ! dtadx(:) = 0.
 
           ma = store(es_m,i)
           ha = slnint(i)
@@ -137,12 +141,12 @@ contains
             dennew(i) = dennew(i) + mb * w
             oma = oma + mb * dwdh
             currinterr = currinterr + mb/db * w
-            if (ktp == esd_2nw) then
-              call nw(r(:), ra(:), rb(:), dr, ha, nwa)
-              dtadx(:) = dtadx(:) + mb*(store(es_t, rj) - store(es_t, i))*nwa(:)
-              ! dtadx(:) = dtadx(:) + mb/db*(store(es_t, rj) - store(es_t, i))*(-2.*(239./231.)*w*r(:)/ha/ha)
-              ! dtadx(:) = dtadx(:) + mb/db*(store(es_t, rj) - store(es_t, i))*(-2.*(1.5)*w*r(:)/ha/ha)
-            end if
+            ! if (ktp == esd_2nw_ds) then
+            !   call nw(r(:), ra(:), rb(:), dr, ha, nwa)
+            !   dtadx(:) = dtadx(:) + mb*(store(es_t, rj) - store(es_t, i))*nwa(:)
+            !   ! dtadx(:) = dtadx(:) + mb/db*(store(es_t, rj) - store(es_t, i))*(-2.*(239./231.)*w*r(:)/ha/ha)
+            !   ! dtadx(:) = dtadx(:) + mb/db*(store(es_t, rj) - store(es_t, i))*(-2.*(1.5)*w*r(:)/ha/ha)
+            ! end if
           end do
           ! ---------------------------------------------------------!
           !      There is no particle itself in neighbour list       !
@@ -166,7 +170,7 @@ contains
           resid(i) = abs(hn - ha) / store(es_h,i)
           slnint(i) = hn
           store(es_om,i) = oma
-          store(es_dtdx:es_dtdz, i) = dtadx(:)/dennew(i)/oma
+          ! store(es_dtdx:es_dtdz, i) = dtadx(:)/dennew(i)/oma
         end if
       end do
       !$omp end parallel do
@@ -177,10 +181,46 @@ contains
       print*, "Warn: density NR: solution took ", iter, "iterations, with max norm error", maxval(resid, mask=(resid>0))
     end if
 
-    ! if (abs(1. - maxinterr) > 0.1) then
-    !   print*, "Warn: density NR: kernel integral condition does not fulfilled Int(V_{ab}*W_{ab}) = ", maxinterr
-    ! end if
-    ! read*
+    if ((ktp == esd_2nw_ds).or.(ktp == esd_2nw_sd)) then
+      do la = 1, size(nlista)
+        i = nlista(la)
+        dtadx(:) = 0.
+        ma = store(es_m,i)
+        ha = slnint(i)
+        ra(:) = store(es_rx:es_rz,i)
+        da = store(es_den,i)
+        oma = store(es_om,i)
+        ta = store(es_t,i)
+        call getneighbours(i, nlistb, t0)
+        tneib = tneib + t0
+        do lb = 1, size(nlistb)
+          j = nlistb(lb)
+          rj = getCrossRef(j)
+
+          rb(:) = store(es_rx:es_rz, j)
+          r(:) = ra(:) - rb(:)
+          r2 = dot_product(r(:),r(:))
+          dr = sqrt(r2)
+          mb = store(es_m,rj)
+          db = store(es_den,rj)
+          hb = store(es_h,rj)
+          omb = store(es_om,rj)
+          tb = store(es_t,rj)
+
+          if (ktp == esd_2nw_ds) then
+            call nw(r(:), ra(:), rb(:), dr, ha, nwa)
+            dtadx(:) = dtadx(:) + mb/da/oma*(tb - ta)*nwa(:)
+          else if (ktp == esd_2nw_sd) then
+            call nw(r(:), ra(:), rb(:), dr, ha, nwa)
+            call nw(r(:), ra(:), rb(:), dr, hb, nwb)
+            dtadx(:) = dtadx(:) + mb*(ta/oma/da/da*nwa(:) + tb/omb/db/db*nwb(:))
+          end if
+        end do
+        store(es_dtdx:es_dtdz, i) = dtadx(:)
+      end do
+    end if
+
+
     store(es_h,1:realpartnumb) = slnint(:)
     call system_clock(finish)
     call addTime(' circuit1', finish - start - tneib)

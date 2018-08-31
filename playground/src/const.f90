@@ -123,10 +123,11 @@ module const
     eeq_hyrad                 = 306
 
   integer, parameter :: &
-    esd_fab = 400,&
-    esd_n2w = 401,&
-    esd_fw  = 402,&
-    esd_2nw = 403
+    esd_fab     = 400,&
+    esd_n2w     = 401,&
+    esd_fw      = 402,&
+    esd_2nw_ds  = 403,&
+    esd_2nw_sd  = 404
 
   integer, parameter :: &
     edi_iso       = 500,&

@@ -86,7 +86,7 @@ contains
       else if (kt == esd_fab) then
         hessian => hessian_fab_cart
         n2w     => Fab_cart
-      else if (kt == esd_2nw) then
+      else if ((kt == esd_2nw_ds).or.(kt == esd_2nw_sd)) then
         hessian => null()
         n2w     => null()
       else if (kt == esd_fw) then
@@ -102,7 +102,7 @@ contains
         hessian => hessian_ddw_cyl
       else if (kt == esd_fab) then
         ! hessian => hessian_fab_cart
-      else if (kt == esd_2nw) then
+      else if ((kt == esd_2nw_ds).or.(kt == esd_2nw_sd)) then
         ! no more actions
       else if (kt == esd_fw) then
         ! hessian => hessian_fw_cart
