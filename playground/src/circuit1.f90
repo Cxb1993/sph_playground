@@ -139,7 +139,7 @@ contains
             currinterr = currinterr + mb/db * w
             if (ktp == esd_2nw) then
               call nw(r(:), ra(:), rb(:), dr, ha, nwa)
-              dtadx(:) = dtadx(:) + mb/db*(store(es_t, rj) - store(es_t, i))*nwa(:)
+              dtadx(:) = dtadx(:) + mb*(store(es_t, rj) - store(es_t, i))*nwa(:)
               ! dtadx(:) = dtadx(:) + mb/db*(store(es_t, rj) - store(es_t, i))*(-2.*(239./231.)*w*r(:)/ha/ha)
               ! dtadx(:) = dtadx(:) + mb/db*(store(es_t, rj) - store(es_t, i))*(-2.*(1.5)*w*r(:)/ha/ha)
             end if
@@ -166,7 +166,7 @@ contains
           resid(i) = abs(hn - ha) / store(es_h,i)
           slnint(i) = hn
           store(es_om,i) = oma
-          store(es_dtdx:es_dtdz, i) = dtadx(:)
+          store(es_dtdx:es_dtdz, i) = dtadx(:)/dennew(i)/oma
         end if
       end do
       !$omp end parallel do

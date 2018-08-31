@@ -475,8 +475,8 @@ module state
        write(*,blockFormatStr) " #   #", "artificail terms: ", "no"
      end if
 
-     write(*,blockFormatStr) " #   #", "result file: ", resfilename
-     write(*,blockFormatStr) " #   #", "kernel influence file name: ", kerninflname
+     write(*,blockFormatStr) " #   #", "result file: ", resfilename, ""
+     write(*,blockFormatStr) " #   #", "kernel influence file name: ", kerninflname, ""
 
      select case(int(statevars(ec_ddw)))
      case(esd_fab)

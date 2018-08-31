@@ -102,7 +102,7 @@ contains
     !$omp shared(store, nlista)&
     !$omp shared(eqSet)&
     !$omp shared(s_dim, s_kr, s_ktp, s_ttp, s_adden, s_artts, s_ivt)&
-    !$omp shared(nw, hessian, hessian_rr)&
+    !$omp shared(nw, n2w, hessian, hessian_rr)&
     !$omp shared(difcond, difiso, mhdmuzero)&
     !$omp reduction(+:tneib, consenrg)
     overa: do la = 1, size(nlista)
@@ -200,16 +200,16 @@ contains
           ktb(1,1) = difcond
           ktb(2,2) = difcond
           ktb(3,3) = difcond
-        ! else
-        !   do li = 1, 3
-        !       kta(li,li) = difcond*uba(li)*uba(li)
-        !   end do
+        else
+          do li = 1, 3
+              kta(li,li) = difcond*uba(li)*uba(li)
+          end do
         end if
       end if
 
       if (eqSet(eqs_fld) == 1) then
         prada = 1./3.*rhoa*ta
-        radinteration = c * kappa * rhoa * ta - 4. * kappa * sigma_b * (u(i) / cv)**4
+        ! radinteration = c * kappa * rhoa * ta - 4. * kappa * sigma_b * (u(i) / cv)**4
         dua  = radinteration
         ddta = -radinteration*rhoa
       end if
@@ -273,8 +273,8 @@ contains
             ! call hessian(rab, ra, rb, ha, Hesa)
             call n2w(rab, ha, n2wa)
             call n2w(rab, hb, n2wb)
-            ddta = ddta + mb/rhob/2. * (Da * n2wa + Db * n2wb) * (prada - pradb) &
-                        - prada/rhoa*dot_product(vba,nwa)
+            ! ddta = ddta + mb/rhob/2. * (Da * n2wa + Db * n2wb) * (prada - pradb) &
+                        ! - prada/rhoa*dot_product(vba,nwa)
           else
             odda = 1./oma/rhoa/rhoa
             oddb = 1./omb/rhob/rhob
@@ -433,8 +433,8 @@ contains
       store(es_dh,i) = dha
       store(es_ddt,i) = ddta/rhoa
       store(es_dbx:es_dbz,i) = dba(:)
-      store(es_du,i) = dua
-      ! store(es_du,i) = dua + ddta/rhoa
+      ! store(es_du,i) = dua
+      store(es_du,i) = dua + ddta/rhoa
       consenrg = consenrg + ma*(dot_product(va(:),dva(:)) + dua + &
         dot_product(ba(:),dba(:))/rhoa - &
         0.5*dot_product(ba(:),ba(:))/rhoa/rhoa*drhoadt/oma)
