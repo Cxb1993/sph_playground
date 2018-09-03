@@ -131,7 +131,7 @@ contains
       ! call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
       ! call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
       call closepacked(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store)
-      ! call createFixedBorders(store, ebc_all)
+      call createFixedBorders(store, ebc_all)
       ! call getPartNumber(rpn,fpn)
       ! call set_density_profile(rpn+fpn,store,&
       !   brdx1-bordersize,brdx2+bordersize,&

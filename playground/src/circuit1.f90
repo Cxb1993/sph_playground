@@ -220,7 +220,6 @@ contains
       end do
     end if
 
-
     store(es_h,1:realpartnumb) = slnint(:)
     call system_clock(finish)
     call addTime(' circuit1', finish - start - tneib)

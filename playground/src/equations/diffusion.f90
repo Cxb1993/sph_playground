@@ -4,9 +4,10 @@ module diff
 
   implicit none
 
-  public :: c12nw
+  public :: c12nw, c2ddt, initdiffusion
 
   procedure(aic12nw), pointer :: c12nw => null()
+  procedure(aic2ddt), pointer :: c2ddt => null()
 
   abstract interface
     subroutine aic12nw(r, ra, rb, dr, ha, hb, ma, fa, fb, dfdx)
@@ -15,10 +16,18 @@ module diff
     end subroutine aic12nw
   end interface
 
+  abstract interface
+    subroutine aic2ddt(r, ra, rb, dr, ha, hb, ma, fa, fb, dfdx)
+      real, intent(out) :: dfdx(3)
+      real, intent (in) :: r(3), ra(3), rb(3), dr, ha, hb, ma, fa, fb
+    end subroutine aic2ddt
+  end interface
+
 contains
-  subroutine initdiff()
+  subroutine initdiffusion()
     integer :: kt
     call getddwtype(kt)
+    
 
     select case(kt)
     case(esd_n2w)
@@ -31,7 +40,7 @@ contains
     case default
       call error("Wrong kernel type", kt, __FILE__, __LINE__)
     end select
-  end subroutine initdiff
+  end subroutine initdiffusion
 
   pure subroutine c12nwdif(r, ra, rb, dr, ha, hb, ma, fa, fb, dfdx)
     real, intent(in) :: &

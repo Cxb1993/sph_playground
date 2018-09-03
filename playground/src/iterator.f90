@@ -27,10 +27,14 @@ module iterator
  integer            :: initialised = 0
 
 contains
-  subroutine initIterate(n)
-    integer, intent(in) :: n
+  subroutine initIterate(n, store)
+    real, allocatable, intent(inout) :: &
+      store(:,:)
+    integer, intent(in) :: &
+      n
 
     allocate(dbtmp(3,n))
+    call findneighboursKDT(store)
     initialised = 1
   end subroutine
 
@@ -49,7 +53,7 @@ contains
     call getPartNumber(r=rpn, f=fpn)
 
     if (initialised == 0) then
-      call initIterate(n)
+      call initIterate(n, store)
     end if
 
     select case(ivt)
@@ -62,7 +66,7 @@ contains
       call c1(store)
       call c2(store, maxconsenrg)
     case (ett_pulse, ett_ring, ett_fld_gauss)
-      call findneighboursKDT(store)
+      ! call findneighboursKDT(store)
       call c1(store)
       ! call eos_adiabatic(store, gamma)
       call c2(store, maxconsenrg)
