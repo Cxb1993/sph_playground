@@ -76,7 +76,8 @@ contains
           exp(-0.5*((x(1)*x(1)+x(2)*x(2)+x(3)*x(3))/ekt))
       else
         exact = pifac/epsdm1/ektsq*&
-          exp(-0.5*(x(1)*x(1)/ekt + (x(2)*x(2)+x(3)*x(3))/eps/eps))
+          ! exp(-0.5*(x(1)*x(1)/ekt + (x(2)*x(2)+x(3)*x(3))/eps/eps))
+          exp(-0.5*(x(2)*x(2)/ekt + (x(1)*x(1)+x(3)*x(3))/eps/eps))
       end if
       err(i) = (exact - num)*(exact - num)
       ! print*, exact, num

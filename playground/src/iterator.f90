@@ -66,7 +66,7 @@ contains
       call c1(store)
       call c2(store, maxconsenrg)
     case (ett_pulse, ett_ring, ett_fld_gauss)
-      ! call findneighboursKDT(store)
+      call findneighboursKDT(store)
       call c1(store)
       ! call eos_adiabatic(store, gamma)
       call c2(store, maxconsenrg)

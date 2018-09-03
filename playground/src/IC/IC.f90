@@ -411,8 +411,8 @@ contains
         store(es_den,i) = rho1
         store(es_p,i) = prs1
 
-        store(es_bx,i) = 1.
-        store(es_by,i) = 0.
+        store(es_bx,i) = 0.
+        store(es_by,i) = 1.
         store(es_bz,i) = 0.
         store(es_t,i)  = ((2.*pi)**(-dim/2.))/((0.1**2)**(dim/2.))*&
           exp(-0.5*(ra(1)*ra(1) + ra(2)*ra(2) + ra(3)*ra(3))/(0.1**2))
