@@ -122,6 +122,7 @@ module const
     eeq_kd2                   = 305,&
     eeq_hyrad                 = 306
 
+  ! second derivatives
   integer, parameter :: &
     esd_fab     = 400,&
     esd_n2w     = 401,&

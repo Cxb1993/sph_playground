@@ -21,7 +21,7 @@ contains
     integer :: &
       dim, n, ptsz, &
       ix1, ix2, iy1, iy2, iz1, iz2, i, j, k, &
-      d2null, d3null
+      d2null, d3null, resol
     real :: &
       sp, dmx, pdg, rnddr(3), drdis, &
       xmin, xmax, ymin, ymax, zmin, zmax
@@ -66,6 +66,7 @@ contains
 
     ix1 = int(xmin/dxmin)
     ix2 = int(xmax/dmx)
+    resol = ix2 - ix1
     do i = ix1, ix2 - int(2*pdg)
       if (i <= 0) then
         sp = dxmin
@@ -87,6 +88,25 @@ contains
           store(es_rx,n)    =        (pdg + i + drdis*rnddr(1))*sp
           store(es_ry,n)    = d2null*(pdg + j + drdis*rnddr(2))*sp
           store(es_rz,n)    = d3null*(pdg + k + drdis*rnddr(3))*sp
+
+          if (store(es_rx,n)<xmin) then
+            store(es_rx,n) = xmin + (xmax - xmin)/resol/4.
+          end if
+          if (store(es_rx,n)>xmax) then
+            store(es_rx,n) = xmax - (xmax - xmin)/resol/4.
+          end if
+          if (store(es_ry,n)<ymin) then
+            store(es_ry,n) = ymin + (ymax - ymin)/resol/4.
+          end if
+          if (store(es_ry,n)>ymax) then
+            store(es_ry,n) = ymax - (ymax - ymin)/resol/4.
+          end if
+          if (store(es_rz,n)<zmin) then
+            store(es_rz,n) = zmin + (zmax - zmin)/resol/4.
+          end if
+          if (store(es_rz,n)>zmax) then
+            store(es_rz,n) = zmax - (zmax - zmin)/resol/4.
+          end if
           store(es_type,n)  = ept_real
           n = n + 1
         end do

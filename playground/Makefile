@@ -1,10 +1,5 @@
 #! /usr/bin/make -f
 
-# ifndef kernel
-# $(warning base kernel name not provided, `zipm6` will be used)
-# kernel=zipm6
-# endif
-
 SRC= \
 	utils/errprinter.f90\
 	utils/arrayresize.f90\
@@ -83,6 +78,9 @@ endif
 ifndef xperf
 xperf=f
 endif
+ifndef kernel
+kernel=m4
+endif
 
 FC=gfortran
 
@@ -113,7 +111,6 @@ endif
 ifeq ($(xperf),c)
 	FFLAGS+=-fprofile-use=profiler -fprofile-correction
 endif
-# FFLAGS+=-fopenmp
 
 ifeq ($(FC),gfortran)
 modflagout=-J
@@ -125,23 +122,27 @@ modflaginp=-module
 endif
 
 %.o : src/%.f90
-	@mkdir -p obj
-	$(FC) $(FFLAGS) $(modflagout) mod/ -o obj/$@ -c $<
-
-IC/%.o : src/IC/%.f90
-	@mkdir -p obj/IC
 	@mkdir -p mod
 	$(FC) $(FFLAGS) $(modflagout) mod/ -o obj/$@ -c $<
 
+IC/%.o : src/IC/%.f90
+	@mkdir -p mod
+	@mkdir -p obj/IC
+	$(FC) $(FFLAGS) $(modflagout) mod/ -o obj/$@ -c $<
+
 kernel/%.o : src/kernel/%.f90
+	@mkdir -p mod
 	@mkdir -p obj/kernel
 	$(FC) $(FFLAGS) $(modflagout) mod/ -o obj/$@ -c $<
 
 utils/%.o : src/utils/%.f90
+	@mkdir -p mod
 	@mkdir -p obj/utils
 	$(FC) $(FFLAGS) $(modflagout) mod/ -o obj/$@ -c $<
 
 execute: $(OBJ)
+	@mkdir -p mod
+	@mkdir -p obj
 	@mkdir -p output
 	$(FC) $(FFLAGS) $(modflaginp) mod/ -o $@ $(SUBOBJ)
 

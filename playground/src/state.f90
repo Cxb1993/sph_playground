@@ -35,12 +35,15 @@ module state
   contains
     subroutine setdim(d)
       integer, intent(in) :: d
-      statevars(ec_dim) = d
+      if ((d < 1).or.(d > 3)) then
+        call error('Dimmention is wrong', d, __FILE__, __LINE__)
+      else
+        statevars(ec_dim) = d
+      end if
     end subroutine
     pure subroutine getdim(d)
       integer, intent(out) :: d
       d = int(statevars(ec_dim))
-      if (d == 0) error stop "# <!> DIM is 0"
     end subroutine
 
     subroutine set_equations(itt)
@@ -277,7 +280,11 @@ module state
 
    subroutine setnpics(i)
      integer, intent(in) :: i
-     statevars(ec_npics) = i
+     if (i < 0) then
+       call error('Number of snapshots cannot be negative', i, __FILE__, __LINE__)
+     else
+       statevars(ec_npics) = i
+     end if
    end subroutine
    pure subroutine getnpics(o)
      integer, intent(out) :: o
