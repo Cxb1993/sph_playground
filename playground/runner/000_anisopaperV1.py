@@ -17,32 +17,32 @@ def main():
     # rightPlacing = False
     # it = 0
     # while(not rightPlacing):
-    #     problem = Context()
-    #     problem.setup.xmin = -1
-    #     problem.setup.xmax =  1
-    #     problem.setup.resolution = 16
-    #     problem.setup.dimentions = 2
-    #     problem.setup.initialConditions = "shock12"
-    #     problem.setup.finishTime = 5
-    #     problem.setup.equationsSet = "hydro"
-    #     problem.setup.kernel = "m6"
-    #     problem.setup.hfac = 1.0
-    #     problem.setup.snapshotsNumber = 100
-    #     problem.setup.resultFile = "result.info"
-    #     # # problem.setup.particlesPlacement  = "allPeriodicXReal"
-    #     # # problem.setup.particlesArrangment = "random"
-    #     # # problem.setup.initialConditions   = "relaxation"
-    #     # # problem.CleanSTDLogs()
-    #     problem.SetThreadsOMP(4)
-    #     if (it == 0):
-    #         problem.SimpleMake()
-    #     problem.CleanRun()
-    #     problem.ReadFinalDump()
-    #     problem.AfterRunUpdate()
-    #     rightPlacing = problem.IsParticlesPositionsCorrect()
-    #     it += 1
-    #     rightPlacing = True
-    # print("Spent iterations befor right placing: " + str(it))
+        # problem = Context()
+        # problem.setup.xmin = -1
+        # problem.setup.xmax =  1
+        # problem.setup.resolution = 16
+        # problem.setup.dimentions = 2
+        # problem.setup.initialConditions = "shock12"
+        # problem.setup.finishTime = 5
+        # problem.setup.equationsSet = "hydro"
+        # problem.setup.kernel = "m6"
+        # problem.setup.hfac = 1.0
+        # problem.setup.snapshotsNumber = 100
+        # problem.setup.resultFile = "result.info"
+        # # # problem.setup.particlesPlacement  = "allPeriodicXReal"
+        # # # problem.setup.particlesArrangment = "random"
+        # # # problem.setup.initialConditions   = "relaxation"
+        # # # problem.CleanSTDLogs()
+        # problem.SetThreadsOMP(4)
+        # if (it == 0):
+        #     problem.SimpleMake()
+        # problem.CleanRun()
+        # problem.ReadFinalDump()
+        # problem.AfterRunUpdate()
+        # rightPlacing = problem.IsParticlesPositionsCorrect()
+        # it += 1
+        # rightPlacing = True
+    print("Spent iterations befor right placing: " + str(it))
     problem.ReadFinalDump()
     problem.AfterRunUpdate()
     problem.PrintState()
