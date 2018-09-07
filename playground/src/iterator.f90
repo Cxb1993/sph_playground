@@ -58,8 +58,9 @@ contains
 
     select case(ivt)
     case (ett_shock12)
-      call clearPeriodicParticles()
+      call clearPeriodicParticles(store)
       call findInsideBorderParticles(store)
+      call createPeriodicBorder(store, ebc_x)
       call createPeriodicBorder(store, ebc_y)
 
       call findneighboursKDT(store)
@@ -71,7 +72,7 @@ contains
       ! call eos_adiabatic(store, gamma)
       call c2(store, maxconsenrg)
     case (ett_soundwave)
-      call clearPeriodicParticles()
+      call clearPeriodicParticles(store)
       call reflecPeriodicParticles(store, ebc_all)
       call findInsideBorderParticles(store)
       call createPeriodicBorder(store, ebc_all)
@@ -81,7 +82,7 @@ contains
       call eos_isothermal(store)
       call c2(store, maxconsenrg)
     case (ett_hydroshock)
-      call clearPeriodicParticles()
+      call clearPeriodicParticles(store)
       call reflecPeriodicParticles(store, ebc_y)
       call reflecPeriodicParticles(store, ebc_z)
       call findInsideBorderParticles(store)
@@ -113,7 +114,7 @@ contains
     !   call periodic3v2(dbtmp, ebc_all)
     !   kcf(:,2,:) = dbtmp(:,:)
     case(ett_mti)
-      call clearPeriodicParticles()
+      call clearPeriodicParticles(store)
       call reflecPeriodicParticles(store, ebc_x)
       call findInsideBorderParticles(store)
       call createPeriodicBorder(store, ebc_x)
@@ -123,7 +124,7 @@ contains
       call c2(store, maxconsenrg)
       store(es_ay,1:rpn) = store(es_ay,1:rpn) - 1.
     case(ett_mtilowres)
-      call clearPeriodicParticles()
+      call clearPeriodicParticles(store)
       call reflecPeriodicParticles(store, ebc_x)
       call findInsideBorderParticles(store)
       call createPeriodicBorder(store, ebc_x)
@@ -143,7 +144,7 @@ contains
         ! if (store(es_ry,i) < -0.00001) store(es_ay,i) = store(es_ay,i) + 1.
       end do
     case (ett_OTvortex)
-      call clearPeriodicParticles()
+      call clearPeriodicParticles(store)
       call reflecPeriodicParticles(store, ebc_all)
       call findInsideBorderParticles(store)
       call createPeriodicBorder(store, ebc_all)

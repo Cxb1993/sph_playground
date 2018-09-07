@@ -45,7 +45,7 @@ program main
   use neighboursearch,  only: getNeibNumbers,&
                               neibDestroy => destroy,&
                               getNeibListL1
-  use arrayresize,      only: resize
+  use arrayresize,      only: resize!, realocnum
   use timing,           only: addTime
   use dumper,           only: dump, restore,&
                               dumpclean => clean
@@ -354,6 +354,8 @@ program main
   call AppendLine(result, errfname, tprint)
 
   call printTimes()
+  ! call realocnum(hfac)
+  ! write(*, "(A, F20.5, A)") " T_T you've done ", hfac, " array reallocations"
   print *, '#####  Results:'
   write(*, "(A, F20.10)") " # #   l2-error: ", result(3)
   write(*, "(A, F20.10)") " # #  chi-error: ", result(4)

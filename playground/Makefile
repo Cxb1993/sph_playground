@@ -33,6 +33,7 @@ SRC+=state.f90\
 	circuit2.f90\
 	IC/placeUniform.f90\
 	IC/placeClose.f90\
+	IC/placeRandom.f90\
 	IC/rhofuncs.f90\
 	IC/IC.f90\
 	IC/initvar.f90\
@@ -96,7 +97,7 @@ FFLAGS=-fdefault-real-8 -fdefault-double-8\
 				-cpp
 endif
 ifeq ($(debug),p)
-FFLAGS=-pg -no-pie -fdefault-real-8 -fdefault-double-8 -flto -Ofast
+FFLAGS=-pg -static -fdefault-real-8 -fdefault-double-8 -flto -O0
 endif
 
 ifeq ($(useomp),t)

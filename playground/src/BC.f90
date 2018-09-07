@@ -67,7 +67,21 @@ contains
     initdone=1
   end subroutine
 
-  subroutine clearPeriodicParticles()
+  subroutine clearPeriodicParticles(store)
+    real, allocatable, intent(inout) :: store(:,:)
+    integer :: &
+      realpartnumb, fixedpartnumb, storesize, i
+
+    call getPartNumber(r=realpartnumb,f=fixedpartnumb)
+    storesize = size(store, dim=2)
+
+    if (periodpartnumb /= 0) then
+      do i = 1,periodpartnumb
+        store(es_type,realpartnumb+fixedpartnumb+i) = ept_empty
+      end do
+    end if
+    ! print*, realpartnumb, fixedpartnumb, periodpartnumb, storesize
+    ! read*
 
     periodpartnumb = 0
     ! do i = 1,size(store,2)

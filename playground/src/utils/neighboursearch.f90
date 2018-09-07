@@ -13,7 +13,7 @@ module NeighbourSearch
 public findneighboursN2, findneighboursN2plusStatic, findneighboursKDT, &
         getneighbours, getNeibNumbers, destroy, &
         setStepsize, isInitialized, getNeibListL1, getNeibListL2,&
-        findneighboursN2once
+        findneighboursN2once, xgetneighindex, xgetneighnumber
 
 private
 save
@@ -25,7 +25,7 @@ save
 
   integer                :: stepsize = 1
   integer                :: initialized = 0
-  integer(8)             :: start = 0, finish = 0
+  integer(8)             :: start = 0, finish = 0, realoc = 0
   real, parameter        :: eps = eps0
 contains
 
@@ -385,6 +385,24 @@ contains
     dt = finish - start
     call addTime(' neibs', dt)
   end subroutine getneighbours
+
+  pure function xgetneighnumber(ida) result(num)
+    integer, intent(in) :: &
+      ida
+    integer :: &
+      num
+
+      num = size(neighbours(ida)%list(:))
+  end function xgetneighnumber
+
+  pure function xgetneighindex(ida, idb) result(idx)
+    integer, intent(in) :: &
+      ida, idb
+    integer :: &
+      idx
+
+      idx = neighbours(ida)%list(idb)
+  end function xgetneighindex
 
   subroutine findneighboursN2once(idx, store, nlist)
     use state,  only: getPartNumber

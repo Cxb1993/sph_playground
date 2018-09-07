@@ -8,9 +8,11 @@ module circuit2
                               nw, &
                               hessian_rr,&
                               get_w
-  use neighboursearch,  only: getneighbours,&
-                              getNeibListL1,&
-                              getNeibListL2
+  use neighboursearch,  only: getneighbours, &
+                              getNeibListL1, &
+                              getNeibListL2, &
+                              xgetneighindex, &
+                              xgetneighnumber
   use state,            only: getdim, &
                               get_equations, getddwtype, &
                               getAdvancedDensity, &
@@ -214,12 +216,14 @@ contains
         ddta = -radinteration*rhoa
       end if
 
-      call getneighbours(i, nlistb, t0)
       tneib = tneib + t0
+      call getneighbours(i, nlistb, t0)
       overb: do lb = 1, size(nlistb)
         j = nlistb(lb)
-        rj = getCrossRef(j)
+      ! overb: do lb = 1, xgetneighnumber(i)
+        ! j = xgetneighindex(i,lb)
 
+        rj = getCrossRef(j)
         rb(:) = store(es_rx:es_rz, j)
         bb(:) = store(es_bx:es_bz, rj)
         ubb(:) = bb(:)/sqrt(dot_product(bb(:),bb(:)))

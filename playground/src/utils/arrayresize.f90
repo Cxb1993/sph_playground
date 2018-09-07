@@ -1,17 +1,25 @@
 module arrayresize
   implicit none
 
-  public :: resize
+  public :: resize!, realocnum
 
   private
+
+  save
+    real :: realoc
 
   interface resize
     module procedure rsz_i4, i8resize, cresize, rresize, resize3r
   end interface
 
 contains
-  ! subroutine rsz_i4(array, oldsize, newsize)
+  pure subroutine realocnum(num)
+    real, intent(out) :: num
+    num = realoc
+  end subroutine
+
   pure subroutine rsz_i4(array, oldsize, newsize)
+  ! subroutine rsz_i4(array, oldsize, newsize)
     integer, intent(in)                 :: newsize, oldsize
     integer, intent(inout), allocatable :: array(:)
     integer, allocatable                :: tmp(:)
@@ -29,9 +37,11 @@ contains
       array(i) = tmp(i)
     end do
     deallocate(tmp)
+    ! realoc = realoc + 1
   end subroutine rsz_i4
 
   pure subroutine i8resize(array, oldsize, newsize)
+  ! subroutine i8resize(array, oldsize, newsize)
     integer, intent(in)                    :: newsize, oldsize
     integer(8), intent(inout), allocatable :: array(:)
     integer(8), allocatable                :: tmp(:)
@@ -49,9 +59,11 @@ contains
       array(i) = tmp(i)
     end do
     deallocate(tmp)
+    ! realoc = realoc + 1
   end subroutine
 
   pure subroutine rresize(array, oldsize, newsize)
+  ! subroutine rresize(array, oldsize, newsize)
     integer, intent(in)              :: newsize, oldsize
     real, intent(inout), allocatable :: array(:)
     real, allocatable                :: tmp(:)
@@ -69,9 +81,11 @@ contains
       array(i) = tmp(i)
     end do
     deallocate(tmp)
+    ! realoc = realoc + 1
   end subroutine
 
   pure subroutine cresize(array, chsz, oldsize, newsize)
+  ! subroutine cresize(array, chsz, oldsize, newsize)
     integer, intent(in)                          :: newsize, oldsize, chsz
     character(len=*), allocatable, intent(inout) :: array(:)
     character(len=chsz), allocatable             :: tmp(:)
@@ -89,9 +103,11 @@ contains
       array(i) = tmp(i)
     end do
     deallocate(tmp)
+    ! realoc = realoc + 1
   end subroutine
 
   pure subroutine resize3r(array, oldsize, newsize)
+  ! subroutine resize3r(array, oldsize, newsize)
     integer, intent(in)              :: newsize, oldsize
     real, intent(inout), allocatable :: array(:,:)
     real, allocatable                :: tmp(:,:)
@@ -110,5 +126,6 @@ contains
       array(:,i) = tmp(:,i)
     end do
     deallocate(tmp)
+    ! realoc = realoc + 1
   end subroutine
 end module

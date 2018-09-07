@@ -74,12 +74,12 @@ contains
 
     call gcoordsys(cs)
     call getddwtype(kt)
-    ! call precalcKernel()
 
     if (cs == 1) then
       nw => nw_cart
-      hessian_rr => hessian_rr_fab_cart
+      ! call precalcKernel()
       ! nw => nw_cart_precalc
+      hessian_rr => hessian_rr_fab_cart
       if (kt == esd_n2w) then
         hessian => hessian_ddw_cart
         n2w     => n2w_cart
@@ -129,6 +129,7 @@ contains
      call kddf(q, f)
      sddf(i) = wCv * f
      ! print*, i, nint(q/dk)+1, dq*(i-1), sf(i), sdf(i), sddf(i)
+     ! read*
    end do
    ! read*
  end subroutine precalcKernel
@@ -161,13 +162,18 @@ contains
     nw(:) = wCv * df * rab(:) / h**(dim+2) / q
   end subroutine nw_cart
 
-  pure subroutine nw_cart_precalc(rab, ra, rb, dr, h, nw)
+  ! pure subroutine nw_cart_precalc(rab, ra, rb, dr, h, nw)
+  subroutine nw_cart_precalc(rab, ra, rb, dr, h, nw)
     real, intent(in)  :: rab(3), ra(3), rb(3), dr, h
     real, intent(out) :: nw(3)
     real              :: q
 
     q = dr / h
-    nw(:) = sdf(nint(q/dk)+1) * rab(:) / h**(dim+2) / q
+    if (nint(q/dk)+1 > kernelres) then
+      read*
+    end if
+    ! read*
+    nw(:) = sdf(nint(q/dk)+1)*rab(:)/h**(dim+2)/q
   end subroutine nw_cart_precalc
 
   pure subroutine nw_cyl(rab, ra, rb, dr, h, nw)

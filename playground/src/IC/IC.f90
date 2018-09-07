@@ -28,6 +28,7 @@ module IC
                               clearPeriodicParticles
   use placeUniform,     only: uniformV4
   use placeClose,       only: closepacked
+  use placeRandom,      only: random
   use neighboursearch,  only: getneighbours, &
                               getNeibListL1, &
                               getNeibListL2, &
@@ -106,14 +107,20 @@ contains
       brdz2 =  pspc1*nb*2*d3null
       bordersize = nb*pspc2
       ! call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
-      call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store)
-      call createFixedBorders(store, ebc_x)
+      ! call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store)
+      ! call closepacked(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, &
+      !   bordersize, pspc1, store, padding=[0.0, 0.5, 0.0])
+      ! call closepacked(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, &
+      !   bordersize, pspc1, store)
+      call random([brdx1, brdx2, brdy1, brdy2, brdz1, brdz2], &
+        bordersize, pspc1, store, displacement=.8)
+      ! call createFixedBorders(store, ebc_x)
     case (ett_pulse, ett_ring)
       call setmhdmagneticpressure(1.)
       call setdiffisotropic(0)
       call setdiffconductivity(1.)
-      rho1 = 1.
-      prs1 = 1.
+      rho1  = 1.
+      prs1  = 1.
       gamma = 2.
 
       brdx1 = -1.
@@ -392,8 +399,8 @@ contains
         store(es_m,i) = (sp**dim) * rho1
         store(es_den,i) = rho1
         store(es_p,i) = prs1
-        store(es_bx,i) = 0.
-        store(es_by,i) = 1.
+        store(es_bx,i) = 1.
+        store(es_by,i) = 0.
         store(es_bz,i) = 0.
 
         if (ra(1) < 0.) then
@@ -401,10 +408,11 @@ contains
         else if (ra(1) > 0.) then
           store(es_t,i) = 2.
         else
-          ! store(es_t,i) = 2.
-          store(es_t,i) = 1.5
+          store(es_t,i) = 2.
+          ! store(es_t,i) = 1.5
         end if
-        store(es_u,i)  = store(es_t,i)
+        ! store(es_u,i)  = store(es_t,i)
+        store(es_u,i)  = prs1/(gamma -1)/rho1
       case(ett_pulse)
         store(es_h,i) = hfac * sp
         store(es_m,i) = (sp**dim) * rho1
@@ -577,7 +585,7 @@ contains
     select case(ivt)
     case(ett_mti, ett_mtilowres)
       call setPartNumber(r=rpn+fpn,f=0)
-      call clearPeriodicParticles()
+      call clearPeriodicParticles(store)
       call findInsideBorderParticles(store)
       call createPeriodicBorder(store, ebc_x)
       call findneighboursKDT(store)

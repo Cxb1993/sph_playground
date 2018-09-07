@@ -16,13 +16,13 @@ contains
     real, intent(in) :: &
       xmin, xmax, ymin, ymax, zmin, zmax, dbsz
     real, intent(inout)         :: dx
-    real, optional, intent(in)  :: padding
+    real, optional, intent(in)  :: padding(3)
 
-    integer              :: dim, n, ptsz, &
-                             ix1, ix2, iy1, iy2, iz1, iz2, i, j, k, &
-                             d2null, d3null
+    integer :: &
+      dim, n, ptsz, ix1, ix2, iy1, iy2, iz1, iz2, i, j, k, &
+      d2null, d3null
     real :: &
-      spdx, sph, sph3, spdx2, dmx, pdg, &
+      spdx, sph, sph3, spdx2, dmx, pdg(3), &
       dymineps, dymaxeps, dzmineps, dzmaxeps, &
       newymin, newymax, newzmin, newzmax
 
@@ -41,9 +41,9 @@ contains
     n = 1
 
     if (.not.present(padding)) then
-      pdg = 0.
+      pdg(:) = 0.
     else
-      pdg = padding
+      pdg(:) = padding(:)
     end if
 
 
@@ -59,8 +59,8 @@ contains
     iy2 = int(ymax/sph)
     dymineps = 0.
     dymaxeps = 1.
-    newymin = ymin
-    newymax = ymax
+    newymin = sph*iy1
+    newymax = sph*iy2
     if ((iy1 - iy2) /= 0) then
       dymineps = abs((ymax - ymin) - (iy2 - iy1)*sph)/abs(ymax - ymin)
       dymaxeps = abs((ymax - ymin) - (iy2 - iy1 + 2)*sph)/abs(ymax - ymin)
@@ -88,10 +88,9 @@ contains
         newzmax = iz2 * sph
       end if
     end if
-
-    do i = ix1, ix2 - int(2*pdg)
-      do j = iy1, iy2 - int(2*pdg)*d2null
-        do k = iz1, iz2 - int(2*pdg)*d3null
+    do i = ix1, ix2 - int(2*pdg(1))
+      do j = iy1, iy2 - int(2*pdg(2))*d2null
+        do k = iz1, iz2 - int(2*pdg(3))*d3null
           if (mod(k-iz1,2) == 0) then
             if (.not.((i == ix2).and.(mod(j-iy1,2)/=0))) then
               ptsz = size(store, dim=2)
@@ -99,9 +98,9 @@ contains
                 call resize(store, ptsz, ptsz*2)
               end if
               store(:,n) = 0.
-              store(es_rx,n)    = spdx*i + mod(j-iy1,2)*spdx2
-              store(es_ry,n)    =  sph*j
-              store(es_rz,n)    =  sph*k
+              store(es_rx,n)    =        pdg(1)*spdx + spdx*i + mod(j-iy1,2)*spdx2
+              store(es_ry,n)    = d2null*pdg(2)*sph +  sph*j
+              store(es_rz,n)    = d3null*pdg(3)*sph +  sph*k
               store(es_type,n)  = ept_real
               n = n + 1
             end if
@@ -124,6 +123,6 @@ contains
     end do
     n = n - 1
     call setPartNumber(r=n,f=0)
-    call setBorders(xmin, xmax, newymin, newymax, newzmin, newzmax, dbsz, pdg*dx)
+    call setBorders(xmin, xmax, newymin, newymax, newzmin, newzmax, dbsz, pdg(2)*sph)
   end subroutine closepacked
 end module placeClose
