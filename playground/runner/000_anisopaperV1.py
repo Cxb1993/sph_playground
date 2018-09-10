@@ -25,7 +25,7 @@ def defaultSetup():
     setup.resultfile = "result.info"
     setup.influencefile = "influence.info"
     setup.coordsys  = "cartesian"
-    setup.silent    = "no"
+    setup.silent    = "yes"
     setup.usedumps  = "yes"
     setup.adden     = "yes"
     setup.artts     = "yes"
@@ -38,9 +38,6 @@ def main():
     for ddwt in ["2nw_ds", "2nw_sd"]:
         # for rest in [16, 32, 64, 128, 256, 512, 1024]:
         for rest in [16, 32]:
-            setup   = defaultSetup()
-            setup.ddw        = ddwt
-            setup.resolution = rest
             relax   = Context()
             rightPlacing = False
             # rightPlacing = True
@@ -49,7 +46,9 @@ def main():
                 relax = Context()
                 relax.CleanSTDLogs()
                 relax.SetThreadsOMP(8)
-                relax.setup = setup
+                relax.setup = defaultSetup()
+                relax.setup.ddw        = ddwt
+                relax.setup.resolution = rest
                 if (it == 0):
                     relax.SimpleMake()
                 relax.CleanRun()
