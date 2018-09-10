@@ -11,12 +11,12 @@ module errcalc
 
   implicit none
 
-  public :: err_T0sxsyet, err_infplate, err_sinxet,&
+  public :: err_sinxet,&
             err_diff_laplace, err_diff_graddiv, shockTube,&
             soundwaveperturbation_density, &
             soundwaveperturbation_velocity, &
             diff_artvisc, alfvenwave, hcpulse,&
-            hcring
+            hcring, hcshock12
 
   private
 
@@ -123,21 +123,36 @@ contains
     end do
   end subroutine hcring
 
-  subroutine err_T0sxsyet(n, pos, num, t, err)
-    integer, intent(in) :: n
-    real, intent(in)    :: pos(3,n), num(n), t
-    real, intent(out)   :: err(n)
+  subroutine hcshock12(store, t, err)
+    real, allocatable, intent(in)    :: store(:,:)
+    real, allocatable, intent(inout) :: err(:)
+    real, intent(in)                 :: t
+    integer, allocatable :: nlista(:)
+    integer :: &
+      i, j, dim, ivt, diso
+    real :: &
+      tr, tl, tt, x(3), exact, num
 
-    integer             :: i
-    real                :: exact
+    call getNeibListL1(nlista)
+    call getdiffisotropic(diso)
 
-    print*, 'Not ready to NBS will divide to random number'
+    tr = 2.
+    tl = 1.
+    if (diso == 1) then
+      tt = t
+    else
+      tt = 1e-15
+    end if
 
-    do i=1,n
-      exact = sin(pi*(pos(1,i)+1.)/2.) * sin(pi*(pos(2,i)+1.)/2.) * exp(-2.*(pi/2.)**2 * 0.1 * t)
-      err(i) = abs(exact - num(i))
+    do j = 1,size(nlista)
+      i = nlista(j)
+      exact = 0.
+      x(:) = store(es_rx:es_rz,i)
+      exact = (tr+tl)/2. + (tr-tl)/2. *erf(x(1)/sqrt(4*t))
+      num  = store(es_t,i)
+      err(i) = (exact - num)*(exact - num)
     end do
-  end subroutine err_T0sxsyet
+  end subroutine hcshock12
 
   subroutine err_sinxet(store, t, err)
     real, allocatable, intent(in)    :: store(:,:)
@@ -396,49 +411,5 @@ contains
       ! read*
     end do
     !$omp end parallel do
-  end subroutine
-
-  subroutine err_infplate(n, pos, num, t, err)
-    integer, intent(in) :: n
-    real, intent(in)    :: pos(3,n), num(n), t
-    real, intent(inout) :: err
-
-    integer :: i
-    real :: tl, tr, tc, al, ar, ttmp, exact, xm, kl, kr, rhol, rhor, cvl, cvr
-
-    print*, 'Not ready to NBS will divide to random number'
-
-    kl = 1.
-    kr = 1.
-    rhol = 1.
-    rhor = 1.
-    cvl = 1.
-    cvr = 1.
-    tl = 0.
-    tr = 1.
-    xm = 0.
-
-    al = kl / rhol / cvl
-    ar = kr / rhor / cvr
-
-    tc = (tr - tl) * (kr / sqrt(ar)) / (kr / sqrt(ar) + kl / sqrt(al))
-
-    err = 0
-    !$omp parallel do default(none) &
-    !$omp shared(pos,n,xm,al,ar,kl,kr,tc,tl,num,t) &
-    !$omp private(exact, ttmp, i) &
-    !$omp reduction(+:err)
-    do i=1,n
-      if (pos(1,i) < xm) then
-        ttmp = erfc((xm-pos(1,i))/(2 * sqrt(al*t)))
-      else
-        ttmp = 1 + (kl/kr)*sqrt(ar/al)*erf((pos(1,i)-xm)/(2 * sqrt(ar*t)))
-      end if
-      exact = ttmp * tc + tl
-      err = err + (num(i) - exact)**2
-    end do
-    !$omp end parallel do
-    err = sqrt(err/n)
-    return
   end subroutine
 end module

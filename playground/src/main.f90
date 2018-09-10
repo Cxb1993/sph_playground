@@ -34,7 +34,8 @@ program main
                               err_diff_artvisc => diff_artvisc, &
                               err_alfvenwave => alfvenwave,&
                               err_hcpulse => hcpulse,&
-                              err_hcring => hcring
+                              err_hcring => hcring,&
+                              err_hcshock12 => hcshock12
   use args,             only: fillargs
   use errteylor,        only: etlaplace => laplace,&
                               etgraddiv => graddiv
@@ -308,7 +309,9 @@ program main
 
   if (s_tt /= eeq_kd2) then
     select case(ivt)
-    case (ett_OTvortex, ett_mti, ett_shock12, ett_boilingtank, ett_mtilowres)
+    case (ett_OTvortex, ett_mti, ett_boilingtank, ett_mtilowres)
+    case (ett_shock12)
+      call err_hcshock12(store, t, err)
     case (ett_ring)
       call err_hcring(store, t, err)
     case (ett_pulse)

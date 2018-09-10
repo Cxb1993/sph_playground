@@ -25,7 +25,8 @@ module state
             setLastPrint,getLastPrint,&
             setUseDumps, getUseDumps,&
             setdtprint, getdtprint,&
-            getEqComponent
+            getEqComponent,&
+            setProcess, getProcess
 
   private
   save
@@ -64,7 +65,8 @@ module state
       case('hyrad')
         statevars(ec_eqs) = eeq_hyrad
       case default
-        call error('Wrong equations', itt, __FILE__, __LINE__)
+        statevars(ec_eqs) = e_none
+        call error('Equation is not set', itt, __FILE__, __LINE__)
       end select
     end subroutine set_equations
     pure subroutine get_equations(ott)
@@ -94,8 +96,7 @@ module state
         eqSet(eqs_hydro) = 1
         eqSet(eqs_diff) = 1
       case default
-        print *, 'Wrong equations ./src/state.f90:96 ', int(statevars(ec_eqs))
-        stop
+        call error("Equation is not set", int(statevars(ec_eqs)), __FILE__, __LINE__)
       end select
     end subroutine getEqComponent
 
@@ -106,15 +107,15 @@ module state
         statevars(ec_ddw) = esd_n2w
       case('fab')
         statevars(ec_ddw) = esd_fab
-      case('2nw-+')
+      case('2nw_ds')
         statevars(ec_ddw) = esd_2nw_ds
-      case('2nw+-')
+      case('2nw_sd')
         statevars(ec_ddw) = esd_2nw_sd
       case('fw')
         statevars(ec_ddw) = esd_fw
       case default
-        statevars(ec_ddw) = esd_fab
-        write(*,blockFormatStr2) ' # <?>', ' Default d2W/dx2: ', 'fab'
+        statevars(ec_ddw) = e_none
+        call error("Second derivative kernel is not set", itt, __FILE__, __LINE__)
       end select
     end subroutine setddwtype
     pure subroutine getddwtype(ott)
@@ -150,6 +151,7 @@ module state
      case('fld_gauss')
        statevars(ec_ics) = ett_fld_gauss
      case default
+       statevars(ec_ics) = e_none
        call error('There is no such initial variable', itt, __FILE__, __LINE__)
      end select
    end subroutine
@@ -187,8 +189,7 @@ module state
      case('')
        statevars(ec_artts) = 1
      case default
-       print *, 'There is no such default artificail terms: ', iat
-       stop
+       call error("There is no such default Artificail Term", iat, __FILE__, __LINE__)
      end select
    end subroutine
    pure subroutine getArtificialTerms(oat)
@@ -429,6 +430,23 @@ module state
      o = int(statevars(ec_usedumps))
    end subroutine
 
+   subroutine setProcess(it)
+     character (len=*), intent(in) :: it
+     select case(it)
+     case('relaxation')
+       statevars(ec_process) = epc_relaxation
+     case('backcompatibility')
+       statevars(ec_process) = epc_backcompatibility
+     case default
+       call error("The process is not set", it, __FILE__, __LINE__)
+     end select
+   end subroutine
+   pure subroutine getProcess(ot)
+     integer, intent(out) :: ot
+     ot = int(statevars(ec_process))
+   end subroutine
+
+
    subroutine printstate()
      use kernel_base,  only: kernelname
 
@@ -514,6 +532,11 @@ module state
        write(*,blockFormatStr) " #   #", "use restore dumps: ", "yes"
      else
        write(*,blockFormatStr) " #   #", "use restore dumps: ", "no"
+     end if
+     if (int(statevars(ec_usedumps)) == epc_relaxation) then
+       write(*,blockFormatStr) " #   #", "process: ", "relaxation"
+     else
+       write(*,blockFormatStr) " #   #", "process: ", "backcompatibility"
      end if
 
 write(*,blockFormatInt) " #   #", "desired resolution:", int(statevars(ec_resolution))

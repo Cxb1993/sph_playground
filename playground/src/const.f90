@@ -38,7 +38,8 @@ module const
     ec_lastprint = 28,&
     ec_usedumps = 29,&
     ec_dtprint = 30,&
-    ec_total = 30
+    ec_process = 31,&
+    ec_total = 31
 
   ! store of data
   integer, parameter :: &
@@ -134,6 +135,10 @@ module const
     edi_iso       = 500,&
     edi_aniso     = 501,&
     edi_mtih2017  = 502
+
+  integer, parameter :: &
+    epc_relaxation        = 600,&
+    epc_backcompatibility = 601
 
   integer, parameter :: &
     eqs_hydro   = 1,&

@@ -9,6 +9,7 @@ import math
 import os
 import subprocess as sp
 import time
+import copy
 
 class RunnerArgument:
     parser = argparse.ArgumentParser(description='I\'m the law.')
@@ -29,79 +30,28 @@ class RunnerArgument:
     args = parser.parse_args()
 
 class Setup:
-
-    # xmin = 0.0
-    # xmax = 0.0
-    # ymin = 0.0
-    # ymax = 0.0
-    # zmin = 0.0
-    # zmax = 0.0
-    # resolution = -1
-    # dimentions = -1
-    # snapshotsNumber = -1
-    # particlesPlacement  = "none"
-    # particlesArrangment = "none"
-    # initialConditions   = "none"
-    # equationsSet        = "none"
-    # secondDerivType     = "none"
-    # resultFile          = "result.info"
-    # finishTime = -1
-    # hfac = -1
-    kernel = "m4"
     stderrfile = "__stderr.info"
     stdoutfile = "__stdout.info"
     logfile = "__runslog.info"
+    kernel = "m4"
     resultfile = ""
     influencefile = ""
+    time = 0.0
 
     def toArgs(self):
         args = []
-        args.append("--resolution")
-        args.append(str(self.resolution))
-        args.append("--dim")
-        args.append(str(self.dimentions))
-        args.append("--tfinish")
-        args.append(str(self.finishTime))
-        args.append("--hfac")
-        args.append(str(self.hfac))
-        args.append("--resultfile")
-        args.append(str(self.resultFile))
-        if (self.snapshotsNumber <= 0):
-            args.append("--silent")
-            args.append("yes")
-        else:
-            args.append("--nsnapshots")
-            args.append(str(self.snapshotsNumber))
-        if (self.particlesPlacement != "none"):
-            args.append("--partplace")
-            args.append(self.particlesPlacement)
-            args.append("--box")
-            args.append(str(self.xmin))
-            args.append(str(self.xmax))
-            args.append(str(self.ymin))
-            args.append(str(self.ymax))
-            args.append(str(self.zmin))
-            args.append(str(self.zmax))
-        if (self.particlesArrangment != "none"):
-            args.append("--partarang")
-            args.append(self.particlesArrangment)
-        if (self.initialConditions != "none"):
-            args.append("--initvar")
-            args.append(self.initialConditions)
-        if (self.equationsSet != "none"):
-            args.append("--equations")
-            args.append(self.equationsSet)
-        if (self.secondDerivType != "none"):
-            args.append("--ddw")
-            args.append(self.secondDerivType)
+        for k in self.__dict__.keys():
+            args.append("--"+k)
+            args.append(str(self.__dict__[k]))
         return args
 
 class Context:
     pwd = os.getcwd()
     env = os.environ.copy()
+    rargs = RunnerArgument().args
 
     setup = Setup()
-    rargs = RunnerArgument().args
+    store = []
 
     def __init__(self):
         self.ReadConstFile()
@@ -128,8 +78,10 @@ class Context:
         t0 = time.time()
         tn = t0
         tc = t0
-        dtn = 0.5 if timeout > 0 else 0.0
-        dtc = 0.5
+        dtn = 1.0 if timeout > 0 else 0.0
+        dtc = 1.0
+        s = "CMD [" + " ".join(str(x) for x in process.args) + "] SENT TO RUN"
+        self.__tolog__(s)
 
         while ((tn <= t0 + timeout) and (process.poll() == None)):
             time.sleep(dtc)
@@ -139,18 +91,18 @@ class Context:
         s = ""
         if (process.poll() == None):
             process.kill()
-            s = "CMD " + " ".join(str(x) for x in process.args) + " KILLED AFTER " + str(tc - t0) + " SECONDS"
+            s = "CMD [" + " ".join(str(x) for x in process.args) + "] KILLED AFTER " + str(tc - t0) + " SECONDS"
         else:
-            s = "CMD " + " ".join(str(x) for x in process.args) + " EXECUTED IN " + str(tc - t0) + " SECONDS"
+            s = "CMD [" + " ".join(str(x) for x in process.args) + "] EXECUTED IN " + str(tc - t0) + " SECONDS"
         so = process.stdout.read().decode('ascii')
-        se = process.stderr.read().decode('ascii')
+        # se = process.stderr.read().decode('ascii')
         self.__tolog__(s)
         if (so != ""):
             self.__tostdout__(s)
             self.__tostdout__(so)
-        if (se != ""):
-            self.__tostderr__(s)
-            self.__tostderr__(se)
+        # if (se != ""):
+        #     self.__tostderr__(s)
+        #     self.__tostderr__(se)
 
     def CleanSTDLogs(self):
         if self.setup.stdoutfile != "none":
@@ -177,6 +129,7 @@ class Context:
 
     def SetThreadsOMP(self, i):
         self.env["OMP_NUM_THREADS"] = str(i)
+
     def GetDateTimeString(self):
         strres = str(datetime.datetime.today().year)
         strres += "-" + str(datetime.datetime.today().month)
@@ -192,7 +145,7 @@ class Context:
             "debug=f",
             "kernel=" + self.setup.kernel,
             "useomp=" + "t" if ("OMP_NUM_THREADS" in self.env) else "f"
-            ], stdout=sp.PIPE, stderr=sp.PIPE, cwd=self.pwd, env=self.env)
+            ], stdout=sp.PIPE, cwd=self.pwd, env=self.env)
         self.__waitwithtimeout__(make, 0.0)
 
     def ContinueRun(self):
@@ -204,7 +157,7 @@ class Context:
     def SimpleRun(self):
         cmd = ["./execute"]
         cmd += self.setup.toArgs()
-        run = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE, cwd=self.pwd, env=self.env)
+        run = sp.Popen(cmd, stdout=sp.PIPE, cwd=self.pwd, env=self.env)
         self.__waitwithtimeout__(run, 0.0)
 
     def CleanRun(self):
@@ -218,15 +171,15 @@ class Context:
         self.SimpleMake()
         self.CleanRun()
 
+###############################################################
+###############################################################
+########                                              #########
+########                                              #########
+########                                              #########
+########                                              #########
+###############################################################
+###############################################################
 
-###############################################################
-###############################################################
-########                                              #########
-########                                              #########
-########                                              #########
-########                                              #########
-###############################################################
-###############################################################
     # All the enums from the const.f90
     # fields in state array
     ec      = {}
@@ -255,10 +208,9 @@ class Context:
     # components of equation array
     eqs     = {}
     eqsRev  = {}
-
-    CurrentTime = 0.0
-    State = []
-    Store = []
+    # processess described in iterate
+    epc     = {}
+    epcRev  = {}
 
     def ReadConstFile(self):
         with open(self.rargs.constf90, 'r') as cf90:
@@ -322,6 +274,13 @@ class Context:
                         else:
                             self.eqs[splitted[0][4:]] = int(splitted[2])
                             self.eqsRev[int(splitted[2])] = splitted[0][4:]
+                    if (splitted[0][0:4] == "epc_"):
+                        if (splitted[2][-2:] == ",&"):
+                            self.epc[splitted[0][4:]] = int(splitted[2][:-2])
+                            self.epcRev[int(splitted[2][:-2])] = splitted[0][4:]
+                        else:
+                            self.epc[splitted[0][4:]] = int(splitted[2])
+                            self.epcRev[int(splitted[2])] = splitted[0][4:]
 
                 curline = cf90.readline()
 
@@ -344,97 +303,122 @@ class Context:
                 if splitted[0] == 'store':
                     store = fdump.read_reals(dtype=numpy.float64)
                 curmapline = fmap.readline()
-            self.CurrentTime = t
-            self.State = state
-            self.Store = store
-            self.setup.resultfile = resultfile.split()[0]
-            self.setup.influencefile = influencefile.split()[0]
+
+            for i in range(1,len(state)+1):
+                self.setup.__dict__[self.ecRev[i]] = state[i-1]
+            self.store = store
+            self.setup.time = t
+            self.setup.resultfile = resultfile
+            self.setup.influencefile = influencefile
             return True
         return False
 
     def IsParticlesPositionsCorrect(self):
-        realPartNumb = int(self.State[self.ec['realpn']-1])
+        realPartNumb = int(self.setup.realpn)
         for i in range(0,realPartNumb):
-            rx = self.Store[self.partPropPos('rx',i)]
-            ry = self.Store[self.partPropPos('ry',i)]
-            rz = self.Store[self.partPropPos('rz',i)]
-            if not ((rx >= self.setup.xmin) and (rx <= self.setup.xmax) and
-                (ry >= self.setup.ymin) and (ry <= self.setup.ymax) and
-                (rz >= self.setup.zmin) and (rz <= self.setup.zmax)):
-                print("Particle " + str(i) + " is out of the box at [" + str(rx) + ";" +str(ry) + ";" + str(rz) +"]")
+            irx = self.store[self.idx('rx',i)]
+            iry = self.store[self.idx('ry',i)]
+            irz = self.store[self.idx('rz',i)]
+            if not ((irx >= self.setup.xmin) and (irx <= self.setup.xmax) and
+                (iry >= self.setup.ymin) and (iry <= self.setup.ymax) and
+                (irz >= self.setup.zmin) and (irz <= self.setup.zmax)):
+                print("Particle " + str(i) + " is out of the box at [" + str(irx) + ";" +str(iry) + ";" + str(irz) +"]")
                 return False
         return True
 
-    def AfterRunUpdate(self):
-        for i in range(1,len(self.State)+1):
-            self.setup.__dict__[self.ecRev[i]] = self.State[i-1]
-
     def PrintState(self):
-        print('\t +---field name ---+---run state---+---internal state---+')
-        for i in range(1,len(self.State)+1):
-            print("\t |", '{0:^15}'.format(self.ecRev[i]), "|", '{0:^13}'.format(self.State[i-1]),
-                "|", '{0:^18}'.format(self.setup.__dict__[self.ecRev[i]]), "|")
-        print('\t |   result file   |', '{0:^34}'.format(self.setup.resultfile), "|")
-        print('\t +------------------------------------------------------+')
+        print("\t +", '{0:-^15}'.format("field name"),"+", '{0:-^40}'.format("state"),"+")
+        for i in range(1,len(self.setup.__dict__.keys())):
+            if i in self.ecRev:
+                print("\t |", '{0:^15}'.format(self.ecRev[i]), "|", '{0:^40}'.format(self.setup.__dict__[self.ecRev[i]]), "|")
+        print('\t |  current time   |', '{0:^40}'.format(self.setup.time), "|")
+        print('\t |  result file    |','{0:^40}'.format(self.setup.resultfile.split()[0]), "|")
+        print('\t |  influence file |','{0:^40}'.format(self.setup.influencefile.split()[0]), "|")
+        print("\t +", '{0:-^15}'.format(""), "+", '{0:-^40}'.format(""),"+")
+
+    def PrintPropertyKeys(self):
+        print("Properties: " + str(self.es.keys()))
 
     def StateVal(self, key):
         return self.State[self.ec[key]-1]
 
-    def partPropPos(self, propName, partIndx):
+    def idx(self, propName, partIndx):
+        # index in threaded array from squared data
         return (partIndx*len(self.es) + self.es[propName]-1)
 
     def BackupOutput(self):
         os.system("cp -r " + self.pwd + "/output " + self.pwd + "/output.bck")
         os.system("mkdir -p " + self.pwd)
 
-    def storeModify(state, store):
-        for i in range(0,int(state[ec['realpn']-1])):
-            # store[partPos('ax',i)] = 0.
-            store[partPos('vy',i)] = 1e-4 * \
-                math.sqrt(state[ec['gamma']-1] * store[partPos('p',i)] /
-                store[partPos('den',i)]) * math.sin(4. * math.pi * store[partPos('rx',i)]/2.)
-            # store[partPos('ay',i)] = 0.
-            # store[partPos('az',i)] = 0.
+    def AddParticles(self, dim, type, method):
+        locposidx  = self.es['r'+dim]-1
+        loctypeidx = self.es['type']-1
+        bd   = self.setup.bordsize
+        min  = self.setup.__dict__[dim + 'min']
+        max  = self.setup.__dict__[dim + 'max']
+        bmin = min + bd
+        bmax = max - bd
 
-            store[partPos('bx',i)] = 1e-11
-            # store[partPos('bx',i)] = 0.
-            store[partPos('by',i)] = 0.
-            store[partPos('bz',i)] = 0.
+        storenew = copy.deepcopy(self.store)
+        nreal = int(self.setup.realpn)
+        idx = self.idx
+        totprop = len(self.es)
+        addedNumber = 0
+        for i in range(0,nreal-1):
+            oldr = self.store[idx('r'+dim,i)]
+            newr = oldr
+            if (oldr < bmin):
+                newr = max + oldr - min
+            if (oldr > bmax):
+                newr = min + oldr - max
+            if (abs(oldr-newr) > 10e-5):
+                p1 = idx('rx',i)
+                p2 = p1 + totprop
+                newp = copy.deepcopy(self.store[p1:p2])
+                newp[locposidx]  = newr
+                newp[loctypeidx] = self.ept[type]
+                storenew = numpy.append(storenew, newp)
+                addedNumber += 1
+        self.store = copy.deepcopy(storenew)
+        return float(addedNumber)
 
-        # print(store[partPos('type',1)])
-        # print(store[partPos('rx',1)])
-        # print(store[partPos('ry',1)])
-        # print(store[partPos('rz',1)])
+    def CopyContext(self):
+        newContext = copy.deepcopy(self)
+        newContext.setup = copy.deepcopy(self.setup)
+        newContext.store = copy.deepcopy(self.store)
+        return newContext
 
-        state[ec['muzero']-1] = 1.
-        state[ec['eqs']-1] = 303        #mhdd
-        state[ec['ddw']-1] = 403        #2nw
-        state[ec['disotropic']-1] = 1   #yes
+    def ModifyParticles(self, condition, condarg, properties, value, valuearg):
+        storenew = copy.deepcopy(self.store)
+        nreal = int(self.setup.realpn)
+        nfixd = int(self.setup.fixedpn)
+        for i in range(0,nreal+nfixd):
+            if condition(self.store[self.idx(condarg,i)]):
+                for pa in properties:
+                    storenew[self.idx(pa,i)] = value(self.idx(valuearg,i))
+        self.store = copy.deepcopy(storenew)
 
-        state[ec['tfinish']-1] = 1001.
-        state[ec['dtprint']-1] = .0001
-        return state, store
-
-    def saveNewDump(t, state, store, resultfile, influencefile):
-        with open(rargs.dumpmap[0], 'r') as fmap:
-            fdumpnew = FortranFile(rargs.modifieddump[0], 'w')
+    def Apply(self):
+        with open(self.rargs.dumpmap, 'r') as fmap:
+            fdumpnew = FortranFile(self.rargs.dumpfile, 'w')
             curmapline = fmap.readline()
             while (curmapline):
                 splitted = curmapline.split()
                 if len(splitted) != 4:
                     return False
                 if splitted[0] == 't':
-                    fdumpnew.write_record(numpy.array([t],dtype=numpy.float64))
+                    fdumpnew.write_record(numpy.array([self.setup.time],dtype=numpy.float64))
                 if splitted[0] == 'resultfile':
                     fdumpnew.write_record(
-                        numpy.array(
-                            (resultfile + influencefile).encode(encoding='utf_8')
-                            )
-                        )
+                        numpy.array((
+                        '{0:<50}'.format(self.setup.resultfile) +
+                        '{0:<50}'.format(self.setup.influencefile)
+                        ).encode(encoding='utf_8')))
                 if splitted[0] == 'state':
+                    state = []
+                    for i in self.ecRev:
+                        state.append(self.setup.__dict__[self.ecRev[i]])
                     fdumpnew.write_record(numpy.array(state,dtype=numpy.float64))
                 if splitted[0] == 'store':
-                    fdumpnew.write_record(numpy.array(store,dtype=numpy.float64))
+                    fdumpnew.write_record(numpy.array(self.store,dtype=numpy.float64))
                 curmapline = fmap.readline()
-            fdumpnew.close()
-            return True

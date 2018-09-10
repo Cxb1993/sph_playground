@@ -85,9 +85,9 @@ contains
           end if
           store(:,n) = 0.
           call random_number(rnddr)
-          store(es_rx,n)    =        (pdg + i + drdis*rnddr(1))*sp
-          store(es_ry,n)    = d2null*(pdg + j + drdis*rnddr(2))*sp
-          store(es_rz,n)    = d3null*(pdg + k + drdis*rnddr(3))*sp
+          store(es_rx,n)    =        (pdg + i + drdis*(rnddr(1)-0.5))*sp
+          store(es_ry,n)    = d2null*(pdg + j + drdis*(rnddr(2)-0.5))*sp
+          store(es_rz,n)    = d3null*(pdg + k + drdis*(rnddr(3)-0.5))*sp
 
           if (store(es_rx,n)<xmin) then
             store(es_rx,n) = xmin + (xmax - xmin)/resol/4.
