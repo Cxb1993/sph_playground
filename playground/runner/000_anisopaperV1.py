@@ -34,6 +34,8 @@ def defaultSetup():
 def main():
     tmp = Context()
     resfile = tmp.GetDateTimeString()
+    tmp.setup = defaultSetup()
+    tmp.SimpleMake()
 
     for ddwt in ["2nw_sd", "2nw_ds"]:
         for rest in [16, 32, 64, 128, 256, 512, 1024]:
@@ -43,8 +45,6 @@ def main():
             relax.setup = defaultSetup()
             relax.setup.ddw        = ddwt
             relax.setup.resolution = rest
-            if (it == 0):
-                relax.SimpleMake()
             relax.CleanRun()
             relax.ReadFinalDump()
             relax.BackupOutput()
@@ -79,5 +79,5 @@ def main():
             hc12.Apply()
             hc12.ContinueRun()
             print("Done: | ", ddwt, " | ", rest, "|")
-            
+
 main()
