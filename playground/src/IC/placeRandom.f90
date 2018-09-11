@@ -90,22 +90,22 @@ contains
           store(es_rz,n)    = d3null*(pdg + k + drdis*(rnddr(3)-0.5))*sp
 
           if (store(es_rx,n)<xmin) then
-            store(es_rx,n) = xmin + (xmax - xmin)/resol/4.
+            store(es_rx,n) = xmin + (xmax - xmin)/resol/2.
           end if
           if (store(es_rx,n)>xmax) then
-            store(es_rx,n) = xmax - (xmax - xmin)/resol/4.
+            store(es_rx,n) = xmax - (xmax - xmin)/resol/2.
           end if
           if (store(es_ry,n)<ymin) then
-            store(es_ry,n) = ymin + (ymax - ymin)/resol/4.
+            store(es_ry,n) = ymin + (ymax - ymin)/resol/2.
           end if
           if (store(es_ry,n)>ymax) then
-            store(es_ry,n) = ymax - (ymax - ymin)/resol/4.
+            store(es_ry,n) = ymax - (ymax - ymin)/resol/2.
           end if
           if (store(es_rz,n)<zmin) then
-            store(es_rz,n) = zmin + (zmax - zmin)/resol/4.
+            store(es_rz,n) = zmin + (zmax - zmin)/resol/2.
           end if
           if (store(es_rz,n)>zmax) then
-            store(es_rz,n) = zmax - (zmax - zmin)/resol/4.
+            store(es_rz,n) = zmax - (zmax - zmin)/resol/2.
           end if
           store(es_type,n)  = ept_real
           n = n + 1

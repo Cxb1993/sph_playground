@@ -97,6 +97,7 @@ contains
     call gethfac(hfac)
 
     call getNeibListL1(nlista)
+
     allowerror = 1e-8
     hkp1(:) = store(es_h,  1:totreal)
     dkp1(:) = store(es_den,1:totreal)
@@ -141,11 +142,11 @@ contains
           okp1(i) = 0.
 
           tneib = tneib + t0
-          ! do lb = 1, xgetneighnumber(i)
-          !   j = xgetneighindex(i, lb)
-          call getneighbours(i, nlistb, t0)
-          do lb = 1, size(nlistb)
-            j = nlistb(lb)
+          do lb = 1, xgetneighnumber(i)
+            j = xgetneighindex(i, lb)
+          ! call getneighbours(i, nlistb, t0)
+          ! do lb = 1, size(nlistb)
+          !   j = nlistb(lb)
 
             rj = getCrossRef(j)
             rb(:) = store(es_rx:es_rz, j)

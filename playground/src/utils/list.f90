@@ -7,15 +7,15 @@ module list
     integer               :: length = 0
     integer               :: size = 0
   contains
-    procedure :: append, toarr, print, e, xe, llen, clearfast, clear
+    procedure :: append, toarr, print, e, xe, len, clearfast, clear
   end type
 
 contains
 
-  subroutine append(list, element)
+  pure subroutine append(list, element)
     use arrayresize, only: resize
 
-    class(intlist)      :: list
+    class(intlist), intent(inout) :: list
     integer, intent(in) :: element
 
     if (list%size == 0) then
@@ -66,7 +66,7 @@ contains
     element = list%elements(idx)
   end function xe
 
-  pure function llen(list) result(length)
+  pure function len(list) result(length)
     class(intlist), intent(in)  :: list
     integer                     :: length
 
@@ -78,14 +78,14 @@ contains
     list%length = 0
   end subroutine clearfast
 
-  subroutine clear(list)
+  pure subroutine clear(list)
     class(intlist), intent(inout) :: list
     if (list%size /= 0) then
       deallocate(list%elements)
       list%length = 0
       list%size = 0
     else
-      print*, " <!> some one tried to deallocate an empty list"
+      error stop " <!> some one tried to deallocate an empty list"
     end if
   end subroutine clear
 end module

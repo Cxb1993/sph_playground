@@ -9,7 +9,8 @@ module errteylor
   use state,            only: getdim,&
                               getPartNumber,&
                               getkerninflfilename
-  use neighboursearch,  only: findneighboursN2once
+  use neighboursearch,  only: findneighboursKDT
+  use errprinter,       only: error
 
   use printer,          only: AppendLine
 
@@ -54,7 +55,8 @@ contains
     dchi(:) = 0.
     t(:) = 0.
     idx = int(realpartnumb/2)
-    call findneighboursN2once(idx, store, nlist)
+    call error("Need to do neib search first", "", __FILE__, __LINE__)
+    ! call findneighboursKDT(idx, store, nlist)
     i = idx
 
     dsum = 0.
@@ -139,7 +141,8 @@ contains
     t(:) = 0.
 
     idx = int(realpartnumb/2)
-    ! call findneighboursN2once(idx, store, nlist)
+    call error("Need to do neib search first", "", __FILE__, __LINE__)
+    ! call findneighboursKDT(idx, store, nlist)
     error stop "fix max,den,pos -> store"
     i = idx
     do l = 1,size(nlist)

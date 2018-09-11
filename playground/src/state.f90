@@ -533,7 +533,7 @@ module state
      else
        write(*,blockFormatStr) " #   #", "use restore dumps: ", "no"
      end if
-     if (int(statevars(ec_usedumps)) == epc_relaxation) then
+     if (int(statevars(ec_process)) == epc_relaxation) then
        write(*,blockFormatStr) " #   #", "process: ", "relaxation"
      else
        write(*,blockFormatStr) " #   #", "process: ", "backcompatibility"

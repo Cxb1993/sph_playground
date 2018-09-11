@@ -313,8 +313,9 @@ class Context:
             return True
         return False
 
-    def IsParticlesPositionsCorrect(self):
+    def ParticlesWithWrongPositions(self):
         realPartNumb = int(self.setup.realpn)
+        idx = []
         for i in range(0,realPartNumb):
             irx = self.store[self.idx('rx',i)]
             iry = self.store[self.idx('ry',i)]
@@ -322,9 +323,13 @@ class Context:
             if not ((irx >= self.setup.xmin) and (irx <= self.setup.xmax) and
                 (iry >= self.setup.ymin) and (iry <= self.setup.ymax) and
                 (irz >= self.setup.zmin) and (irz <= self.setup.zmax)):
-                print("Particle " + str(i) + " is out of the box at [" + str(irx) + ";" +str(iry) + ";" + str(irz) +"]")
-                return False
-        return True
+                print("Particle " + str(i) + "r = [" +
+                    str(irx) + ";" +str(iry) + ";" + str(irz) +"] is out of the box [" +
+                    str(self.setup.xmin) + ":" + str(self.setup.xmax) +"X"+
+                    str(self.setup.ymin) + ":" + str(self.setup.ymax) +"X"+
+                    str(self.setup.zmin) + ":" + str(self.setup.zmax) +"]")
+                idx.append(i)
+        return idx
 
     def PrintState(self):
         print("\t +", '{0:-^15}'.format("field name"),"+", '{0:-^40}'.format("state"),"+")

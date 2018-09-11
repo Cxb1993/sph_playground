@@ -217,11 +217,11 @@ contains
       end if
 
       tneib = tneib + t0
-      call getneighbours(i, nlistb, t0)
-      overb: do lb = 1, size(nlistb)
-        j = nlistb(lb)
-      ! overb: do lb = 1, xgetneighnumber(i)
-        ! j = xgetneighindex(i,lb)
+      ! call getneighbours(i, nlistb, t0)
+      ! overb: do lb = 1, size(nlistb)
+      !   j = nlistb(lb)
+      overb: do lb = 1, xgetneighnumber(i)
+        j = xgetneighindex(i,lb)
 
         rj = getCrossRef(j)
         rb(:) = store(es_rx:es_rz, j)

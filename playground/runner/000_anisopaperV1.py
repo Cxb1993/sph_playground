@@ -35,33 +35,20 @@ def main():
     tmp = Context()
     resfile = tmp.GetDateTimeString()
 
-    for ddwt in ["2nw_ds", "2nw_sd"]:
-        # for rest in [16, 32, 64, 128, 256, 512, 1024]:
-        for rest in [16, 32]:
-            relax   = Context()
-            rightPlacing = False
-            # rightPlacing = True
-            it = 0
-            while(not rightPlacing):
-                relax = Context()
-                relax.CleanSTDLogs()
-                relax.SetThreadsOMP(8)
-                relax.setup = defaultSetup()
-                relax.setup.ddw        = ddwt
-                relax.setup.resolution = rest
-                if (it == 0):
-                    relax.SimpleMake()
-                relax.CleanRun()
-                relax.ReadFinalDump()
-                rightPlacing = relax.IsParticlesPositionsCorrect()
-                it += 1
-            print("Spent iterations befor right placing: " + str(it))
+    for ddwt in ["2nw_sd", "2nw_ds"]:
+        for rest in [16, 32, 64, 128, 256, 512, 1024]:
+        # for rest in [64]:
+            relax = Context()
+            relax.SetThreadsOMP(8)
+            relax.setup = defaultSetup()
+            relax.setup.ddw        = ddwt
+            relax.setup.resolution = rest
+            if (it == 0):
+                relax.SimpleMake()
+            relax.CleanRun()
             relax.ReadFinalDump()
             relax.BackupOutput()
             hc12 = relax.CopyContext()
-            # relax.PrintState()
-            # hc12.PrintPropertyKeys()
-            # hc12.PrintState()
             hc12.setup.eqs          = hc12.eeq['diffusion']
             hc12.setup.tfinish      = 0.05
             hc12.setup.dtprint      = 0.001
@@ -92,5 +79,5 @@ def main():
             hc12.Apply()
             hc12.ContinueRun()
             print("Done: | ", ddwt, " | ", rest, "|")
-
+            
 main()

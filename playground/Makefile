@@ -85,7 +85,7 @@ endif
 FC=gfortran
 
 FFLAGS=-fdefault-real-8 -fdefault-double-8 \
- 				-flto -Ofast -cpp
+ 				-flto -O4 -cpp -Ofast
 
 ifeq ($(debug),t)
 FFLAGS=-fdefault-real-8 -fdefault-double-8\
@@ -102,9 +102,6 @@ ifeq ($(useomp),t)
 	FFLAGS+=-fopenmp
 endif
 
-ifeq ($(xperf),f)
-	FFLAGS+=-O4
-endif
 ifeq ($(xperf),t)
 	FFLAGS+=-fprofile-generate=profiler
 endif

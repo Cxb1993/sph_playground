@@ -4,7 +4,7 @@ module iterator
   use const
   use circuit1
   use circuit2,         only: c2
-  use BC,               only: reflecPeriodicParticles, &
+  use BC,               only: reflectRealParticlesPeriodically, &
                               createPeriodicBorder, &
                               clearPeriodicParticles, &
                               createFixedBorders, &
@@ -15,8 +15,7 @@ module iterator
                               ginitvar,&
                               getPartNumber,&
                               getProcess
-  use neighboursearch,  only: findneighboursKDT, &
-                              findneighboursN2
+  use neighboursearch,  only: findneighboursKDT
 
  implicit none
 
@@ -61,6 +60,7 @@ contains
     select case(ipc)
     case(epc_relaxation)
       call clearPeriodicParticles(store)
+      call reflectRealParticlesPeriodically(store, ebc_all)
       call findInsideBorderParticles(store)
       call createPeriodicBorder(store, ebc_all)
 
@@ -76,6 +76,7 @@ contains
 
         call findneighboursKDT(store)
         call c1(store)
+        call eos_adiabatic(store, gamma)
         call c2(store, maxconsenrg)
       case (ett_pulse, ett_ring, ett_fld_gauss)
         call findneighboursKDT(store)
@@ -83,7 +84,7 @@ contains
         call c2(store, maxconsenrg)
       case (ett_soundwave)
         call clearPeriodicParticles(store)
-        call reflecPeriodicParticles(store, ebc_all)
+        call reflectRealParticlesPeriodically(store, ebc_all)
         call findInsideBorderParticles(store)
         call createPeriodicBorder(store, ebc_all)
         call findneighboursKDT(store)
@@ -93,8 +94,8 @@ contains
         call c2(store, maxconsenrg)
       case (ett_hydroshock)
         call clearPeriodicParticles(store)
-        call reflecPeriodicParticles(store, ebc_y)
-        call reflecPeriodicParticles(store, ebc_z)
+        call reflectRealParticlesPeriodically(store, ebc_y)
+        call reflectRealParticlesPeriodically(store, ebc_z)
         call findInsideBorderParticles(store)
         call createPeriodicBorder(store, ebc_y)
         call createPeriodicBorder(store, ebc_z)
@@ -125,7 +126,7 @@ contains
       !   kcf(:,2,:) = dbtmp(:,:)
       case(ett_mti)
         call clearPeriodicParticles(store)
-        call reflecPeriodicParticles(store, ebc_x)
+        call reflectRealParticlesPeriodically(store, ebc_x)
         call findInsideBorderParticles(store)
         call createPeriodicBorder(store, ebc_x)
         call findneighboursKDT(store)
@@ -135,7 +136,7 @@ contains
         store(es_ay,1:rpn) = store(es_ay,1:rpn) - 1.
       case(ett_mtilowres)
         call clearPeriodicParticles(store)
-        call reflecPeriodicParticles(store, ebc_x)
+        call reflectRealParticlesPeriodically(store, ebc_x)
         call findInsideBorderParticles(store)
         call createPeriodicBorder(store, ebc_x)
         call findneighboursKDT(store)
@@ -155,7 +156,7 @@ contains
         end do
       case (ett_OTvortex)
         call clearPeriodicParticles(store)
-        call reflecPeriodicParticles(store, ebc_all)
+        call reflectRealParticlesPeriodically(store, ebc_all)
         call findInsideBorderParticles(store)
         call createPeriodicBorder(store, ebc_all)
         call findneighboursKDT(store)

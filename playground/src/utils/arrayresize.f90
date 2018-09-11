@@ -6,18 +6,12 @@ module arrayresize
   private
 
   save
-    real :: realoc
 
   interface resize
     module procedure rsz_i4, i8resize, cresize, rresize, resize3r
   end interface
 
 contains
-  pure subroutine realocnum(num)
-    real, intent(out) :: num
-    num = realoc
-  end subroutine
-
   pure subroutine rsz_i4(array, oldsize, newsize)
   ! subroutine rsz_i4(array, oldsize, newsize)
     integer, intent(in)                 :: newsize, oldsize

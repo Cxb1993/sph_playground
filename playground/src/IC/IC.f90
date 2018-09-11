@@ -92,7 +92,7 @@ contains
       call setdiffconductivity(1.)
       rho1 = 1.
       prs1 = 1.
-      gamma = 2.
+      gamma = 5./3.
 
       brdx1 = -1.
       brdx2 =  1.
