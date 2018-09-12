@@ -372,7 +372,7 @@ class Context:
         idx = self.idx
         totprop = len(self.es)
         addedNumber = 0
-        for i in range(0,nreal-1):
+        for i in range(0,nreal):
             oldr = self.store[idx('r'+dim,i)]
             newr = oldr
             if (oldr < bmin):

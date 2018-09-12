@@ -37,8 +37,8 @@ def main():
     tmp.setup = defaultSetup()
     tmp.SimpleMake()
 
-    for ddwt in ["2nw_sd", "2nw_ds", "n2w", "fab", "fw"]:
-    # for ddwt in ["2nw_sd"]:
+    # for ddwt in ["2nw_sd", "2nw_ds", "n2w", "fab", "fw"]:
+    for ddwt in ["2nw_sd", "2nw_ds"]:
         # for rest in [16, 32, 64, 128, 256, 512, 1024]:
         for rest in [16]:
             relax = Context()
