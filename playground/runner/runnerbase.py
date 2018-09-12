@@ -144,7 +144,7 @@ class Context:
             "make",
             "debug=f",
             "kernel=" + self.setup.kernel,
-            "useomp=" + "t" if ("OMP_NUM_THREADS" in self.env) else "f"
+            "useomp=t" if ("OMP_NUM_THREADS" in self.env) else "useomp=f"
             ], stdout=sp.PIPE, cwd=self.pwd, env=self.env)
         self.__waitwithtimeout__(make, 0.0)
 
@@ -351,9 +351,12 @@ class Context:
         # index in threaded array from squared data
         return (partIndx*len(self.es) + self.es[propName]-1)
 
-    def BackupOutput(self):
-        os.system("cp -r " + self.pwd + "/output " + self.pwd + "/output.bck")
-        os.system("mkdir -p " + self.pwd)
+    def BackupOutput(self, str):
+        os.system("cp -r " + self.pwd + "/output " + self.pwd + "/" + str)
+
+    def BackupDumps(self, strDump, strMap):
+        os.system("cp " + self.pwd + "/output/finaldump " + self.pwd + "/" + strDump)
+        os.system("cp " + self.pwd + "/output/dumpmap " + self.pwd + "/" + strMap)
 
     def AddParticles(self, dim, type, method):
         locposidx  = self.es['r'+dim]-1

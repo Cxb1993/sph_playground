@@ -21,11 +21,11 @@ def defaultSetup():
     setup.equations = "hydro"
     setup.kernel    = "m6"
     setup.hfac      = 1.0
-    setup.nsnapshots = 100.0
+    setup.nsnapshots = 10.0
     setup.resultfile = "result.info"
     setup.influencefile = "influence.info"
     setup.coordsys  = "cartesian"
-    setup.silent    = "yes"
+    setup.silent    = "no"
     setup.usedumps  = "yes"
     setup.adden     = "yes"
     setup.artts     = "yes"
@@ -37,9 +37,10 @@ def main():
     tmp.setup = defaultSetup()
     tmp.SimpleMake()
 
-    for ddwt in ["2nw_sd", "2nw_ds"]:
+    for ddwt in ["2nw_sd", "2nw_ds", "n2w", "fab", "nw"]:
+    # for ddwt in ["2nw_sd"]:
         for rest in [16, 32, 64, 128, 256, 512, 1024]:
-        # for rest in [64]:
+        # for rest in [16, 32]:
             relax = Context()
             relax.SetThreadsOMP(8)
             relax.setup = defaultSetup()
@@ -47,11 +48,14 @@ def main():
             relax.setup.resolution = rest
             relax.CleanRun()
             relax.ReadFinalDump()
-            relax.BackupOutput()
+            relax.BackupDumps(
+                "output/"+"fd-" + str(ddwt) + "-" + str(rest)+".relaxed",
+                "output/"+"dm-" + str(ddwt) + "-" + str(rest)+".relaxed"
+            )
             hc12 = relax.CopyContext()
             hc12.setup.eqs          = hc12.eeq['diffusion']
             hc12.setup.tfinish      = 0.05
-            hc12.setup.dtprint      = 0.001
+            hc12.setup.dtprint      = hc12.setup.tfinish/10.
             hc12.setup.resultfile   = resfile + "-" + ddwt + ".info"
             hc12.setup.process      = hc12.epc['backcompatibility']
             hc12.setup.time = 0.0
@@ -78,6 +82,7 @@ def main():
             # hc12.PrintState()
             hc12.Apply()
             hc12.ContinueRun()
+            relax.BackupOutput("output-"+str(ddwt) + "-" + str(rest))
             print("Done: | ", ddwt, " | ", rest, "|")
 
 main()
