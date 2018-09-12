@@ -97,6 +97,10 @@ contains
     call gethfac(hfac)
 
     call getNeibListL1(nlista)
+    ! print*, size(nlista)
+    ! call getNeibListL2(nlista)
+    ! print*, size(nlista)
+    ! read*
 
     allowerror = 1e-8
     hkp1(:) = store(es_h,  1:totreal)

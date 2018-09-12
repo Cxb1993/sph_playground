@@ -403,7 +403,7 @@ class Context:
         for i in range(0,nreal+nfixd):
             if condition(self.store[self.idx(condarg,i)]):
                 for pa in properties:
-                    storenew[self.idx(pa,i)] = value(self.idx(valuearg,i))
+                    storenew[self.idx(pa,i)] = value(self.store[self.idx(valuearg,i)])
         self.store = copy.deepcopy(storenew)
 
     def Apply(self):

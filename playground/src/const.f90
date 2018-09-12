@@ -153,4 +153,8 @@ module const
     blockFormatStr  = "(A,A50,A)",&
     blockFormatStr2 = "(A,A50,A)"
 
+  integer, parameter :: &
+    enl_l1 = 1,&
+    enl_l2 = 2
+
 end module

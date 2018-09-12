@@ -37,10 +37,10 @@ def main():
     tmp.setup = defaultSetup()
     tmp.SimpleMake()
 
-    for ddwt in ["2nw_sd", "2nw_ds", "n2w", "fab", "nw"]:
+    for ddwt in ["2nw_sd", "2nw_ds", "n2w", "fab", "fw"]:
     # for ddwt in ["2nw_sd"]:
-        for rest in [16, 32, 64, 128, 256, 512, 1024]:
-        # for rest in [16, 32]:
+        # for rest in [16, 32, 64, 128, 256, 512, 1024]:
+        for rest in [16]:
             relax = Context()
             relax.SetThreadsOMP(8)
             relax.setup = defaultSetup()
@@ -66,21 +66,25 @@ def main():
             )
             hc12.setup.fixedpn = addedN
             hc12.ModifyParticles(
-                condition   = lambda rx: (rx <= 0),
+                condition   = lambda rx: True,
                 condarg     = 'rx',
                 properties  = ['u', 't'],
-                value       = lambda rx: 1.0,
+                value       = lambda rx: 1.0 if (rx <= 0.0) else 2.0,
                 valuearg    = 'rx'
             )
             hc12.ModifyParticles(
-                condition   = lambda rx: (rx > 0),
+                condition   = lambda rx: True,
                 condarg     = 'rx',
-                properties  = ['u', 't'],
-                value       = lambda rx: 2.0,
+                properties  = ['dtdx', 'dtdy', 'dtdz'],
+                value       = lambda rx: 0.0,
                 valuearg    = 'rx'
             )
             # hc12.PrintState()
             hc12.Apply()
+            hc12.BackupDumps(
+                "output/"+"fd-" + str(ddwt) + "-" + str(rest)+".hcready",
+                "output/"+"dm-" + str(ddwt) + "-" + str(rest)+".hcready"
+            )
             hc12.ContinueRun()
             relax.BackupOutput("output-"+str(ddwt) + "-" + str(rest))
             print("Done: | ", ddwt, " | ", rest, "|")
