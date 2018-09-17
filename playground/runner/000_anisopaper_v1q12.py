@@ -40,11 +40,11 @@ def main():
     tmp.SetThreadsOMP(8)
     tmp.SimpleMake()
 
-    for ddwt in ["2nw_sd", "2nw_ds", "n2w", "fab", "fw"]:
     # for ddwt in ["2nw_sd"]:
-        for rest in [16, 32, 64, 128, 256, 512, 1024]:
         # for rest in [0.0, 0.5, 1.0, 2.0, 4.0, 8.0, 9.0, 10.0, 11.0, 12.0, 14.0, 16.0]:
         #     for artts in ["yes"]:
+    for rest in [16, 32, 64, 128, 256, 512, 1024]:
+        for ddwt in ["2nw_sd", "2nw_ds", "n2w", "fab", "fw"]:
             relax = Context()
             relax.setup = defaultSetup()
             relax.setup.resolution = rest
