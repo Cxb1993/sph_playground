@@ -17,7 +17,8 @@ module args
                         setLastPrint,&
                         setUseDumps,&
                         setdim,&
-                        setProcess
+                        setProcess,&
+                        setArtTermCond
 use errprinter,   only: warning
   implicit none
 
@@ -26,7 +27,7 @@ use errprinter,   only: warning
   contains
     subroutine fillargs()
       real :: &
-        pspc1, tfinish, hfac, dimf, npicf
+        pspc1, tfinish, hfac, dimf, npicf, au
       integer :: &
         numargs, curargnum, npic, dim, silent, resol
       character (len=100) :: &
@@ -55,6 +56,7 @@ use errprinter,   only: warning
       coordsysstr = ''
       usedumps = ''
       process = ''
+      au = 0.0
 
       numargs = command_argument_count()
       if ( numargs > 0 )then
@@ -101,6 +103,8 @@ use errprinter,   only: warning
             usedumps = adjustl(argval1)
           case('--process')
             process = adjustl(argval1)
+          case('--au')
+            read(argval1, *) au
           case default
             call warning("Argument not found", argkey, __FILE__, __LINE__)
           end select
@@ -159,6 +163,11 @@ use errprinter,   only: warning
       if (process /= '') then
         call setProcess(process)
       end if
+      if (au /= 0.0) then
+        call setArtTermCond(au)
+      end if
+
       call setLastPrint(0)
+
     end subroutine fillargs
 end module

@@ -211,6 +211,9 @@ class Context:
     # processess described in iterate
     epc     = {}
     epcRev  = {}
+    # yes / no constants
+    eif     = {}
+    eifRev  = {}
 
     def ReadConstFile(self):
         with open(self.rargs.constf90, 'r') as cf90:
@@ -281,6 +284,13 @@ class Context:
                         else:
                             self.epc[splitted[0][4:]] = int(splitted[2])
                             self.epcRev[int(splitted[2])] = splitted[0][4:]
+                    if (splitted[0][0:4] == "eif_"):
+                        if (splitted[2][-2:] == ",&"):
+                            self.eif[splitted[0][4:]] = float(splitted[2][:-2])
+                            self.eifRev[float(splitted[2][:-2])] = splitted[0][4:]
+                        else:
+                            self.eif[splitted[0][4:]] = float(splitted[2])
+                            self.eifRev[float(splitted[2])] = splitted[0][4:]
 
                 curline = cf90.readline()
 

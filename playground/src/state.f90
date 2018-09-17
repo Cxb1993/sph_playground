@@ -26,7 +26,8 @@ module state
             setUseDumps, getUseDumps,&
             setdtprint, getdtprint,&
             getEqComponent,&
-            setProcess, getProcess
+            setProcess, getProcess,&
+            setArtTermCond, getArtTermCond
 
   private
   save
@@ -164,11 +165,11 @@ module state
      character (len=*), intent(in) :: iad
      select case(iad)
      case('yes')
-       statevars(ec_adden) = 1
+       statevars(ec_adden) = eif_yes
      case('no')
-       statevars(ec_adden) = 0
+       statevars(ec_adden) = eif_no
      case('')
-       statevars(ec_adden) = 1
+       statevars(ec_adden) = eif_yes
      case default
        print *, 'There is no such advanced density choise: ', iad
        stop
@@ -183,11 +184,11 @@ module state
      character (len=*), intent(in) :: iat
      select case(iat)
      case('yes')
-       statevars(ec_artts) = 1
+       statevars(ec_artts) = eif_yes
      case('no')
-       statevars(ec_artts) = 0
+       statevars(ec_artts) = eif_no
      case('')
-       statevars(ec_artts) = 1
+       statevars(ec_artts) = eif_yes
      case default
        call error("There is no such default Artificail Term", iat, __FILE__, __LINE__)
      end select
@@ -196,6 +197,15 @@ module state
      integer, intent(out) :: oat
      oat = int(statevars(ec_artts))
    end subroutine
+
+  subroutine setArtTermCond(iat)
+    real, intent(in) :: iat
+    statevars(ec_au) = iat
+  end subroutine setArtTermCond
+  pure subroutine getArtTermCond(oat)
+    real, intent(out) :: oat
+    oat = statevars(ec_au)
+  end subroutine getArtTermCond
 
    subroutine scoordsys(ics)
      character (len=*), intent(in) :: ics

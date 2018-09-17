@@ -9,6 +9,7 @@
 # T = 1 for x < 0, T = 2 for x >= 0
 
 from runnerbase import Context, Setup
+import os
 
 def defaultSetup():
     setup   = Setup()
@@ -29,36 +30,39 @@ def defaultSetup():
     setup.usedumps  = "yes"
     setup.adden     = "yes"
     setup.artts     = "yes"
+    setup.au        = 1.0
     return setup
 
 def main():
     tmp = Context()
     resfile = tmp.GetDateTimeString()
     tmp.setup = defaultSetup()
+    tmp.SetThreadsOMP(8)
     tmp.SimpleMake()
 
-    # for ddwt in ["2nw_sd", "2nw_ds", "n2w", "fab", "fw"]:
-    for ddwt in ["2nw_sd", "2nw_ds"]:
-        # for rest in [16, 32, 64, 128, 256, 512, 1024]:
-        for rest in [16]:
+    for ddwt in ["2nw_sd", "2nw_ds", "n2w", "fab", "fw"]:
+    # for ddwt in ["2nw_sd"]:
+        for rest in [16, 32, 64, 128, 256, 512, 1024]:
+        # for rest in [0.0, 0.5, 1.0, 2.0, 4.0, 8.0, 9.0, 10.0, 11.0, 12.0, 14.0, 16.0]:
+        #     for artts in ["yes"]:
             relax = Context()
-            relax.SetThreadsOMP(8)
             relax.setup = defaultSetup()
-            relax.setup.ddw        = ddwt
             relax.setup.resolution = rest
+            relax.setup.ddw        = ddwt
             relax.CleanRun()
             relax.ReadFinalDump()
-            relax.BackupDumps(
-                "output/"+"fd-" + str(ddwt) + "-" + str(rest)+".relaxed",
-                "output/"+"dm-" + str(ddwt) + "-" + str(rest)+".relaxed"
-            )
-            hc12 = relax.CopyContext()
+            fd = "output/"+"fd-" + str(ddwt) + "-" + str(rest)+".relaxed"
+            dm = "output/"+"dm-" + str(ddwt) + "-" + str(rest)+".relaxed"
+            relax.BackupDumps(fd, dm)
+            hc12                    = relax.CopyContext()
+            hc12.setup.ddw          = hc12.esd[ddwt]
             hc12.setup.eqs          = hc12.eeq['diffusion']
             hc12.setup.tfinish      = 0.05
             hc12.setup.dtprint      = hc12.setup.tfinish/10.
-            hc12.setup.resultfile   = resfile + "-" + ddwt + ".info"
+            hc12.setup.resultfile   = resfile + "-" + ddwt + "-" + artts + ".info"
             hc12.setup.process      = hc12.epc['backcompatibility']
-            hc12.setup.time = 0.0
+            hc12.setup.time         = 0.0
+            hc12.setup.au           = 10.0
             addedN = hc12.AddParticles(
                 dim='x',
                 type='fixed',
@@ -75,7 +79,10 @@ def main():
             hc12.ModifyParticles(
                 condition   = lambda rx: True,
                 condarg     = 'rx',
-                properties  = ['dtdx', 'dtdy', 'dtdz'],
+                properties  = [
+                    'dtdx', 'dtdy', 'dtdz',
+                    'vx', 'vy', 'vz',
+                    'ax', 'ay', 'az'],
                 value       = lambda rx: 0.0,
                 valuearg    = 'rx'
             )

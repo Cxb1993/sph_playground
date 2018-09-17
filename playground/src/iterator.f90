@@ -66,6 +66,7 @@ contains
 
       call findneighboursKDT(store)
       call c1(store)
+      call eos_adiabatic(store, gamma)
       call c2(store, maxconsenrg)
     case(epc_backcompatibility)
       select case(ivt)

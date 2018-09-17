@@ -39,7 +39,8 @@ module const
     ec_usedumps = 29,&
     ec_dtprint = 30,&
     ec_process = 31,&
-    ec_total = 31
+    ec_au = 32,&
+    ec_total = 32
 
   ! store of data
   integer, parameter :: &
@@ -139,6 +140,10 @@ module const
   integer, parameter :: &
     epc_relaxation        = 600,&
     epc_backcompatibility = 601
+
+  real, parameter :: &
+    eif_yes = 1.0,&
+    eif_no  = 0.0
 
   integer, parameter :: &
     eqs_hydro   = 1,&

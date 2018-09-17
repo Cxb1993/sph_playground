@@ -22,7 +22,8 @@ module circuit2
                               getdiffconductivity, &
                               getmhdmagneticpressure,&
                               getPartNumber, &
-                              getEqComponent
+                              getEqComponent,&
+                              getArtTermCond
   use BC,               only: getCrossRef
   implicit none
 
@@ -34,7 +35,7 @@ module circuit2
     integer :: &
       s_dim, s_ttp, s_ktp, s_adden, s_artts, s_ivt, initdone = 0,&
       eqSet(eqs_total)
-    real        :: s_kr
+    real :: s_kr, s_au
 
 contains
 
@@ -47,6 +48,7 @@ contains
     call getArtificialTerms(s_artts)
     call ginitvar(s_ivt)
     call getEqComponent(eqSet)
+    call getArtTermCond(s_au)
     initdone = 1
   end subroutine
 
@@ -293,13 +295,21 @@ contains
         !       dot_product(kdtadx(:),nwa(:))*odda + dot_product(kdtbdx(:),nwb(:))*oddb)
         !   end if
         ! end if
+        if (s_artts == 1) then
+          call art_viscosity(rhoa, rhob, vab, urab, rab, dr, s_dim, ca, cb, ha, hb, qa, qb)
+          call art_termcond(nwa, nwb, urab, pa, pb, ua, ub, rhoa, rhob, oma, omb, qc)
+          dva(:) = dva(:) - mb * (&
+                      qa(:)/(rhoa**2*oma) + &
+                      qb(:)/(rhob**2*omb) &
+                    )
+
+          dua   = dua + mb * (&
+                      dot_product(vab(:), qa(:))/(rhoa**2*oma) +&
+                      qc &
+                    )
+        end if
 
         if (eqSet(eqs_hydro) == 1) then
-          if (s_artts == 1) then
-            call art_viscosity(rhoa, rhob, vab, urab, rab, dr, s_dim, ca, cb, ha, hb, qa, qb)
-            call art_termcond(nwa, nwb, urab, pa, pb, ua, ub, rhoa, rhob, oma, omb, qc)
-          end if
-
           dva(:) = dva(:) - mb * (&
                       ((pa + prada) * nwa(:) + qa(:)) / (rhoa**2 * oma) + &
                       ((pb + pradb) * nwb(:) + qb(:)) / (rhob**2 * omb) &
@@ -392,11 +402,6 @@ contains
           odda = 1./oma/rhoa/rhoa
           oddb = 1./omb/rhob/rhob
 
-          if (s_artts == 1) then
-            call art_fdivbab(ba, bb, ma, nwa, nwb, oma, omb, rhoa, rhob, qd)
-            call art_resistivity(nwa, nwb, Ba, Bb, vab, urab, rhoa, rhob, oma, omb, qe)
-          end if
-
           Mc(2) = dot_product(bb(:),bb(:))
           do li = 1,3
             MPb(li,li) = (0.5*Mc(2) - bb(li)*bb(li))/mhdmuzero
@@ -466,7 +471,7 @@ contains
     real              :: vsigu
     qc = 0.
     vsigu = sqrt(abs(pa - pb)/(0.5*(da + db)))
-    qc = vsigu * (ua - ub) * 0.5 * (dot_product((nwa(:)/oa/da + nwb(:)/ob/db),urab(:)))
+    qc = s_au * vsigu * (ua - ub) * 0.5 * (dot_product((nwa(:)/oa/da + nwb(:)/ob/db),urab(:)))
   end subroutine
 
   pure subroutine art_viscosity(da, db, vab, &
