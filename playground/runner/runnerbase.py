@@ -103,6 +103,7 @@ class Context:
         # if (se != ""):
         #     self.__tostderr__(s)
         #     self.__tostderr__(se)
+        return so
 
     def CleanSTDLogs(self):
         if self.setup.stdoutfile != "none":
@@ -170,6 +171,18 @@ class Context:
     def MakeAndRun(self):
         self.SimpleMake()
         self.CleanRun()
+
+    def PrintCell(self, file, row, column):
+        with open(file, 'r') as f:
+            curline = f.readline()
+            lastline = curline
+            r = 1
+            while(curline and (r != row)):
+                lastline = curline
+                curline = f.readline()
+                r += 1
+            splitted = lastline.split()
+            return splitted[column-1]
 
 ###############################################################
 ###############################################################
