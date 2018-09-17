@@ -173,7 +173,7 @@ class Context:
         self.CleanRun()
 
     def PrintCell(self, file, row, column):
-        with open(file, 'r') as f:
+        with open(file.split()[0], 'r') as f:
             curline = f.readline()
             lastline = curline
             r = 1
@@ -375,11 +375,17 @@ class Context:
         return (partIndx*len(self.es) + self.es[propName]-1)
 
     def BackupOutput(self, str):
-        os.system("cp -r " + self.pwd + "/output " + self.pwd + "/" + str)
+        if (len(str.split()) != 1):
+            print("Cannot copy with " + str)
+        else:
+            os.system("cp -r " + self.pwd + "/output " + self.pwd + "/" + str)
 
     def BackupDumps(self, strDump, strMap):
-        os.system("cp " + self.pwd + "/output/finaldump " + self.pwd + "/" + strDump)
-        os.system("cp " + self.pwd + "/output/dumpmap " + self.pwd + "/" + strMap)
+        if ((len(strDump.split()) != 1) or (len(strMap.split()) != 1)):
+            print("Cannot copy with " + strDump + " | " + strMap)
+        else:
+            os.system("cp " + self.pwd + "/output/finaldump " + self.pwd + "/" + strDump)
+            os.system("cp " + self.pwd + "/output/dumpmap " + self.pwd + "/" + strMap)
 
     def AddParticles(self, dim, type, method):
         locposidx  = self.es['r'+dim]-1

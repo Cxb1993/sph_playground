@@ -105,7 +105,7 @@ contains
     !$omp private(prada, pradb, radinteration)&
     !$omp shared(store, nlista)&
     !$omp shared(eqSet)&
-    !$omp shared(s_dim, s_kr, s_ktp, s_ttp, s_adden, s_artts, s_ivt)&
+    !$omp shared(s_dim, s_kr, s_ktp, s_ttp, s_adden, s_artts, s_ivt, s_au)&
     !$omp shared(nw, n2w, hessian, hessian_rr)&
     !$omp shared(difcond, difiso, mhdmuzero)&
     !$omp reduction(+:tneib, consenrg)
@@ -302,6 +302,11 @@ contains
                       qa(:)/(rhoa**2*oma) + &
                       qb(:)/(rhob**2*omb) &
                     )
+          if (s_au == -1) then
+            qc = qc / dr
+          else
+            qc = s_au*qc
+          end if
 
           dua   = dua + mb * (&
                       dot_product(vab(:), qa(:))/(rhoa**2*oma) +&
@@ -311,16 +316,11 @@ contains
 
         if (eqSet(eqs_hydro) == 1) then
           dva(:) = dva(:) - mb * (&
-                      ((pa + prada) * nwa(:) + qa(:)) / (rhoa**2 * oma) + &
-                      ((pb + pradb) * nwb(:) + qb(:)) / (rhob**2 * omb) &
+                      ((pa + prada) * nwa(:)) / (rhoa**2 * oma) + &
+                      ((pb + pradb) * nwb(:)) / (rhob**2 * omb) &
                     )
 
-          dua   = dua + mb * (&
-                      ( dot_product(vab(:), pa * nwa(:)) +&
-                        dot_product(vab(:), qa(:)) )&
-                      /(rhoa**2 * oma) +&
-                      qc &
-                    )
+          dua = dua + mb*dot_product(vab(:),pa*nwa(:))/rhoa**2/oma
         end if
 
         if (eqSet(eqs_diff) == 1) then
@@ -471,7 +471,7 @@ contains
     real              :: vsigu
     qc = 0.
     vsigu = sqrt(abs(pa - pb)/(0.5*(da + db)))
-    qc = s_au * vsigu * (ua - ub) * 0.5 * (dot_product((nwa(:)/oa/da + nwb(:)/ob/db),urab(:)))
+    qc = vsigu * (ua - ub) * 0.5 * (dot_product((nwa(:)/oa/da + nwb(:)/ob/db),urab(:)))
   end subroutine
 
   pure subroutine art_viscosity(da, db, vab, &
