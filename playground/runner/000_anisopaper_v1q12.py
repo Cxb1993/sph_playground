@@ -59,7 +59,7 @@ def main():
             hc12.setup.eqs          = hc12.eeq['diffusion']
             hc12.setup.tfinish      = 0.05
             hc12.setup.dtprint      = hc12.setup.tfinish/10.
-            hc12.setup.resultfile   = resfile + "-" + ddwt + "-" + artts + ".info"
+            hc12.setup.resultfile   = resfile + "-" + ddwt + ".info"
             hc12.setup.process      = hc12.epc['backcompatibility']
             hc12.setup.time         = 0.0
             hc12.setup.au           = 10.0
