@@ -62,7 +62,10 @@ def main():
             hc12.setup.resultfile   = resfile + "-" + ddwt + ".info"
             hc12.setup.process      = hc12.epc['backcompatibility']
             hc12.setup.time         = 0.0
-            hc12.setup.au           = 10.0
+            if (ddwt == "2nw_ds") or (ddwt == "2nw_sd"):
+                hc12.setup.au           = 10.0
+            else:
+                hc12.setup.au           = 0.0
             addedN = hc12.AddParticles(
                 dim='x',
                 type='fixed',
