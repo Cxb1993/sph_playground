@@ -50,7 +50,7 @@ contains
     ix1 = int(xmin/dxmin)
     ix2 = int(xmax/dmx)
     do i = ix1, ix2 - int(2*pdg)
-      if (i <= 0) then
+      if (i < 0) then
         sp = dxmin
       else
         sp = dmx
@@ -66,9 +66,9 @@ contains
             call resize(store, ptsz, ptsz*2)
           end if
           store(:,n) = 0.
-          store(es_rx,n)    =        pdg*sp + sp*i
-          store(es_ry,n)    = d2null*pdg*sp + sp*j
-          store(es_rz,n)    = d3null*pdg*sp + sp*k
+          store(es_rx,n)    =        (pdg + i)*sp
+          store(es_ry,n)    = (d2null*pdg + j)*sp
+          store(es_rz,n)    = (d3null*pdg + k)*sp
           store(es_type,n)  = ept_real
           n = n + 1
         end do

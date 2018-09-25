@@ -321,7 +321,7 @@ contains
     selfcrossref = realpartnumb + fixedpartnumb
     k = prevpn
     if ((targetSide == ebc_all).or.(targetSide == ebc_x)) then
-      do i=1,ibx1%len()
+      do i=1,ibx1%llen()
         k = k + 1
         pi = ibx1%xe(i)
         if (storesize < k) then
@@ -348,7 +348,7 @@ contains
           end if
         end if
       end do
-      do i=1,ibx2%len()
+      do i=1,ibx2%llen()
         k = k + 1
         pi = ibx2%xe(i)
         if (storesize < k) then
@@ -378,7 +378,7 @@ contains
     end if
     if (dim > 1) then
       if ((targetSide == ebc_all).or.(targetSide == ebc_y)) then
-        do i=1,iby1%len()
+        do i=1,iby1%llen()
           k = k + 1
           pi = iby1%xe(i)
           if (storesize < k) then
@@ -401,7 +401,7 @@ contains
             end if
           end if
         end do
-        do i=1,iby2%len()
+        do i=1,iby2%llen()
           k = k + 1
           pi = iby2%xe(i)
           if (storesize < k) then
@@ -427,7 +427,7 @@ contains
       end if
       if (dim == 3) then
         if ((targetSide == ebc_all).or.(targetSide == ebc_z)) then
-          do i=1,ibz1%len()
+          do i=1,ibz1%llen()
             k = k + 1
             pi = ibz1%xe(i)
             if (storesize < k) then
@@ -443,7 +443,7 @@ contains
             end do
             call crossref%append(pi)
           end do
-          do i=1,ibz2%len()
+          do i=1,ibz2%llen()
             k = k + 1
             pi = ibz2%xe(i)
             if (storesize < k) then
@@ -488,7 +488,7 @@ contains
     prevrfpn = realpartnumb + fixedpartnumb
     k = prevrfpn
     if ((targetSide == ebc_all).or.(targetSide == ebc_x)) then
-      do i=1,ibx1%len()
+      do i=1,ibx1%llen()
         k = k + 1
         pi = ibx1%xe(i)
         call fixedreal%append(pi)
@@ -516,7 +516,7 @@ contains
           end if
         end if
       end do
-      do i=1,ibx2%len()
+      do i=1,ibx2%llen()
         k = k + 1
         pi = ibx2%xe(i)
         call fixedreal%append(pi)
@@ -547,7 +547,7 @@ contains
     end if
     if (dim > 1) then
       if ((targetSide == ebc_all).or.(targetSide == ebc_y).or.(targetSide == ebc_y1)) then
-        do i=1,iby1%len()
+        do i=1,iby1%llen()
           k = k + 1
           pi = iby1%xe(i)
           call fixedreal%append(pi)
@@ -570,7 +570,7 @@ contains
         end do
       end if
       if ((targetSide == ebc_all).or.(targetSide == ebc_y).or.(targetSide == ebc_y2)) then
-        do i=1,iby2%len()
+        do i=1,iby2%llen()
           k = k + 1
           pi = iby2%xe(i)
           call fixedreal%append(pi)
@@ -594,7 +594,7 @@ contains
       end if
       if (dim == 3) then
         if ((targetSide == ebc_all).or.(targetSide == ebc_z)) then
-          do i=1,ibz1%len()
+          do i=1,ibz1%llen()
             k = k + 1
             pi = ibz1%xe(i)
             call fixedreal%append(pi)
@@ -608,7 +608,7 @@ contains
             store(es_rz,k) = zmin + (zmin - store(es_rz,k))
             store(es_type,k) = ept_fixed
           end do
-          do i=1,ibz2%len()
+          do i=1,ibz2%llen()
             k = k + 1
             pi = ibz2%xe(i)
             call fixedreal%append(pi)
@@ -641,7 +641,7 @@ contains
       i, j, ri, bi
 
     call system_clock(start)
-    do i = 1,fixedreal%len()
+    do i = 1,fixedreal%llen()
       ri = fixedreal%xe(i)
       bi = fixedbrdr%xe(i)
       do j = 1,size(indexes,1)

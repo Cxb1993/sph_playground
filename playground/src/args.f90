@@ -139,9 +139,7 @@ use errprinter,   only: warning
       if (ddwtype /= '') then
         call setddwtype(ddwtype)
       end if
-      if (hfac /= 1.2) then
-        call sethfac(hfac)
-      end if
+      call sethfac(hfac)
       if (silentstr /= '') then
         call setsilentmode(silentstr)
       end if
@@ -163,9 +161,7 @@ use errprinter,   only: warning
       if (process /= '') then
         call setProcess(process)
       end if
-      if (au /= 0.0) then
-        call setArtTermCond(au)
-      end if
+      call setArtTermCond(au)
 
       call setLastPrint(0)
 

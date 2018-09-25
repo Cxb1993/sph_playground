@@ -206,7 +206,7 @@ contains
     call system_clock(start)
 
     if (allocated(neighbours)) then
-      snl = neighbours(idx)%len()
+      snl = neighbours(idx)%llen()
       if (allocated(list)) then
         if (size(list) /= snl) then
           call resize(list, size(list), snl)
@@ -229,7 +229,7 @@ contains
     integer :: &
       num
 
-      num = neighbours(ida)%len()
+      num = neighbours(ida)%llen()
   end function xgetneighnumber
 
   pure function xgetneighindex(ida, idb) result(idx)

@@ -7,7 +7,8 @@ module circuit2
                               n2w, &
                               nw, &
                               hessian_rr,&
-                              get_w
+                              get_w,&
+                              fab
   use neighboursearch,  only: getneighbours, &
                               getNeibListL1, &
                               getNeibListL2, &
@@ -57,14 +58,14 @@ contains
     real, intent(out) :: maxconsenrg
 
     real :: &
-      qa(3), qb(3), qc, qd(3), qe, &
+      qa, qb, qc, qd(3), qe, &
       dr, rhoa, rhob, ra(3), rb(3), r2, &
       rab(3), vab(3), vba(3), urab(3), &
       odda, oddb, kta(3,3), ktb(3,3), ktab(3,3), &
       tmpt1(3,3), tmpt2(3,3), tmpt3(3,3), MPa(3,3), MPb(3,3), Mc(3), &
       dva(3), dua, dha, ddta, dba(3), ba(3), bb(3), va(3), vb(3), &
       ha, hb, ca, cb, pa, pb, ua, ub, oma, omb, ta, tb, ma, mb, &
-      wa, wb, nwa(3), nwb(3), n2wa, n2wb, Hesa(3,3), Hesb(3,3), &
+      wa, wb, nwa(3), nwb(3), n2wa, n2wb, Hesa(3,3), Hesb(3,3),faba, fabb,&
       uba(3), ubb(3), dvaterm(3), dvbterm(3), &
       dtadx(3), dtbdx(3), kdtadx(3), kdtbdx(3), &
       difcond, mhdmuzero, &
@@ -99,14 +100,14 @@ contains
     !$omp private(nlistb, vba, t0, kta, ktb, ktab, kdtadx, kdtbdx)&
     !$omp private(tmpt1, tmpt2, tmpt3, li, lj, MPa, MPb, Mc)&
     !$omp private(ha, hb, ca, cb, pa, pb, ua, ub, oma, omb, ta, tb, ma, mb)&
-    !$omp private(wa, wb, n2wa, n2wb, nwa, nwb, Hesa, Hesb)&
+    !$omp private(wa, wb, n2wa, n2wb, nwa, nwb, Hesa, Hesb, Faba, Fabb, faba, fabb)&
     !$omp private(dva, dua, dha, ddta, dba, ba, bb, va, vb, dtadx, dtbdx)&
     !$omp private(uba, ubb, dvaterm, dvbterm)&
     !$omp private(prada, pradb, radinteration)&
     !$omp shared(store, nlista)&
     !$omp shared(eqSet)&
     !$omp shared(s_dim, s_kr, s_ktp, s_ttp, s_adden, s_artts, s_ivt, s_au)&
-    !$omp shared(nw, n2w, hessian, hessian_rr)&
+    !$omp shared(nw, n2w, hessian, hessian_rr, fab)&
     !$omp shared(difcond, difiso, mhdmuzero)&
     !$omp reduction(+:tneib, consenrg)
     overa: do la = 1, size(nlista)
@@ -114,7 +115,11 @@ contains
       rhoa  = store(es_den,i)
       ra(:) = store(es_rx:es_rz,i)
       ba(:) = store(es_bx:es_bz,i)
-      uba(:) = ba(:)/sqrt(dot_product(ba(:),ba(:)))
+      if (dot_product(ba(:),ba(:)) /= 0) then
+        uba(:) = ba(:)/sqrt(dot_product(ba(:),ba(:)))
+      else
+        uba(:) = 0.0
+      end if
       va(:) = store(es_vx:es_vz,i)
       ha  = store(es_h,i)
       ca  = store(es_c,i)
@@ -131,6 +136,7 @@ contains
       ddta = 0.
       dba(:) = 0.
       drhoadt = 0.
+      faba = 0.
 
       tmpt1(:,:) = 0.
       tmpt2(:,:) = 0.
@@ -144,7 +150,6 @@ contains
       prada = 0.
       pradb = 0.
       radinteration = 0.
-
       if (eqSet(eqs_magneto) == 1) then
         do li = 1,3
           MPa(li,li) = (0.5*Mc(1) - ba(li)*ba(li))/mhdmuzero
@@ -228,7 +233,11 @@ contains
         rj = getCrossRef(j)
         rb(:) = store(es_rx:es_rz, j)
         bb(:) = store(es_bx:es_bz, rj)
-        ubb(:) = bb(:)/sqrt(dot_product(bb(:),bb(:)))
+        if (dot_product(bb(:),bb(:)) /= 0) then
+          ubb(:) = bb(:)/sqrt(dot_product(bb(:),bb(:)))
+        else
+          uba(:) = 0.0
+        end if
         vb(:) = store(es_vx:es_vz, rj)
         rhob = store(es_den, rj)
         hb = store(es_h, rj)
@@ -240,8 +249,8 @@ contains
         mb = store(es_m, rj)
         dtbdx(:) = store(es_dtdx:es_dtdz, rj)
         kdtbdx(:) = 0.
-        qa(:) = 0.
-        qb(:) = 0.
+        qa    = 0.
+        qb    = 0.
         qc    = 0.
         qd(:) = 0.
         qe    = 0.
@@ -252,6 +261,7 @@ contains
         vba(:) = vb(:) - va(:)
         urab(:) = rab(:)/dr
         Hesb(:,:) = 0.
+        fabb = 0.
 
         call nw(rab, ra(:), rb(:), dr, ha, nwa)
         call nw(rab, ra(:), rb(:), dr, hb, nwb)
@@ -266,9 +276,8 @@ contains
         ! print*, nwa
         ! print*, nwb
         ! read*
-        drhoadt = drhoadt + mb * dot_product(vab(:),nwa(:))
         if (s_adden == 1) then
-          dha = dha + mb * dot_product(vab(:), nwa(:))
+          drhoadt = drhoadt + mb * dot_product(vab(:),nwa(:))
         end if
 
         ! if (eqSet(eqs_fld) == 1) then
@@ -295,22 +304,30 @@ contains
         !       dot_product(kdtadx(:),nwa(:))*odda + dot_product(kdtbdx(:),nwb(:))*oddb)
         !   end if
         ! end if
-        if (s_artts == 1) then
-          call art_viscosity(rhoa, rhob, vab, urab, rab, dr, s_dim, ca, cb, ha, hb, qa, qb)
-          call art_termcond(nwa, nwb, urab, pa, pb, ua, ub, rhoa, rhob, oma, omb, qc)
-          dva(:) = dva(:) - mb * (&
-                      qa(:)/(rhoa**2*oma) + &
-                      qb(:)/(rhob**2*omb) &
-                    )
-          if (s_au == -1) then
-            qc = qc / dr
-          else
-            qc = s_au*qc
-          end if
 
+        if (s_artts == 1) then
+          call fab(dr, ha, faba)
+          call fab(dr, hb, fabb)
+          call art_viscosity(rhoa, rhob, vab, urab, ca, cb, qa, qb)
+          call art_termcond(faba, fabb, pa, pb, ua, ub, rhoa, rhob, oma, omb, qc)
+          dva(:) = dva(:) - mb * (&
+                      qa*nwa(:)/rhoa**2/oma + &
+                      qb*nwb(:)/rhob**2/omb &
+                    )
+          ! qc = qc / dr
+          ! if (s_au == -1) then
+          !   qc = qc / dr
+          !   ! qc = 0.0
+          ! else
+          !   qc = s_au*qc
+          ! end if
+          ! qc = 0.0
+          ! if ((i == 1).and.(qc /= 0)) then
+          !   print*, qc
+          ! end if
           dua   = dua + mb * (&
-                      dot_product(vab(:), qa(:))/(rhoa**2*oma) +&
-                      qc &
+                        + dot_product(vab(:),urab(:))*qa*faba/oma/rhoa&
+                        + s_au*qc &
                     )
         end if
 
@@ -322,6 +339,24 @@ contains
 
           dua = dua + mb*dot_product(vab(:),pa*nwa(:))/rhoa**2/oma
         end if
+
+        ! if (eqSet(eqs_hydro) == 1) then
+        !   if (s_artts == 1) then
+        !     call fab(dr, ha, faba)
+        !     call fab(dr, hb, fabb)
+        !     call art_viscosity(rhoa, rhob, vab, urab, ca, cb, qa, qb)
+        !     call art_termcond(faba, fabb, pa, pb, ua, ub, rhoa, rhob, oma, omb, qc)
+        !   end if
+        !   dva(:) = dva(:) - mb * (&
+        !               ((pa + prada + qa) * nwa(:))/(rhoa**2 * oma) + &
+        !               ((pb + pradb + qb) * nwb(:))/(rhob**2 * omb) &
+        !             )
+        !   dua   = dua + mb * (&
+        !                 dot_product(vab(:),pa*nwa(:))/rhoa**2/oma&
+        !                 + dot_product(vab(:),urab(:))*qa/oma/rhoa&
+        !                 + qc &
+        !             )
+        ! end if
 
         if (eqSet(eqs_diff) == 1) then
           if (difiso == 0) then
@@ -435,7 +470,7 @@ contains
       end do overb
 
       if ( s_adden == 1 ) then
-        dha =  (- ha / (s_dim * rhoa)) * dha / oma
+        dha =  -s_dim*ha/rhoa*drhoadt/oma
       end if
 
       if (eqSet(eqs_diff) == 1) then
@@ -452,57 +487,75 @@ contains
       store(es_dh,i) = dha
       store(es_ddt,i) = ddta/rhoa
       store(es_dbx:es_dbz,i) = dba(:)
-      ! store(es_du,i) = dua
-      store(es_du,i) = dua + ddta/rhoa
+      store(es_du,i) = dua
       consenrg = consenrg + ma*(dot_product(va(:),dva(:)) + dua + &
         dot_product(ba(:),dba(:))/rhoa - &
         0.5*dot_product(ba(:),ba(:))/rhoa/rhoa*drhoadt/oma)
     end do overa
     !$omp end parallel do
-    if (abs(consenrg) > abs(maxconsenrg)) maxconsenrg = consenrg
+    ! if (abs(consenrg) > abs(maxconsenrg)) maxconsenrg = consenrg
     call system_clock(finish)
     call addTime(' circuit2', finish - start - tneib)
   end subroutine
 
-  pure subroutine art_termcond(nwa, nwb, urab, pa, pb, ua, ub, da, db, oa, ob, qc)
+  pure subroutine art_termcond(faba, fabb, pa, pb, ua, ub, da, db, oa, ob, qc)
     real, intent(in)  :: pa, pb, da, db, ua, ub, oa, ob, &
-                          nwa(3), nwb(3), urab(3)
+                         faba, fabb
     real, intent(out) :: qc
     real              :: vsigu
     qc = 0.
     vsigu = sqrt(abs(pa - pb)/(0.5*(da + db)))
-    qc = vsigu * (ua - ub) * 0.5 * (dot_product((nwa(:)/oa/da + nwb(:)/ob/db),urab(:)))
+    ! qc = vsigu * (ua - ub) * 0.5 * (dot_product((nwa(:)/oa/da + nwb(:)/ob/db),urab(:)))
+    qc = vsigu*(ua - ub)*0.5*(faba/oa/da + fabb/ob/db)
   end subroutine
+  pure subroutine art_viscosity(da, db, vab, urab, ca, cb, qa, qb)
+    real, intent(in)  :: da, db, vab(3), urab(3), ca, cb
+    real, intent(out) :: qa, qb
+    real              :: alpha, beta, dvr, vsig
 
-  pure subroutine art_viscosity(da, db, vab, &
-      urab, rab, dr, dim, ca, cb, ha, hb, &
-      qa, qb)
-    real, intent(in)  :: da, db, vab(3), urab(3), rab(3),&
-                         dr, ca, cb, ha, hb
-    integer,intent(in):: dim
-    real, intent(out) :: qa(3), qb(3)
-    real              :: alpha, beta, dvr, Hesrr(3,3), vsig
-
-    qa(:) = 0.
-    qb(:) = 0.
+    qa = 0.
+    qb = 0.
     alpha = 1.
     beta  = 2.
 
     dvr = dot_product(vab,urab)
     if (dvr < 0) then
       vsig = alpha*ca + beta*abs(dvr)
-      call hessian_rr(rab, ha, Hesrr)
-      qa(1) = 0.5 * da * vsig * dot_product(vab, Hesrr(:,1)) * dr / (dim + 2.)! * dvr
-      qa(2) = 0.5 * da * vsig * dot_product(vab, Hesrr(:,2)) * dr / (dim + 2.)! * dvr
-      qa(3) = 0.5 * da * vsig * dot_product(vab, Hesrr(:,3)) * dr / (dim + 2.)! * dvr
-
+      qa = -0.5*da*vsig*dvr
       vsig = alpha*cb + beta*abs(dvr)
-      call hessian_rr(rab, hb, Hesrr)
-      qb(1) = 0.5 * db * vsig * dot_product(vab, Hesrr(:,1)) * dr / (dim + 2.)! * dvr
-      qb(2) = 0.5 * db * vsig * dot_product(vab, Hesrr(:,2)) * dr / (dim + 2.)! * dvr
-      qb(3) = 0.5 * db * vsig * dot_product(vab, Hesrr(:,3)) * dr / (dim + 2.)! * dvr
+      qb = -0.5*db*vsig*dvr
     end if
   end subroutine
+
+  ! pure subroutine art_viscosity(da, db, vab, &
+  !     urab, rab, dr, dim, ca, cb, ha, hb, &
+  !     qa, qb)
+  !   real, intent(in)  :: da, db, vab(3), urab(3), rab(3),&
+  !                        dr, ca, cb, ha, hb
+  !   integer,intent(in):: dim
+  !   real, intent(out) :: qa(3), qb(3)
+  !   real              :: alpha, beta, dvr, Hesrr(3,3), vsig
+  !
+  !   qa(:) = 0.
+  !   qb(:) = 0.
+  !   alpha = 1.
+  !   beta  = 2.
+  !
+  !   dvr = dot_product(vab,urab)
+  !   if (dvr < 0) then
+  !     vsig = alpha*ca + beta*abs(dvr)
+  !     call hessian_rr(rab, ha, Hesrr)
+  !     qa(1) = 0.5 * da * vsig * dot_product(vab, Hesrr(:,1)) * dr / (dim + 2.)! * dvr
+  !     qa(2) = 0.5 * da * vsig * dot_product(vab, Hesrr(:,2)) * dr / (dim + 2.)! * dvr
+  !     qa(3) = 0.5 * da * vsig * dot_product(vab, Hesrr(:,3)) * dr / (dim + 2.)! * dvr
+  !
+  !     vsig = alpha*cb + beta*abs(dvr)
+  !     call hessian_rr(rab, hb, Hesrr)
+  !     qb(1) = 0.5 * db * vsig * dot_product(vab, Hesrr(:,1)) * dr / (dim + 2.)! * dvr
+  !     qb(2) = 0.5 * db * vsig * dot_product(vab, Hesrr(:,2)) * dr / (dim + 2.)! * dvr
+  !     qb(3) = 0.5 * db * vsig * dot_product(vab, Hesrr(:,3)) * dr / (dim + 2.)! * dvr
+  !   end if
+  ! end subroutine
 
   ! subroutine art_fdivbab(Ba, Bb, mb, nwa, nwb, oa, ob, da, db, qd)
   pure subroutine art_fdivbab(Ba, Bb, mb, nwa, nwb, oa, ob, da, db, qd)

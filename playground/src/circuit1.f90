@@ -8,7 +8,8 @@ module circuit1
                               ginitvar, &
                               getAdvancedDensity,&
                               getPartNumber,&
-                              gethfac
+                              gethfac,&
+                              getEqComponent
   use kernel,           only: get_krad, &
                               get_dw_dh, &
                               nw, &
@@ -29,7 +30,8 @@ module circuit1
     real, allocatable :: &
       hk(:), hkp1(:), eps(:), dk(:), dkp1(:), ok(:), okp1(:)
     integer(8) :: start=0, finish=0
-    integer :: realpartnumb, fixedpartnumb, totreal, initdone=0
+    integer :: &
+      realpartnumb, fixedpartnumb, totreal, initdone=0, eqSet(eqs_total)
 
 contains
   subroutine c1_init()
@@ -42,6 +44,7 @@ contains
     allocate(ok(totreal))
     allocate(okp1(totreal))
     allocate(eps(totreal))
+    call getEqComponent(eqSet)
     initdone = 1
   end subroutine c1_init
 
@@ -125,7 +128,7 @@ contains
       !$omp private(nwa, nwb, ta, tb, ha0, ha, hb, oma, omb)&
       !$omp shared(eps, allowerror, dim, hfac, ktp, maxinterr)&
       !$omp shared(store, nlista, dk, dkp1, hk, hkp1, ok, okp1)&
-      !$omp shared(nw)&
+      !$omp shared(nw, eqSet)&
       !$omp reduction(+:tneib)
       do la = 1, size(nlista)
         i = nlista(la)
@@ -139,13 +142,17 @@ contains
           ha  = hk(i)
           da  = dk(i)
           oma = ok(i)
-
           dtadx(:) = 0.
-          dkp1(i) = 0.
-          hkp1(i) = 0.
-          okp1(i) = 0.
+          dkp1(i)  = 0.
+          hkp1(i)  = 0.
+          okp1(i)  = 0.
 
           tneib = tneib + t0
+          ! print*, i, xgetneighnumber(i)
+          ! do lb = 1, xgetneighnumber(i)
+          !   print*, xgetneighindex(i, lb)
+          ! end do
+          ! read
           do lb = 1, xgetneighnumber(i)
             j = xgetneighindex(i, lb)
           ! call getneighbours(i, nlistb, t0)
@@ -167,32 +174,29 @@ contains
             call get_w(dr, ha, w)
             dkp1(i) = dkp1(i) + mb * w
             okp1(i) = okp1(i) + mb * dwdh
-            ! currinterr = currinterr + mb/db * w
-            ! diffusion
-            if (ktp == esd_2nw_ds) then
-              call nw(r(:), ra(:), rb(:), dr, ha, nwa)
-              dtadx(:) = dtadx(:) + mb/da/oma*(tb - ta)*nwa(:)
-            else if (ktp == esd_2nw_sd) then
-              ! print*, nlistb
-              call nw(r(:), ra(:), rb(:), dr, ha, nwa)
-              call nw(r(:), ra(:), rb(:), dr, hb, nwb)
-              dtadx(:) = dtadx(:) + mb*(ta/oma/da/da*nwa(:) + tb/omb/db/db*nwb(:))
+
+            if (eqSet(eqs_diff) == 1) then
+              if (ktp == esd_2nw_ds) then
+                call nw(r(:), ra(:), rb(:), dr, ha, nwa)
+                dtadx(:) = dtadx(:) + mb/da/oma*(tb - ta)*nwa(:)
+              else if (ktp == esd_2nw_sd) then
+                ! print*, nlistb
+                call nw(r(:), ra(:), rb(:), dr, ha, nwa)
+                call nw(r(:), ra(:), rb(:), dr, hb, nwb)
+                dtadx(:) = dtadx(:) + mb*(ta/oma/da/da*nwa(:) + tb/omb/db/db*nwb(:))
+              end if
             end if
           end do
           ! ---------------------------------------------------------!
           !      There is no particle itself in neighbour list       !
           ! ---------------------------------------------------------!
           call get_w(0., ha, w)
-          dkp1(i) = dkp1(i) + ma * w
-          ! currinterr = currinterr + ma/da * w
-          ! if (currinterr > maxinterr) then
-          !   maxinterr = currinterr
-          ! end if
-
           call get_dw_dh(0., ha, dwdh)
+          dkp1(i) = dkp1(i) + ma*w
           okp1(i) = okp1(i) + ma*dwdh
-          okp1(i) = 1. - okp1(i)*(-ha/(dim*dkp1(i)))
+          okp1(i) = 1. - (-dim*ha/dkp1(i))*okp1(i)
           dfdh = -dim*dkp1(i)*okp1(i)/ha
+          ! fh   = dkp1(i) - ma*(hfac/ha)**dim
           fh   = ma*(hfac/ha)**dim - dkp1(i)
           hn   = ha - fh/dfdh
           if (hn <= 0.) then
@@ -222,56 +226,58 @@ contains
   subroutine c1simple(store)
     real, allocatable, intent(inout) :: store(:,:)
     real :: &
-      w, r(3), dr, currinterr, ra(3), rb(3), ha, ma, mb, da, db, hfac
+      w, r(3), dr, ra(3), rb(3), ha, ma, mb, da, db, hfac
     integer :: &
-      i, j, la, lb, dim
+      i, j, rj, la, lb, dim
     integer, allocatable             :: nlista(:), nlistb(:)
     integer(8)                       :: t0, tneib
 
     call system_clock(start)
-    call getNeibListL2(nlista)
+    call getNeibListL1(nlista)
     call getdim(dim)
     call gethfac(hfac)
 
-    realpartnumb = size(nlista)
-    dk(:) = store(es_den,1:realpartnumb)
-    currinterr = 0.
+    dk(:) = store(es_den,1:totreal)
+    hk(:) = store(es_h,1:totreal)
 
     tneib = 0.
     !$omp parallel do default(none)&
     !$omp private(ra, rb, ha, ma, mb, da, db)&
-    !$omp private(r, dr, w, j, i, la, lb, nlistb, t0, currinterr)&
+    !$omp private(r, dr, w, j, rj, i, la, lb, nlistb, t0, currinterr)&
     !$omp shared(store, hfac, dim,nlista, dk)&
     !$omp reduction(+:tneib)
     do la = 1, size(nlista)
       i = nlista(la)
 
       dk(i) = 0.
+      hk(i) = 0.
       ra(:) = store(es_rx:es_rz,i)
       ha = store(es_h,i)
       ma = store(es_m,i)
       da = store(es_den,i)
-
-      call getneighbours(i, nlistb, t0)
-      tneib = tneib + t0
-      do lb = 1, size(nlistb)
-        j = nlistb(lb)
+      ! call getneighbours(i, nlistb, t0)
+      ! tneib = tneib + t0
+      ! do lb = 1, size(nlistb)
+      !   j = nlistb(lb)
+      do lb = 1, xgetneighnumber(i)
+        j = xgetneighindex(i, lb)
+        rj = getCrossRef(j)
         rb(:) = store(es_rx:es_rz, j)
-        mb = store(es_m, j)
-        db = store(es_den, j)
+        mb = store(es_m, rj)
+        db = store(es_den, rj)
 
         r(:) = ra(:)-rb(:)
         dr = sqrt(dot_product(r(:),r(:)))
         call get_w(dr, ha, w)
         dk(i) = dk(i) + mb * w
-        currinterr = currinterr + mb/db * w
       end do
       call get_w(0., ha, w)
       dk(i) = dk(i) + ma * w
-      store(es_h,i) = hfac * (ma / dk(i))**(1./dim)
+      hk(i) = hfac * (ma / dk(i))**(1./dim)
     end do
     !$omp end parallel do
-    store(es_den,1:realpartnumb) = dk(:)
+    store(es_den,1:realpartnumb) = dk(1:realpartnumb)
+    store(es_h,1:realpartnumb)   = hk(1:realpartnumb)
 
     call system_clock(finish)
     call addTime(' circuit1', finish - start - tneib)

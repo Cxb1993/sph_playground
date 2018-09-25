@@ -10,6 +10,7 @@
 
 from runnerbase import Context, Setup
 import os
+import math
 
 def defaultSetup():
     setup   = Setup()
@@ -34,15 +35,13 @@ def defaultSetup():
     return setup
 
 def main():
-    tmp = Context()
-    resfile = tmp.GetDateTimeString()
-    tmp.setup = defaultSetup()
-    tmp.SetThreadsOMP(4)
-    tmp.SimpleMake()
     ddwt = "2nw_sd"
     relax = Context()
+    resfile = relax.GetDateTimeString()
     relax.setup = defaultSetup()
-    relax.setup.resolution = 64
+    relax.SetThreadsOMP(4)
+    relax.SimpleMake()
+    relax.setup.resolution = 32
     relax.setup.ddw        = ddwt
     relax.setup.resultfile = resfile + "-" + ddwt + ".info"
     relax.CleanRun()
@@ -50,24 +49,29 @@ def main():
     fd = "output/"+"fd-" + str(ddwt)+".relaxed"
     dm = "output/"+"dm-" + str(ddwt)+".relaxed"
     relax.BackupDumps(fd, dm)
-    hc12                    = relax.CopyContext()
+    hc12 = relax.CopyContext()
     hc12.setup.eqs          = hc12.eeq['diffusion']
     hc12.setup.tfinish      = 0.05
     hc12.setup.dtprint      = hc12.setup.tfinish/10.
     hc12.setup.process      = hc12.epc['backcompatibility']
     hc12.setup.time         = 0.0
-    hc12.setup.au           = -1
+    # hc12.setup.au           = -1
+    hc12.setup.artts        = hc12.eif["yes"]
+    hc12.setup.au           = 1.0
     addedN = hc12.AddParticles(
         dim='x',
         type='fixed',
         method='periodic'
     )
     hc12.setup.fixedpn = addedN
+    time0 = 0.01
+    h = 1./relax.setup.resolution
     hc12.ModifyParticles(
         condition   = lambda rx: True,
         condarg     = 'rx',
         properties  = ['u', 't'],
         value       = lambda rx: 1.0 if (rx <= 0.0) else 2.0,
+        # value       = lambda rx: 1.5 + 0.5 * math.erf(rx/2./h),
         valuearg    = 'rx'
     )
     hc12.ModifyParticles(

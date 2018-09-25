@@ -116,7 +116,6 @@ program main
 
     end if
   end if
-
   call get_equations(s_tt)
   call ginitvar(ivt)
   call getdiffisotropic(difiso)
@@ -133,7 +132,6 @@ program main
   call getdtprint(dtout)
   call getLastPrint(lastnpic)
   call getdim(dim)
-
   call initkernel(dim)
   call initBorders()
   call tinit()
@@ -282,7 +280,6 @@ program main
     store(es_vx:es_vz,1:n) = tv(:,:)  + dt * ta(:,:)
     store(es_u,1:n) = store(es_u,1:n) + dt * tdu(:)
     store(es_h,1:n) = store(es_h,1:n) + dt * tdh(:)
-    ! store(es_t,1:n) = store(es_t,1:n) + dt * tddt(:)
     store(es_t,1:n) = store(es_u,1:n)
     store(es_bx:es_bz,1:n) = store(es_bx:es_bz,1:n) + dt * tdb(:,:)
     dedtprev = dedt
@@ -296,12 +293,10 @@ program main
       store(es_u,1:n) + 0.5*dt*(store(es_du,1:n) - tdu(:))
     store(es_h,1:n) = &
       store(es_h,1:n) + 0.5*dt*(store(es_dh,1:n) - tdh(:))
-    ! store(es_t,1:n) = &
-      ! store(es_t,1:n) + 0.5*dt*(store(es_ddt,1:n) - tddt(:))
-    store(es_t,1:n) = store(es_u,1:n)
     store(es_bx:es_bz,1:n) = &
       store(es_bx:es_bz,1:n) + 0.5*dt*(store(es_dbx:es_dbz,1:n) - tdb(:,:))
     sumdedt = sumdedt + 0.5*dt*(dedt - dedtprev)
+    store(es_t,1:n) = store(es_u,1:n)
 
     t = t + dt
     iter = iter + 1

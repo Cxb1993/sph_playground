@@ -36,7 +36,7 @@ contains
     integer, allocatable :: nlist(:)
     integer              :: i, j, l, kd, idx, realpartnumb
     integer(8)           :: tneib, tprint
-    real                 :: n2wa, r(3), r11, r22, r33, r12, r13, r23, kr, t(3),&
+    real                 :: n2wa, dr, r(3), r11, r22, r33, r12, r13, r23, kr, t(3),&
                             dsum, osum, dchi(9), Hesa(3,3)
     real, allocatable    :: printres(:)
     character(len=50) :: kinfname
@@ -71,10 +71,10 @@ contains
       r12 = r(1)*r(2)
       r13 = r(1)*r(3)
       r23 = r(2)*r(3)
-
+      dr = sqrt(dot_product(r,r))
       ! call hessian(r, store(es_rx:es_rz,i), store(es_rx:es_rz,j), store(es_h,i), Hesa)
       ! n2wa = Hesa(1,1) + Hesa(2,2) + Hesa(3,3)
-      call n2w(r, store(es_h,i), n2wa)
+      call n2w(dr, store(es_h,i), n2wa)
       ! call GradDivW(r, h(i), n2wa)
       ! call get_Hesobian(r, h(i), Hes)
       t(:) = t(:) + store(es_m,j)/store(es_den,j) * r(:) * n2wa

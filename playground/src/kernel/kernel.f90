@@ -10,12 +10,13 @@ module kernel
 
   public :: nw, get_dw_dh, get_w, initkernel, &
             n2w, get_krad, hessian,&
-            hessian_rr, getneibnumber, precalcKernel
+            hessian_rr, getneibnumber, precalcKernel,fab
   save
 
   integer :: dim
 
   procedure (ainw),     pointer :: nw         => null()
+  procedure (aifab),    pointer :: fab        => null()
   procedure (ain2w),    pointer :: n2w        => null()
   procedure (aihesw),   pointer :: hessian    => null()
   procedure (aihesrrw), pointer :: hessian_rr => null()
@@ -25,6 +26,13 @@ module kernel
       real, intent(out) :: onw(3)
       real, intent (in) :: rab(3), ra(3), rb(3), dr, h
     end subroutine ainw
+  end interface
+
+  abstract interface
+    subroutine aifab(dr, h, ofab)
+      real, intent(out) :: ofab
+      real, intent (in) :: dr, h
+    end subroutine aifab
   end interface
 
   abstract interface
@@ -42,9 +50,9 @@ module kernel
   end interface
 
   abstract interface
-    pure subroutine ain2w(rab, h, on2w)
+    pure subroutine ain2w(dr, h, on2w)
       real, intent(out) :: on2w
-      real, intent (in) :: rab(3), h
+      real, intent (in) :: dr, h
     end subroutine ain2w
   end interface
 
@@ -77,6 +85,7 @@ contains
 
     if (cs == 1) then
       nw => nw_cart
+      fab => Fab_cart
       ! call precalcKernel()
       ! nw => nw_cart_precalc
       hessian_rr => hessian_rr_fab_cart
@@ -85,7 +94,7 @@ contains
         n2w     => n2w_cart
       else if (kt == esd_fab) then
         hessian => hessian_fab_cart
-        n2w     => Fab_cart
+        n2w     => Gab_cart
       else if ((kt == esd_2nw_ds).or.(kt == esd_2nw_sd)) then
         hessian => null()
         n2w     => null()
@@ -97,7 +106,7 @@ contains
       end if
     else if (cs == 2) then
       nw => nw_cyl
-
+      call error('fab => Fab_cylindric; does not exist yet', '', __FILE__, __LINE__)
       if (kt == esd_n2w) then
         hessian => hessian_ddw_cyl
       else if (kt == esd_fab) then
@@ -145,9 +154,7 @@ contains
     real              :: f, q
 
     q = r / h
-
     call kf(q, f)
-
     w = wCv * f / h ** dim
   end subroutine
 
@@ -158,7 +165,6 @@ contains
 
     q = dr / h
     call kdf(q, df)
-
     nw(:) = wCv * df * rab(:) / h**(dim+2) / q
   end subroutine nw_cart
 
@@ -214,34 +220,42 @@ contains
     dwdh = - wCv / h**(dim + 1) * (dim * f + q * df)
   end subroutine get_dw_dh
 
-  pure subroutine FW_cart(r, h, fw)
-    real, intent(in)  :: r(3), h
-    real, intent(out) :: fw
-    real              :: f, dr, q
+  pure subroutine Fab_cart(dr, h, Fab)
+    real, intent(in)  :: dr, h
+    real, intent(out) :: Fab
+    real              :: q, df
 
-    dr = sqrt(dot_product(r,r))
     q = dr / h
+    call kdf(q, df)
+    Fab = wCv * df * dr / h**(dim+2) / q !*urab <- that is just grad of kernel
+  end subroutine Fab_cart
+
+  pure subroutine FW_cart(dr, h, fw)
+    real, intent(in)  :: dr, h
+    real, intent(out) :: fw
+    real              :: f, q
+
+    q = dr/h
     call kf(q, f)
     fw = fwc * wCv * f / h ** (dim + 2)
   end subroutine FW_cart
 
-  pure subroutine Fab_cart(r, h, Fab)
-    real, intent(in)  :: r(3), h
-    real, intent(out) :: Fab
+  pure subroutine Gab_cart(dr, h, Gab)
+    real, intent(in)  :: dr, h
+    real, intent(out) :: Gab
     real              :: q, df
 
-    q = sqrt(dot_product(r,r)) / h
+    q = dr / h
     call kdf(q, df)
-    Fab = -2. * wCv * df / h**(dim+2) / q
-  end subroutine Fab_cart
+    Gab = -2. * wCv * df / h**(dim+2) / q
+  end subroutine Gab_cart
 
-  pure subroutine n2w_cart(r, h, n2w)
-    real, intent(in)  :: r(3), h
+  pure subroutine n2w_cart(dr, h, n2w)
+    real, intent(in)  :: dr, h
     real, intent(out) :: n2w
     real              :: df, ddf, q
 
-    q = sqrt(dot_product(r,r)) / h
-
+    q = dr/h
     call kddf(q, ddf)
     call kdf(q, df)
     n2w = wCv*(ddf + (dim - 1) * df / q)/h**(dim + 2)
@@ -257,7 +271,7 @@ contains
     real, intent(in)  :: r(3), h
     real, intent(out) :: Hes(3,3)
     real              :: r2, dr, fab
-    real              :: r11, r12, r13, r22, r23, r33, cstart
+    real              :: r11, r12, r13, r22, r23, r33
 
     r2 = dot_product(r,r)
 
@@ -267,11 +281,10 @@ contains
     r22 = r(2)*r(2)/r2
     r23 = r(2)*r(3)/r2
     r33 = r(3)*r(3)/r2
-    cstart = wCv/h**(dim+2)
     Hes(:,:) = 0.
 
     dr = sqrt(r2)
-    call Fab_cart(r, h, fab)
+    call Gab_cart(dr, h, fab)
     fab = 0.5*fab
 
     Hes(1,1) = (dim+2)*r11*fab
@@ -434,7 +447,7 @@ contains
     Hes(:,:) = 0.
 
     dr = sqrt(r2)
-    call Fab_cart(rab, h, fab)
+    call Gab_cart(dr, h, fab)
     fab = 0.5*fab
 
     Hes(1,1) = ((dim+2)*r11 - 1)*fab
@@ -479,7 +492,7 @@ contains
     Hes(:,:) = 0.
 
     dr = sqrt(r2)
-    call FW_cart(rab, h, fab)
+    call FW_cart(dr, h, fab)
     fab = 0.5*fab
 
     Hes(1,1) = ((dim+2)*r11 - 1)*fab

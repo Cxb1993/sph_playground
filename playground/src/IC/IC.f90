@@ -80,6 +80,10 @@ contains
       d3null = 0
     end if
 
+    call setmhdmagneticpressure(1.)
+    call setdiffisotropic(1)
+    call setdiffconductivity(1.)
+
     nb = int(kr*hfac) + 1
 
     select case(ivt)
@@ -472,13 +476,13 @@ contains
         store(es_u,i)   = prs1/(gamma -1)/rho1
       case (ett_hydroshock)
         if (ra(1) <= 0.) then
-          store(es_h,i)   = hfac * sp
+          store(es_h,i)   = hfac * pspc1
           store(es_den,i) = rho1
           store(es_p,i)   = prs1
           store(es_m,i)   = (pspc1**dim) * rho1
           store(es_u,i)   = prs1/(gamma -1)/rho1
         else
-          store(es_h,i)   = hfac * sp
+          store(es_h,i)   = hfac * pspc2
           store(es_den,i) = rho2
           store(es_p,i)   = prs2
           store(es_m,i)   = (pspc2**dim) * rho2
