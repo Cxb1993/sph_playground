@@ -308,8 +308,11 @@ class Context:
                 curline = cf90.readline()
 
     def ReadFinalDump(self):
-        with open(self.rargs.dumpmap, 'r') as fmap:
-            fdump = FortranFile(self.rargs.dumpfile, 'r')
+        self.ReadDumpFile("./output/dumpmap", "./output/finaldump")
+
+    def ReadDumpFile(self, dumpmap, dumpfile):
+        with open(dumpmap, 'r') as fmap:
+            fdump = FortranFile(dumpfile, 'r')
             curmapline = fmap.readline()
             while (curmapline):
                 splitted = curmapline.split()

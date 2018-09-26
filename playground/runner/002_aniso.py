@@ -16,22 +16,22 @@ def defaultSetup():
     setup   = Setup()
     setup.xmin = -1.0
     setup.xmax =  1.0
-    setup.dim = 2.0
-    setup.ics = "shock12"
+    setup.dim  =  2.0
+    setup.ics  = "shock12"
     setup.process   = "relaxation"
     setup.tfinish   = 20.0
     setup.equations = "hydro"
     setup.kernel    = "m6"
     setup.hfac      = 1.0
-    setup.nsnapshots = 10.0
-    setup.resultfile = "result.info"
-    setup.influencefile = "influence.info"
     setup.coordsys  = "cartesian"
     setup.silent    = "no"
     setup.usedumps  = "yes"
     setup.adden     = "yes"
     setup.artts     = "yes"
     setup.au        = 1.0
+    setup.nsnapshots = 10.0
+    setup.resultfile = "result.info"
+    setup.influencefile = "influence.info"
     return setup
 
 def main():
@@ -41,9 +41,8 @@ def main():
     relax.setup = defaultSetup()
     relax.SetThreadsOMP(4)
     relax.SimpleMake()
-    relax.setup.resolution = 32
+    relax.setup.resolution = 64
     relax.setup.ddw        = ddwt
-    relax.setup.resultfile = resfile + "-" + ddwt + ".info"
     relax.CleanRun()
     relax.ReadFinalDump()
     fd = "output/"+"fd-" + str(ddwt)+".relaxed"
@@ -56,22 +55,28 @@ def main():
     hc12.setup.process      = hc12.epc['backcompatibility']
     hc12.setup.time         = 0.0
     # hc12.setup.au           = -1
-    hc12.setup.artts        = hc12.eif["yes"]
-    hc12.setup.au           = 1.0
+    hc12.setup.artts        = hc12.eif["no"]
+    hc12.setup.au           = -1.0
     addedN = hc12.AddParticles(
         dim='x',
         type='fixed',
         method='periodic'
     )
     hc12.setup.fixedpn = addedN
-    time0 = 0.01
-    h = 1./relax.setup.resolution
+
+    initialTemp = lambda rx: 1.0 if (rx <= 0.0) else 2.0
+    # if (hc12.setup.artts == hc12.eif["no"]):
+    #     h = 2./relax.setup.resolution
+    #     hc12.setup.time = h*h/4.
+    #     initialTemp = lambda rx: 1.5 + 0.5 * math.erf(rx/h)
+    # else:
+    #     initialTemp = lambda rx: 1.0 if (rx <= 0.0) else 2.0
+
     hc12.ModifyParticles(
         condition   = lambda rx: True,
         condarg     = 'rx',
         properties  = ['u', 't'],
-        value       = lambda rx: 1.0 if (rx <= 0.0) else 2.0,
-        # value       = lambda rx: 1.5 + 0.5 * math.erf(rx/2./h),
+        value       = initialTemp,
         valuearg    = 'rx'
     )
     hc12.ModifyParticles(
@@ -91,7 +96,7 @@ def main():
         "output/"+"dm.hcready"
     )
     hc12.ContinueRun()
-    relax.BackupOutput("output-"+ '{0:0^4}'.format(relax.setup.resolution))
+    relax.BackupOutput("output-002")
     # print("Done: | ", ddwt, " | ", outrest , "|",
     #     hc12.PrintCell(hc12.setup.resultfile, -1, 3))
     print(hc12.PrintCell(hc12.setup.resultfile, -1, 3))

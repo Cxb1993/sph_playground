@@ -254,7 +254,7 @@ program main
       if (usedumps == 1) call dump(store, t)
       if (silent == 0) call Output(t, store, err)
       write(*, fmt="(A,I7, A,F12.7, A,F12.7, A,F10.7,A,F10.7,A, A,F12.7, A,F12.7)") &
-        " #", iter, &
+        "#", iter, &
         " | t=", t, &
         " | dt=", dt, &
         " | h=[", minval(store(es_h,1:n)), ":", maxval(store(es_h,1:n)), "]",&

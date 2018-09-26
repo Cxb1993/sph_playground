@@ -194,9 +194,9 @@ contains
           call get_dw_dh(0., ha, dwdh)
           dkp1(i) = dkp1(i) + ma*w
           okp1(i) = okp1(i) + ma*dwdh
-          okp1(i) = 1. - (-dim*ha/dkp1(i))*okp1(i)
+          ! that is right according to Price2008, phantom paper is wrong
+          okp1(i) = 1. - okp1(i)*(-ha/(dim*dkp1(i)))
           dfdh = -dim*dkp1(i)*okp1(i)/ha
-          ! fh   = dkp1(i) - ma*(hfac/ha)**dim
           fh   = ma*(hfac/ha)**dim - dkp1(i)
           hn   = ha - fh/dfdh
           if (hn <= 0.) then
@@ -243,8 +243,8 @@ contains
     tneib = 0.
     !$omp parallel do default(none)&
     !$omp private(ra, rb, ha, ma, mb, da, db)&
-    !$omp private(r, dr, w, j, rj, i, la, lb, nlistb, t0, currinterr)&
-    !$omp shared(store, hfac, dim,nlista, dk)&
+    !$omp private(r, dr, w, j, rj, i, la, lb, nlistb, t0)&
+    !$omp shared(store, hfac, dim,nlista, dk, hk)&
     !$omp reduction(+:tneib)
     do la = 1, size(nlista)
       i = nlista(la)

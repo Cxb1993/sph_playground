@@ -100,7 +100,7 @@ contains
     !$omp private(nlistb, vba, t0, kta, ktb, ktab, kdtadx, kdtbdx)&
     !$omp private(tmpt1, tmpt2, tmpt3, li, lj, MPa, MPb, Mc)&
     !$omp private(ha, hb, ca, cb, pa, pb, ua, ub, oma, omb, ta, tb, ma, mb)&
-    !$omp private(wa, wb, n2wa, n2wb, nwa, nwb, Hesa, Hesb, Faba, Fabb, faba, fabb)&
+    !$omp private(wa, wb, n2wa, n2wb, nwa, nwb, Hesa, Hesb, faba, fabb)&
     !$omp private(dva, dua, dha, ddta, dba, ba, bb, va, vb, dtadx, dtbdx)&
     !$omp private(uba, ubb, dvaterm, dvbterm)&
     !$omp private(prada, pradb, radinteration)&
@@ -309,25 +309,21 @@ contains
           call fab(dr, ha, faba)
           call fab(dr, hb, fabb)
           call art_viscosity(rhoa, rhob, vab, urab, ca, cb, qa, qb)
-          call art_termcond(faba, fabb, pa, pb, ua, ub, rhoa, rhob, oma, omb, qc)
           dva(:) = dva(:) - mb * (&
                       qa*nwa(:)/rhoa**2/oma + &
                       qb*nwb(:)/rhob**2/omb &
                     )
-          ! qc = qc / dr
-          ! if (s_au == -1) then
-          !   qc = qc / dr
-          !   ! qc = 0.0
-          ! else
-          !   qc = s_au*qc
-          ! end if
-          ! qc = 0.0
-          ! if ((i == 1).and.(qc /= 0)) then
-          !   print*, qc
-          ! end if
+
+          if (s_au == -1) then
+            call arttermconddiff(faba, fabb, pa, pb, ua, ub, rhoa, rhob, oma, omb, qc)
+            qc = qc / dr
+          else
+            call art_termcond(faba, fabb, pa, pb, ua, ub, rhoa, rhob, oma, omb, qc)
+            qc = s_au*qc
+          end if
           dua   = dua + mb * (&
                         + dot_product(vab(:),urab(:))*qa*faba/oma/rhoa&
-                        + s_au*qc &
+                        + qc &
                     )
         end if
 
@@ -339,24 +335,6 @@ contains
 
           dua = dua + mb*dot_product(vab(:),pa*nwa(:))/rhoa**2/oma
         end if
-
-        ! if (eqSet(eqs_hydro) == 1) then
-        !   if (s_artts == 1) then
-        !     call fab(dr, ha, faba)
-        !     call fab(dr, hb, fabb)
-        !     call art_viscosity(rhoa, rhob, vab, urab, ca, cb, qa, qb)
-        !     call art_termcond(faba, fabb, pa, pb, ua, ub, rhoa, rhob, oma, omb, qc)
-        !   end if
-        !   dva(:) = dva(:) - mb * (&
-        !               ((pa + prada + qa) * nwa(:))/(rhoa**2 * oma) + &
-        !               ((pb + pradb + qb) * nwb(:))/(rhob**2 * omb) &
-        !             )
-        !   dua   = dua + mb * (&
-        !                 dot_product(vab(:),pa*nwa(:))/rhoa**2/oma&
-        !                 + dot_product(vab(:),urab(:))*qa/oma/rhoa&
-        !                 + qc &
-        !             )
-        ! end if
 
         if (eqSet(eqs_diff) == 1) then
           if (difiso == 0) then
@@ -485,9 +463,9 @@ contains
 
       store(es_ax:es_az,i) = dva(:)
       store(es_dh,i) = dha
-      store(es_ddt,i) = ddta/rhoa
+      ! store(es_ddt,i) = ddta/rhoa
       store(es_dbx:es_dbz,i) = dba(:)
-      store(es_du,i) = dua
+      store(es_du,i) = dua + ddta/rhoa
       consenrg = consenrg + ma*(dot_product(va(:),dva(:)) + dua + &
         dot_product(ba(:),dba(:))/rhoa - &
         0.5*dot_product(ba(:),ba(:))/rhoa/rhoa*drhoadt/oma)
@@ -508,6 +486,17 @@ contains
     ! qc = vsigu * (ua - ub) * 0.5 * (dot_product((nwa(:)/oa/da + nwb(:)/ob/db),urab(:)))
     qc = vsigu*(ua - ub)*0.5*(faba/oa/da + fabb/ob/db)
   end subroutine
+  pure subroutine arttermconddiff(faba, fabb, pa, pb, ua, ub, da, db, oa, ob, qc)
+    real, intent(in)  :: pa, pb, da, db, ua, ub, oa, ob, &
+                         faba, fabb
+    real, intent(out) :: qc
+    real              :: vsigu
+    qc = 0.
+    vsigu = sqrt(abs(ua - ub))
+    ! qc = vsigu * (ua - ub) * 0.5 * (dot_product((nwa(:)/oa/da + nwb(:)/ob/db),urab(:)))
+    qc = vsigu*(ua - ub)*0.5*(faba/oa/da + fabb/ob/db)
+  end subroutine
+
   pure subroutine art_viscosity(da, db, vab, urab, ca, cb, qa, qb)
     real, intent(in)  :: da, db, vab(3), urab(3), ca, cb
     real, intent(out) :: qa, qb
@@ -526,7 +515,6 @@ contains
       qb = -0.5*db*vsig*dvr
     end if
   end subroutine
-
   ! pure subroutine art_viscosity(da, db, vab, &
   !     urab, rab, dr, dim, ca, cb, ha, hb, &
   !     qa, qb)
