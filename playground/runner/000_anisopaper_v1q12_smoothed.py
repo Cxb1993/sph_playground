@@ -41,20 +41,19 @@ def main():
     tmp.SetThreadsOMP(6)
     tmp.SimpleMake()
 
-    for rest in [16, 32, 64, 128, 256, 512, 1024]:
     # for rest in [16, 32]:
-        # for ddwt in ["2nw_sd", "2nw_ds", "n2w", "fab", "fw"]:
+    for rest in [16, 32, 64, 128, 256, 512, 1024]:
+        relax = Context()
+        relax.setup = defaultSetup()
+        relax.setup.resolution = rest
+        relax.setup.ddw        = "fab"
+        relax.CleanRun()
+        relax.ReadFinalDump()
+        fd = "output/"+"fd-" + str(rest)+".relaxed"
+        dm = "output/"+"dm-" + str(rest)+".relaxed"
+        relax.BackupDumps(fd, dm)
         for ddwt in ["2nw_sd", "2nw_ds"]:
             for s_artts in ["yes", "no"]:
-                relax = Context()
-                relax.setup = defaultSetup()
-                relax.setup.resolution = rest
-                relax.setup.ddw        = ddwt
-                relax.CleanRun()
-                relax.ReadFinalDump()
-                fd = "output/"+"fd-" + str(ddwt) + "-" + str(rest)+".relaxed"
-                dm = "output/"+"dm-" + str(ddwt) + "-" + str(rest)+".relaxed"
-                relax.BackupDumps(fd, dm)
                 hc12                    = relax.CopyContext()
                 hc12.setup.ddw          = hc12.esd[ddwt]
                 hc12.setup.eqs          = hc12.eeq['diffusion']
