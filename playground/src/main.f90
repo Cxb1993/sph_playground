@@ -173,19 +173,18 @@ program main
   sumdedt = 0.
   dedt = 0.
 
-  if (silent == 0) then
-    call Output(t, store, sqerr)
-    print *, '#  #-------------------------------------------------'
-    print *, '#  # Initial setup printed'
-    write(*, fmt="(A,I7, A,F12.7, A,F12.7, A,F10.7,A,F10.7,A, A,F12.7, A,F12.7)") &
-      " #  #", iter, &
-      " | t=", t, &
-      " | dt=", dt, &
-      " | h=[", minval(store(es_h,1:n)), ":", maxval(store(es_h,1:n)), "]",&
-      " | dedt=", dedt*dt,&
-      " | S(dedt)=", sumdedt
-    print *, '#  #-------------------------------------------------'
-  end if
+  if (usedumps == 1) call dump(store, t)
+  if (silent == 0) call Output(t, store, sqerr)
+  print *, '#  #-------------------------------------------------'
+  print *, '#  # Initial setup printed'
+  write(*, fmt="(A,I7, A,F12.7, A,F12.7, A,F10.7,A,F10.7,A, A,F12.7, A,F12.7)") &
+    " #  #", iter, &
+    " | t=", t, &
+    " | dt=", dt, &
+    " | h=[", minval(store(es_h,1:n)), ":", maxval(store(es_h,1:n)), "]",&
+    " | dedt=", dedt*dt,&
+    " | S(dedt)=", sumdedt
+  print *, '#  #-------------------------------------------------'
 
   call checkVarsReady(s_tt, store)
 

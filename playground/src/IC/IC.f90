@@ -140,15 +140,9 @@ contains
       brdz2 =  d3null*1.
       bordersize = nb*pspc2
       ! call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
-      ! call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
-      call closepacked(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store)
+      call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
+      ! call closepacked(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store)
       call createFixedBorders(store, ebc_all)
-      ! call getPartNumber(rpn,fpn)
-      ! call set_density_profile(rpn+fpn,store,&
-      !   brdx1-bordersize,brdx2+bordersize,&
-      !   rhofunc=uniRho,coord=1)
-      ! print*, store(es_den,100:110)
-      ! read*
     case (ett_mti)
       call setmhdmagneticpressure(1.)
       ! call setdiffisotropic(edi_iso)
