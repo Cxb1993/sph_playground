@@ -226,9 +226,10 @@ contains
   subroutine c1simple(store)
     real, allocatable, intent(inout) :: store(:,:)
     real :: &
-      w, r(3), dr, ra(3), rb(3), ha, ma, mb, da, db, hfac
+      w, r(3), dr, ra(3), rb(3), ha, hb, ma, mb, da, db, hfac,&
+      dtadx(3), nwa(3), nwb(3), ta, tb
     integer :: &
-      i, j, rj, la, lb, dim
+      i, j, rj, la, lb, dim, ktp
     integer, allocatable             :: nlista(:), nlistb(:)
     integer(8)                       :: t0, tneib
 
@@ -236,25 +237,29 @@ contains
     call getNeibListL1(nlista)
     call getdim(dim)
     call gethfac(hfac)
+    call getddwtype(ktp)
 
     dk(:) = store(es_den,1:totreal)
     hk(:) = store(es_h,1:totreal)
 
     tneib = 0.
     !$omp parallel do default(none)&
-    !$omp private(ra, rb, ha, ma, mb, da, db)&
+    !$omp private(ra, rb, ha, hb, ma, mb, da, db)&
     !$omp private(r, dr, w, j, rj, i, la, lb, nlistb, t0)&
-    !$omp shared(store, hfac, dim,nlista, dk, hk)&
+    !$omp private(dtadx, nwa, nwb, ta, tb)&
+    !$omp shared(store, hfac, dim,nlista, dk, hk, nw, eqSet, ktp)&
     !$omp reduction(+:tneib)
     do la = 1, size(nlista)
       i = nlista(la)
 
       dk(i) = 0.
       hk(i) = 0.
+      dtadx(:) = 0.
       ra(:) = store(es_rx:es_rz,i)
       ha = store(es_h,i)
       ma = store(es_m,i)
       da = store(es_den,i)
+      ta = store(es_t,i)
       ! call getneighbours(i, nlistb, t0)
       ! tneib = tneib + t0
       ! do lb = 1, size(nlistb)
@@ -263,17 +268,31 @@ contains
         j = xgetneighindex(i, lb)
         rj = getCrossRef(j)
         rb(:) = store(es_rx:es_rz, j)
+        hb = store(es_h,i)
         mb = store(es_m, rj)
         db = store(es_den, rj)
+        tb = store(es_t,rj)
 
         r(:) = ra(:)-rb(:)
         dr = sqrt(dot_product(r(:),r(:)))
         call get_w(dr, ha, w)
         dk(i) = dk(i) + mb * w
+        if (eqSet(eqs_diff) == 1) then
+          if (ktp == esd_2nw_ds) then
+            call nw(r(:), ra(:), rb(:), dr, ha, nwa)
+            dtadx(:) = dtadx(:) + mb/da*(tb - ta)*nwa(:)
+          else if (ktp == esd_2nw_sd) then
+            ! print*, nlistb
+            call nw(r(:), ra(:), rb(:), dr, ha, nwa)
+            call nw(r(:), ra(:), rb(:), dr, hb, nwb)
+            dtadx(:) = dtadx(:) + mb*(ta/da/da*nwa(:) + tb/db/db*nwb(:))
+          end if
+        end if
       end do
       call get_w(0., ha, w)
       dk(i) = dk(i) + ma * w
       hk(i) = hfac * (ma / dk(i))**(1./dim)
+      store(es_dtdx:es_dtdz,i) = dtadx(:)
     end do
     !$omp end parallel do
     store(es_den,1:realpartnumb) = dk(1:realpartnumb)

@@ -50,7 +50,9 @@ program main
   use timing,           only: addTime
   use dumper,           only: dump, restore,&
                               dumpclean => clean
-  use kernel,           only: initkernel
+  use kernel,           only: initkernel,&
+                              getcndiff,&
+                              getcnhydro
 
 
   use preruncheck
@@ -70,7 +72,7 @@ program main
     dt, t, dtout, ltout, tfinish,&
     gamma, hfac, cv = 1., &
     mhdmuzero, difcond, dedt, sumdedt, dedtprev, chi(81),&
-    flaxlimc
+    flaxlimc, cndiff, cnhydro
   character (len=100) :: &
     errfname
   integer :: &
@@ -133,6 +135,8 @@ program main
   call getLastPrint(lastnpic)
   call getdim(dim)
   call initkernel(dim)
+  call getcnhydro(cnhydro)
+  call getcndiff(cndiff)
   call initBorders()
   call tinit()
   ! call diffinit()
@@ -210,7 +214,7 @@ program main
     case(eeq_kd2)
       dt = 0.
     case(eeq_hydro)
-      dt = .01 * minval(store(es_h,1:n)) / maxval(store(es_c,1:n))
+      dt = cnhydro * minval(store(es_h,1:n)) / maxval(store(es_c,1:n))
     case(eeq_magnetohydro)
       dt = .1*1e-5*minval(store(es_h,1:n))&
             /maxval(store(es_c,1:n))&
@@ -218,7 +222,7 @@ program main
       ! dt = .1*minval(store(es_h,1:n))&
       !       /maxval(store(es_c,1:n))
     case(eeq_diffusion, eeq_hydrodiffusion)
-      dt = .01 * minval(store(es_den,1:n)) &
+      dt = cndiff * minval(store(es_den,1:n)) &
               * minval(store(es_c,1:n)) &
               * minval(store(es_h,1:n)) ** 2 &
               / merge(difcond, maxval(store(es_bx:es_bz,1:n)), difiso == 1)

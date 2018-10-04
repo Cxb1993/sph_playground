@@ -58,7 +58,7 @@ contains
     real, intent(out) :: maxconsenrg
 
     real :: &
-      qa, qb, qc, qd(3), qe, &
+      qa, qb, qc, qd(3), qe, lamdbadiff, &
       dr, rhoa, rhob, ra(3), rb(3), r2, &
       rab(3), vab(3), vba(3), urab(3), &
       odda, oddb, kta(3,3), ktb(3,3), ktab(3,3), &
@@ -94,7 +94,7 @@ contains
     consenrg = 0.
     call getNeibListL1(nlista)
     !$omp parallel do default(none)&
-    !$omp private(qa, qb, qc, qd, qe)&
+    !$omp private(qa, qb, qc, qd, qe, lamdbadiff)&
     !$omp private(rab, dr, ra, rb, vab, urab, rhoa, rhob)&
     !$omp private(i, j, rj, r2, odda ,oddb, la, lb, drhoadt)&
     !$omp private(nlistb, vba, t0, kta, ktb, ktab, kdtadx, kdtbdx)&
@@ -254,6 +254,7 @@ contains
         qc    = 0.
         qd(:) = 0.
         qe    = 0.
+        lamdbadiff = 0.
         rab(:) = ra(:) - rb(:)
         r2 = dot_product(rab(:),rab(:))
         dr = sqrt(r2)
@@ -315,8 +316,28 @@ contains
                     )
 
           if (s_au == -1) then
-            call arttermconddiff(faba, fabb, pa, pb, ua, ub, rhoa, rhob, oma, omb, qc)
-            qc = qc / dr
+            call arttermconddiff(&
+              faba, fabb, ua, ub, rhoa, rhob, oma, omb, lamdbadiff)
+              ! faba, fabb, urab, ua, ub, dtadx, dtbdx, kta, ktb, rhoa, rhob, oma, omb, lamdbadiff)
+            ! call arttermconddiff(&
+              ! nwa, nwb, ua, ub, dtadx, dtbdx, kta, ktb, rhoa, rhob, oma, omb, lamdbadiff)
+            ! if ( i > 200 ) then
+            !   ! print*, i, j
+            !   ! print*, sqrt(abs(ua - ub))/dr*(ua - ub)*0.5*(faba/oma/rhoa + fabb/omb/rhob)
+            !   ! print*, lamdbadiff
+            !   ! print*, '------------'
+            !   ! print*, sqrt(abs(ua - ub))/dr*(ua-ub)
+            !   ! print*, (dot_product(dtadx,kta(1,:))+dot_product(dtbdx,ktb(1,:)))*(ua-ub)
+            !   ! print*, (dot_product(dtadx,kta(2,:))+dot_product(dtbdx,ktb(2,:)))*(ua-ub)
+            !   ! print*, (dot_product(dtadx,kta(3,:))+dot_product(dtbdx,ktb(3,:)))*(ua-ub)
+            !   ! print*, '============'
+            !   ! read*
+            !   print*, i,j
+            !   print*, ra, rb
+            !   print*, dtadx
+            !   print*, dtbdx
+            !   read*
+            ! end if
           else
             call art_termcond(faba, fabb, pa, pb, ua, ub, rhoa, rhob, oma, omb, qc)
             qc = s_au*qc
@@ -324,6 +345,7 @@ contains
           dua   = dua + mb * (&
                         + dot_product(vab(:),urab(:))*qa*faba/oma/rhoa&
                         + qc &
+                        + lamdbadiff &
                     )
         end if
 
@@ -400,6 +422,7 @@ contains
             kdtbdx(1) = dot_product(ktb(1,:),dtbdx(:))
             kdtbdx(2) = dot_product(ktb(2,:),dtbdx(:))
             kdtbdx(3) = dot_product(ktb(3,:),dtbdx(:))
+            ! may I use one of those as indicator that the artificial term should be applied?
 
             ddta = ddta + mb/oma/rhoa*( &
             dot_product(kdtbdx(:) - kdtadx(:),nwa(:)))
@@ -476,6 +499,17 @@ contains
     call addTime(' circuit2', finish - start - tneib)
   end subroutine
 
+  pure subroutine arttermconddiff(faba, fabb, ua, ub, da, db, oa, ob, qc)
+    real, intent(in)  :: da, db, ua, ub, oa, ob, &
+                         faba, fabb
+    real, intent(out) :: qc
+    real              :: vsigu
+    qc = 0.
+    vsigu = sqrt(abs(ua - ub))
+    ! qc = vsigu * (ua - ub) * 0.5 * (dot_product((nwa(:)/oa/da + nwb(:)/ob/db),urab(:)))
+    qc = vsigu*(ua - ub)*0.5*(faba/oa/da + fabb/ob/db)
+  end subroutine
+
   pure subroutine art_termcond(faba, fabb, pa, pb, ua, ub, da, db, oa, ob, qc)
     real, intent(in)  :: pa, pb, da, db, ua, ub, oa, ob, &
                          faba, fabb
@@ -486,16 +520,33 @@ contains
     ! qc = vsigu * (ua - ub) * 0.5 * (dot_product((nwa(:)/oa/da + nwb(:)/ob/db),urab(:)))
     qc = vsigu*(ua - ub)*0.5*(faba/oa/da + fabb/ob/db)
   end subroutine
-  pure subroutine arttermconddiff(faba, fabb, pa, pb, ua, ub, da, db, oa, ob, qc)
-    real, intent(in)  :: pa, pb, da, db, ua, ub, oa, ob, &
-                         faba, fabb
-    real, intent(out) :: qc
-    real              :: vsigu
-    qc = 0.
-    vsigu = sqrt(abs(ua - ub))
-    ! qc = vsigu * (ua - ub) * 0.5 * (dot_product((nwa(:)/oa/da + nwb(:)/ob/db),urab(:)))
-    qc = vsigu*(ua - ub)*0.5*(faba/oa/da + fabb/ob/db)
-  end subroutine
+  ! pure subroutine arttermconddiff(&
+  ! subroutine arttermconddiff(&
+  !   nwa, nwb, ua, ub, dtadx, dtbdx, kta, ktb, rhoa, rhob, oma, omb, lamdbadiff)
+  !   ! faba, fabb, urab, ua, ub, dtadx, dtbdx, kta, ktb, rhoa, rhob, oma, omb, lamdbadiff)
+  !   real, intent(in) :: &
+  !     ! faba, fabb, urab(3), ua, ub, dtadx(3), dtbdx(3), kta(3,3), ktb(3,3), rhoa, rhob, oma, omb
+  !     nwa(3), nwb(3), ua, ub, dtadx(3), dtbdx(3), kta(3,3), ktb(3,3), rhoa, rhob, oma, omb
+  !   real, intent(out) :: lamdbadiff
+  !   real              :: vsig(3)
+  !   ! (f(x) - f(x+h))/h = df -- flux definition?
+  !   ! flux * kappa will get it work for any anisotropy
+  !   vsigu = sqrt(abs(ua - ub))/dr
+  !   vsig(1) = dot_product(dtadx,kta(1,:))+dot_product(dtbdx,ktb(1,:))
+  !   vsig(2) = dot_product(dtadx,kta(2,:))+dot_product(dtbdx,ktb(2,:))
+  !   vsig(3) = dot_product(dtadx,kta(3,:))+dot_product(dtbdx,ktb(3,:))
+  !   ! lamdbadiff = (ua - ub)*0.5*dot_product(vsig(:),nwa(:)/oma/rhoa)
+  !   ! qc = vsigu * (ua - ub) * 0.5 * (dot_product((nwa(:)/oa/da + nwb(:)/ob/db),urab(:)))
+  !   ! lamdbadiff(:) = vsig(:)*(ua - ub)*0.5*(faba/oma/rhoa + fabb/omb/rhob))
+  !   ! vsig(1) = dot_product(dtadx,kta(1,:))*nwa(1)/oma/rhoa/rhoa+&
+  !   !           dot_product(dtbdx,ktb(1,:))*nwb(1)/omb/rhob/rhob
+  !   ! vsig(2) = dot_product(dtadx,kta(2,:))*nwa(2)/oma/rhoa/rhoa+&
+  !   !           dot_product(dtbdx,ktb(2,:))*nwb(2)/omb/rhob/rhob
+  !   ! vsig(3) = dot_product(dtadx,kta(3,:))*nwa(3)/oma/rhoa/rhoa+&
+  !   !           dot_product(dtbdx,ktb(3,:))*nwb(3)/omb/rhob/rhob
+  !             ! lamdbadiff = abs(ua - ub)*dot_product(vsig(:),nwa(:)/oma/rhoa)
+  !   lamdbadiff = sqrt(abs(ua-ub))*dot_product(vsig(:), nwa(:)/oma/rhoa)
+  ! end subroutine
 
   pure subroutine art_viscosity(da, db, vab, urab, ca, cb, qa, qb)
     real, intent(in)  :: da, db, vab(3), urab(3), ca, cb

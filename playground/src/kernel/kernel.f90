@@ -10,7 +10,8 @@ module kernel
 
   public :: nw, get_dw_dh, get_w, initkernel, &
             n2w, get_krad, hessian,&
-            hessian_rr, getneibnumber, precalcKernel,fab
+            hessian_rr, getneibnumber, precalcKernel,fab,&
+            getcnhydro, getcndiff
   save
 
   integer :: dim
@@ -72,12 +73,22 @@ contains
     nn = returnneibnum
   end subroutine
 
+  subroutine getcnhydro(cn)
+    real, intent(inout) :: cn
+    cn = cnarr(ecn_hydro)
+  end subroutine getcnhydro
+
+  subroutine getcndiff(cn)
+    real, intent(inout) :: cn
+    cn = d2curnumb
+  end subroutine getcndiff
+
   subroutine initkernel(indim)
     integer, intent(in) :: indim
     integer :: cs, kt
 
     dim = indim
-    call setdimbase(dim)
+    call initkernelbase(dim)
     call setdim(dim)
 
     call gcoordsys(cs)
@@ -92,15 +103,19 @@ contains
       if (kt == esd_n2w) then
         hessian => hessian_ddw_cart
         n2w     => n2w_cart
+        d2curnumb = cnarr(ecn_d2n2w)
       else if (kt == esd_fab) then
         hessian => hessian_fab_cart
         n2w     => Gab_cart
+        d2curnumb = cnarr(ecn_d2fab)
       else if ((kt == esd_2nw_ds).or.(kt == esd_2nw_sd)) then
         hessian => null()
         n2w     => null()
+        d2curnumb = cnarr(ecn_d22nw)
       else if (kt == esd_fw) then
         hessian => hessian_fw_cart
         n2w     => FW_cart
+        d2curnumb = cnarr(ecn_d2fab)
       else
         error stop "Wrong kernel type in kernel init."
       end if

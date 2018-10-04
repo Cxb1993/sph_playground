@@ -76,8 +76,8 @@ contains
           exp(-0.5*((x(1)*x(1)+x(2)*x(2)+x(3)*x(3))/ekt))
       else
         exact = pifac/epsdm1/ektsq*&
-          ! exp(-0.5*(x(1)*x(1)/ekt + (x(2)*x(2)+x(3)*x(3))/eps/eps))
-          exp(-0.5*(x(2)*x(2)/ekt + (x(1)*x(1)+x(3)*x(3))/eps/eps))
+          exp(-0.5*(x(1)*x(1)/ekt + (x(2)*x(2)+x(3)*x(3))/eps/eps))
+          ! exp(-0.5*(x(2)*x(2)/ekt + (x(1)*x(1)+x(3)*x(3))/eps/eps))
       end if
       err(i) = (exact - num)*(exact - num)
       ! print*, exact, num
@@ -138,17 +138,21 @@ contains
 
     tr = 2.
     tl = 1.
-    if (diso == 1) then
-      tt = t
-    else
-      tt = 1e-15
-    end if
 
     do j = 1,size(nlista)
       i = nlista(j)
       exact = 0.
       x(:) = store(es_rx:es_rz,i)
-      exact = (tr+tl)/2. + (tr-tl)/2. *erf(x(1)/sqrt(4*t))
+      if (diso == 1) then
+        tt = t
+      else
+        if (store(es_bx,i) == 1.) then
+          tt = t
+        else
+          tt = 1e-15
+        end if
+      end if
+      exact = (tr+tl)/2. + (tr-tl)/2. *erf(x(1)/sqrt(4*tt))
       num  = store(es_t,i)
       err(i) = (exact - num)*(exact - num)
     end do

@@ -2,30 +2,34 @@ module kernel_base
   use const
   implicit none
 
-  public :: kf, kdf, kddf, knorm, krad, kernelname, setdimbase, wCv, fwc, returnneibnum
+  public :: kf, kdf, kddf, knorm, krad, kernelname, initkernelbase, wCv, fwc, returnneibnum, cnarr, d2curnumb
 
   private
 
     character (len=10) :: kernelname='M6'
 
     real :: knorm(3) = [ 1./120., 7./(478. * pi), 1./(120. * pi) ]
+    real :: cnarr(ecn_total)
     real :: fwcl(3) = [4., 9.31505/2.25, 9.6429/2.25]
-    ! integer :: maxneibnum(3) = [15, 15**2, 15**3]
     integer :: maxneibnum(3) = [50, 10000, 150]
     real :: krad = 3.
 
-    real :: wCv, fwc
+    real :: wCv, fwc, d2curnumb = -1.
     integer :: dim, returnneibnum
 
  contains
 
-  subroutine setdimbase(d)
+  subroutine initkernelbase(d)
     integer, intent(in) :: d
     dim = d
     wCv = knorm(dim)
     fwc = fwcl(dim)
     returnneibnum = maxneibnum(dim)
-  end subroutine
+    cnarr(ecn_hydro) = 0.3
+    cnarr(ecn_d22nw) = 1.2
+    cnarr(ecn_d2fab) = 0.3
+    cnarr(ecn_d2n2w) = 0.3
+  end subroutine initkernelbase
 
   pure subroutine kf(q, f)
     real, intent(in)  :: q

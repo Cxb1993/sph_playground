@@ -53,7 +53,7 @@ def main():
         dm = "output/"+"dm-" + str(rest)+".relaxed"
         relax.BackupDumps(fd, dm)
         for ddwt in ["2nw_sd", "2nw_ds"]:
-            for s_artts in ["yes", "no"]:
+            for s_artts in ["no", "smoothed", "artterm"]:
                 hc12                    = relax.CopyContext()
                 hc12.setup.ddw          = hc12.esd[ddwt]
                 hc12.setup.eqs          = hc12.eeq['diffusion']
@@ -62,11 +62,6 @@ def main():
                 hc12.setup.resultfile   = resfile+"-"+ddwt+'-'+s_artts+".info"
                 hc12.setup.process      = hc12.epc['backcompatibility']
                 hc12.setup.time         = 0.0
-                hc12.setup.artts        = hc12.eif[s_artts]
-                if (ddwt == "2nw_ds") or (ddwt == "2nw_sd"):
-                    hc12.setup.au = -1.0
-                else:
-                    hc12.setup.au = 0.0
 
                 addedN = hc12.AddParticles(
                     dim='x',
@@ -76,12 +71,16 @@ def main():
                 hc12.setup.fixedpn = addedN
 
                 initialTemp = lambda rx: 1.0 if (rx <= 0.0) else 2.0
-                if (hc12.setup.artts == hc12.eif["no"]):
-                    h = 2./relax.setup.resolution
-                    hc12.setup.time = h*h/4.
+                
+                if (s_artts == "no"):
+                    hc12.setup.artts = hc12.eif['no']
+                elif (s_artts == "smoothed"):
+                    hc12.setup.artts = hc12.eif['no']
+                    h = 1./relax.setup.resolution
                     initialTemp = lambda rx: 1.5 + 0.5 * math.erf(rx/h)
-                else:
-                    initialTemp = lambda rx: 1.0 if (rx <= 0.0) else 2.0
+                elif (s_artts == "artterm"):
+                    hc12.setup.artts = hc12.eif['yes']
+                    hc12.setup.au    = -1
 
                 hc12.ModifyParticles(
                     condition   = lambda rx: True,
@@ -112,5 +111,5 @@ def main():
                 ss = str(s_artts)
                 relax.BackupOutput("output-"+ds+"-"+rs+"-"+ss)
                 print("Done: | ", ds, " | ", rs, "|", ss, "|", hc12.PrintCell(hc12.setup.resultfile, -1, 3))
-
+        print('\n')
 main()

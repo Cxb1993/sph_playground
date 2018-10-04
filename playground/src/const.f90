@@ -152,6 +152,13 @@ module const
     eqs_fld     = 4,&
     eqs_total   = 4
 
+  integer, parameter :: &
+    ecn_hydro = 1,&
+    ecn_d2fab  = 2,&
+    ecn_d2n2w  = 3,&
+    ecn_d22nw  = 4,&
+    ecn_total = 4
+
   character(len=*), parameter :: &
     blockFormatFlt  = "(A,A50,F16.10)",&
     blockFormatInt  = "(A,A50,I8)",&
