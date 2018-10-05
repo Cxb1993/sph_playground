@@ -129,7 +129,8 @@ class Context:
             f.close()
 
     def SetThreadsOMP(self, i):
-        self.env["OMP_NUM_THREADS"] = str(i)
+        if (i != 1):
+            self.env["OMP_NUM_THREADS"] = str(i)
 
     def GetDateTimeString(self):
         strres = str(datetime.datetime.today().year)
@@ -381,6 +382,7 @@ class Context:
         if (len(str.split()) != 1):
             print("Cannot copy with " + str)
         else:
+            # print("cp -r " + self.pwd + "/output " + self.pwd + "/" + str)
             os.system("cp -r " + self.pwd + "/output " + self.pwd + "/" + str)
 
     def BackupDumps(self, strDump, strMap):

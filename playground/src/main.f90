@@ -53,6 +53,7 @@ program main
   use kernel,           only: initkernel,&
                               getcndiff,&
                               getcnhydro
+  use errprinter,       only: warning
 
 
   use preruncheck
@@ -112,6 +113,10 @@ program main
       call getnpics(npics)
       call gettfinish(tfinish)
       dtout = (tfinish-t)/(npics - lastnpic)
+      if (dtout == 0.) then
+        dtout = 1.
+        call warning("Dirty hack was used here", "dtout", __FILE__, __LINE__)
+      end if
       call setdtprint(dtout)
 
       call setupV2(n, cv, store)

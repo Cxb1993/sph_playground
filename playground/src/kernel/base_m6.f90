@@ -27,8 +27,8 @@ module kernel_base
     returnneibnum = maxneibnum(dim)
     cnarr(ecn_hydro) = 0.3
     cnarr(ecn_d22nw) = 1.2
-    cnarr(ecn_d2fab) = 0.3
-    cnarr(ecn_d2n2w) = 0.3
+    cnarr(ecn_d2fab) = 0.25
+    cnarr(ecn_d2n2w) = 0.45
   end subroutine initkernelbase
 
   pure subroutine kf(q, f)

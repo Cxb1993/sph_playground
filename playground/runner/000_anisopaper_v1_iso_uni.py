@@ -19,7 +19,7 @@ def defaultSetup():
     setup.dim = 2.0
     setup.ics = "shock12"
     setup.process   = "relaxation"
-    setup.tfinish   = 20.0
+    setup.tfinish   = 0.0
     setup.equations = "hydro"
     setup.kernel    = "m6"
     setup.hfac      = 1.0
@@ -52,9 +52,14 @@ def main():
         fd = "output/"+"fd-" + str(rest)+".relaxed"
         dm = "output/"+"dm-" + str(rest)+".relaxed"
         relax.BackupDumps(fd, dm)
-        for ddwt in ["2nw_sd", "2nw_ds"]:
-            for s_artts in ["no", "smoothed", "artterm"]:
+        for ddwt in ["2nw_ds", "n2w", "fab"]:
+            if ddwt == "2nw_ds":
+                smlist = ["no", "smoothed", "artterm"]
+            else:
+                smlist = ["no"]
+            for s_artts in smlist:
                 hc12                    = relax.CopyContext()
+                hc12.PrintState()
                 hc12.setup.ddw          = hc12.esd[ddwt]
                 hc12.setup.eqs          = hc12.eeq['diffusion']
                 hc12.setup.tfinish      = 0.05
@@ -71,7 +76,7 @@ def main():
                 hc12.setup.fixedpn = addedN
 
                 initialTemp = lambda rx: 1.0 if (rx <= 0.0) else 2.0
-                
+
                 if (s_artts == "no"):
                     hc12.setup.artts = hc12.eif['no']
                 elif (s_artts == "smoothed"):
@@ -99,16 +104,16 @@ def main():
                     value       = lambda rx: 0.0,
                     valuearg    = 'rx'
                 )
-                # hc12.PrintState()
+                hc12.PrintState()
                 hc12.Apply()
+                ds = str(ddwt)
+                rs = '{0:0>4}'.format(rest)
+                ss = str(s_artts)
                 hc12.BackupDumps(
-                    "output/"+"fd-" + str(ddwt) + "-" + str(rest)+".hcready",
-                    "output/"+"dm-" + str(ddwt) + "-" + str(rest)+".hcready"
+                    "output/"+"fd-"+ds+"-"+rs+"-"+ss+".hcready",
+                    "output/"+"dm-"+ds+"-"+rs+"-"+ss+".hcready"
                 )
                 hc12.ContinueRun()
-                ds = str(ddwt)
-                rs = str(rest)
-                ss = str(s_artts)
                 relax.BackupOutput("output-"+ds+"-"+rs+"-"+ss)
                 print("Done: | ", ds, " | ", rs, "|", ss, "|", hc12.PrintCell(hc12.setup.resultfile, -1, 3))
         print('\n')

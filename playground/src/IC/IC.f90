@@ -92,7 +92,7 @@ contains
       stop
     case (ett_shock12)
       call setmhdmagneticpressure(1.)
-      call setdiffisotropic(0)
+      call setdiffisotropic(1)
       call setdiffconductivity(1.)
       rho1 = 1.
       prs1 = 1.
@@ -110,15 +110,15 @@ contains
       brdz1 = -pspc1*nb*2*d3null
       brdz2 =  pspc1*nb*2*d3null
       bordersize = nb*pspc2
-      ! call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
+      call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
       ! call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store)
       ! call closepacked(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, &
       !   bordersize, pspc1, store, padding=[0.0, 0.5, 0.0])
       ! call closepacked(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, &
       !   bordersize, pspc1, store)
-      call random([brdx1, brdx2, brdy1, brdy2, brdz1, brdz2], &
-        bordersize, pspc1, store, displacement=.8)
-      ! call createFixedBorders(store, ebc_x)
+      ! call random([brdx1, brdx2, brdy1, brdy2, brdz1, brdz2], &
+      !   bordersize, pspc1, store, displacement=.8)
+      call createFixedBorders(store, ebc_x)
     case (ett_pulse, ett_ring)
       call setmhdmagneticpressure(1.)
       call setdiffisotropic(0)
