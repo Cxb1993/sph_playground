@@ -257,7 +257,7 @@ program main
       dt = tfinish - t
       stopiter = 1
     end if
-    ! print *, 0, 0
+
     if (t >= ltout) then
       if (usedumps == 1) call dump(store, t)
       if (silent == 0) call Output(t, store, err)

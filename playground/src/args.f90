@@ -18,7 +18,8 @@ module args
                         setUseDumps,&
                         setdim,&
                         setProcess,&
-                        setArtTermCond
+                        setArtTermCond,&
+                        setdiffisotropic
 use errprinter,   only: warning
   implicit none
 
@@ -33,7 +34,7 @@ use errprinter,   only: warning
       character (len=100) :: &
         eqs, resultfile, ddwtype,&
         argkey, argval1, silentstr, kerninflname, initvart,&
-        adden, artts, coordsysstr, usedumps, process
+        adden, artts, coordsysstr, usedumps, process, difiso
       real :: tmp
 
       dim = 0
@@ -57,6 +58,7 @@ use errprinter,   only: warning
       usedumps = ''
       process = ''
       au = 0.0
+      difiso = ''
 
       numargs = command_argument_count()
       if ( numargs > 0 )then
@@ -105,6 +107,8 @@ use errprinter,   only: warning
             process = adjustl(argval1)
           case('--au')
             read(argval1, *) au
+          case('--disotropic')
+            difiso = adjustl(argval1)
           case default
             call warning("Argument not found", argkey, __FILE__, __LINE__)
           end select
@@ -162,6 +166,8 @@ use errprinter,   only: warning
         call setProcess(process)
       end if
       call setArtTermCond(au)
+      call setdiffisotropic(difiso)
+
 
       call setLastPrint(0)
 

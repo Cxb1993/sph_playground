@@ -236,11 +236,19 @@ module state
    end subroutine
 
    subroutine setdiffisotropic(i)
-     integer, intent(in) :: i
-     statevars(ec_disotropic) = i
+     character (len=*), intent(in) :: i
+     select case(i)
+     case('yes')
+       statevars(ec_disotropic) = eif_yes
+     case('no')
+       statevars(ec_disotropic) = eif_no
+     case('')
+       statevars(ec_disotropic) = eif_yes
+     case default
+       call error('There is no such diso mode: ', i, __FILE__, __LINE__)
+     end select
    end subroutine
    pure subroutine getdiffisotropic(o)
-   ! subroutine getdiffisotropic(o)
      integer, intent(out) :: o
      o = int(statevars(ec_disotropic))
    end subroutine

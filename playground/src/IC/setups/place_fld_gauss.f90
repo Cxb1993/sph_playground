@@ -1,5 +1,5 @@
 call setmhdmagneticpressure(1.)
-call setdiffisotropic(1)
+call setdiffisotropic("yes")
 call setdiffconductivity(1.)
 rho1 = 1.
 prs1 = 1.

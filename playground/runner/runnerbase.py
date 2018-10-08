@@ -169,6 +169,13 @@ class Context:
             os.system("rm -rf " + self.pwd + "/output/*")
         self.SimpleRun()
 
+    def CleanFinalDumps(self):
+        if not os.path.exists(self.pwd + "/output"):
+            os.mkdir(self.pwd + "/output")
+        else:
+            os.system("rm -rf " + self.pwd + "/output/finaldump")
+            os.system("rm -rf " + self.pwd + "/output/fulldump")
+
     def MakeAndRun(self):
         self.SimpleMake()
         self.CleanRun()
@@ -430,7 +437,13 @@ class Context:
         newContext.store = copy.deepcopy(self.store)
         return newContext
 
-    def ModifyParticles(self, condition, condarg, properties, value, valuearg):
+    def ModifyParticles(self,
+        condition = lambda rx: True,
+        condarg = 'rx',
+        properties = ['rx'],
+        value = lambda rx: 1.0,
+        valuearg = 'rx'):
+
         storenew = copy.deepcopy(self.store)
         nreal = int(self.setup.realpn)
         nfixd = int(self.setup.fixedpn)

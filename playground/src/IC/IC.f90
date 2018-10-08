@@ -81,7 +81,7 @@ contains
     end if
 
     call setmhdmagneticpressure(1.)
-    call setdiffisotropic(1)
+    call setdiffisotropic("yes")
     call setdiffconductivity(1.)
 
     nb = int(kr*hfac) + 1
@@ -92,7 +92,7 @@ contains
       stop
     case (ett_shock12)
       call setmhdmagneticpressure(1.)
-      call setdiffisotropic(1)
+      call setdiffisotropic("yes")
       call setdiffconductivity(1.)
       rho1 = 1.
       prs1 = 1.
@@ -110,18 +110,17 @@ contains
       brdz1 = -pspc1*nb*2*d3null
       brdz2 =  pspc1*nb*2*d3null
       bordersize = nb*pspc2
-      call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
-      ! call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store)
+      ! call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
       ! call closepacked(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, &
       !   bordersize, pspc1, store, padding=[0.0, 0.5, 0.0])
       ! call closepacked(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, &
       !   bordersize, pspc1, store)
-      ! call random([brdx1, brdx2, brdy1, brdy2, brdz1, brdz2], &
-      !   bordersize, pspc1, store, displacement=.8)
-      call createFixedBorders(store, ebc_x)
+      call random([brdx1, brdx2, brdy1, brdy2, brdz1, brdz2], &
+        bordersize, pspc1, store, displacement=.8)
+      ! call createFixedBorders(store, ebc_x)
     case (ett_pulse, ett_ring)
       call setmhdmagneticpressure(1.)
-      call setdiffisotropic(0)
+      call setdiffisotropic("no")
       call setdiffconductivity(1.)
       rho1  = 1.
       prs1  = 1.
@@ -146,7 +145,7 @@ contains
     case (ett_mti)
       call setmhdmagneticpressure(1.)
       ! call setdiffisotropic(edi_iso)
-      call setdiffisotropic(1)
+      call setdiffisotropic("yes")
       ! call setdiffisotropic(edi_mtih2017)
       ! call setdiffisotropic(0)
       call setdiffconductivity(0.01)
@@ -174,7 +173,7 @@ contains
         rhofunc=MTIHopkins2017,coord=2)
     case (ett_mtilowres)
       call setmhdmagneticpressure(1.)
-      call setdiffisotropic(1)
+      call setdiffisotropic("yes")
       ! call setdiffisotropic(0)
       call setdiffconductivity(0.1)
 
@@ -226,7 +225,7 @@ contains
       call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
     case (ett_hydroshock)
       call setmhdmagneticpressure(1.)
-      call setdiffisotropic(1)
+      call setdiffisotropic("yes")
       call setdiffconductivity(1.)
 
       gamma= 5./3.
@@ -253,7 +252,7 @@ contains
       call createFixedBorders(store, ebc_x)
     case (ett_alfvenwave)
       call setmhdmagneticpressure(1.)
-      call setdiffisotropic(0)
+      call setdiffisotropic("no")
       call setdiffconductivity(1.)
       ! thetta
       theta = pi/2.
@@ -291,7 +290,7 @@ contains
       call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, dxmax=pspc2, padding=0.5)
     case (ett_OTvortex)
       call setmhdmagneticpressure(1.)
-      call setdiffisotropic(0)
+      call setdiffisotropic("no")
       call setdiffconductivity(1.)
 
       prs1 = 0.133
@@ -313,7 +312,7 @@ contains
       bordersize = nb*pspc2
       call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
     case (ett_boilingtank)
-      call setdiffisotropic(1)
+      call setdiffisotropic("yes")
       call setdiffconductivity(1.)
 
       rho1  = 1.
@@ -397,8 +396,8 @@ contains
         store(es_m,i) = (sp**dim) * rho1
         store(es_den,i) = rho1
         store(es_p,i) = prs1
-        store(es_bx,i) = 0.
-        store(es_by,i) = 1.
+        store(es_bx,i) = 1.
+        store(es_by,i) = 0.
         store(es_bz,i) = 0.
 
         if (ra(1) < 0.) then

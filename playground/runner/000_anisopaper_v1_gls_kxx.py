@@ -19,7 +19,7 @@ def defaultSetup():
     setup.dim = 2.0
     setup.ics = "shock12"
     setup.process   = "relaxation"
-    setup.tfinish   = 0.0
+    setup.tfinish   = 20.0
     setup.equations = "hydro"
     setup.kernel    = "m6"
     setup.hfac      = 1.0
@@ -52,14 +52,13 @@ def main():
         fd = "output/"+"fd-" + str(rest)+".relaxed"
         dm = "output/"+"dm-" + str(rest)+".relaxed"
         relax.BackupDumps(fd, dm)
-        for ddwt in ["2nw_ds", "n2w", "fab"]:
+        for ddwt in ["2nw_ds", "n2w", "fab", "fw"]:
             if ddwt == "2nw_ds":
                 smlist = ["no", "smoothed", "artterm"]
             else:
                 smlist = ["no"]
             for s_artts in smlist:
                 hc12                    = relax.CopyContext()
-                hc12.PrintState()
                 hc12.setup.ddw          = hc12.esd[ddwt]
                 hc12.setup.eqs          = hc12.eeq['diffusion']
                 hc12.setup.tfinish      = 0.05
@@ -67,13 +66,22 @@ def main():
                 hc12.setup.resultfile   = resfile+"-"+ddwt+'-'+s_artts+".info"
                 hc12.setup.process      = hc12.epc['backcompatibility']
                 hc12.setup.time         = 0.0
-
+                hc12.setup.disotropic   = hc12.eif['no']
                 addedN = hc12.AddParticles(
                     dim='x',
                     type='fixed',
                     method='periodic'
                 )
                 hc12.setup.fixedpn = addedN
+
+                hc12.ModifyParticles(
+                    properties  = ['bx'],
+                    value       = lambda rx: 1.0,
+                )
+                hc12.ModifyParticles(
+                    properties  = ['by', 'bz'],
+                    value       = lambda rx: 0.0,
+                )
 
                 initialTemp = lambda rx: 1.0 if (rx <= 0.0) else 2.0
 
@@ -88,23 +96,17 @@ def main():
                     hc12.setup.au    = -1
 
                 hc12.ModifyParticles(
-                    condition   = lambda rx: True,
-                    condarg     = 'rx',
                     properties  = ['u', 't'],
                     value       = initialTemp,
-                    valuearg    = 'rx'
                 )
                 hc12.ModifyParticles(
-                    condition   = lambda rx: True,
-                    condarg     = 'rx',
                     properties  = [
                         'dtdx', 'dtdy', 'dtdz',
                         'vx', 'vy', 'vz',
                         'ax', 'ay', 'az'],
                     value       = lambda rx: 0.0,
-                    valuearg    = 'rx'
                 )
-                hc12.PrintState()
+                # hc12.PrintState()
                 hc12.Apply()
                 ds = str(ddwt)
                 rs = '{0:0>4}'.format(rest)
@@ -116,5 +118,6 @@ def main():
                 hc12.ContinueRun()
                 relax.BackupOutput("output-"+ds+"-"+rs+"-"+ss)
                 print("Done: | ", ds, " | ", rs, "|", ss, "|", hc12.PrintCell(hc12.setup.resultfile, -1, 3))
+                hc12.CleanFinalDumps()
         print('\n')
 main()
