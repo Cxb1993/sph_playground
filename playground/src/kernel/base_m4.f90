@@ -3,26 +3,32 @@ module kernel_base
 
   implicit none
 
-  public :: kf, kdf, kddf, knorm, krad, kernelname, setdimbase, wCv, fwc, returnneibnum
+  public :: kf, kdf, kddf, knorm, krad, kernelname, initkernelbase, wCv, fwc, returnneibnum, cnarr, d2curnumb
 
   private
 
     real :: knorm(3) = [ 2./3., 10./(7. * pi), 1./(pi) ]
     real :: fwcl(3)  = [ 6., 6.3226, 6.66400]
+    real :: cnarr(ecn_total)
     integer :: maxneibnum(3) = [35, 250, 150]
 
-    real :: krad = 2., wCv, fwc
+    real :: wCv, fwc, d2curnumb = -1.
+    real :: krad = 2.
     integer :: dim, returnneibnum
     character (len=10) :: kernelname='M4'
 
  contains
-   subroutine setdimbase(d)
+   subroutine initkernelbase(d)
      integer, intent(in) :: d
      dim = d
      wCv = knorm(dim)
      fwc = fwcl(dim)
      returnneibnum = maxneibnum(dim)
-   end subroutine
+     cnarr(ecn_hydro) = 0.2
+     cnarr(ecn_d22nw) = 0.6
+     cnarr(ecn_d2fab) = 0.15
+     cnarr(ecn_d2n2w) = 0.2
+   end subroutine initkernelbase
 
   pure subroutine kf(q, f)
     real, intent(in)  :: q

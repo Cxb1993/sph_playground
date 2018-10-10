@@ -1,30 +1,37 @@
-module base_kernel
+module kernel_base
   use const
 
   implicit none
 
-  public :: kf, kdf, kddf, knorm, krad, kernelname, setdimbase, wCv, fwc, returnneibnum
+  public :: kf, kdf, kddf, knorm, krad, kernelname, initkernelbase, wCv, fwc, returnneibnum, cnarr, d2curnumb
+
 
   private
 
     real :: knorm(3) = [ 1./sqrt(pi), 1./pi, 1./pi**(1.5) ]
     real :: fwcl(3) = [4., 4., 4.]
-    integer :: maxneibnum(3) = [1, 1, 1]
+    real :: cnarr(ecn_total)
+    integer :: maxneibnum(3) = [100, 500, 1000]
 
-    real :: krad = 2., wCv, fwc
+    real :: wCv, fwc, d2curnumb = -1.
+    real :: krad = 10.
     integer :: dim, returnneibnum
-    character (len=10) :: kernelname='gauss'
+    character (len=10) :: kernelname='Gauss'
 
  contains
 
-  subroutine setdimbase(d)
+  subroutine initkernelbase(d)
     integer, intent(in) :: d
 
     dim = d
     wCv = knorm(dim)
     fwc = fwcl(dim)
     returnneibnum = maxneibnum(dim)
-  end subroutine
+    cnarr(ecn_hydro) = 0.2
+    cnarr(ecn_d22nw) = 0.6
+    cnarr(ecn_d2fab) = 0.15
+    cnarr(ecn_d2n2w) = 0.2
+  end subroutine initkernelbase
 
   pure subroutine kf(q, f)
     real, intent(in)  :: q
@@ -70,4 +77,4 @@ module base_kernel
       end if
     end if
   end subroutine kddf
-end module
+end module kernel_base

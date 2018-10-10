@@ -21,7 +21,7 @@ def defaultSetup():
     setup.process   = "relaxation"
     setup.tfinish   = 20.0
     setup.equations = "hydro"
-    setup.kernel    = "m6"
+    setup.kernel    = "m8"
     setup.hfac      = 1.0
     setup.nsnapshots = 10.0
     setup.resultfile = "result.info"
@@ -61,7 +61,7 @@ def main():
                 hc12                    = relax.CopyContext()
                 hc12.setup.ddw          = hc12.esd[ddwt]
                 hc12.setup.eqs          = hc12.eeq['diffusion']
-                hc12.setup.tfinish      = 0.05
+                hc12.setup.tfinish      = 0.025
                 hc12.setup.dtprint      = hc12.setup.tfinish/10.
                 hc12.setup.resultfile   = resfile+"-"+ddwt+'-'+s_artts+".info"
                 hc12.setup.process      = hc12.epc['backcompatibility']
@@ -80,7 +80,7 @@ def main():
                     hc12.setup.artts = hc12.eif['no']
                 elif (s_artts == "smoothed"):
                     hc12.setup.artts = hc12.eif['no']
-                    h = 1./relax.setup.resolution
+                    h = 2./relax.setup.resolution
                     initialTemp = lambda rx: 1.5 + 0.5 * math.erf(rx/h)
                 elif (s_artts == "artterm"):
                     hc12.setup.artts = hc12.eif['yes']
