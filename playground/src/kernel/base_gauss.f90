@@ -11,7 +11,7 @@ module kernel_base
     real :: knorm(3) = [ 1./sqrt(pi), 1./pi, 1./pi**(1.5) ]
     real :: fwcl(3) = [4., 4., 4.]
     real :: cnarr(ecn_total)
-    integer :: maxneibnum(3) = [100, 500, 1000]
+    integer :: maxneibnum(3) = [100, 5000, 50000]
 
     real :: wCv, fwc, d2curnumb = -1.
     real :: krad = 10.
@@ -27,10 +27,10 @@ module kernel_base
     wCv = knorm(dim)
     fwc = fwcl(dim)
     returnneibnum = maxneibnum(dim)
-    cnarr(ecn_hydro) = 0.2
-    cnarr(ecn_d22nw) = 0.6
-    cnarr(ecn_d2fab) = 0.15
-    cnarr(ecn_d2n2w) = 0.2
+    cnarr(ecn_hydro) = 0.59 ! 0.55 < c < 0.63
+    cnarr(ecn_d22nw) = 1.25 !        c < 1.8  || + *1.15 || - *0.75
+    cnarr(ecn_d2fab) = 0.24 !        c < 0.34 || + *1.15 || - *0.75
+    cnarr(ecn_d2n2w) = 0.50 !        c < 0.67 || + *1.15 || - *0.75
   end subroutine initkernelbase
 
   pure subroutine kf(q, f)

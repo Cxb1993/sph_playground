@@ -62,21 +62,25 @@ def main():
     tmp.SetThreadsOMP(6)
     tmp.SimpleMake()
     # for rest in [16, 32, 64, 128, 256, 512, 1024]:
-    for rest in [16, 32, 64]:
-        for artts in ['yes', 'no']:
+    for s_rest in [16, 32, 64]:
+        for s_artts in ['yes', 'no']:
             pulse = Context()
             pulse.setup = defaultSetup()
-            pulse.setup.resolution = rest
-            if artts == 'yes':
-                pulse.setup.artts     = "yes"
-                pulse.setup.au        = -1.0
-            else:
-                pulse.setup.artts     = "no"
-                pulse.setup.au        = 0.0
-            pulse.setup.resolution = rest
-            pulse.setup.resultfile = resfile+'-'+artts+".info"
+            pulse.setup.resolution = s_rest
+            if (s_artts == "no"):
+                pulse.setup.artts = 'no'
+                pulse.setup.au    = -1
+            elif (s_artts == "yes"):
+                pulse.setup.artts = 'yes'
+                pulse.setup.au    = -1
+
+            pulse.setup.resolution = s_rest
+            rs = '{0:0>4}'.format(s_rest)
+            ss = str(s_artts)
+            pulse.setup.resultfile = resfile+'-'+ss+".info"
             pulse.CleanRun()
-            pulse.BackupOutput("output-"+'{0:0>4}'.format(rest)+"-"+str(artts))
-            print("Error: ", rest, '|', artts,'|', pulse.PrintCell(pulse.setup.resultfile, -1, 3))
+            pulse.BackupOutput("output-"+rs+"-"+ss)
+            print(rs, '|', ss,'|', pulse.PrintCell(pulse.setup.resultfile, -1, 3))
+        print('')
 
 main()

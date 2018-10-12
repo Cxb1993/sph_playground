@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # in rev1 comment we asked to see how anisotropic diffusion goes on glass like lattice
 # first I run hydro code with periodic conditions with uniform 'T'
 # + then I
@@ -21,7 +20,7 @@ def defaultSetup():
     setup.process   = "relaxation"
     setup.tfinish   = 20.0
     setup.equations = "hydro"
-    setup.kernel    = "m8"
+    setup.kernel    = "gauss"
     setup.hfac      = 1.0
     setup.nsnapshots = 10.0
     setup.resultfile = "result.info"
@@ -41,8 +40,8 @@ def main():
     tmp.SetThreadsOMP(6)
     tmp.SimpleMake()
 
-    # for rest in [16, 32]:
-    for rest in [16, 32, 64, 128, 256, 512, 1024]:
+    # for rest in [32]:
+    for rest in [32, 64, 128, 256, 512, 1024]:
         relax = Context()
         relax.setup = defaultSetup()
         relax.setup.resolution = rest
@@ -52,7 +51,7 @@ def main():
         fd = "output/"+"fd-" + str(rest)+".relaxed"
         dm = "output/"+"dm-" + str(rest)+".relaxed"
         relax.BackupDumps(fd, dm)
-        for ddwt in ["2nw_ds", "n2w", "fab"]:
+        for ddwt in ["2nw_ds", "n2w", "fab", "fw"]:
             if ddwt == "2nw_ds":
                 smlist = ["no", "smoothed", "artterm"]
             else:

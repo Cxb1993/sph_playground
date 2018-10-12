@@ -73,7 +73,7 @@ program main
     dt, t, dtout, ltout, tfinish,&
     gamma, hfac, cv = 1., &
     mhdmuzero, difcond, dedt, sumdedt, dedtprev, chi(81),&
-    flaxlimc, cndiff, cnhydro
+    flaxlimc, cndiff, cnhydro, avdt
   character (len=100) :: &
     errfname
   integer :: &
@@ -253,6 +253,11 @@ program main
       print *, 'Task type time increment was not set ./src/main.f90:236'
       stop
     end select
+    if (iter == 0) then
+      avdt = dt
+    else
+      avdt = (avdt + dt)/2.
+    end if
     if (t + dt > tfinish) then
       dt = tfinish - t
       stopiter = 1
@@ -264,7 +269,7 @@ program main
       write(*, fmt="(A,I7, A,F12.7, A,F12.7, A,F10.7,A,F10.7,A, A,F12.7, A,F12.7)") &
         "#", iter, &
         " | t=", t, &
-        " | dt=", dt, &
+        " | dt=", avdt, &
         " | h=[", minval(store(es_h,1:n)), ":", maxval(store(es_h,1:n)), "]",&
         " | dedt=", dedt*dt,&
         " | S(dedt)=", sumdedt
@@ -272,6 +277,9 @@ program main
       do while(ltout <= t)
         ltout = ltout + dtout
       end do
+    end if
+    if (t + dt > ltout) then
+      dt = ltout - t
     end if
 
     tr(:,:) = store(es_rx:es_rz,1:n)

@@ -121,6 +121,7 @@ contains
     case (ett_pulse, ett_ring)
       call setmhdmagneticpressure(1.)
       call setdiffisotropic("no")
+      ! call setdiffisotropic("yes")
       call setdiffconductivity(1.)
       rho1  = 1.
       prs1  = 1.
