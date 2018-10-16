@@ -51,6 +51,7 @@ def main():
         fd = "output/"+"fd-" + str(rest)+".relaxed"
         dm = "output/"+"dm-" + str(rest)+".relaxed"
         relax.BackupDumps(fd, dm)
+        # for ddwt in ["2nw_ds"]:
         for ddwt in ["2nw_ds", "n2w", "fab", "fw"]:
             if ddwt == "2nw_ds":
                 smlist = ["no", "smoothed", "artterm"]
@@ -86,21 +87,15 @@ def main():
                     hc12.setup.au    = -1
 
                 hc12.ModifyParticles(
-                    condition   = lambda rx: True,
-                    condarg     = 'rx',
                     properties  = ['u', 't'],
                     value       = initialTemp,
-                    valuearg    = 'rx'
                 )
                 hc12.ModifyParticles(
-                    condition   = lambda rx: True,
-                    condarg     = 'rx',
                     properties  = [
                         'dtdx', 'dtdy', 'dtdz',
                         'vx', 'vy', 'vz',
                         'ax', 'ay', 'az'],
                     value       = lambda rx: 0.0,
-                    valuearg    = 'rx'
                 )
                 # hc12.PrintState()
                 hc12.Apply()

@@ -105,10 +105,10 @@ contains
       end if
       pspc1 = (brdx2-brdx1)/resol
       pspc2 = pspc1
-      brdy1 = -pspc1*nb*1.5*d2null
-      brdy2 =  pspc1*nb*1.5*d2null
-      brdz1 = -pspc1*nb*1.5*d3null
-      brdz2 =  pspc1*nb*1.5*d3null
+      brdy1 = -pspc1*nb*2*d2null
+      brdy2 =  pspc1*nb*2*d2null
+      brdz1 = -pspc1*nb*2*d3null
+      brdz2 =  pspc1*nb*2*d3null
       bordersize = nb*pspc1
       ! call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
       ! call closepacked(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, &
