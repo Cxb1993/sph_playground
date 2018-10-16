@@ -85,8 +85,6 @@ contains
     call setdiffconductivity(1.)
 
     nb = int(kr*hfac)+1
-    print*, nb
-    read*
 
     select case(ivt)
     case(ett_sin3)
