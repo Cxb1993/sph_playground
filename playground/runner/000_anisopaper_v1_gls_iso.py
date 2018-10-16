@@ -20,7 +20,7 @@ def defaultSetup():
     setup.process   = "relaxation"
     setup.tfinish   = 20.0
     setup.equations = "hydro"
-    setup.kernel    = "gauss"
+    setup.kernel    = "m6"
     setup.hfac      = 1.0
     setup.nsnapshots = 10.0
     setup.resultfile = "result.info"
@@ -41,7 +41,7 @@ def main():
     tmp.SimpleMake()
 
     # for rest in [32]:
-    for rest in [32, 64, 128, 256, 512, 1024]:
+    for rest in [16, 32, 64, 128, 256, 512, 1024]:
         relax = Context()
         relax.setup = defaultSetup()
         relax.setup.resolution = rest

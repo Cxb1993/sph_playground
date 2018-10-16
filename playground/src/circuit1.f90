@@ -134,7 +134,6 @@ contains
         i = nlista(la)
         if (eps(i) > allowerror) then
           currinterr = 0.
-
           ma  = store(es_m,i)
           ha0 = store(es_h,i)
           ra(:) = store(es_rx:es_rz,i)
@@ -186,6 +185,11 @@ contains
                 dtadx(:) = dtadx(:) + mb*(ta/oma/da/da*nwa(:) + tb/omb/db/db*nwb(:))
               end if
             end if
+            ! if (i == 1) then
+            !   print*, i, j
+            !   print*, da, db, dkp1(i)
+            !   read*
+            ! end if
           end do
           ! ---------------------------------------------------------!
           !      There is no particle itself in neighbour list       !
@@ -194,7 +198,7 @@ contains
           call get_dw_dh(0., ha, dwdh)
           dkp1(i) = dkp1(i) + ma*w
           okp1(i) = okp1(i) + ma*dwdh
-          ! that is right according to Price2008, phantom paper is wrong
+          ! that is right according to Price2008, not phantom paper
           okp1(i) = 1. - okp1(i)*(-ha/(dim*dkp1(i)))
           dfdh = -dim*dkp1(i)*okp1(i)/ha
           fh   = ma*(hfac/ha)**dim - dkp1(i)
@@ -209,7 +213,7 @@ contains
       end do
       !$omp end parallel do
     end do
-
+    ! print*, iter
     store(es_h,  1:realpartnumb) = hkp1(1:realpartnumb)
     store(es_den,1:realpartnumb) = dkp1(1:realpartnumb)
     store(es_om, 1:realpartnumb) = okp1(1:realpartnumb)

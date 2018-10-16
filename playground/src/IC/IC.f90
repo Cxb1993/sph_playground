@@ -84,7 +84,9 @@ contains
     call setdiffisotropic("yes")
     call setdiffconductivity(1.)
 
-    nb = int(kr*hfac) + 1
+    nb = int(kr*hfac)+1
+    print*, nb
+    read*
 
     select case(ivt)
     case(ett_sin3)
@@ -105,11 +107,11 @@ contains
       end if
       pspc1 = (brdx2-brdx1)/resol
       pspc2 = pspc1
-      brdy1 = -pspc1*nb*2*d2null
-      brdy2 =  pspc1*nb*2*d2null
-      brdz1 = -pspc1*nb*2*d3null
-      brdz2 =  pspc1*nb*2*d3null
-      bordersize = nb*pspc2
+      brdy1 = -pspc1*nb*1.5*d2null
+      brdy2 =  pspc1*nb*1.5*d2null
+      brdz1 = -pspc1*nb*1.5*d3null
+      brdz2 =  pspc1*nb*1.5*d3null
+      bordersize = nb*pspc1
       ! call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
       ! call closepacked(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, &
       !   bordersize, pspc1, store, padding=[0.0, 0.5, 0.0])
@@ -359,7 +361,8 @@ contains
     !$omp shared(n, pspc1, pspc2, store, gamma, rho1, rho2)&
     !$omp shared(dim, hfac, tt, prs1, prs2, cv)&
     !$omp shared(brdx2, brdx1, brdy2, brdy1, brdz2, brdz1)&
-    !$omp shared(ivt, eA, kt, cs, theta, phi, d2null, d3null)
+    !$omp shared(ivt, eA, kt, cs, theta, phi, d2null, d3null)&
+    !$omp shared(rpn)
     do i=1,n
       ra(1) = store(es_rx,i)
       ra(2) = store(es_ry,i)
@@ -394,7 +397,9 @@ contains
         end if
       case(ett_shock12)
         store(es_h,i) = hfac * sp
-        store(es_m,i) = (sp**dim) * rho1
+        ! store(es_m,i) = (sp**dim) * rho1
+        ! print*, (brdx2-brdx1)*(brdy2-brdy1), rnp
+        store(es_m,i) = (brdx2-brdx1)*(brdy2-brdy1)*rho1/rpn
         store(es_den,i) = rho1
         store(es_p,i) = prs1
         store(es_bx,i) = 1.
