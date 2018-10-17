@@ -343,7 +343,7 @@ program main
     printlen = 5
 
     call getNeibNumbers(nusedl1, nusedl2)
-    result(3) = merge(sqrt(sum(err)/nusedl1), 0., nusedl1 > 0)
+    result(3) = merge(sum(err)/nusedl1, 0., nusedl1 > 0)
   else
     !----------------------------------------!
     !          teylor error evaluation       !
@@ -371,7 +371,7 @@ program main
   ! call realocnum(hfac)
   ! write(*, "(A, F20.5, A)") " T_T you've done ", hfac, " array reallocations"
   print *, '#####  Results:'
-  write(*, "(A, F20.10)") " # #   l2-error: ", result(3)
+  write(*, "(A, F20.10)") " # #   L1-error: ", result(3)
   write(*, "(A, F20.10)") " # #  chi-error: ", result(4)
   print *, '##############################################'
 

@@ -1,4 +1,5 @@
 module errcalc
+  use errprinter,       only: error, warning
   use const
   use omp_lib
   use state,            only: getdim,&
@@ -79,7 +80,7 @@ contains
           exp(-0.5*(x(1)*x(1)/ekt + (x(2)*x(2)+x(3)*x(3))/eps/eps))
           ! exp(-0.5*(x(2)*x(2)/ekt + (x(1)*x(1)+x(3)*x(3))/eps/eps))
       end if
-      err(i) = (exact - num)*(exact - num)
+      err(i) = abs(exact - num)
       ! print*, exact, num
       ! read*
       ! err(i) = dot_product(exact(1) - num(1,i), exact(1) - num(1,i))
@@ -119,7 +120,7 @@ contains
       phi = atan(x(2),x(1))
       exact = exp(-0.5*((rho - 0.3)**2/(0.05*0.05) + (phi*phi)/(0.5*0.5 + 2.*1.*t/rho/rho)))
       num  = store(es_t,i)
-      err(i) = (exact - num)*(exact - num)
+      err(i) = abs(exact - num)
     end do
   end subroutine hcring
 
@@ -154,7 +155,7 @@ contains
       end if
       exact = (tr+tl)/2. + (tr-tl)/2. *erf(x(1)/sqrt(4*tt))
       num  = store(es_t,i)
-      err(i) = (exact - num)*(exact - num)
+      err(i) = abs(exact - num)
     end do
   end subroutine hcshock12
 
@@ -188,7 +189,7 @@ contains
                   sin(pi * (x(2) + 1.) / 2.) * &
                   sin(pi * (x(3) + 1.) / 2.) * exp(-3 * (pi/2.)**2 * t)
         end if
-        err(i) = (exact(1) - num)*(exact(1) - num)
+        err(i) = abs(exact(1) - num)
       end if
       ! err(i) = dot_product(exact(1) - num(1,i), exact(1) - num(1,i))
     end do
@@ -214,7 +215,7 @@ contains
       B2 = (b(2) - 2*b(1))/sqrt(5.)
 
       exact = 0.1 * sin(2.*pi*(x1 - t))
-      err(i) = (exact - B2)*(exact - B2)
+      err(i) = abs(exact - B2)
     end do
   end subroutine alfvenwave
 
@@ -233,7 +234,7 @@ contains
     do j = 1,size(nlista)
       i = nlista(j)
       exact = 1. + 0.005 * sin(pi * (store(es_rx,i) - t))
-      err(i) = (exact - store(es_den,i))*(exact - store(es_den,i))
+      err(i) = abs(exact - store(es_den,i))
     end do
   end subroutine
 
@@ -261,7 +262,7 @@ contains
         ! vel
         exact = 0.005 * sin(pi * (x(1,i) - t))
       end if
-      err(i) = (exact - num(1,i))*(exact - num(1,i))
+      err(i) = abs(exact - num(1,i))
       ! err(i) = dot_product(exact(1) - num(1,i), exact(1) - num(1,i))
     end do
     !$omp end parallel do
@@ -369,6 +370,7 @@ contains
       err(i) = dot_product(exact(:)-num(:,i),exact(:)-num(:,i))
     end do
     !$omp end parallel do
+    call warning("bad norm specification. It is not L1", '', __FILE__, __LINE__)
   end subroutine err_diff_graddiv
 
   subroutine diff_artvisc(xin, num, err)
@@ -415,5 +417,6 @@ contains
       ! read*
     end do
     !$omp end parallel do
+    call warning("bad norm specification. It is not L1", '', __FILE__, __LINE__)
   end subroutine
 end module
