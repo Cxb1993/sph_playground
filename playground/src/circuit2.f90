@@ -338,6 +338,7 @@ contains
             !   print*, dtbdx
             !   read*
             ! end if
+            ! qc = qc/dr
           else
             call art_termcond(faba, fabb, pa, pb, ua, ub, rhoa, rhob, oma, omb, qc)
             qc = s_au*qc
@@ -505,7 +506,7 @@ contains
     real, intent(out) :: qc
     real              :: vsigu
     qc = 0.
-    vsigu = sqrt(abs(ua - ub))
+    vsigu = sqrt(abs(ua - ub)/(0.5*(da + db)))
     ! qc = vsigu * (ua - ub) * 0.5 * (dot_product((nwa(:)/oa/da + nwb(:)/ob/db),urab(:)))
     qc = vsigu*(ua - ub)*0.5*(faba/oa/da + fabb/ob/db)
   end subroutine
