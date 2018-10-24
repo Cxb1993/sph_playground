@@ -485,7 +485,7 @@ contains
         ! end if
       end if
 
-      store(es_ax:es_az,i) = dva(:)
+      store(es_ax:es_az,i) = dva(:)! - 0.03*va(:)
       store(es_dh,i) = dha
       ! store(es_ddt,i) = ddta/rhoa
       store(es_dbx:es_dbz,i) = dba(:)

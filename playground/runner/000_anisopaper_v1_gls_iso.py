@@ -18,7 +18,7 @@ def defaultSetup():
     setup.dim = 2.0
     setup.ics = "shock12"
     setup.process   = "relaxation"
-    setup.tfinish   = 20.0
+    setup.tfinish   = 100.0
     setup.equations = "hydro"
     setup.kernel    = "m6"
     setup.hfac      = 1.0
@@ -40,7 +40,7 @@ def main():
     tmp.SetThreadsOMP(6)
     tmp.SimpleMake()
 
-    # for rest in [32]:
+    # for rest in [256]:
     for rest in [16, 32, 64, 128, 256, 512, 1024]:
         relax = Context()
         relax.setup = defaultSetup()
@@ -52,7 +52,7 @@ def main():
         dm = "output/"+"dm-" + str(rest)+".relaxed"
         relax.BackupDumps(fd, dm)
         # for ddwt in ["2nw_ds"]:
-        for ddwt in ["2nw_ds", "n2w", "fab", "fw"]:
+        for ddwt in ["2nw_ds", "2nw_ds", "n2w", "fab", "fw"]:
             if ddwt == "2nw_ds":
                 smlist = ["no", "smoothed", "artterm"]
             else:

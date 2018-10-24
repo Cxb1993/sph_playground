@@ -293,7 +293,7 @@ program main
     store(es_rx:es_rz,1:n) = store(es_rx:es_rz,1:n)  + &
         dt * tv(:,:) + 0.5 * dt * dt * ta(:,:)
 
-    store(es_vx:es_vz,1:n) = tv(:,:)  + dt * ta(:,:)
+    store(es_vx:es_vz,1:n) = (tv(:,:)  + dt * ta(:,:))/(1.03)
     store(es_u,1:n) = store(es_u,1:n) + dt * tdu(:)
     store(es_h,1:n) = store(es_h,1:n) + dt * tdh(:)
     store(es_t,1:n) = store(es_u,1:n)
@@ -304,7 +304,7 @@ program main
     call iterate(n, gamma, store, dedt)
 
     store(es_vx:es_vz,1:n) = &
-      store(es_vx:es_vz,1:n) + 0.5*dt*(store(es_ax:es_az,1:n) - ta(:,:))
+      (store(es_vx:es_vz,1:n) + 0.5*dt*(store(es_ax:es_az,1:n) - ta(:,:)))/(1.03)
     store(es_u,1:n) = &
       store(es_u,1:n) + 0.5*dt*(store(es_du,1:n) - tdu(:))
     store(es_h,1:n) = &
