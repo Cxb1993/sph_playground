@@ -123,9 +123,9 @@ contains
       call setdiffisotropic("no")
       ! call setdiffisotropic("yes")
       call setdiffconductivity(1.)
-      rho1  = 1.
-      prs1  = 1.
-      gamma = 2.
+      rho1 = 1.
+      prs1 = 1.
+      gamma = 5./3.
 
       brdx1 = -1.
       brdx2 =  1.
@@ -140,9 +140,11 @@ contains
       brdz2 =  d3null*1.
       bordersize = nb*pspc2
       ! call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
-      call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
+      ! call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
+      call random([brdx1, brdx2, brdy1, brdy2, brdz1, brdz2], &
+        bordersize, pspc1, store, displacement=.8)
       ! call closepacked(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store)
-      call createFixedBorders(store, ebc_all)
+      ! call createFixedBorders(store, ebc_all)
     case (ett_mti)
       call setmhdmagneticpressure(1.)
       ! call setdiffisotropic(edi_iso)
@@ -416,18 +418,21 @@ contains
         store(es_u,i)  = prs1/(gamma -1)/rho1
       case(ett_pulse)
         store(es_h,i) = hfac * sp
-        store(es_m,i) = (sp**dim) * rho1
+        ! store(es_m,i) = (sp**dim) * rho1
+        store(es_m,i) = (brdx2-brdx1)*(brdy2-brdy1)*rho1/rpn
         store(es_den,i) = rho1
         store(es_p,i) = prs1
 
         store(es_bx,i) = 1.
         store(es_by,i) = 0.
         store(es_bz,i) = 0.
-        store(es_t,i)  = ((2.*pi)**(-dim/2.))/((0.1**2)**(dim/2.))*&
-          exp(-0.5*(ra(1)*ra(1) + ra(2)*ra(2) + ra(3)*ra(3))/(0.1**2))
-        store(es_u,i)  = store(es_t,i)
+        ! store(es_t,i)  = ((2.*pi)**(-dim/2.))/((0.1**2)**(dim/2.))*&
+          ! exp(-0.5*(ra(1)*ra(1) + ra(2)*ra(2) + ra(3)*ra(3))/(0.1**2))
+        ! store(es_u,i)  = store(es_t,i)
         store(es_kappa,i) = 1.
         store(es_fluxlim,i) = 1.
+        !!!!!!!!!!!!!!!!!
+        store(es_u,i)  = prs1/(gamma -1)/rho1
       case(ett_ring)
         store(es_h,i) = hfac * sp
         store(es_m,i) = (sp**dim) * rho1

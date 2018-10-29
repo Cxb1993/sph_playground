@@ -442,7 +442,7 @@ class Context:
         condarg = 'rx',
         properties = ['rx'],
         value = lambda rx: 1.0,
-        valuearg = 'rx'):
+        valuearg = ['rx']):
 
         storenew = copy.deepcopy(self.store)
         nreal = int(self.setup.realpn)
@@ -450,7 +450,19 @@ class Context:
         for i in range(0,nreal+nfixd):
             if condition(self.store[self.idx(condarg,i)]):
                 for pa in properties:
-                    storenew[self.idx(pa,i)] = value(self.store[self.idx(valuearg,i)])
+                    if (len(valuearg) == 1):
+                        x1 = self.store[self.idx(valuearg[0],i)]
+                        storenew[self.idx(pa,i)] = value(x1)
+                    elif (len(valuearg) == 2):
+                        x1 = self.store[self.idx(valuearg[0],i)]
+                        x2 = self.store[self.idx(valuearg[1],i)]
+                        storenew[self.idx(pa,i)] = value(x1,x2)
+                    elif (len(valuearg) == 3):
+                        x1 = self.store[self.idx(valuearg[0],i)]
+                        x2 = self.store[self.idx(valuearg[1],i)]
+                        x3 = self.store[self.idx(valuearg[2],i)]
+                        storenew[self.idx(pa,i)] = value(x1,x2,x3)
+
         self.store = copy.deepcopy(storenew)
 
     def Apply(self):
