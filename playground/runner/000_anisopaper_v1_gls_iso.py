@@ -20,7 +20,7 @@ def defaultSetup():
     setup.process   = "relaxation"
     setup.tfinish   = 100.0
     setup.equations = "hydro"
-    setup.kernel    = "m6"
+    setup.kernel    = "m4"
     setup.hfac      = 1.0
     setup.nsnapshots = 10.0
     setup.resultfile = "result.info"

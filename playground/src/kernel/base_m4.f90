@@ -24,8 +24,8 @@ module kernel_base
      wCv = knorm(dim)
      fwc = fwcl(dim)
      returnneibnum = maxneibnum(dim)
-     cnarr(ecn_hydro) = 0.2
-     cnarr(ecn_d22nw) = 0.6
+     cnarr(ecn_hydro) = 0.1
+     cnarr(ecn_d22nw) = 1.3
      cnarr(ecn_d2fab) = 0.15
      cnarr(ecn_d2n2w) = 0.2
    end subroutine initkernelbase
