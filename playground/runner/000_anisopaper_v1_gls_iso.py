@@ -15,7 +15,7 @@ def defaultSetup():
     setup   = Setup()
     setup.xmin = -1.0
     setup.xmax =  1.0
-    setup.dim = 2.0
+    setup.dim = 1.0
     setup.ics = "shock12"
     setup.process   = "relaxation"
     setup.tfinish   = 100.0

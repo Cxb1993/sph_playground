@@ -54,7 +54,7 @@ contains
       ra(3), kr, prs1, prs2, rho1, rho2, sp, &
       brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, eA, &
       cca(3), qmatr(3,3), pspc2, theta, phi, bordersize,&
-      hfac, pspc1, gamma
+      hfac, pspc1, gamma, lx, ly, lz
     integer :: &
       i, nb, tt, kt, dim, ivt, cs, d2null, d3null, &
       rpn, fpn, ppn, resol
@@ -110,13 +110,13 @@ contains
       brdz1 = -pspc1*nb*2*d3null
       brdz2 =  pspc1*nb*2*d3null
       bordersize = nb*pspc1
-      ! call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
+      call uniformV4(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, bordersize, pspc1, store, padding=0.5)
       ! call closepacked(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, &
       !   bordersize, pspc1, store, padding=[0.0, 0.5, 0.0])
       ! call closepacked(brdx1, brdx2, brdy1, brdy2, brdz1, brdz2, &
       !   bordersize, pspc1, store)
-      call random([brdx1, brdx2, brdy1, brdy2, brdz1, brdz2], &
-        bordersize, pspc1, store, displacement=.8)
+      ! call random([brdx1, brdx2, brdy1, brdy2, brdz1, brdz2], &
+        ! bordersize, pspc1, store, displacement=.8)
       ! call createFixedBorders(store, ebc_x)
     case (ett_pulse, ett_ring)
       call setmhdmagneticpressure(1.)
@@ -354,13 +354,20 @@ contains
     call getPeriodPartNumber(ppn)
     call setGamma(gamma)
 
+    lx = brdx2-brdx1
+    ly = brdy2-brdy1
+    lz = brdz2-brdz1
+
+    if (ly == 0.) ly = 1.
+    if (lz == 0.) lz = 1.
+
     n = rpn + fpn
     !$omp parallel do default(none)&
     !$omp private(i, sp, cca, qmatr)&
     !$omp private(ra)&
     !$omp shared(n, pspc1, pspc2, store, gamma, rho1, rho2)&
     !$omp shared(dim, hfac, tt, prs1, prs2, cv)&
-    !$omp shared(brdx2, brdx1, brdy2, brdy1, brdz2, brdz1)&
+    !$omp shared(brdx2, brdx1, brdy2, brdy1, brdz2, brdz1, lx, ly, lz)&
     !$omp shared(ivt, eA, kt, cs, theta, phi, d2null, d3null)&
     !$omp shared(rpn)
     do i=1,n
@@ -398,8 +405,7 @@ contains
       case(ett_shock12)
         store(es_h,i) = hfac * sp
         ! store(es_m,i) = (sp**dim) * rho1
-        ! print*, (brdx2-brdx1)*(brdy2-brdy1), rnp
-        store(es_m,i) = (brdx2-brdx1)*(brdy2-brdy1)*rho1/rpn
+        store(es_m,i) = lx*ly*lz*rho1/rpn
         store(es_den,i) = rho1
         store(es_p,i) = prs1
         store(es_bx,i) = 1.

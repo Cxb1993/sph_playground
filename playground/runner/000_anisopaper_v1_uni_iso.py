@@ -16,12 +16,12 @@ def defaultSetup():
     setup   = Setup()
     setup.xmin = -1.0
     setup.xmax =  1.0
-    setup.dim = 2.0
+    setup.dim = 1.0
     setup.ics = "shock12"
     setup.process   = "relaxation"
     setup.tfinish   = 0.0
     setup.equations = "hydro"
-    setup.kernel    = "m6"
+    setup.kernel    = "m4"
     setup.hfac      = 1.0
     setup.nsnapshots = 10.0
     setup.resultfile = "result.info"
@@ -38,11 +38,11 @@ def main():
     tmp = Context()
     resfile = tmp.GetDateTimeString()
     tmp.setup = defaultSetup()
-    tmp.SetThreadsOMP(6)
+    tmp.SetThreadsOMP(4)
     tmp.SimpleMake()
 
     # for rest in [16, 32]:
-    for rest in [16, 32, 64, 128, 256, 512, 1024]:
+    for rest in [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]:
         relax = Context()
         relax.setup = defaultSetup()
         relax.setup.resolution = rest
@@ -52,7 +52,9 @@ def main():
         fd = "output/"+"fd-" + str(rest)+".relaxed"
         dm = "output/"+"dm-" + str(rest)+".relaxed"
         relax.BackupDumps(fd, dm)
-        for ddwt in ["2nw_ds", "n2w", "fab", "fw"]:
+        # for ddwt in ["2nw_ds", "n2w", "fab", "fw"]:
+        # for ddwt in ["2nw_ds", "n2w", "fab"]:
+        for ddwt in ["2nw_ds"]:
             if ddwt == "2nw_ds":
                 smlist = ["no", "smoothed", "artterm"]
             else:
@@ -82,28 +84,22 @@ def main():
                     hc12.setup.artts = hc12.eif['no']
                 elif (s_artts == "smoothed"):
                     hc12.setup.artts = hc12.eif['no']
-                    h = 2./relax.setup.resolution
+                    h = 4./relax.setup.resolution
                     initialTemp = lambda rx: 1.5 + 0.5 * math.erf(rx/h)
                 elif (s_artts == "artterm"):
                     hc12.setup.artts = hc12.eif['yes']
                     hc12.setup.au    = -1
 
                 hc12.ModifyParticles(
-                    condition   = lambda rx: True,
-                    condarg     = 'rx',
                     properties  = ['u', 't'],
                     value       = initialTemp,
-                    valuearg    = 'rx'
                 )
                 hc12.ModifyParticles(
-                    condition   = lambda rx: True,
-                    condarg     = 'rx',
                     properties  = [
                         'dtdx', 'dtdy', 'dtdz',
                         'vx', 'vy', 'vz',
                         'ax', 'ay', 'az'],
                     value       = lambda rx: 0.0,
-                    valuearg    = 'rx'
                 )
                 # hc12.PrintState()
                 hc12.Apply()

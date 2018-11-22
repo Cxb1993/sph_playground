@@ -106,7 +106,7 @@ contains
     ! read*
 
     ! allowerror = 1e-8
-    allowerror = 1e-2
+    allowerror = 1e-8
     hkp1(:) = store(es_h,  1:totreal)
     dkp1(:) = store(es_den,1:totreal)
     okp1(:) = store(es_om, 1:totreal)
