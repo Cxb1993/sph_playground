@@ -2,7 +2,9 @@ program main
   ! use cudafor
   use BC,               only: initBorders
   use IC,               only: setupV2
-  use state,            only: get_equations,&
+  use placer,           only: place
+  use state,            only: clearState,&
+                              get_equations,&
                               ginitvar,&
                               getdiffisotropic, &
                               getdiffconductivity, &
@@ -53,8 +55,9 @@ program main
   use kernel,           only: initkernel,&
                               getcndiff,&
                               getcnhydro
-  use errprinter,       only: warning
+  use errprinter,       only: warning, error
 
+  use timestep,         only: calctimestep => calc
 
   use preruncheck
   use const
@@ -72,22 +75,24 @@ program main
   real :: &
     dt, t, dtout, ltout, tfinish,&
     gamma, hfac, cv = 1., &
-    mhdmuzero, difcond, dedt, sumdedt, dedtprev, chi(81),&
-    flaxlimc, cndiff, cnhydro, avdt
+    dedt, sumdedt, dedtprev, chi(81),&
+    avdt
   character (len=100) :: &
     errfname
   integer :: &
-    i, n, iter, s_tt, nusedl1, nusedl2, printlen, silent,&
-    ivt, stopiter, resol, difiso, realpartnumb, npics, usedumps,&
+    n, iter, s_tt, nusedl1, nusedl2, printlen, silent,&
+    ivt, stopiter, resol, realpartnumb, npics, usedumps,&
     dim, lastnpic
 
   integer(8) :: &
     tprint
 
-  logical :: thereisdump, needtoswitch
+  logical :: thereisdump
 
   ! call runcltest()
   ! read*
+
+  call clearState()
 
   print*, "##############################################"
   print*, "#####"
@@ -113,21 +118,24 @@ program main
       call getnpics(npics)
       call gettfinish(tfinish)
       dtout = (tfinish-t)/(npics - lastnpic)
-      if (dtout == 0.) then
+      if (dtout <= 0.) then
         dtout = 1.
         call warning("Dirty hack was used here", "dtout", __FILE__, __LINE__)
       end if
       call setdtprint(dtout)
 
-      call setupV2(n, cv, store)
-
+      ! hopefully that is just for some time to supprt depricated ivt methods
+      call ginitvar(ivt)
+      if (ivt == e_none) then
+        call place(store)
+      else
+        call setupV2(n, cv, store)
+      end if
     end if
   end if
+
   call get_equations(s_tt)
   call ginitvar(ivt)
-  call getdiffisotropic(difiso)
-  call getdiffconductivity(difcond)
-  call getmhdmagneticpressure(mhdmuzero)
   call gettfinish(tfinish)
   call getnpics(npics)
   call getsilentmode(silent)
@@ -139,9 +147,8 @@ program main
   call getdtprint(dtout)
   call getLastPrint(lastnpic)
   call getdim(dim)
+
   call initkernel(dim)
-  call getcnhydro(cnhydro)
-  call getcndiff(cndiff)
   call initBorders()
   call tinit()
   ! call diffinit()
@@ -195,68 +202,30 @@ program main
     " | S(dedt)=", sumdedt
   print *, '#  #-------------------------------------------------'
 
-  call checkVarsReady(s_tt, store)
-
-  if (s_tt /= eeq_kd2) then
-    call iterate(n, gamma, store, dedt)
+  if (tfinish > 0.) then
+    call checkVarsReady(s_tt, store)
+    if (s_tt /= eeq_kd2) then
+      call iterate(n, gamma, store, dedt)
+    else
+      stopiter = 1
+    end if
   else
     stopiter = 1
   end if
+
   sumdedt = sumdedt + dedt
 
   do while(ltout <= t)
     ltout = ltout + dtout
   end do
-  do while ((t < tfinish + eps0).and.(stopiter==0))
-    ! if (needtoswitch.and.(t > (tfinish/2.))) then
-    !   call set_equations('mhd')
-    !   s_tt = eeq_magnetohydrodiffusion
-    !   needtoswitch = .false.
-    !   print*, maxval(store(es_bx:es_bz,1:n)), minval(store(es_bx,1:n))
-    ! end if
 
-    select case(s_tt)
-    case(eeq_kd2)
-      dt = 0.
-    case(eeq_hydro)
-      dt = cnhydro * minval(store(es_h,1:n)) / maxval(store(es_c,1:n))
-    case(eeq_magnetohydro)
-      dt = .1*1e-5*minval(store(es_h,1:n))&
-            /maxval(store(es_c,1:n))&
-            /maxval(store(es_bx:es_bz,1:n))
-      ! dt = .1*minval(store(es_h,1:n))&
-      !       /maxval(store(es_c,1:n))
-    case(eeq_diffusion, eeq_hydrodiffusion)
-      dt = cndiff * minval(store(es_den,1:n)) &
-              * minval(store(es_c,1:n)) &
-              * minval(store(es_h,1:n)) ** 2 &
-              / merge(difcond, maxval(store(es_bx:es_bz,1:n)), difiso == 1)
-    case(eeq_hyrad)
-      flaxlimc = 1.
-      dt = .01 * minval(store(es_den,1:n)) &
-              * minval(store(es_kappa,1:n)) &
-              * minval(store(es_h,1:n)) ** 2 &
-              / maxval(store(es_fluxlim,1:n)) / flaxlimc
-    case (eeq_magnetohydrodiffusion)
-      ! dt = .1 * mhd_magneticconstant * minval(den(1:realpartnumb)) * minval(c(1:realpartnumb)) * &
-      !           minval(h(1:realpartnumb)) ** 2 / &
-      !           merge(maxval(kcf(:,1,1:realpartnumb)), 1., maxval(kcf(:,1,1:realpartnumb))>0)
-      ! dt = .3 * minval(store(es_h,1:n)) / maxval(store(es_c,1:n))
-      dt = 1.*mhdmuzero&
-              * minval(store(es_den,1:n)) &
-              * minval(store(es_c,1:n)) &
-              * minval(store(es_h,1:n))**2 &
-              / difcond
-      ! print*, dt
-      ! print*, minval(store(es_den,1:n)), minval(store(es_c,1:n)), minval(store(es_p,1:n)), minval(store(es_u,1:n))
-    case default
-      print *, 'Task type time increment was not set ./src/main.f90:236'
-      stop
-    end select
+  do while ((t < tfinish + eps0).and.(stopiter==0))
+    call calctimestep(store, dt)
+
     if (iter == 0) then
       avdt = dt
     else
-      avdt = (avdt + dt)/2.
+      avdt = avdt + dt
     end if
     if (t + dt > tfinish) then
       dt = tfinish - t
@@ -269,7 +238,7 @@ program main
       write(*, fmt="(A,I7, A,F12.7, A,F12.7, A,F10.7,A,F10.7,A, A,F12.7, A,F12.7)") &
         "#", iter, &
         " | t=", t, &
-        " | dt=", avdt, &
+        " | dt=", merge(avdt/iter, avdt, iter>0), &
         " | h=[", minval(store(es_h,1:n)), ":", maxval(store(es_h,1:n)), "]",&
         " | dedt=", dedt*dt,&
         " | S(dedt)=", sumdedt
@@ -318,66 +287,69 @@ program main
     iter = iter + 1
   end do
 
-  if (s_tt /= eeq_kd2) then
-    select case(ivt)
-    case (ett_OTvortex, ett_mti, ett_boilingtank, ett_mtilowres)
-    case (ett_shock12)
-      call err_hcshock12(store, t, err)
-    case (ett_ring)
-      call err_hcring(store, t, err)
-    case (ett_pulse)
-      call err_hcpulse(store, t, err)
-    case (ett_sin3)
-      call err_sinxet(store, t, err)
-    case (ett_soundwave)
-      ! call err_soundwave_v(pos, vel, t, err)
-      call err_soundwave_d(store, t, err)
-    case (ett_hydroshock)
-      call err_shockTube(store, t, err)
-    case (ett_alfvenwave)
-      call err_alfvenwave(store, t, err)
-    case default
-      print *, ivt, 'Task type was not sen in l2 error evaluation ./src/main.f90:270'
-      stop
-    end select
-    printlen = 5
+  if (tfinish > 0.) then
+    if (s_tt /= eeq_kd2) then
+      select case(ivt)
+      case (ett_OTvortex, ett_mti, ett_boilingtank, ett_mtilowres)
+      case (ett_shock12)
+        call err_hcshock12(store, t, err)
+      case (ett_ring)
+        call err_hcring(store, t, err)
+      case (ett_pulse)
+        call err_hcpulse(store, t, err)
+      case (ett_sin3)
+        call err_sinxet(store, t, err)
+      case (ett_soundwave)
+        ! call err_soundwave_v(pos, vel, t, err)
+        call err_soundwave_d(store, t, err)
+      case (ett_hydroshock)
+        call err_shockTube(store, t, err)
+      case (ett_alfvenwave)
+        call err_alfvenwave(store, t, err)
+      case (e_none)
+        call warning('L2 error evaluation: none was used as a initial problem type', '', __FILE__, __LINE__)
+      case default
+        call error('Task type was not sen in L2 error evaluation', '', __FILE__, __LINE__)
+      end select
+      printlen = 5
 
-    call getNeibNumbers(nusedl1, nusedl2)
-    result(3) = merge(sum(err)/nusedl1, 0., nusedl1 > 0)
-  else
-    !----------------------------------------!
-    !          teylor error evaluation       !
-    !----------------------------------------!
-    call etlaplace(store, chi)
-    result(4) = sum(chi(1:9))/dim
-    result(6:14) = chi(1:9)
-    printlen = 14
-  end if
+      call getNeibNumbers(nusedl1, nusedl2)
+      result(3) = merge(sum(err)/nusedl1, 0., nusedl1 > 0)
+    else
+      !----------------------------------------!
+      !          teylor error evaluation       !
+      !----------------------------------------!
+      call etlaplace(store, chi)
+      result(4) = sum(chi(1:9))/dim
+      result(6:14) = chi(1:9)
+      printlen = 14
+    end if
 
-  if (nusedl1 /= 0) then
-    sqerr(:) = sqrt(err(:))
-    write(*, fmt="(A,I7, A,F12.7)") &
-      " #", iter, &
-      " | t=", t
-    if (silent == 0) call Output(t, store, sqerr)
-    if (usedumps == 1) call dump(store, t)
+    if (nusedl1 /= 0) then
+      sqerr(:) = sqrt(err(:))
+      write(*, fmt="(A,I7, A,F12.7)") &
+        " #", iter, &
+        " | t=", t
+      if (silent == 0) call Output(t, store, sqerr)
+      if (usedumps == 1) call dump(store, t)
+    end if
+    result(5) = hfac
+    ! print*, printlen
+    call resize(result, printlen, printlen)
+    call AppendLine(result, errfname, tprint)
+
   end if
-  result(5) = hfac
-  ! print*, printlen
-  call resize(result, printlen, printlen)
-  call AppendLine(result, errfname, tprint)
 
   call printTimes()
-  ! call realocnum(hfac)
-  ! write(*, "(A, F20.5, A)") " T_T you've done ", hfac, " array reallocations"
-  print *, '#####  Results:'
-  write(*, "(A, F20.10)") " # #   L1-error: ", result(3)
-  write(*, "(A, F20.10)") " # #  chi-error: ", result(4)
-  print *, '##############################################'
-
-  call neibDestroy()
-  if (s_tt /= eeq_kd2) call c1destroy()
-  call timedestroy()
+  if (tfinish > 0) then
+    print *, '#####  Results:'
+    write(*, "(A, F20.10)") " # #   L1-error: ", result(3)
+    write(*, "(A, F20.10)") " # #  chi-error: ", result(4)
+    print *, '##############################################'
+  end if
+  ! call neibDestroy()
+  ! if (s_tt /= eeq_kd2) call c1destroy()
+  ! call timedestroy()
   call dumpclean()
 end program
 

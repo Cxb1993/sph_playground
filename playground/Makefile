@@ -29,11 +29,12 @@ SRC+=state.f90\
 	IC/placeUniform.f90\
 	IC/placeClose.f90\
 	IC/placeRandom.f90\
+	IC/place.f90\
 	IC/rhofuncs.f90\
 	IC/IC.f90\
-	IC/initvar.f90\
 	errcalc.f90\
 	iterator.f90\
+	timestep.f90\
 	main.f90
 
 	# utils/clfortran.f90\
@@ -84,7 +85,7 @@ endif
 
 FC=gfortran
 
-FFLAGS=-fdefault-real-8 -fdefault-double-8 \
+FFLAGS=-fdefault-real-8 -fdefault-double-8\
  				-flto -O4 -cpp -Ofast
 
 ifeq ($(debug),t)

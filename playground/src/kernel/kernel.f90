@@ -1,5 +1,5 @@
 module kernel
-  use errprinter, only: error
+  use errprinter, only: error, warning
   use const
   use kernel_base
   use state,      only: gcoordsys, &
@@ -117,7 +117,10 @@ contains
         n2w     => FW_cart
         d2curnumb = cnarr(ecn_d2fab)
       else
-        error stop "Wrong kernel type in kernel init."
+        hessian => hessian_fab_cart
+        n2w     => Gab_cart
+        d2curnumb = cnarr(ecn_d2fab)
+        call warning('Brookshaw (Fab) is used by default as 2nd derivative of W', '', __FILE__, __LINE__)
       end if
     else if (cs == 2) then
       nw => nw_cyl
@@ -131,7 +134,7 @@ contains
       else if (kt == esd_fw) then
         ! hessian => hessian_fw_cart
       else
-        call error('Wrong kernel type', '', __FILE__, __LINE__)
+        call error('Wrong kernel type in kernel init', kt, __FILE__, __LINE__)
       end if
     else
       call error('Wrong coordinate system', '', __FILE__, __LINE__)

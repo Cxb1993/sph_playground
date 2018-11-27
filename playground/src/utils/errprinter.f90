@@ -32,7 +32,7 @@ contains
     write(linestr, *) line
     write(ittstr, *) itt
 
-    print*, '# <!> ' // str // " | " // ittstr // file //":"// adjustl(linestr)
+    print*, '# <!> ' // str // " | " // trim(adjustl(trim(ittstr))) // " | " // file //":"// adjustl(linestr)
     stop
   end subroutine errint
 

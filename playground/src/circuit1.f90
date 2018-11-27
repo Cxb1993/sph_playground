@@ -31,10 +31,11 @@ module circuit1
       hk(:), hkp1(:), eps(:), dk(:), dkp1(:), ok(:), okp1(:)
     integer(8) :: start=0, finish=0
     integer :: &
-      realpartnumb, fixedpartnumb, totreal, initdone=0, eqSet(eqs_total)
+      initialised=0,&
+      realpartnumb, fixedpartnumb, totreal, eqSet(eqs_total), ad
 
 contains
-  subroutine c1_init()
+  subroutine init()
     call getPartNumber(r=realpartnumb, f=fixedpartnumb)
     totreal = realpartnumb + fixedpartnumb
     allocate(hk(totreal))
@@ -45,19 +46,14 @@ contains
     allocate(okp1(totreal))
     allocate(eps(totreal))
     call getEqComponent(eqSet)
-    initdone = 1
-  end subroutine c1_init
+    call getAdvancedDensity(ad)
+    initialised = 1
+  end subroutine init
 
   subroutine c1(store)
     real, allocatable, intent(inout) :: store(:,:)
 
-    integer :: ad
-
-    if (initdone /= 1) then
-      call c1_init()
-    end if
-
-    call getAdvancedDensity(ad)
+    if (initialised == 0) call init()
 
     if (ad == 1) then
       call c1advanced(store)
@@ -105,7 +101,6 @@ contains
     ! print*, size(nlista)
     ! read*
 
-    ! allowerror = 1e-8
     allowerror = 1e-8
     hkp1(:) = store(es_h,  1:totreal)
     dkp1(:) = store(es_den,1:totreal)

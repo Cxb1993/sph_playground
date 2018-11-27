@@ -6,7 +6,7 @@ module kernel_base
 
   private
 
-    character (len=10) :: kernelname='M6'
+    character (len=10) :: kernelname='m6'
 
     real :: knorm(3) = [ 1./120., 7./(478. * pi), 1./(120. * pi) ]
     real :: cnarr(ecn_total)

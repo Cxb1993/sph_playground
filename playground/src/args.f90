@@ -2,7 +2,6 @@ module args
   use const
   use state,      only: set_equations,&
                         setddwtype,&
-                        sinitvar,&
                         setAdvancedDensity, &
                         setArtificialTerms, &
                         scoordsys,&
@@ -10,7 +9,6 @@ module args
                         setkerninflfilename,&
                         setnpics,&
                         settfinish,&
-                        setresolution,&
                         setspacing,&
                         sethfac,&
                         setsilentmode,&
@@ -19,8 +17,12 @@ module args
                         setdim,&
                         setProcess,&
                         setArtTermCond,&
-                        setdiffisotropic
-use errprinter,   only: warning
+                        setdiffisotropic,&
+                        sinitvar,&
+                        splacement,&
+                        setStateVal
+
+use errprinter,   only: error, warning
   implicit none
 
   public :: fillargs
@@ -30,7 +32,7 @@ use errprinter,   only: warning
       real :: &
         pspc1, tfinish, hfac, dimf, npicf, au
       integer :: &
-        numargs, curargnum, npic, dim, silent, resol
+        numargs, curargnum, npic, dim, silent
       character (len=100) :: &
         eqs, resultfile, ddwtype,&
         argkey, argval1, silentstr, kerninflname, initvart,&
@@ -41,7 +43,6 @@ use errprinter,   only: warning
       dimf = 0.0
       eqs = ''
       pspc1 = 0
-      resol = 0
       resultfile = ''
       ddwtype = ''
       tfinish = 1.
@@ -80,7 +81,7 @@ use errprinter,   only: warning
             npic = int(npicf)
           case('--resolution')
             read(argval1, *) tmp
-            resol = int(tmp)
+            call setStateVal(ec_resolution, tmp)
           case('--resultfile')
             resultfile = adjustl(argval1)
           case('--influencefile')
@@ -94,7 +95,8 @@ use errprinter,   only: warning
           case('--silent')
             silentstr = adjustl(argval1)
           case('--ics')
-            initvart = adjustl(argval1)
+            call sinitvar(adjustl(argval1), tmp)
+            call setStateVal(ec_ics, tmp)
           case('--adden')
             adden = adjustl(argval1)
           case('--artts')
@@ -109,6 +111,27 @@ use errprinter,   only: warning
             read(argval1, *) au
           case('--disotropic')
             difiso = adjustl(argval1)
+          case('--xmin')
+            read(argval1, *) tmp
+            call setStateVal(ec_xmin, tmp)
+          case('--xmax')
+            read(argval1, *) tmp
+            call setStateVal(ec_xmax, tmp)
+          case('--ymin')
+            read(argval1, *) tmp
+            call setStateVal(ec_ymin, tmp)
+          case('--ymax')
+            read(argval1, *) tmp
+            call setStateVal(ec_ymax, tmp)
+          case('--zmin')
+            read(argval1, *) tmp
+            call setStateVal(ec_zmin, tmp)
+          case('--zmax')
+            read(argval1, *) tmp
+            call setStateVal(ec_zmax, tmp)
+          case('--placement')
+            call splacement(adjustl(argval1), tmp)
+            call setStateVal(ec_placement, tmp)
           case default
             call warning("Argument not found", argkey, __FILE__, __LINE__)
           end select
@@ -128,9 +151,6 @@ use errprinter,   only: warning
       if (kerninflname /= '') then
         call setkerninflfilename(kerninflname)
       end if
-      if (initvart /= '') then
-        call sinitvar(initvart)
-      end if
       if (coordsysstr /= '') then
         call scoordsys(coordsysstr)
       end if
@@ -149,9 +169,6 @@ use errprinter,   only: warning
       end if
       if (pspc1 /= 0) then
         call setspacing(pspc1)
-      end if
-      if (resol /= 0) then
-        call setresolution(resol)
       end if
       if (adden /= '') then
         call setAdvancedDensity(adden)

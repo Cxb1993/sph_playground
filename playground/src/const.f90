@@ -40,7 +40,11 @@ module const
     ec_dtprint = 30,&
     ec_process = 31,&
     ec_au = 32,&
-    ec_total = 32
+    ec_placement = 33,&
+    ec_eqonhydro = 34,&
+    ec_eqondiff = 35,&
+    ec_eqonfluxlim = 36,&
+    ec_total = 36
 
   ! store of data
   integer, parameter :: &
@@ -122,7 +126,8 @@ module const
     eeq_magnetohydrodiffusion = 303,&
     eeq_hydrodiffusion        = 304,&
     eeq_kd2                   = 305,&
-    eeq_hyrad                 = 306
+    eeq_hyrad                 = 306,&
+    eeq_manual                = 307
 
   ! second derivatives
   integer, parameter :: &
@@ -138,8 +143,13 @@ module const
     edi_mtih2017  = 502
 
   integer, parameter :: &
-    epc_relaxation        = 600,&
-    epc_backcompatibility = 601
+    epc_backcompatibility = 600,&
+    epc_fullyperiodic     = 601
+
+  integer, parameter ::&
+    epl_uniform     = 700,&
+    epl_random      = 701,&
+    epl_closepacked = 702
 
   real, parameter :: &
     eif_yes = 1.0,&
@@ -161,6 +171,7 @@ module const
 
   character(len=*), parameter :: &
     blockFormatFlt  = "(A,A50,F16.10)",&
+    blockFormatFlt2 = "(A,A51,F16.10,A,F16.10,A)",&
     blockFormatInt  = "(A,A50,I8)",&
     blockFormatStr  = "(A,A50,A)",&
     blockFormatStr2 = "(A,A50,A)"

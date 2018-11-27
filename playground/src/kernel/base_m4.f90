@@ -15,7 +15,7 @@ module kernel_base
     real :: wCv, fwc, d2curnumb = -1.
     real :: krad = 2.
     integer :: dim, returnneibnum
-    character (len=10) :: kernelname='M4'
+    character (len=10) :: kernelname='m4'
 
  contains
    subroutine initkernelbase(d)

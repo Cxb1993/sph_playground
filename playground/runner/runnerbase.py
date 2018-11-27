@@ -431,6 +431,18 @@ class Context:
         self.store = copy.deepcopy(storenew)
         return float(addedNumber)
 
+    def CalcUniformMass(self, rho):
+        mass = 1.
+        lx = ly = lz = 1.0
+        if (self.setup.dim > 0):
+            lx = abs(self.setup.xmax - self.setup.xmin)
+        if (self.setup.dim > 1):
+            ly = abs(self.setup.ymax - self.setup.ymin)
+        if (self.setup.dim > 2):
+            lz = abs(self.setup.zmax - self.setup.zmin)
+        mass = lx*ly*lz*rho/self.setup.realpn
+        return mass
+
     def CopyContext(self):
         newContext = copy.deepcopy(self)
         newContext.setup = copy.deepcopy(self.setup)
@@ -462,6 +474,37 @@ class Context:
                         x2 = self.store[self.idx(valuearg[1],i)]
                         x3 = self.store[self.idx(valuearg[2],i)]
                         storenew[self.idx(pa,i)] = value(x1,x2,x3)
+
+        self.store = copy.deepcopy(storenew)
+
+    def ModifyParticlesProperties(self,
+        condition = [lambda rx: True],
+        conditionarg = ['rx'],
+        properties = ['rx'],
+        value = [lambda rx: 1.0],
+        valuearg = ['rx']):
+
+        storenew = copy.deepcopy(self.store)
+        nreal = int(self.setup.realpn)
+        nfixd = int(self.setup.fixedpn)
+        nc = len(condition)
+        ncx = len(conditionarg)
+        np = len(properties)
+        nv = len(value)
+        nvx = len(valuearg)
+
+        storeval = lambda condarg,i: self.store[self.idx(condarg,i)]
+
+        fargj = 'rx'
+
+        for i in range(0,nreal+nfixd):
+            for j in range(np):
+                if nvx == 1:
+                    fargj = valuearg[0]
+                else:
+                    fargj = valuearg[j]
+                x1 = storeval(fargj,i)
+                storenew[self.idx(properties[j],i)] = value[j](x1)
 
         self.store = copy.deepcopy(storenew)
 

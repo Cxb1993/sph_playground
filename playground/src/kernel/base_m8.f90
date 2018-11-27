@@ -6,7 +6,7 @@ module kernel_base
 
   private
 
-    character (len=10) :: kernelname='M8'
+    character (len=10) :: kernelname='m8'
 
     real :: knorm(3) = [1., 2268./(1487.*pi), 3./(4.*pi)]
     real :: fwcl(3) = [3., 3.07775455, 3.15791438]

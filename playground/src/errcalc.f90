@@ -130,7 +130,7 @@ contains
     real, intent(in)                 :: t
     integer, allocatable :: nlista(:)
     integer :: &
-      i, j, dim, ivt, diso
+      i, j, diso
     real :: &
       tr, tl, tt, x(3), exact, num
 

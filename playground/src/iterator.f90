@@ -53,12 +53,10 @@ contains
     call get_equations(ttp)
     call getPartNumber(r=rpn, f=fpn)
 
-    if (initialised == 0) then
-      call initIterate(n, store)
-    end if
+    if (initialised == 0) call initIterate(n, store)
 
     select case(ipc)
-    case(epc_relaxation)
+    case(epc_fullyperiodic)
       call clearPeriodicParticles(store)
       call reflectRealParticlesPeriodically(store, ebc_all)
       call findInsideBorderParticles(store)

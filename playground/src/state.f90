@@ -1,13 +1,13 @@
 module state
 
   use const
-  use errprinter, only: error
+  use errprinter, only: error, warning
 
   implicit none
 
   public :: set_equations, get_equations, &
-            setddwtype, getddwtype, getdim, setdim, sinitvar, &
-            ginitvar, setAdvancedDensity, getAdvancedDensity,&
+            setddwtype, getddwtype, getdim, setdim, &
+            ginitvar, sinitvar, setAdvancedDensity, getAdvancedDensity,&
             setArtificialTerms, getArtificialTerms, &
             scoordsys, gcoordsys, &
             setdiffconductivity, getdiffconductivity, &
@@ -27,7 +27,10 @@ module state
             setdtprint, getdtprint,&
             getEqComponent,&
             setProcess, getProcess,&
-            setArtTermCond, getArtTermCond
+            setArtTermCond, getArtTermCond,&
+            clearState,&
+            setStateVal, getStateVal,&
+            splacement
 
   private
   save
@@ -35,6 +38,28 @@ module state
     character (len=100) :: resfilename, kerninflname
 
   contains
+    subroutine clearState()
+      statevars(:) = -1
+      resfilename = ''
+      kerninflname = ''
+    end subroutine clearState
+
+    subroutine setStateVal(label, val)
+    integer, intent(in) :: &
+      label
+    real, intent(in) :: &
+      val
+      statevars(label) = val
+    end subroutine setStateVal
+
+    subroutine getStateVal(label, val)
+    integer, intent(in) :: &
+      label
+    real, intent(out) :: &
+      val
+      val = statevars(label)
+    end subroutine getStateVal
+
     subroutine setdim(d)
       integer, intent(in) :: d
       if ((d < 1).or.(d > 3)) then
@@ -96,6 +121,10 @@ module state
       case(eeq_hydrodiffusion)
         eqSet(eqs_hydro) = 1
         eqSet(eqs_diff) = 1
+      case(eeq_manual)
+        if (int(statevars(ec_eqondiff))==1)     eqSet(eqs_diff) = 1
+        if (int(statevars(ec_eqonhydro))==1)    eqSet(eqs_hydro) = 1
+        if (int(statevars(ec_eqonfluxlim))==1)  eqSet(eqs_fld) = 1
       case default
         call error("Equation is not set", int(statevars(ec_eqs)), __FILE__, __LINE__)
       end select
@@ -124,39 +153,47 @@ module state
       ott = int(statevars(ec_ddw))
     end subroutine getddwtype
 
-   subroutine sinitvar(itt)
-     character (len=*), intent(in) :: itt
-     select case(itt)
-     case('sin3')
-       statevars(ec_ics) = ett_sin3
-     case('mti')
-       statevars(ec_ics) = ett_mti
-     case('mtilowres')
-       statevars(ec_ics) = ett_mtilowres
-     case('shock12')
-       statevars(ec_ics) = ett_shock12
-     case('pulse')
-       statevars(ec_ics) = ett_pulse
-     case('ring')
-       statevars(ec_ics) = ett_ring
-     case('soundwave')
-       statevars(ec_ics) = ett_soundwave
-     case('hydroshock')
-       statevars(ec_ics) = ett_hydroshock
-     case('alfvenwave')
-       statevars(ec_ics) = ett_alfvenwave
-     case('otvortex')
-       statevars(ec_ics) = ett_OTvortex
-     case('boilingtank')
-       statevars(ec_ics) = ett_boilingtank
-     case('fld_gauss')
-       statevars(ec_ics) = ett_fld_gauss
-     case default
-       statevars(ec_ics) = e_none
-       call error('There is no such initial variable', itt, __FILE__, __LINE__)
-     end select
-   end subroutine
-   pure subroutine ginitvar(ott)
+    subroutine sinitvar(itt, ott)
+      character (len=*), intent(in) :: itt
+      real, intent(out) :: ott
+
+      select case(itt)
+      case('sin3')
+        ott = ett_sin3
+      case('mti')
+        ott = ett_mti
+      case('mtilowres')
+        ott = ett_mtilowres
+      case('shock12')
+        ott = ett_shock12
+      case('pulse')
+        ott = ett_pulse
+      case('ring')
+        ott = ett_ring
+      case('soundwave')
+        ott = ett_soundwave
+      case('hydroshock')
+        ott = ett_hydroshock
+      case('alfvenwave')
+        ott = ett_alfvenwave
+      case('otvortex')
+        ott = ett_OTvortex
+      case('boilingtank')
+        ott = ett_boilingtank
+      case('fld_gauss')
+        ott = ett_fld_gauss
+      case('none')
+        ott = e_none
+      case default
+        ott = e_none
+        call error('There is no such initial variable', itt, __FILE__, __LINE__)
+      end select
+
+      if (ott /= e_none) then
+        call warning("The ICS and setupV2 is depricated.", "Use place + proces methods.", __FILE__, __LINE__)
+      end if
+    end subroutine
+    pure subroutine ginitvar(ott)
      integer, intent(out) :: ott
      ott = int(statevars(ec_ics))
    end subroutine
@@ -365,30 +402,30 @@ module state
      o = statevars(ec_spacing)
    end subroutine
 
-   subroutine setBorders(x1,x2,y1,y2,z1,z2,bs,pd)
-     real, intent(in) :: &
-       x1,x2,y1,y2,z1,z2,bs,pd
-     statevars(ec_bordsize) = bs
-     statevars(ec_padding) = pd
-     statevars(ec_xmin) = x1
-     statevars(ec_xmax) = x2
-     statevars(ec_ymin) = y1
-     statevars(ec_ymax) = y2
-     statevars(ec_zmin) = z1
-     statevars(ec_zmax) = z2
-   end subroutine
-   subroutine getBorders(x1,x2,y1,y2,z1,z2,bs,pd)
-     real, intent(out) :: &
-       x1,x2,y1,y2,z1,z2,bs,pd
-     bs = statevars(ec_bordsize)
-     pd = statevars(ec_padding)
-     x1 = statevars(ec_xmin)
-     x2 = statevars(ec_xmax)
-     y1 = statevars(ec_ymin)
-     y2 = statevars(ec_ymax)
-     z1 = statevars(ec_zmin)
-     z2 = statevars(ec_zmax)
-   end subroutine
+  subroutine setBorders(x1,x2,y1,y2,z1,z2,bs,pd)
+  real, intent(in) :: &
+   x1,x2,y1,y2,z1,z2,bs,pd
+    statevars(ec_bordsize) = bs
+    statevars(ec_padding) = pd
+    statevars(ec_xmin) = x1
+    statevars(ec_xmax) = x2
+    statevars(ec_ymin) = y1
+    statevars(ec_ymax) = y2
+    statevars(ec_zmin) = z1
+    statevars(ec_zmax) = z2
+  end subroutine setBorders
+  subroutine getBorders(x1,x2,y1,y2,z1,z2,bs,pd)
+  real, intent(out) :: &
+   x1,x2,y1,y2,z1,z2,bs,pd
+    bs = statevars(ec_bordsize)
+    pd = statevars(ec_padding)
+    x1 = statevars(ec_xmin)
+    x2 = statevars(ec_xmax)
+    y1 = statevars(ec_ymin)
+    y2 = statevars(ec_ymax)
+    z1 = statevars(ec_zmin)
+    z2 = statevars(ec_zmax)
+  end subroutine
 
    subroutine setPartNumber(r, f)
      integer, optional, intent(in) :: r, f
@@ -451,8 +488,8 @@ module state
    subroutine setProcess(it)
      character (len=*), intent(in) :: it
      select case(it)
-     case('relaxation')
-       statevars(ec_process) = epc_relaxation
+     case('fullyperiodic')
+       statevars(ec_process) = epc_fullyperiodic
      case('backcompatibility')
        statevars(ec_process) = epc_backcompatibility
      case default
@@ -464,6 +501,22 @@ module state
      ot = int(statevars(ec_process))
    end subroutine
 
+   subroutine splacement(itt, ott)
+     character (len=*), intent(in) :: itt
+     real, intent(out) :: ott
+
+     select case(itt)
+     case('uniform')
+       ott = epl_uniform
+     case('random')
+       ott = epl_random
+     case('closepacked')
+       ott = epl_closepacked
+     case default
+       ott = e_none
+       call error('There is no such initial particles distribution', itt, __FILE__, __LINE__)
+     end select
+   end subroutine
 
    subroutine printstate()
      use kernel_base,  only: kernelname
@@ -536,6 +589,9 @@ module state
        write(*,blockFormatStr) " #   #", "second derivative type: ", "Two First Derivatives (+/-)"
      end select
 
+     ! if (kernelname /= ) then
+     !   call warning('The code was compiled with different kernel', d, __FILE__, __LINE__)
+     ! end if
      write(*,blockFormatStr) " #   #", "kernel name: ", kernelname
      write(*,blockFormatFlt) " #   #", "print dt: ", statevars(ec_dtprint)
      write(*,blockFormatFlt) " #   #", "stop time: ", statevars(ec_tfinish)
@@ -551,23 +607,31 @@ module state
      else
        write(*,blockFormatStr) " #   #", "use restore dumps: ", "no"
      end if
-     if (int(statevars(ec_process)) == epc_relaxation) then
-       write(*,blockFormatStr) " #   #", "process: ", "relaxation"
+     if (int(statevars(ec_process)) == epc_fullyperiodic) then
+       write(*,blockFormatStr) " #   #", "process: ", "fully periodic"
      else
-       write(*,blockFormatStr) " #   #", "process: ", "backcompatibility"
+       write(*,blockFormatStr) " #   #", "process: ", "backcompatibility for hardcoded initial value"
      end if
 
-write(*,blockFormatInt) " #   #", "desired resolution:", int(statevars(ec_resolution))
+     write(*,blockFormatInt) " #   #", "desired resolution: ", int(statevars(ec_resolution))
 
-     print *, '#   #                            x in [',statevars(ec_xmin),":",statevars(ec_xmax),"]"
-     print *, '#   #                            y in [',statevars(ec_ymin),":",statevars(ec_ymax),"]"
-     print *, '#   #                            z in [',statevars(ec_zmin),":",statevars(ec_zmax),"]"
+     write(*,blockFormatFlt2) " #   #", "x in: [",statevars(ec_xmin)," :",statevars(ec_xmax)," ]"
+     write(*,blockFormatFlt2) " #   #", "y in: [",statevars(ec_ymin)," :",statevars(ec_ymax)," ]"
+     write(*,blockFormatFlt2) " #   #", "z in: [",statevars(ec_zmin)," :",statevars(ec_zmax)," ]"
      write(*,blockFormatFlt) " #   #", "border size: ", statevars(ec_bordsize)
 
      write(*,blockFormatInt) " #   #", "real particles: ", int(statevars(ec_realpn))
      write(*,blockFormatInt) " #   #", "fixed particles: ", int(statevars(ec_fixedpn))
      write(*,blockFormatFlt) " #   #", "adiabatic gamma: ", statevars(ec_gamma)
 
+     select case(int(statevars(ec_placement)))
+     case(epl_uniform)
+       write(*,blockFormatStr) " #   #", "initial particles placement: ", "Uniform"
+     case(epl_random)
+       write(*,blockFormatStr) " #   #", "initial particles placement: ", "Random"
+     case(epl_closepacked)
+       write(*,blockFormatStr) " #   #", "initial particles placement: ", "ClosePacked"
+     end select
 
      print*, "#   #"
      print*, "#####"

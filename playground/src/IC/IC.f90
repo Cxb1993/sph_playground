@@ -346,8 +346,7 @@ contains
     end select
 
     if (2*nb >= resol) then
-      print*, '   +-> not enough resolution to cover artificial particles'
-      stop
+      call error('There is not enough resolution to cover artificial particles', resol, __FILE__, __LINE__)
     end if
 
     call getPartNumber(rpn,fpn)
@@ -609,14 +608,14 @@ contains
     call addTime(' ic', finish - start)
   end subroutine setupV2
 
-  subroutine printstore(s, i)
-    real, allocatable, intent(in) :: s(:,:)
-    integer, intent(in) :: i
-    print*, "========"
-    print*, "i  :", i, "type: ", s(es_type, i)
-    print*, "pos: ", s(es_rx:es_rz, i)
-    print*, "vel: ", s(es_vx:es_vz, i)
-    print*, "acc: ", s(es_ax:es_az, i)
-    print*, "P  : ", s(es_p, i)
-  end subroutine printstore
+  ! subroutine printstore(s, i)
+  !   real, allocatable, intent(in) :: s(:,:)
+  !   integer, intent(in) :: i
+  !   print*, "========"
+  !   print*, "i  :", i, "type: ", s(es_type, i)
+  !   print*, "pos: ", s(es_rx:es_rz, i)
+  !   print*, "vel: ", s(es_vx:es_vz, i)
+  !   print*, "acc: ", s(es_ax:es_az, i)
+  !   print*, "P  : ", s(es_p, i)
+  ! end subroutine printstore
 end module
