@@ -111,7 +111,6 @@ contains
     tneib = 0.
     maxinterr  = 0.
     currinterr = 0.
-
     do while ((maxval(eps(:), mask=(eps>0)) > allowerror) .and. (iter < 100))
       maxinterr  = 0.
       iter = iter + 1
@@ -197,7 +196,9 @@ contains
           ! that is right according to Price2008, not phantom paper
           okp1(i) = 1. - okp1(i)*(-ha/(dim*dkp1(i)))
           dfdh = -dim*dkp1(i)*okp1(i)/ha
+          ! print*, 3
           fh   = ma*(hfac/ha)**dim - dkp1(i)
+          ! print*, 4
           hn   = ha - fh/dfdh
           if (hn <= 0.) then
             error stop "Negative smoothing length in c1 advanced"

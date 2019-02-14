@@ -24,9 +24,11 @@ program main
                               settfinish,&
                               getdim,&
                               getLastPrint,&
-                              setdtprint, getdtprint
+                              setdtprint, getdtprint,&
+                              getStateVal,&
+                              setStateVal
   use iterator,         only: iterate
-  use printer,          only: Output, AppendLine
+  use printer,          only: print_ascii => Output, AppendLine, printOutputInfo
   use errcalc,          only: err_diff_laplace, &
                               err_diff_graddiv, &
                               err_sinxet, &
@@ -76,7 +78,7 @@ program main
     dt, t, dtout, ltout, tfinish,&
     gamma, hfac, cv = 1., &
     dedt, sumdedt, dedtprev, chi(81),&
-    avdt
+    sumdt
   character (len=100) :: &
     errfname
   integer :: &
@@ -100,37 +102,34 @@ program main
   print*, "#####"
   print*, "##############################################"
 
-  inquire(file='output/fulldump', exist=thereisdump)
-  call fillargs()
-
   t = 0.
+  inquire(file='output/dump_full.h5', exist=thereisdump)
   if (thereisdump) then
-    call restore('output/fulldump', store, t)
+    call restore(store)
+    call getStateVal(ec_time, t)
   else
-    inquire(file='output/finaldump', exist=thereisdump)
-    if (thereisdump) then
-      call restore('output/finaldump', store, t)
+    call fillargs()
+
+    call getStateVal(ec_dim, dim)
+    call initkernel(dim)
+    call getStateVal(ec_lastprint, lastnpic)
+    call getStateVal(ec_npics, npics)
+    call getStateVal(ec_tfinish, tfinish)
+
+    dtout = (tfinish-t)/(npics - lastnpic)
+    if (dtout <= 0.) then
+      dtout = 1.
+      call warning("Dirty hack was used here", "dtout", __FILE__, __LINE__)
+      call warning("And I even don't remember why enymore", "dtout", __FILE__, __LINE__)
+    end if
+    call setStateVal(ec_dtprint, dtout)
+
+    ! hopefully that is just for some time to supprt depricated ivt methods
+    call getStateVal(ec_ics, ivt)
+    if (ivt == e_none) then
+      call place(store)
     else
-      call getdim(dim)
-      call initkernel(dim)
-
-      call getLastPrint(lastnpic)
-      call getnpics(npics)
-      call gettfinish(tfinish)
-      dtout = (tfinish-t)/(npics - lastnpic)
-      if (dtout <= 0.) then
-        dtout = 1.
-        call warning("Dirty hack was used here", "dtout", __FILE__, __LINE__)
-      end if
-      call setdtprint(dtout)
-
-      ! hopefully that is just for some time to supprt depricated ivt methods
-      call ginitvar(ivt)
-      if (ivt == e_none) then
-        call place(store)
-      else
-        call setupV2(n, cv, store)
-      end if
+      call setupV2(n, cv, store)
     end if
   end if
 
@@ -189,22 +188,21 @@ program main
   sumdedt = 0.
   dedt = 0.
 
-  if (usedumps == 1) call dump(store, t)
-  if (silent == 0) call Output(t, store, sqerr)
   print *, '#  #-------------------------------------------------'
-  print *, '#  # Initial setup printed'
-  write(*, fmt="(A,I7, A,F12.7, A,F12.7, A,F10.7,A,F10.7,A, A,F12.7, A,F12.7)") &
-    " #  #", iter, &
-    " | t=", t, &
-    " | dt=", dt, &
-    " | h=[", minval(store(es_h,1:n)), ":", maxval(store(es_h,1:n)), "]",&
-    " | dedt=", dedt*dt,&
-    " | S(dedt)=", sumdedt
+  print *, '#  # Initial Setup'
+  if (silent == 0) call print_ascii(t, store, err)
+  if (usedumps == 1) call dump(store, t)
+  call printOutputInfo(iter, n, t, sumdt, dedt, dt, sumdedt, store)
+  if ((silent==0).or.(usedumps==1)) then
+    call getStateVal(ec_lastprint, lastnpic)
+    call setStateVal(ec_lastprint, real(lastnpic+1))
+  end if
   print *, '#  #-------------------------------------------------'
 
   if (tfinish > 0.) then
     call checkVarsReady(s_tt, store)
     if (s_tt /= eeq_kd2) then
+      ! print*, 1
       call iterate(n, gamma, store, dedt)
     else
       stopiter = 1
@@ -219,30 +217,24 @@ program main
     ltout = ltout + dtout
   end do
 
+  sumdt = 0.
   do while ((t < tfinish + eps0).and.(stopiter==0))
     call calctimestep(store, dt)
 
-    if (iter == 0) then
-      avdt = dt
-    else
-      avdt = avdt + dt
-    end if
     if (t + dt > tfinish) then
       dt = tfinish - t
       stopiter = 1
     end if
+    sumdt = sumdt + dt
 
     if (t >= ltout) then
+      if (silent == 0) call print_ascii(t, store, err)
       if (usedumps == 1) call dump(store, t)
-      if (silent == 0) call Output(t, store, err)
-      write(*, fmt="(A,I7, A,F12.7, A,F12.7, A,F10.7,A,F10.7,A, A,F12.7, A,F12.7)") &
-        "#", iter, &
-        " | t=", t, &
-        " | dt=", merge(avdt/iter, avdt, iter>0), &
-        " | h=[", minval(store(es_h,1:n)), ":", maxval(store(es_h,1:n)), "]",&
-        " | dedt=", dedt*dt,&
-        " | S(dedt)=", sumdedt
-
+      call printOutputInfo(iter, n, t, sumdt, dedt, dt, sumdedt, store)
+      if ((silent==0).or.(usedumps==1)) then
+        call getStateVal(ec_lastprint, lastnpic)
+        call setStateVal(ec_lastprint, real(lastnpic+1))
+      end if
       do while(ltout <= t)
         ltout = ltout + dtout
       end do
@@ -262,18 +254,24 @@ program main
     store(es_rx:es_rz,1:n) = store(es_rx:es_rz,1:n)  + &
         dt * tv(:,:) + 0.5 * dt * dt * ta(:,:)
 
-    store(es_vx:es_vz,1:n) = (tv(:,:)  + dt * ta(:,:))/(1.03)
+    ! store(es_vx:es_vz,1:n) = (tv(:,:)  + dt * ta(:,:))/(1.03)
+    store(es_vx:es_vz,1:n) = tv(:,:)  + dt * ta(:,:)
     store(es_u,1:n) = store(es_u,1:n) + dt * tdu(:)
     store(es_h,1:n) = store(es_h,1:n) + dt * tdh(:)
-    store(es_t,1:n) = store(es_u,1:n)
+    store(es_t,1:n) = store(es_t,1:n) + dt * tddt(:)
+    ! store(es_t,1:n) = store(es_u,1:n)
     store(es_bx:es_bz,1:n) = store(es_bx:es_bz,1:n) + dt * tdb(:,:)
     dedtprev = dedt
     sumdedt = sumdedt + dedt*dt
 
+    ! print*, 1
     call iterate(n, gamma, store, dedt)
+    ! print*, 1
 
     store(es_vx:es_vz,1:n) = &
-      (store(es_vx:es_vz,1:n) + 0.5*dt*(store(es_ax:es_az,1:n) - ta(:,:)))/(1.03)
+      store(es_vx:es_vz,1:n) + 0.5*dt*(store(es_ax:es_az,1:n) - ta(:,:))
+    ! store(es_vx:es_vz,1:n) = &
+    !   (store(es_vx:es_vz,1:n) + 0.5*dt*(store(es_ax:es_az,1:n) - ta(:,:)))/(1.03)
     store(es_u,1:n) = &
       store(es_u,1:n) + 0.5*dt*(store(es_du,1:n) - tdu(:))
     store(es_h,1:n) = &
@@ -281,7 +279,9 @@ program main
     store(es_bx:es_bz,1:n) = &
       store(es_bx:es_bz,1:n) + 0.5*dt*(store(es_dbx:es_dbz,1:n) - tdb(:,:))
     sumdedt = sumdedt + 0.5*dt*(dedt - dedtprev)
-    store(es_t,1:n) = store(es_u,1:n)
+    store(es_t,1:n) = &
+      store(es_t,1:n) + 0.5*dt*(store(es_ddt,1:n) - tddt(:))
+    ! store(es_t,1:n) = store(es_u,1:n)
 
     t = t + dt
     iter = iter + 1
@@ -327,11 +327,16 @@ program main
 
     if (nusedl1 /= 0) then
       sqerr(:) = sqrt(err(:))
-      write(*, fmt="(A,I7, A,F12.7)") &
+      write(*, fmt="(A,I7, A,ES10.4)") &
         " #", iter, &
         " | t=", t
-      if (silent == 0) call Output(t, store, sqerr)
+      if (silent == 0) call print_ascii(t, store, err)
       if (usedumps == 1) call dump(store, t)
+      call printOutputInfo(iter, n, t, sumdt, dedt, dt, sumdedt, store)
+      if ((silent==0).or.(usedumps==1)) then
+        call getStateVal(ec_lastprint, lastnpic)
+        call setStateVal(ec_lastprint, real(lastnpic+1))
+      end if
     end if
     result(5) = hfac
     ! print*, printlen

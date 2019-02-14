@@ -9,7 +9,7 @@ module errprinter
     module procedure errstr, errint
   end interface
   interface warning
-    module procedure warstr, warint
+    module procedure warstr, warint, warreal
   end interface
 
 contains
@@ -60,5 +60,17 @@ contains
 
     print*, '# <?> ' // str // " | " // ittstr // file //":"// adjustl(linestr)
   end subroutine warint
+
+  subroutine warreal(str, itt, file, line)
+    integer, intent(in) :: line
+    real, intent(in) :: itt
+    character(len=*), intent(in) :: file, str
+    character(len=30) :: linestr, ittstr
+
+    write(linestr, *) line
+    write(ittstr, *) itt
+
+    print*, '# <?> ' // str // " | " // ittstr // file //":"// adjustl(linestr)
+  end subroutine warreal
 
 end module errprinter

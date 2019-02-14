@@ -66,6 +66,12 @@ contains
       call c1(store)
       call eos_adiabatic(store, gamma)
       call c2(store, maxconsenrg)
+    case(epc_borderless)
+      call findneighboursKDT(store)
+      call c1(store)
+      call eos_adiabatic(store, gamma)
+      call c2(store, maxconsenrg)
+
     case(epc_backcompatibility)
       select case(ivt)
       case (ett_shock12)

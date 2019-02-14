@@ -1,0 +1,5 @@
+ t 1 1 f8
+ resultfile 1 1 50c
+ influencefile 1 1 50c
+ state          43 1 f8
+ store          31         128 f8

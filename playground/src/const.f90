@@ -1,50 +1,59 @@
 module const
   implicit none
-  real, parameter :: pi = 4.*atan(1.)
-  real, parameter :: eps0 = epsilon(0.)
+  real, parameter :: &
+    pi    = 4.*atan(1.),&
+    eps0  = epsilon(0.)
 
   integer, parameter :: &
     e_none = -1
 
   ! store of state
   integer, parameter :: &
-    ec_dim = 1,&
-    ec_eqs = 2,&
-    ec_ddw = 3,&
-    ec_ics = 4,&
-    ec_adden = 5,&
-    ec_artts = 6,&
-    ec_coordsys = 7,&
-    ec_disotropic = 8,&
-    ec_dcondconst = 9,&
-    ec_muzero = 10,&
-    ec_tfinish = 11,&
-    ec_npics = 12,&
-    ec_hfac = 13,&
-    ec_silent = 14,&
-    ec_resolution = 15,&
-    ec_spacing = 16,&
-    ec_xmin = 17,&
-    ec_xmax = 18,&
-    ec_ymin = 19,&
-    ec_ymax = 20,&
-    ec_zmin = 21,&
-    ec_zmax = 22,&
-    ec_bordsize = 23,&
-    ec_padding = 24,&
-    ec_realpn = 25,&
-    ec_fixedpn = 26,&
-    ec_gamma = 27,&
-    ec_lastprint = 28,&
-    ec_usedumps = 29,&
-    ec_dtprint = 30,&
-    ec_process = 31,&
-    ec_au = 32,&
-    ec_placement = 33,&
-    ec_eqonhydro = 34,&
-    ec_eqondiff = 35,&
-    ec_eqonfluxlim = 36,&
-    ec_total = 36
+    ec_dim          = 1,&
+    ec_eqs          = 2,&
+    ec_ddw          = 3,&
+    ec_ics          = 4,&
+    ec_adden        = 5,&
+    ec_artts        = 6,&
+    ec_coordsys     = 7,&
+    ec_disotropic   = 8,&
+    ec_dcondconst   = 9,&
+    ec_muzero       = 10,&
+    ec_tfinish      = 11,&
+    ec_npics        = 12,&
+    ec_hfac         = 13,&
+    ec_silent       = 14,&
+    ec_resolution   = 15,&
+    ec_spacing      = 16,&
+    ec_xmin         = 17,&
+    ec_xmax         = 18,&
+    ec_ymin         = 19,&
+    ec_ymax         = 20,&
+    ec_zmin         = 21,&
+    ec_zmax         = 22,&
+    ec_bordsize     = 23,&
+    ec_padding      = 24,&
+    ec_realpn       = 25,&
+    ec_fixedpn      = 26,&
+    ec_gamma        = 27,&
+    ec_lastprint    = 28,&
+    ec_usedumps     = 29,&
+    ec_dtprint      = 30,&
+    ec_process      = 31,&
+    ec_au           = 32,&
+    ec_placement    = 33,&
+    ec_eqonhydro    = 34,&
+    ec_eqondiff     = 35,&
+    ec_eqonfluxlim  = 36,&
+    ec_udist        = 37,&
+    ec_umass        = 38,&
+    ec_utime        = 39,&
+    ec_uvelocity    = 40,&
+    ec_udensity     = 41,&
+    ec_upressure    = 42,&
+    ec_uacceller    = 43,&
+    ec_time         = 44,&
+    ec_total        = 44
 
   ! store of data
   integer, parameter :: &
@@ -66,21 +75,20 @@ module const
     es_du       = 16,&
     es_t        = 17,&
     es_kappa    = 18,&
-    es_fluxlim  = 19,&
-    es_dtdx     = 20,&
-    es_dtdy     = 21,&
-    es_dtdz     = 22,&
-    es_ddt      = 23,&
-    es_bx       = 24,&
-    es_by       = 25,&
-    es_bz       = 26,&
-    es_dbx      = 27,&
-    es_dby      = 28,&
-    es_dbz      = 29,&
-    es_c        = 30,&
-    es_om       = 31,&
-    es_type     = 32,&
-    es_total    = 32,&
+    es_dtdx     = 19,&
+    es_dtdy     = 20,&
+    es_dtdz     = 21,&
+    es_ddt      = 22,&
+    es_bx       = 23,&
+    es_by       = 24,&
+    es_bz       = 25,&
+    es_dbx      = 26,&
+    es_dby      = 27,&
+    es_dbz      = 28,&
+    es_c        = 29,&
+    es_om       = 30,&
+    es_type     = 31,&
+    es_total    = 31,&
     es_postr    = 4
 
   ! particles types
@@ -138,13 +146,9 @@ module const
     esd_2nw_sd  = 404
 
   integer, parameter :: &
-    edi_iso       = 500,&
-    edi_aniso     = 501,&
-    edi_mtih2017  = 502
-
-  integer, parameter :: &
     epc_backcompatibility = 600,&
-    epc_fullyperiodic     = 601
+    epc_fullyperiodic     = 601,&
+    epc_borderless        = 602
 
   integer, parameter ::&
     epl_uniform     = 700,&
@@ -170,8 +174,12 @@ module const
     ecn_total = 4
 
   character(len=*), parameter :: &
-    blockFormatFlt  = "(A,A50,F16.10)",&
+    blockFormatFlt  = "(A,A50,F15.10)",&
+    blockFormatFltExp  = "(A,A50,E13.4)",&
+    blockFormatFltSci  = "(A,A50,ES10.4)",&
+    blockFormatFltEng  = "(A,A50,EN13.4)",&
     blockFormatFlt2 = "(A,A51,F16.10,A,F16.10,A)",&
+    blockFormatFlt2Sci = "(A,A51,ES13.4,A,ES13.4,A)",&
     blockFormatInt  = "(A,A50,I8)",&
     blockFormatStr  = "(A,A50,A)",&
     blockFormatStr2 = "(A,A50,A)"

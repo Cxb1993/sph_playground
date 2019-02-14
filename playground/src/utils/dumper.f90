@@ -1,8 +1,7 @@
 module dumper
   use const
   use timing, only: addTime
-  use state,  only: getState,&
-                    setState,&
+  use state,  only: setState,&
                     getresultfile,&
                     getkerninflfilename,&
                     setresultfile,&
@@ -17,71 +16,162 @@ module dumper
   contains
 
     subroutine dump(store, t)
+      use state, only: setStateVal, getStateVal, getState
+
       real, allocatable, intent(in) :: store(:,:)
       real, intent(in) :: t
-      integer :: udump, umap
-      real :: statetmp(ec_total)
-      character(len=50) :: rfn, kfn
 
-      call getState(statetmp)
-      ! print*, statetmp
+      real :: ifile
+      real, allocatable :: state(:)
+      character (len=40)  :: cfile
+      allocate(state(ec_total))
       call system_clock(start)
 
-      call getresultfile(rfn)
-      call getkerninflfilename(kfn)
-      open(newunit=udump, file="output/newfulldump", status='replace', form='unformatted')
-      open(newunit=umap, file="output/newdumpmap", status='replace', form='formatted')
-      write(udump) t
-      write(umap,*) 't 1 1 f8'
-      write(udump) rfn, kfn
-      write(umap,*) 'resultfile 1 1 50c'
-      write(umap,*) 'influencefile 1 1 50c'
-      write(udump) statetmp
-      write(umap,*) 'state', ec_total, '1 f8'
-      write(udump) store(1:es_total,1:int(statetmp(ec_realpn))+int(statetmp(ec_fixedpn)))
-      write(umap,*) 'store', es_total, int(statetmp(ec_realpn))+int(statetmp(ec_fixedpn)), 'f8'
-      close(udump)
-      close(umap)
-      call rename("output/newfulldump", "output/fulldump")
-      call rename("output/newdumpmap", "output/dumpmap")
+      call setStateVal(ec_time, t)
+      call getStateVal(ec_lastprint, ifile)
+      call getState(state)
+
+      call CreateNewDump("output/new_dump_full.h5")
+      call PutData1D("output/new_dump_full.h5",&
+        "state", ec_total, state)
+      call PutData2D("output/new_dump_full.h5",&
+        "store", es_total, int(state(ec_realpn))+int(state(ec_fixedpn)), store)
+
+      call rename("output/new_dump_full.h5", "output/dump_full.h5")
+      write(cfile, "(a,i5.5)") "cp output/dump_full.h5 output/dump_", int(ifile)
+      call system(cfile)
 
       call system_clock(finish)
       call addTime('dumper', finish - start)
     end subroutine dump
 
-    subroutine restore(name, store, t)
+    subroutine restore(store)
       real, allocatable, intent(inout) :: store(:,:)
-      real, intent(inout) :: t
-      character(len=*), intent(in) :: name
 
-      character(len=50) :: rfn, kfn
-      integer :: u
-      real :: statetmp(ec_total)
+      real, allocatable :: state(:)
 
       call system_clock(start)
+
       print*, "#  # ---   ---   ---   ---   ---   ---   ---   ---   ---"
-      open(newunit=u, file=name, action='read', form='unformatted')
-      read(u) t
-      write(*,blockFormatFlt) " #  #", " restored from "// name //" dump t = ", t
-      read(u) rfn, kfn
-      call setresultfile(rfn)
-      call setkerninflfilename(kfn)
-      read(u) statetmp
-      call setState(statetmp)
-      allocate(store(es_total,int(statetmp(ec_realpn))+int(statetmp(ec_fixedpn))))
-      read(u) store
-      close(u)
+
+      allocate(state(ec_total))
+      call GetData1D("output/dump_full.h5",&
+        "state", ec_total, state)
+
+      call setState(state)
+      allocate(store(es_total,int(state(ec_realpn))+int(state(ec_fixedpn))))
+
+      write(*,blockFormatFltSci) " #  #", " restored from t = ", state(ec_time)
+      write(*,blockFormatFltSci) " #  #", "             dump #", state(ec_lastprint)
+
+      call GetData2D("output/dump_full.h5",&
+        "store", es_total, int(state(ec_realpn))+int(state(ec_fixedpn)), store)
+
       print*, "#  # ---   ---   ---   ---   ---   ---   ---   ---   ---"
+
       call system_clock(finish)
       call addTime('dumper', finish - start)
     end subroutine restore
 
     subroutine clean()
       integer :: nu, snu
-      open(newunit=nu, iostat=snu, file="output/newfulldump", status='old')
-      ! open(newunit=du, iostat=sdu, file="output/fulldump", status='old')
+      open(newunit=nu, iostat=snu, file="output/new_dump_full.h5", status='old')
       if (snu == 0) close(nu, status='delete')
-      ! if (sdu == 0) close(du, status='delete')
-      call rename("output/fulldump", "output/finaldump")
     end subroutine clean
+
+    subroutine CreateNewDump(filename)
+      use HDF5
+      character(len=*), intent(in) :: filename
+      integer(HID_T) :: file_id
+      integer :: error
+
+      call h5open_f(error)
+      call h5fcreate_f(filename, H5F_ACC_TRUNC_F, file_id, error)
+      call h5fclose_f(file_id, error)
+      call h5close_f(error)
+    end subroutine
+
+    subroutine PutData1D(file, dspace, dim, data)
+      use HDF5
+      character(len=*), intent(in) :: file, dspace
+      real, allocatable, intent(in) :: data(:)
+      INTEGER(HSIZE_T) :: ddim(1)
+      integer, intent(in) :: dim
+
+      integer(HID_T) :: file_id, dspace_id, dset_id
+      integer :: error
+
+      call h5open_f(error)
+      call h5fopen_f(file, H5F_ACC_RDWR_F, file_id, error)
+      ddim(1) = dim
+      call h5screate_simple_f(1, ddim, dspace_id, error)
+      call h5dcreate_f(file_id, dspace, H5T_NATIVE_DOUBLE, dspace_id, dset_id, error)
+      call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, ddim, error)
+      call h5dclose_f(dset_id, error)
+      call h5sclose_f(dspace_id, error)
+      call h5fclose_f(file_id, error)
+      call h5close_f(error)
+    end subroutine
+    subroutine PutData2D(file, dspace, dim1, dim2, data)
+      use HDF5
+      character(len=*), intent(in) :: file, dspace
+      real, allocatable, intent(in) :: data(:,:)
+      INTEGER(HSIZE_T) :: ddim(2)
+      integer, intent(in) :: dim1, dim2
+
+      integer(HID_T) :: file_id, dspace_id, dset_id
+      integer :: error
+
+      call h5open_f(error)
+      call h5fopen_f(file, H5F_ACC_RDWR_F, file_id, error)
+      ddim(1) = dim1
+      ddim(2) = dim2
+      call h5screate_simple_f(2, ddim, dspace_id, error)
+      call h5dcreate_f(file_id, dspace, H5T_NATIVE_DOUBLE, dspace_id, dset_id, error)
+      call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, ddim, error)
+      call h5dclose_f(dset_id, error)
+      call h5sclose_f(dspace_id, error)
+      call h5fclose_f(file_id, error)
+      call h5close_f(error)
+    end subroutine
+
+    subroutine GetData1D(file, dspace, dim, data)
+      use HDF5
+      character(len=*), intent(in) :: file, dspace
+      real, allocatable, intent(inout) :: data(:)
+      integer, intent(in) :: dim
+
+      INTEGER(HSIZE_T) :: ddim(1)
+      integer(HID_T) :: file_id, dspace_id, dset_id
+      integer :: error
+
+      call h5open_f(error)
+      call h5fopen_f(file, H5F_ACC_RDWR_F, file_id, error)
+      ddim(1) = dim
+      call h5dopen_f(file_id, dspace, dset_id, error)
+      call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, data, ddim, error)
+      call h5dclose_f(dset_id, error)
+      call h5fclose_f(file_id, error)
+      call h5close_f(error)
+    end subroutine
+    subroutine GetData2D(file, dspace, dim1, dim2, data)
+      use HDF5
+      character(len=*), intent(in) :: file, dspace
+      real, allocatable, intent(inout) :: data(:,:)
+      integer, intent(in) :: dim1, dim2
+
+      INTEGER(HSIZE_T) :: ddim(2)
+      integer(HID_T) :: file_id, dspace_id, dset_id
+      integer :: error
+
+      call h5open_f(error)
+      call h5fopen_f(file, H5F_ACC_RDWR_F, file_id, error)
+      ddim(1) = dim1
+      ddim(2) = dim2
+      call h5dopen_f(file_id, dspace, dset_id, error)
+      call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, data, ddim, error)
+      call h5dclose_f(dset_id, error)
+      call h5fclose_f(file_id, error)
+      call h5close_f(error)
+    end subroutine
 end module

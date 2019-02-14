@@ -147,10 +147,7 @@ contains
       ! call createFixedBorders(store, ebc_all)
     case (ett_mti)
       call setmhdmagneticpressure(1.)
-      ! call setdiffisotropic(edi_iso)
       call setdiffisotropic("yes")
-      ! call setdiffisotropic(edi_mtih2017)
-      ! call setdiffisotropic(0)
       call setdiffconductivity(0.01)
 
       rho1  = 1.
@@ -435,7 +432,6 @@ contains
           ! exp(-0.5*(ra(1)*ra(1) + ra(2)*ra(2) + ra(3)*ra(3))/(0.1**2))
         ! store(es_u,i)  = store(es_t,i)
         store(es_kappa,i) = 1.
-        store(es_fluxlim,i) = 1.
         !!!!!!!!!!!!!!!!!
         store(es_u,i)  = prs1/(gamma -1)/rho1
       case(ett_ring)

@@ -8,7 +8,7 @@ module printer
 
   implicit none
 
-  public :: Output, AppendLine
+  public :: Output, AppendLine, printOutputInfo
 
   private
 
@@ -16,6 +16,26 @@ module printer
 
 
 contains
+  subroutine printOutputInfo(iter, n, t, sumdt, dedt, dt, sumdedt, store)
+    use const
+    integer, intent(in)::iter, n
+    real, intent(in) :: t, sumdt, dedt, dt, sumdedt
+    real, allocatable, intent(in) :: store(:,:)
+
+    integer :: lastprintnumber
+
+    call getLastPrint(lastprintnumber)
+
+    write(*, fmt="(A, I7, A, ES7.1, A, ES10.4, A, ES10.4, A, ES10.4, A, ES10.4, A, A, ES10.4, A, ES10.4)") &
+      " #", lastprintnumber, &
+      " | i=", real(iter), &
+      " | t=", t, &
+      " | dt=", sumdt/(iter+1), &
+      " | h=[", minval(store(es_h,1:n)), ":", maxval(store(es_h,1:n)), "]",&
+      " | dedt=", dedt*dt,&
+      " | S(dedt)=", sumdedt
+  end subroutine
+
   subroutine Output(time, store, err)
     real, allocatable, intent(in) :: &
       store(:,:), err(:)
@@ -46,9 +66,9 @@ contains
       end if
     end do
     close(iu)
-    call setLastPrint(ifile + 1)
     call system_clock(finish)
     call addTime(' printer', finish - start)
+    ! print*, 1
   end subroutine Output
 
   subroutine AppendLine(A, fname, t)

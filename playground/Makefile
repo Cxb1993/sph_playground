@@ -83,7 +83,8 @@ ifndef kernel
 kernel=m4
 endif
 
-FC=gfortran
+# FC=gfortran
+FC=h5fc
 
 FFLAGS=-fdefault-real-8 -fdefault-double-8\
  				-flto -O4 -cpp -Ofast
@@ -109,8 +110,13 @@ endif
 ifeq ($(xperf),c)
 	FFLAGS+=-fprofile-use=profiler -fprofile-correction
 endif
+# FFLAGS+=-lz -ldl -lm
 
 ifeq ($(FC),gfortran)
+modflagout=-J
+modflaginp=-I
+endif
+ifeq ($(FC),h5fc)
 modflagout=-J
 modflaginp=-I
 endif

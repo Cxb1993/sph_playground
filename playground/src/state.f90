@@ -37,6 +37,10 @@ module state
     real :: statevars(ec_total)
     character (len=100) :: resfilename, kerninflname
 
+    interface getStateVal
+       module procedure getStateVal_r, getStateVal_i
+    end interface
+
   contains
     subroutine clearState()
       statevars(:) = -1
@@ -45,20 +49,29 @@ module state
     end subroutine clearState
 
     subroutine setStateVal(label, val)
-    integer, intent(in) :: &
-      label
-    real, intent(in) :: &
-      val
+    integer, intent(in) :: label
+    real, intent(in) :: val
+
       statevars(label) = val
     end subroutine setStateVal
 
-    subroutine getStateVal(label, val)
-    integer, intent(in) :: &
-      label
-    real, intent(out) :: &
-      val
+    subroutine getStateVal_r(label, val)
+    integer, intent(in) :: label
+    real, intent(out) :: val
       val = statevars(label)
-    end subroutine getStateVal
+    end subroutine getStateVal_r
+
+    subroutine getStateVal_i(label, val)
+    integer, intent(in) :: label
+    integer, intent(out) :: val
+      val = int(statevars(label))
+      if ((label /= ec_dim).and.&
+          (label /= ec_lastprint)) then
+          call warning("Integer conversion were used unexpectedly", label, __FILE__, __LINE__)
+          call warning("Value before", statevars(label), __FILE__, __LINE__)
+          call warning("Value after", int(statevars(label)), __FILE__, __LINE__)
+      end if
+    end subroutine getStateVal_i
 
     subroutine setdim(d)
       integer, intent(in) :: d
@@ -488,6 +501,8 @@ module state
    subroutine setProcess(it)
      character (len=*), intent(in) :: it
      select case(it)
+     case('borderless')
+       statevars(ec_process) = epc_borderless
      case('fullyperiodic')
        statevars(ec_process) = epc_fullyperiodic
      case('backcompatibility')
@@ -593,8 +608,8 @@ module state
      !   call warning('The code was compiled with different kernel', d, __FILE__, __LINE__)
      ! end if
      write(*,blockFormatStr) " #   #", "kernel name: ", kernelname
-     write(*,blockFormatFlt) " #   #", "print dt: ", statevars(ec_dtprint)
-     write(*,blockFormatFlt) " #   #", "stop time: ", statevars(ec_tfinish)
+     write(*,blockFormatFltSci) " #   #", "print dt: ", statevars(ec_dtprint)
+     write(*,blockFormatFltSci) " #   #", "stop time: ", statevars(ec_tfinish)
      write(*,blockFormatFlt) " #   #", "hfac: ", statevars(ec_hfac)
 
      if (int(statevars(ec_silent)) == 1) then
@@ -609,16 +624,18 @@ module state
      end if
      if (int(statevars(ec_process)) == epc_fullyperiodic) then
        write(*,blockFormatStr) " #   #", "process: ", "fully periodic"
+     else if (int(statevars(ec_process)) == epc_borderless) then
+         write(*,blockFormatStr) " #   #", "process: ", "borderless"
      else
        write(*,blockFormatStr) " #   #", "process: ", "backcompatibility for hardcoded initial value"
      end if
 
      write(*,blockFormatInt) " #   #", "desired resolution: ", int(statevars(ec_resolution))
 
-     write(*,blockFormatFlt2) " #   #", "x in: [",statevars(ec_xmin)," :",statevars(ec_xmax)," ]"
-     write(*,blockFormatFlt2) " #   #", "y in: [",statevars(ec_ymin)," :",statevars(ec_ymax)," ]"
-     write(*,blockFormatFlt2) " #   #", "z in: [",statevars(ec_zmin)," :",statevars(ec_zmax)," ]"
-     write(*,blockFormatFlt) " #   #", "border size: ", statevars(ec_bordsize)
+     write(*,blockFormatFlt2Sci) " #   #", "x in: [",statevars(ec_xmin)," :",statevars(ec_xmax)," ]"
+     write(*,blockFormatFlt2Sci) " #   #", "y in: [",statevars(ec_ymin)," :",statevars(ec_ymax)," ]"
+     write(*,blockFormatFlt2Sci) " #   #", "z in: [",statevars(ec_zmin)," :",statevars(ec_zmax)," ]"
+     write(*,blockFormatFltSci) " #   #", "border size: ", statevars(ec_bordsize)
 
      write(*,blockFormatInt) " #   #", "real particles: ", int(statevars(ec_realpn))
      write(*,blockFormatInt) " #   #", "fixed particles: ", int(statevars(ec_fixedpn))

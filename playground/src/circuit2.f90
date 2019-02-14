@@ -26,6 +26,7 @@ module circuit2
                               getEqComponent,&
                               getArtTermCond
   use BC,               only: getCrossRef
+  use errprinter,       only: error
   implicit none
 
   public :: c2init, c2
@@ -34,7 +35,7 @@ module circuit2
   save
     integer(8)  :: start=0, finish=0
     integer :: &
-      s_dim, s_ttp, s_ktp, s_adden, s_artts, s_ivt, initdone = 0,&
+      s_dim, s_ttp, s_ktp, s_adden, s_artts, s_ivt, initialised = 0,&
       eqSet(eqs_total)
     real :: s_kr, s_au
 
@@ -50,7 +51,7 @@ contains
     call ginitvar(s_ivt)
     call getEqComponent(eqSet)
     call getArtTermCond(s_au)
-    initdone = 1
+    initialised = 1
   end subroutine
 
   subroutine c2(store, maxconsenrg)
@@ -69,8 +70,11 @@ contains
       uba(3), ubb(3), dvaterm(3), dvbterm(3), &
       dtadx(3), dtbdx(3), kdtadx(3), kdtbdx(3), &
       difcond, mhdmuzero, &
-      drhoadt, consenrg, &
-      prada, pradb, radinteration
+      drhoadt, consenrg
+    ! FLD variables
+    real ::&
+      alpha, cv, fldda, flddb, gamma, kappaa, kappab, lambdaa, lambdab,&
+      lightspeed, mu, radinteration, Rg, sigmaB, fld_ra, fld_rb
 
     integer, allocatable :: nlista(:), nlistb(:)
     integer :: &
@@ -81,12 +85,17 @@ contains
     call getmhdmagneticpressure(mhdmuzero)
     call getdiffisotropic(difiso)
     call getdiffconductivity(difcond)
-    ! print*, eqSet
-    ! read*
 
-    if (initdone == 0) then
-      call c2init()
-    end if
+    if (initialised == 0) call c2init()
+
+
+    lightspeed = 2.997924e10
+    mu = 0.2
+    Rg = 8.314e7
+    sigmaB = 5.6704e-5
+    gamma = 5./3.
+
+    ! print*, alpha, sigmaB, lightspeed
 
     maxconsenrg = 0
     tneib = 0
@@ -103,7 +112,10 @@ contains
     !$omp private(wa, wb, n2wa, n2wb, nwa, nwb, Hesa, Hesb, faba, fabb)&
     !$omp private(dva, dua, dha, ddta, dba, ba, bb, va, vb, dtadx, dtbdx)&
     !$omp private(uba, ubb, dvaterm, dvbterm)&
-    !$omp private(prada, pradb, radinteration)&
+    !$omp private(radinteration, alpha, cv, fldda, flddb, kappaa)&
+    !$omp private(kappab, lambdaa, lambdab)&
+    !$omp private(fld_ra, fld_rb)&
+    !$omp shared(lightspeed, mu, Rg, sigmaB, gamma)&
     !$omp shared(store, nlista)&
     !$omp shared(eqSet)&
     !$omp shared(s_dim, s_kr, s_ktp, s_ttp, s_adden, s_artts, s_ivt, s_au)&
@@ -111,6 +123,7 @@ contains
     !$omp shared(difcond, difiso, mhdmuzero)&
     !$omp reduction(+:tneib, consenrg)
     overa: do la = 1, size(nlista)
+
       i = nlista(la)
       rhoa  = store(es_den,i)
       ra(:) = store(es_rx:es_rz,i)
@@ -128,6 +141,7 @@ contains
       oma = store(es_om,i)
       ta  = store(es_t,i)
       ma  = store(es_m,i)
+      kappaa = store(es_kappa,i)
       dtadx(:) = store(es_dtdx:es_dtdz,i)
       kdtadx(:) = 0.
       dva(:) = 0.
@@ -147,8 +161,6 @@ contains
       MPa(:,:) = 0.
       Mc(1) = dot_product(ba(:),ba(:))
 
-      prada = 0.
-      pradb = 0.
       radinteration = 0.
       if (eqSet(eqs_magneto) == 1) then
         do li = 1,3
@@ -159,8 +171,24 @@ contains
             end if
           end do
         end do
-        ! diffusion done with respect to magnetic fields
-        if (eqSet(eqs_diff) == 1) then
+      end if
+
+      if (eqSet(eqs_diff) == 1) then
+        if (eqSet(eqs_fld) == 1) then
+          if (difiso == 1) then
+            fld_ra = sqrt(dot_product(dtadx(:),dtadx(:)))/(kappaa*rhoa*ta)
+            lambdaa = (2. + fld_ra)/(6. + 3*fld_ra + fld_ra*fld_ra)
+            fldda = lightspeed*lambdaa/kappaa/rhoa
+
+            kta(1,1) = fldda
+            kta(2,2) = fldda
+            kta(3,3) = fldda
+          else
+            call error("There is no anisotropic for FLD","",__FILE__,__LINE__)
+          end if
+        else
+          ! old type diffusion that depends on magnetic field?
+          ! deffinetly should be rewritten
           if (difiso == 1) then
             kta(1,1) = difcond
             kta(2,2) = difcond
@@ -170,22 +198,6 @@ contains
             ktb(2,2) = difcond
             ktb(3,3) = difcond
           else
-            ! mti-like diffusion only for middle layer
-            ! if ((ra(2) >= 0.).and.(ra(2) < 1./3.)) then
-            !   kta(1,1) = difcond
-            !   kta(2,2) = difcond
-            !   kta(3,3) = difcond
-            ! else if (ra(2) > 1.) then
-            !   kta(1,1) = difcond
-            !   kta(2,2) = difcond
-            !   kta(3,3) = difcond
-            ! else
-            !   do li = 1,3
-            !     do lj = 1,3
-            !       kta(li,lj) = difcond*uba(li)*uba(lj)
-            !     end do
-            !   end do
-            ! end if
             do li = 1, 3
                 kta(li,li) = difcond*uba(li)*uba(li)
             end do
@@ -193,34 +205,13 @@ contains
         end if
       end if
 
-      if (eqSet(eqs_diff) == 1) then
-        ! if (doLimiter == 1) then
-        !   ! R = abs(grad(rho*ksi))/kappa/rho^2/ksi
-        !   fluxlimR = 1.
-        !   ! state(es_fluxlim,i) = (2. + R)/(6. + 3.*R + R*R)
-        !   state(es_fluxlim,i) = 1.
-        ! end if
-
-        if (difiso == 1) then
-          kta(1,1) = difcond
-          kta(2,2) = difcond
-          kta(3,3) = difcond
-
-          ktb(1,1) = difcond
-          ktb(2,2) = difcond
-          ktb(3,3) = difcond
-        else
-          do li = 1, 3
-              kta(li,li) = difcond*uba(li)*uba(li)
-          end do
-        end if
-      end if
-
       if (eqSet(eqs_fld) == 1) then
-        prada = 1./3.*rhoa*ta
-        ! radinteration = c * kappa * rhoa * ta - 4. * kappa * sigma_b * (u(i) / cv)**4
-        dua  = radinteration
-        ddta = -radinteration*rhoa
+        alpha = 4.0*sigmaB/lightspeed
+        ! print*, alpha, sigmaB, lightspeed
+        cv = (gamma-1)*mu/Rg
+        radinteration = alpha*lightspeed*kappaa*(ta/alpha - (ua*cv)**4)
+        dua  = dua  + radinteration
+        ddta = ddta - radinteration
       end if
 
       tneib = tneib + t0
@@ -247,6 +238,7 @@ contains
         omb = store(es_om, rj)
         tb = store(es_t, rj)
         mb = store(es_m, rj)
+        kappab = store(es_kappa, rj)
         dtbdx(:) = store(es_dtdx:es_dtdz, rj)
         kdtbdx(:) = 0.
         qa    = 0.
@@ -352,35 +344,32 @@ contains
 
         if (eqSet(eqs_hydro) == 1) then
           dva(:) = dva(:) - mb * (&
-                      ((pa + prada) * nwa(:)) / (rhoa**2 * oma) + &
-                      ((pb + pradb) * nwb(:)) / (rhob**2 * omb) &
+                      (pa * nwa(:)) / (rhoa**2 * oma) + &
+                      (pb * nwb(:)) / (rhob**2 * omb) &
                     )
 
           dua = dua + mb*dot_product(vab(:),pa*nwa(:))/rhoa**2/oma
         end if
 
         if (eqSet(eqs_diff) == 1) then
-          if (difiso == 0) then
-            ! mti-like diffusion definiotion
-            ! if ((ra(2) > 0.).and.(ra(2) < 1./3.)) then
-            !   ktb(1,1) = difcond
-            !   ktb(2,2) = difcond
-            !   ktb(3,3) = difcond
-            ! else if (ra(2) > 1.) then
-            !   ktb(1,1) = difcond
-            !   ktb(2,2) = difcond
-            !   ktb(3,3) = difcond
-            ! else
-            !   do li = 1,3
-            !     do lj = 1,3
-            !       ktb(li,lj) = difcond*ubb(li)*ubb(lj)
-            !     end do
-            !   end do
-            ! end if
-            ! regular anisodiffusion
-            do li = 1, 3
-                ktb(li,li) = difcond*ubb(li)*ubb(li)
-            end do
+          if (eqSet(eqs_fld) == 1) then
+            if (difiso == 1) then
+              fld_rb = sqrt(dot_product(dtbdx(:),dtbdx(:)))/(kappab*rhob*tb)
+              lambdab = (2. + fld_rb)/(6. + 3*fld_rb + fld_rb*fld_rb)
+              flddb = lightspeed*lambdab/kappab/rhob
+
+              ktb(1,1) = flddb
+              ktb(2,2) = flddb
+              ktb(3,3) = flddb
+            else
+              call error("There is no anisotropy in FLD","",__FILE__,__LINE__)
+            end if
+          else
+            if (difiso == 0) then
+              do li = 1, 3
+                  ktb(li,li) = difcond*ubb(li)*ubb(li)
+                end do
+            end if
           end if
           if ((s_ktp == esd_fw).or.(s_ktp == esd_fab).or.(s_ktp == esd_n2w)) then
           ! if (s_ktp == esd_n2w) then
@@ -400,7 +389,7 @@ contains
             call hessian(rab, ra, rb, ha, Hesa)
             ! call hessian(rab, ra, rb, hb, Hesb)
             ! Hesa(:,:) = 0.5*(Hesa(:,:)+Hesb(:,:))
-            ddta = ddta + mb/rhob * (tb - ta) * &
+            ddta = ddta + mb/rhob/rhoa * (tb - ta) * &
                (dot_product(ktab(1,:),Hesa(1,:)) + &
                 dot_product(ktab(2,:),Hesa(2,:)) + &
                 dot_product(ktab(3,:),Hesa(3,:)))
@@ -414,7 +403,7 @@ contains
             kdtbdx(2) = dot_product(ktb(2,:),dtbdx(:))
             kdtbdx(3) = dot_product(ktb(3,:),dtbdx(:))
 
-            ddta = ddta + mb*( &
+            ddta = ddta + mb/rhoa*( &
               dot_product(kdtadx(:),nwa(:))*odda + dot_product(kdtbdx(:),nwb(:))*oddb)
           else if (s_ktp == esd_2nw_sd) then
             kdtadx(1) = dot_product(kta(1,:),dtadx(:))
@@ -425,7 +414,7 @@ contains
             kdtbdx(3) = dot_product(ktb(3,:),dtbdx(:))
             ! may I use one of those as indicator that the artificial term should be applied?
 
-            ddta = ddta + mb/oma/rhoa*( &
+            ddta = ddta + mb/oma/rhoa/rhoa*( &
             dot_product(kdtbdx(:) - kdtadx(:),nwa(:)))
           else
             print*, "# <!> second deriv id not found"
@@ -469,6 +458,10 @@ contains
                       bb(:) * dot_product(vab(:),nwa(:)) &
                     )
         end if
+
+        if (eqSet(eqs_fld) == 1) then
+          dva(:) = dva(:) - lambdaa/rhoa*mb*tb/rhob*nwa(:)
+        end if
       end do overb
 
       if ( s_adden == 1 ) then
@@ -487,9 +480,13 @@ contains
 
       store(es_ax:es_az,i) = dva(:)! - 0.03*va(:)
       store(es_dh,i) = dha
-      ! store(es_ddt,i) = ddta/rhoa
+      if (eqSet(eqs_fld) == 1) then
+        store(es_ddt,i) = ddta*rhoa
+      else
+        store(es_ddt,i) = ddta
+      end if
       store(es_dbx:es_dbz,i) = dba(:)
-      store(es_du,i) = dua + ddta/rhoa
+      store(es_du,i) = dua
       consenrg = consenrg + ma*(dot_product(va(:),dva(:)) + dua + &
         dot_product(ba(:),dba(:))/rhoa - &
         0.5*dot_product(ba(:),ba(:))/rhoa/rhoa*drhoadt/oma)
