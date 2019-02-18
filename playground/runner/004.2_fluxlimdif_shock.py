@@ -37,7 +37,8 @@ def main():
     # place.SimpleMake(debug=True)
     place.SimpleMake()
     place.CleanRun()
-    place.ReadDumpHDF("./output/dump_full.h5")
+    place.BackupDump("output/dump_full.h5")
+    place.ReadDumpHDF("output/dump_full.h5")
     # place.PrintState()
     place.setup.tfinish         = 1e9
     place.setup.dtprint         = place.setup.tfinish/1e2
@@ -75,16 +76,15 @@ def main():
     prs = u*rho*(place.setup.gamma - 1)
     print('P =',prs)
 
-    # addedN = place.AddParticles(
-    #     dim='x',
-    #     type='fixed',
-    #     method='periodic'
-    # )
-    # place.setup.fixedpn = addedN
-
     place.ModifyParticlesProperties(
         properties  = ['kappa', 't',    'c',      'm',   'den',  'h',   'p',   'u',  'om'],
         value       = [c(kappa), c(E), c(csound), c(mass), c(rho), c(h), c(prs), c(u), c(1.0)]
+    )
+
+    place.AddParticles(
+        dim='x',
+        type='fixedreal',
+        method='periodic'
     )
 
     speedFunc = lambda rx: v0 if (rx <= 0.0) else -v0

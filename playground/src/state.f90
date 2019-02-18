@@ -13,9 +13,7 @@ module state
             setdiffconductivity, getdiffconductivity, &
             setdiffisotropic, getdiffisotropic, &
             setmhdmagneticpressure, getmhdmagneticpressure, &
-            printstate, setresultfile, getresultfile,&
-            setkerninflfilename, getkerninflfilename,&
-            setnpics, settfinish, gethfac, gettfinish,&
+            printstate, setnpics, settfinish, gethfac, gettfinish,&
             getnpics, sethfac, setsilentmode, getsilentmode,&
             getspacing, setspacing, setresolution, getresolution,&
             setBorders, getBorders,&
@@ -35,7 +33,6 @@ module state
   private
   save
     real :: statevars(ec_total)
-    character (len=100) :: resfilename, kerninflname
 
     interface getStateVal
        module procedure getStateVal_r, getStateVal_i
@@ -44,8 +41,6 @@ module state
   contains
     subroutine clearState()
       statevars(:) = -1
-      resfilename = ''
-      kerninflname = ''
     end subroutine clearState
 
     subroutine setStateVal(label, val)
@@ -66,7 +61,9 @@ module state
     integer, intent(out) :: val
       val = int(statevars(label))
       if ((label /= ec_dim).and.&
-          (label /= ec_lastprint)) then
+          (label /= ec_lastprint).and.&
+          (label /= ec_fixedpn).and.&
+          (label /= ec_realpn)) then
           call warning("Integer conversion were used unexpectedly", label, __FILE__, __LINE__)
           call warning("Value before", statevars(label), __FILE__, __LINE__)
           call warning("Value after", int(statevars(label)), __FILE__, __LINE__)
@@ -312,32 +309,6 @@ module state
      o = statevars(ec_muzero)
    end subroutine
 
-   subroutine setresultfile(i)
-     character (len=*), intent(in) :: i
-     if (i /= '') then
-       resfilename = i
-     else
-       resfilename = 'result.info'
-     end if
-   end subroutine
-   pure subroutine getresultfile(o)
-     character (len=*), intent(out) :: o
-     o = trim(resfilename)
-   end subroutine
-
-   subroutine setkerninflfilename(i)
-     character (len=*), intent(in) :: i
-     if (i /= '') then
-       kerninflname = i
-     else
-       kerninflname = 'influence.info'
-     end if
-   end subroutine
-   pure subroutine getkerninflfilename(o)
-     character (len=*), intent(out) :: o
-     o = trim(kerninflname)
-   end subroutine
-
    subroutine settfinish(i)
      real, intent(in) :: i
      statevars(ec_tfinish) = i
@@ -445,7 +416,6 @@ module state
      if (present(r)) statevars(ec_realpn) = r
      if (present(f)) statevars(ec_fixedpn) = f
    end subroutine
-   ! pure subroutine getPartNumber(r, f)
   subroutine getPartNumber(r, f)
     integer, optional, intent(out) :: r, f
     if (present(r)) r = int(statevars(ec_realpn))
@@ -536,6 +506,12 @@ module state
    subroutine printstate()
      use kernel_base,  only: kernelname
 
+     implicit none
+
+     real :: tmp
+     character(len=*), parameter :: &
+       bffs  = "(A,A50,ES13.4)"
+
      print *, '##############################################'
      print *, '#####'
      print*, "#   #"
@@ -588,9 +564,6 @@ module state
        write(*,blockFormatStr) " #   #", "artificail terms: ", "no"
      end if
 
-     write(*,blockFormatStr) " #   #", "result file: ", trim(resfilename)
-     write(*,blockFormatStr) " #   #", "kernel influence file name: ", trim(kerninflname)
-
      select case(int(statevars(ec_ddw)))
      case(esd_fab)
        write(*,blockFormatStr) " #   #", "second derivative type: ", "Brookshaw"
@@ -603,11 +576,6 @@ module state
      case(esd_2nw_sd)
        write(*,blockFormatStr) " #   #", "second derivative type: ", "Two First Derivatives (+/-)"
      end select
-
-     ! if (kernelname /= ) then
-     !   call warning('The code was compiled with different kernel', d, __FILE__, __LINE__)
-     ! end if
-     write(*,blockFormatStr) " #   #", "kernel name: ", kernelname
      write(*,blockFormatFltSci) " #   #", "print dt: ", statevars(ec_dtprint)
      write(*,blockFormatFltSci) " #   #", "stop time: ", statevars(ec_tfinish)
      write(*,blockFormatFlt) " #   #", "hfac: ", statevars(ec_hfac)

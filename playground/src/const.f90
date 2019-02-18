@@ -96,6 +96,7 @@ module const
     ept_empty     = 0,&
     ept_real      = 1,&
     ept_fixed     = 2,&
+    ept_fixedreal = 21,&
     ept_periodic  = 3
 
   ! initial setups
@@ -176,7 +177,7 @@ module const
   character(len=*), parameter :: &
     blockFormatFlt  = "(A,A50,F15.10)",&
     blockFormatFltExp  = "(A,A50,E13.4)",&
-    blockFormatFltSci  = "(A,A50,ES10.4)",&
+    blockFormatFltSci  = "(A,A50,ES13.4)",&
     blockFormatFltEng  = "(A,A50,EN13.4)",&
     blockFormatFlt2 = "(A,A51,F16.10,A,F16.10,A)",&
     blockFormatFlt2Sci = "(A,A51,ES13.4,A,ES13.4,A)",&

@@ -357,10 +357,6 @@ class Context:
     def SetState(self, key, val):
         self.state[self.ec[key]-1] = val
 
-    def idx(self, propName, partIndx):
-        # index in threaded array from squared data
-        return (partIndx*len(self.es) + self.es[propName]-1)
-
     def BackupOutput(self, str):
         if (len(str.split()) != 1):
             print("Cannot copy with " + str)
@@ -368,44 +364,46 @@ class Context:
             # print("cp -r " + self.pwd + "/output " + self.pwd + "/" + str)
             os.system("cp -r " + self.pwd + "/output " + self.pwd + "/" + str)
 
-    def BackupDumps(self, strDump, strMap):
-        if ((len(strDump.split()) != 1) or (len(strMap.split()) != 1)):
-            print("Cannot copy with " + strDump + " | " + strMap)
+    def BackupDump(self, file):
+        if (len(file.split()) != 1):
+            print("Cannot copy with [" + file + "]")
         else:
-            os.system("cp " + self.pwd + "/output/finaldump " + self.pwd + "/" + strDump)
-            os.system("cp " + self.pwd + "/output/dumpmap " + self.pwd + "/" + strMap)
+            os.system("cp " + self.pwd + "/" + file + " " + self.pwd + "/" + file + ".bck")
 
-    def AddParticles(self, dim, type, method):
-        locposidx  = self.es['r'+dim]-1
-        loctypeidx = self.es['type']-1
-        bd   = self.setup.bordsize
-        min  = self.setup.__dict__[dim + 'min']
-        max  = self.setup.__dict__[dim + 'max']
-        bmin = min + bd
-        bmax = max - bd
+    def AddParticles(self, dim:str, type:str, method:str):
+        prop  = 'r'+dim
+        iprop = self.es[prop]-1
+        ftype  = self.ept[type]
+        itype = self.es['type']-1
 
-        storenew = copy.deepcopy(self.store)
+        bs  = self.setup.bordsize
+        min = self.setup.__dict__[dim + 'min']
+        max = self.setup.__dict__[dim + 'max']
+        res = self.setup.resolution
+        dr  = (max-min)/res
+        bmin = min + bs
+        bmax = max - bs
+
+        newstore = self.store[...]
         nreal = int(self.setup.realpn)
-        idx = self.idx
-        totprop = len(self.es)
         addedNumber = 0
         for i in range(0,nreal):
-            oldr = self.store[idx('r'+dim,i)]
+            oldr = newstore[i][iprop]
             newr = oldr
             if (oldr < bmin):
                 newr = max + oldr - min
             if (oldr > bmax):
                 newr = min + oldr - max
-            if (abs(oldr-newr) > 10e-5):
-                p1 = idx('rx',i)
-                p2 = p1 + totprop
-                newp = copy.deepcopy(self.store[p1:p2])
-                newp[locposidx]  = newr
-                newp[loctypeidx] = self.ept[type]
-                storenew = numpy.append(storenew, newp)
+            if (abs(oldr-newr) > dr*1e-3):
+                p = newstore[i].copy()
+                p[itype] = ftype
+                p[iprop] = newr
+                newstore = numpy.append(newstore, [p], axis=0)
                 addedNumber += 1
-        self.store = copy.deepcopy(storenew)
-        return float(addedNumber)
+        self.store.resize(self.store.shape[0]+addedNumber, axis=0)
+        self.store[...] = newstore
+        if (type == 'fixed') or (type == 'fixedreal'):
+            self.setup.fixedpn = addedNumber
 
     def CalcUniformMass(self, rho):
         mass = 1.
@@ -424,34 +422,6 @@ class Context:
         newContext.setup = copy.deepcopy(self.setup)
         newContext.store = copy.deepcopy(self.store)
         return newContext
-
-    def ModifyParticles(self,
-        condition = lambda rx: True,
-        condarg = 'rx',
-        properties = ['rx'],
-        value = lambda rx: 1.0,
-        valuearg = ['rx']):
-
-        storenew = copy.deepcopy(self.store)
-        nreal = int(self.setup.realpn)
-        nfixd = int(self.setup.fixedpn)
-        for i in range(0,nreal+nfixd):
-            if condition(self.store[self.idx(condarg,i)]):
-                for pa in properties:
-                    if (len(valuearg) == 1):
-                        x1 = self.store[self.idx(valuearg[0],i)]
-                        storenew[self.idx(pa,i)] = value(x1)
-                    elif (len(valuearg) == 2):
-                        x1 = self.store[self.idx(valuearg[0],i)]
-                        x2 = self.store[self.idx(valuearg[1],i)]
-                        storenew[self.idx(pa,i)] = value(x1,x2)
-                    elif (len(valuearg) == 3):
-                        x1 = self.store[self.idx(valuearg[0],i)]
-                        x2 = self.store[self.idx(valuearg[1],i)]
-                        x3 = self.store[self.idx(valuearg[2],i)]
-                        storenew[self.idx(pa,i)] = value(x1,x2,x3)
-
-        self.store = copy.deepcopy(storenew)
 
     def ModifyParticlesProperties(self,
         condition = [lambda rx: True],
@@ -480,6 +450,7 @@ class Context:
                 storenew[i, iprop(properties[j])] = value[j](x1)
 
         self.store[...] = storenew
+        self.file.flush()
 
     def Apply(self):
         for i in self.ecRev:

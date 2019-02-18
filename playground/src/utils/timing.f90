@@ -77,10 +77,10 @@ module timing
       print *, '#####    Times:'
       do i = 1,size(timings)
         thistime = timings(i)/clockrate
-        write(*, "(A, A, A, F15.6)") " #   # ", names(i), ": ", thistime
+        write(*, "(A, A, A, ES11.4)") " #   # ", names(i), ": ", thistime
         totaltime = totaltime + thistime
       end do
-      write(*, "(A, F15.6)") " #   #  total time    : ", totaltime
+      write(*, "(A, ES11.4)") " #   #  total time    : ", totaltime
       print *, '##############################################'
     end if
   end subroutine

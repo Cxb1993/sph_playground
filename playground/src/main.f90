@@ -17,7 +17,6 @@ program main
                               getPartNumber,&
                               getHfac,&
                               getGamma,&
-                              getresultfile,&
                               getUseDumps,&
                               set_equations,&
                               getState,&
@@ -79,11 +78,9 @@ program main
     gamma, hfac, cv = 1., &
     dedt, sumdedt, dedtprev, chi(81),&
     sumdt
-  character (len=100) :: &
-    errfname
   integer :: &
-    n, iter, s_tt, nusedl1, nusedl2, printlen, silent,&
-    ivt, stopiter, resol, realpartnumb, npics, usedumps,&
+    i, n, iter, s_tt, nusedl1, nusedl2, printlen, silent,&
+    ivt, stopiter, resol, realpartnumb, fixedpartnumb, npics, usedumps,&
     dim, lastnpic
 
   integer(8) :: &
@@ -141,7 +138,6 @@ program main
   call getresolution(resol)
   call getGamma(gamma)
   call getHfac(hfac)
-  call getresultfile(errfname)
   call getUseDumps(usedumps)
   call getdtprint(dtout)
   call getLastPrint(lastnpic)
@@ -167,9 +163,15 @@ program main
   allocate(result(100))
   result(:) = 0.
   result(1) = resol
-  call getPartNumber(r=realpartnumb)
+  call getStateVal(ec_fixedpn, fixedpartnumb)
+  call getStateVal(ec_realpn, realpartnumb)
   result(2) = realpartnumb
+
   n = realpartnumb
+  do i = realpartnumb,size(store,dim=2)
+    if (store(es_type,i) == ept_fixedreal) n = n + 1
+  end do
+  print*, n
   dt = 0.
   ltout = 0.
   iter = 0.
@@ -341,8 +343,7 @@ program main
     result(5) = hfac
     ! print*, printlen
     call resize(result, printlen, printlen)
-    call AppendLine(result, errfname, tprint)
-
+    call AppendLine(result, 'result.info', tprint)
   end if
 
   call printTimes()

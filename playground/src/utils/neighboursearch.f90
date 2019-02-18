@@ -96,11 +96,6 @@ contains
     kdtree => kdtree2_create(store(es_rx:es_rz,1:sn))
     allocate(kdtree_res(maxresultnum))
     if (.not.allocated(neighbours)) then
-      ! if (level == enl_l1) then
-      !   allocate(neighbours(realpn))
-      ! else if (level == enl_l2) then
-      !   allocate(neighbours(realpn+fixedpn))
-      ! end if
       allocate(neighbours(realpn))
     end if
 

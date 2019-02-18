@@ -5,8 +5,6 @@ module args
                         setAdvancedDensity, &
                         setArtificialTerms, &
                         scoordsys,&
-                        setresultfile,&
-                        setkerninflfilename,&
                         setnpics,&
                         settfinish,&
                         setspacing,&
@@ -34,8 +32,7 @@ use errprinter,   only: error, warning
       integer :: &
         numargs, curargnum, npic, dim, silent
       character (len=100) :: &
-        eqs, resultfile, ddwtype,&
-        argkey, argval1, silentstr, kerninflname, initvart,&
+        eqs, ddwtype, argkey, argval1, silentstr, initvart,&
         adden, artts, coordsysstr, usedumps, process, difiso
       real :: tmp
 
@@ -43,7 +40,6 @@ use errprinter,   only: error, warning
       dimf = 0.0
       eqs = ''
       pspc1 = 0
-      resultfile = ''
       ddwtype = ''
       tfinish = 1.
       npic = 0
@@ -51,7 +47,6 @@ use errprinter,   only: error, warning
       hfac = 1.2
       silent = 0
       silentstr = ''
-      kerninflname = ''
       initvart = ''
       adden = ''
       artts = ''
@@ -82,10 +77,6 @@ use errprinter,   only: error, warning
           case('--resolution')
             read(argval1, *) tmp
             call setStateVal(ec_resolution, tmp)
-          case('--resultfile')
-            resultfile = adjustl(argval1)
-          case('--influencefile')
-            kerninflname = adjustl(argval1)
           case('--ddw')
             ddwtype = adjustl(argval1)
           case('--tfinish')
@@ -144,12 +135,6 @@ use errprinter,   only: error, warning
       end if
       if (tfinish /= 0.0) then
         call settfinish(tfinish)
-      end if
-      if (resultfile /= '') then
-        call setresultfile(resultfile)
-      end if
-      if (kerninflname /= '') then
-        call setkerninflfilename(kerninflname)
       end if
       if (coordsysstr /= '') then
         call scoordsys(coordsysstr)

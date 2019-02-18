@@ -214,7 +214,7 @@ contains
         ddta = ddta - radinteration
       end if
 
-      tneib = tneib + t0
+      ! tneib = tneib + t0
       ! call getneighbours(i, nlistb, t0)
       ! overb: do lb = 1, size(nlistb)
       !   j = nlistb(lb)
@@ -494,7 +494,8 @@ contains
     !$omp end parallel do
     ! if (abs(consenrg) > abs(maxconsenrg)) maxconsenrg = consenrg
     call system_clock(finish)
-    call addTime(' circuit2', finish - start - tneib)
+    ! call addTime(' circuit2', finish - start - tneib)
+    call addTime(' circuit2', finish - start)
   end subroutine
 
   pure subroutine arttermconddiff(faba, fabb, ua, ub, da, db, oa, ob, qc)

@@ -141,7 +141,7 @@ contains
           hkp1(i)  = 0.
           okp1(i)  = 0.
 
-          tneib = tneib + t0
+          ! tneib = tneib + t0
           ! print*, i, xgetneighnumber(i)
           ! do lb = 1, xgetneighnumber(i)
           !   print*, xgetneighindex(i, lb)
@@ -220,7 +220,8 @@ contains
     end if
 
     call system_clock(finish)
-    call addTime(' circuit1', finish - start - tneib)
+    call addTime(' circuit1', finish - start)
+    ! call addTime(' circuit1', finish - start - tneib)
   end subroutine
 
 ! Direct density summation
@@ -300,6 +301,7 @@ contains
     store(es_h,1:realpartnumb)   = hk(1:realpartnumb)
 
     call system_clock(finish)
-    call addTime(' circuit1', finish - start - tneib)
+    call addTime(' circuit1', finish - start)
+    ! call addTime(' circuit1', finish - start - tneib)
   end subroutine
 end module

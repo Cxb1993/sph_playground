@@ -227,7 +227,9 @@ contains
     storesize = size(store,2)
     if (dim == 1) then
       do i=1,storesize
-        if ((int(store(es_type,i)) == ept_real).or.(int(store(es_type,i)) == ept_fixed)) then
+        if ((int(store(es_type,i)) == ept_real).or.&
+            (int(store(es_type,i)) == ept_fixed).or.&
+            (int(store(es_type,i)) == ept_fixedreal)) then
           ra(:) = store(es_rx:es_rz,i)
           if (ra(1) < boxmin(1)) then
             if (ra(1) > paddingmin(1)) then
@@ -242,7 +244,9 @@ contains
       end do
     else if (dim == 2) then
       do i=1,storesize
-        if ((int(store(es_type,i)) == ept_real).or.(int(store(es_type,i)) == ept_fixed)) then
+        if ((int(store(es_type,i)) == ept_real).or.&
+            (int(store(es_type,i)) == ept_fixed).or.&
+            (int(store(es_type,i)) == ept_fixedreal)) then
           ra(:) = store(es_rx:es_rz,i)
           if (ra(1) < boxmin(1)) then
             if (ra(1) > paddingmin(1)) then
@@ -266,7 +270,9 @@ contains
       end do
     else if (dim == 3) then
       do i=1,storesize
-        if ((int(store(es_type,i)) == ept_real).or.(int(store(es_type,i)) == ept_fixed)) then
+        if ((int(store(es_type,i)) == ept_real).or.&
+            (int(store(es_type,i)) == ept_fixed).or.&
+            (int(store(es_type,i)) == ept_fixedreal)) then
           ra(:) = store(es_rx:es_rz,i)
           if (ra(1) < boxmin(1)) then
             if (ra(1) > paddingmin(1)) then

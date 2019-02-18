@@ -7,8 +7,7 @@ module errteylor
                               hessian, &
                               get_krad
   use state,            only: getdim,&
-                              getPartNumber,&
-                              getkerninflfilename
+                              getPartNumber
   use neighboursearch,  only: findneighboursKDT
   use errprinter,       only: error
 
@@ -50,7 +49,6 @@ contains
     call get_krad(kr)
     call getdim(kd)
     call getPartNumber(r=realpartnumb)
-    call getkerninflfilename(kinfname)
     chi(1:9) = 0.
     dchi(:) = 0.
     t(:) = 0.
@@ -100,7 +98,7 @@ contains
         printres(4) = sqrt(dot_product(r,r))
         printres(5) = dsum
         printres(6) = osum
-        call AppendLine(printres, kinfname, tprint)
+        call AppendLine(printres, "kernelinfluence.info", tprint)
         tneib = tneib + tprint
         ! print*, r(:), sqrt(dot_product(r,r)), dsum, osum
       end if
@@ -130,7 +128,6 @@ contains
 
     call system_clock(start)
 
-    call getkerninflfilename(kinfname)
     call get_krad(kr)
     call getdim(kd)
     call getPartNumber(r=realpartnumb)
@@ -189,7 +186,7 @@ contains
         printres(4) = sqrt(dot_product(r,r))
         printres(5) = dsum
         printres(6) = osum
-        call AppendLine(printres, kinfname, tprint)
+        call AppendLine(printres, "kernelinfluence.info", tprint)
         tneib = tneib + tprint
       end if
     end do
