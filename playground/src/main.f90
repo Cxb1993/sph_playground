@@ -27,7 +27,7 @@ program main
                               getStateVal,&
                               setStateVal
   use iterator,         only: iterate
-  use printer,          only: print_ascii => Output, AppendLine, printOutputInfo
+  use printer,          only: AppendLine, handleOutput
   use errcalc,          only: err_diff_laplace, &
                               err_diff_graddiv, &
                               err_sinxet, &
@@ -171,7 +171,6 @@ program main
   do i = realpartnumb,size(store,dim=2)
     if (store(es_type,i) == ept_fixedreal) n = n + 1
   end do
-  print*, n
   dt = 0.
   ltout = 0.
   iter = 0.
@@ -192,13 +191,7 @@ program main
 
   print *, '#  #-------------------------------------------------'
   print *, '#  # Initial Setup'
-  if (silent == 0) call print_ascii(t, store, err)
-  if (usedumps == 1) call dump(store, t)
-  call printOutputInfo(iter, n, t, sumdt, dedt, dt, sumdedt, store)
-  if ((silent==0).or.(usedumps==1)) then
-    call getStateVal(ec_lastprint, lastnpic)
-    call setStateVal(ec_lastprint, real(lastnpic+1))
-  end if
+  call handleOutput(iter, n, t, sumdt, dedt, dt, sumdedt, store, err)
   print *, '#  #-------------------------------------------------'
 
   if (tfinish > 0.) then
@@ -222,7 +215,8 @@ program main
   sumdt = 0.
   do while ((t < tfinish + eps0).and.(stopiter==0))
     call calctimestep(store, dt)
-
+    ! print*, dt
+    ! read*
     if (t + dt > tfinish) then
       dt = tfinish - t
       stopiter = 1
@@ -230,13 +224,7 @@ program main
     sumdt = sumdt + dt
 
     if (t >= ltout) then
-      if (silent == 0) call print_ascii(t, store, err)
-      if (usedumps == 1) call dump(store, t)
-      call printOutputInfo(iter, n, t, sumdt, dedt, dt, sumdedt, store)
-      if ((silent==0).or.(usedumps==1)) then
-        call getStateVal(ec_lastprint, lastnpic)
-        call setStateVal(ec_lastprint, real(lastnpic+1))
-      end if
+      call handleOutput(iter, n, t, sumdt, dedt, dt, sumdedt, store, err)
       do while(ltout <= t)
         ltout = ltout + dtout
       end do
@@ -245,12 +233,12 @@ program main
       dt = ltout - t
     end if
 
-    tr(:,:) = store(es_rx:es_rz,1:n)
-    tv(:,:) = store(es_vx:es_vz,1:n)
-    ta(:,:) = store(es_ax:es_az,1:n)
-    tdu(:) = store(es_du,1:n)
-    tdh(:) = store(es_dh,1:n)
-    tddt(:) = store(es_ddt,1:n)
+    tr(:,:)  = store(es_rx:es_rz,1:n)
+    tv(:,:)  = store(es_vx:es_vz,1:n)
+    ta(:,:)  = store(es_ax:es_az,1:n)
+    tdu(:)   = store(es_du,1:n)
+    tdh(:)   = store(es_dh,1:n)
+    tddt(:)  = store(es_ddt,1:n)
     tdb(:,:) = store(es_dbx:es_dbz,1:n)
 
     store(es_rx:es_rz,1:n) = store(es_rx:es_rz,1:n)  + &
@@ -332,13 +320,7 @@ program main
       write(*, fmt="(A,I7, A,ES10.4)") &
         " #", iter, &
         " | t=", t
-      if (silent == 0) call print_ascii(t, store, err)
-      if (usedumps == 1) call dump(store, t)
-      call printOutputInfo(iter, n, t, sumdt, dedt, dt, sumdedt, store)
-      if ((silent==0).or.(usedumps==1)) then
-        call getStateVal(ec_lastprint, lastnpic)
-        call setStateVal(ec_lastprint, real(lastnpic+1))
-      end if
+      call handleOutput(iter, n, t, sumdt, dedt, dt, sumdedt, store, err)
     end if
     result(5) = hfac
     ! print*, printlen

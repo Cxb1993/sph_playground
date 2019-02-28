@@ -44,12 +44,12 @@ subroutine calc(store, dtfinal)
     dt, dt1
 
   real ::&
-    lightspeed, nta(3), ka, da, ta, eddfact, fld_ra, lambdaa,&
-    ha, maxeddfact, maxlambda, maxt, minden, minh, minkappa,&
-    maxkappa, maxu, minksi, mint, ua, maxden, minu
+    nta(3), ka, da, ta, eddfact, fld_ra, lambdaa,&
+    ha, maxeddfact, maxlambda, minden, minh, minkappa,&
+    maxkappa, maxu, minksi, maxksi, minE, maxE, ua, maxden, minu
 
   real::&
-    alpha, cv, gamma, mu, Rg, sigmaB
+    alpha, cv, gamma, mu
   integer ::&
     i
 
@@ -81,11 +81,13 @@ subroutine calc(store, dtfinal)
   end if
 
   if (eqSet(eqs_fld)==1) then
-    lightspeed = 2.997924e10
-    sigmaB = 5.6704e-5
-    mu = 0.2
-    Rg = 8.314e7
-    gamma = 5./3.
+    call getStateVal(ec_molecularmass, mu)
+    call getStateVal(ec_gamma, gamma)
+    ! lightspeed = 2.997924e10
+    ! sigmaB = 5.6704e-5
+    ! mu = 0.2
+    ! Rg = 8.314e7
+    ! gamma = 5./3.
 
     alpha = 4.0*sigmaB/lightspeed
     cv = (gamma-1)*mu/Rg
@@ -95,13 +97,12 @@ subroutine calc(store, dtfinal)
     minkappa = store(es_kappa,1)
     maxkappa = store(es_kappa,1)
     minh = store(es_h,1)
-    maxt = store(es_t,1)
-    mint = store(es_t,1)
+    minksi = store(es_t,1)
+    maxksi = store(es_t,1)
     maxu = store(es_u,1)
     minu = store(es_u,1)
     maxeddfact = 0.0
     maxlambda = 0.0
-    minksi = maxt/maxden
 
     do i = 1, n
       nta = store(es_dtdx:es_dtdz,i)
@@ -118,13 +119,12 @@ subroutine calc(store, dtfinal)
       if (minh > ha) minh = ha
       if (maxu < ua) maxu = ua
       if (minu > ua) minu = ua
-      if (maxt < ta) maxt = ta
-      if (mint > ta) then
-        mint = ta
-        minksi = ta/da
-      end if
+      if (minksi > ta) minksi = ta
+      if (maxksi < ta) maxksi = ta
+      if (maxE < ta*da) maxE = ta*da
+      if (minE > ta*da) minE = ta*da
 
-      fld_ra = sqrt(dot_product(nta(:),nta(:)))/(ka*da*ta)
+      fld_ra = sqrt(dot_product(nta(:),nta(:)))/(ka*da*da*ta)
       lambdaa = (2. + fld_ra)/(6. + 3*fld_ra + fld_ra*fld_ra)
       eddfact = lambdaa + lambdaa*lambdaa*fld_ra*fld_ra
 
@@ -138,29 +138,33 @@ subroutine calc(store, dtfinal)
     ! ! print*, dt1
     ! dt = min(dt, dt1)
     !
-    dt1 = cnfld/maxeddfact/maxt
-    ! print*, dt1
+    dt1 = cnfld/maxeddfact/maxE
+    ! print*, 1, dt1
     dt = min(dt, dt1)
 
-    ! dt1 = 0.3*minksi/(alpha*lightspeed*maxkappa*abs(maxt/alpha-(maxu/cv)**4))
-    ! dt = min(dt, dt1)
-    ! dt1 = cnfld*minksi/alpha/lightspeed/maxkappa/(maxt/alpha)
-    ! print*, dt1
-    ! if (dt1 > timestepcut) dt = min(dt, dt1)
-    !
-    ! dt1 = cnfld*minksi/alpha/lightspeed/maxkappa/(maxu/cv)**4
-    ! print*, dt1
-    ! if (dt1 > timestepcut) dt = min(dt, dt1)
-    !
-    !
-    ! dt1 = cnfld*minu/alpha/lightspeed/maxkappa/(maxt/alpha)
-    ! print*, dt1
-    ! if (dt1 > timestepcut) dt = min(dt, dt1)
-    !
-    ! dt1 = cnfld*minu/alpha/lightspeed/maxkappa/(maxu/cv)**4
-    ! print*, dt1
-    ! if (dt1 > timestepcut) dt = min(dt, dt1)
-    ! dt = 1e5
+    dt1 = 0.3*minksi/(alpha*lightspeed*maxkappa*abs(maxE/alpha-(maxu/cv)**4))
+    if (dt1 > timestepcut) dt = min(dt, dt1)
+
+    dt1 = cnfld*minksi/alpha/lightspeed/maxkappa/(maxE/alpha)
+    ! print*, 3, dt1
+    ! print*, dt1 > timestepcut, dt1, timestepcut, dt
+    if (dt1 > timestepcut) dt = min(dt, dt1)
+
+    dt1 = cnfld*minksi/alpha/lightspeed/maxkappa/(maxu/cv)**4
+    ! print*, 4, dt1
+    ! print*, dt1 > timestepcut, dt1, timestepcut, dt
+    if (dt1 > timestepcut) dt = min(dt, dt1)
+
+
+    dt1 = cnfld*minu/alpha/lightspeed/maxkappa/(maxE/alpha)
+    ! print*, 5, dt1
+    ! print*, dt1 > timestepcut, dt1, timestepcut, dt
+    if (dt1 > timestepcut) dt = min(dt, dt1)
+
+    dt1 = cnfld*minu/alpha/lightspeed/maxkappa/(maxu/cv)**4
+    ! print*, 6, dt1
+    if (dt1 > timestepcut) dt = min(dt, dt1)
+    ! dt = 1e-3
   end if
   ! print*, dt
   ! print*, '=============='

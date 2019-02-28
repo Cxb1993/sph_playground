@@ -24,7 +24,8 @@ module circuit2
                               getmhdmagneticpressure,&
                               getPartNumber, &
                               getEqComponent,&
-                              getArtTermCond
+                              getArtTermCond,&
+                              getStateVal
   use BC,               only: getCrossRef
   use errprinter,       only: error
   implicit none
@@ -74,7 +75,7 @@ contains
     ! FLD variables
     real ::&
       alpha, cv, fldda, flddb, gamma, kappaa, kappab, lambdaa, lambdab,&
-      lightspeed, mu, radinteration, Rg, sigmaB, fld_ra, fld_rb
+      mu, radinteraction, fld_ra, fld_rb
 
     integer, allocatable :: nlista(:), nlistb(:)
     integer :: &
@@ -85,15 +86,16 @@ contains
     call getmhdmagneticpressure(mhdmuzero)
     call getdiffisotropic(difiso)
     call getdiffconductivity(difcond)
+    call getStateVal(ec_molecularmass, mu)
+    call getStateVal(ec_gamma, gamma)
 
     if (initialised == 0) call c2init()
 
 
-    lightspeed = 2.997924e10
-    mu = 0.2
-    Rg = 8.314e7
-    sigmaB = 5.6704e-5
-    gamma = 5./3.
+    ! lightspeed = 2.997924e10
+    ! Rg = 8.314e7
+    ! sigmaB = 5.67051e-5
+    ! gamma = 5./3.
 
     ! print*, alpha, sigmaB, lightspeed
 
@@ -112,10 +114,10 @@ contains
     !$omp private(wa, wb, n2wa, n2wb, nwa, nwb, Hesa, Hesb, faba, fabb)&
     !$omp private(dva, dua, dha, ddta, dba, ba, bb, va, vb, dtadx, dtbdx)&
     !$omp private(uba, ubb, dvaterm, dvbterm)&
-    !$omp private(radinteration, alpha, cv, fldda, flddb, kappaa)&
+    !$omp private(radinteraction, alpha, cv, fldda, flddb, kappaa)&
     !$omp private(kappab, lambdaa, lambdab)&
     !$omp private(fld_ra, fld_rb)&
-    !$omp shared(lightspeed, mu, Rg, sigmaB, gamma)&
+    !$omp shared(mu, gamma)&
     !$omp shared(store, nlista)&
     !$omp shared(eqSet)&
     !$omp shared(s_dim, s_kr, s_ktp, s_ttp, s_adden, s_artts, s_ivt, s_au)&
@@ -161,7 +163,7 @@ contains
       MPa(:,:) = 0.
       Mc(1) = dot_product(ba(:),ba(:))
 
-      radinteration = 0.
+      radinteraction = 0.
       if (eqSet(eqs_magneto) == 1) then
         do li = 1,3
           MPa(li,li) = (0.5*Mc(1) - ba(li)*ba(li))/mhdmuzero
@@ -176,7 +178,7 @@ contains
       if (eqSet(eqs_diff) == 1) then
         if (eqSet(eqs_fld) == 1) then
           if (difiso == 1) then
-            fld_ra = sqrt(dot_product(dtadx(:),dtadx(:)))/(kappaa*rhoa*ta)
+            fld_ra = sqrt(dot_product(dtadx(:),dtadx(:)))/(kappaa*rhoa*ta*rhoa)
             lambdaa = (2. + fld_ra)/(6. + 3*fld_ra + fld_ra*fld_ra)
             fldda = lightspeed*lambdaa/kappaa/rhoa
 
@@ -209,9 +211,9 @@ contains
         alpha = 4.0*sigmaB/lightspeed
         ! print*, alpha, sigmaB, lightspeed
         cv = (gamma-1)*mu/Rg
-        radinteration = alpha*lightspeed*kappaa*(ta/alpha - (ua*cv)**4)
-        dua  = dua  + radinteration
-        ddta = ddta - radinteration
+        radinteraction = alpha*lightspeed*kappaa*(ta*rhoa/alpha - (ua*cv)**4)
+        dua  = dua  + radinteraction
+        ddta = ddta - radinteraction
       end if
 
       ! tneib = tneib + t0
@@ -354,10 +356,10 @@ contains
         if (eqSet(eqs_diff) == 1) then
           if (eqSet(eqs_fld) == 1) then
             if (difiso == 1) then
-              fld_rb = sqrt(dot_product(dtbdx(:),dtbdx(:)))/(kappab*rhob*tb)
+              fld_rb = sqrt(dot_product(dtbdx(:),dtbdx(:)))/(kappab*rhob*rhob*tb)
               lambdab = (2. + fld_rb)/(6. + 3*fld_rb + fld_rb*fld_rb)
               flddb = lightspeed*lambdab/kappab/rhob
-
+              ktb(:,:) = 0.
               ktb(1,1) = flddb
               ktb(2,2) = flddb
               ktb(3,3) = flddb
@@ -389,7 +391,7 @@ contains
             call hessian(rab, ra, rb, ha, Hesa)
             ! call hessian(rab, ra, rb, hb, Hesb)
             ! Hesa(:,:) = 0.5*(Hesa(:,:)+Hesb(:,:))
-            ddta = ddta + mb/rhob/rhoa * (tb - ta) * &
+            ddta = ddta + mb/rhob/rhoa * (tb*rhob - ta*rhoa) * &
                (dot_product(ktab(1,:),Hesa(1,:)) + &
                 dot_product(ktab(2,:),Hesa(2,:)) + &
                 dot_product(ktab(3,:),Hesa(3,:)))
@@ -480,11 +482,12 @@ contains
 
       store(es_ax:es_az,i) = dva(:)! - 0.03*va(:)
       store(es_dh,i) = dha
-      if (eqSet(eqs_fld) == 1) then
-        store(es_ddt,i) = ddta*rhoa
-      else
-        store(es_ddt,i) = ddta
-      end if
+
+      ! if (eqSet(eqs_fld) == 1) then
+      !   store(es_ddt,i) = ddta*rhoa
+      ! else
+      store(es_ddt,i) = ddta
+      ! end if
       store(es_dbx:es_dbz,i) = dba(:)
       store(es_du,i) = dua
       consenrg = consenrg + ma*(dot_product(va(:),dva(:)) + dua + &
@@ -496,6 +499,12 @@ contains
     call system_clock(finish)
     ! call addTime(' circuit2', finish - start - tneib)
     call addTime(' circuit2', finish - start)
+    ! print*, 'dt=', store(es_ddt,64), 'du=', store(es_du,64)
+    ! print*, 't=', store(es_t,64), 'u=', store(es_u,64)
+    ! print*, 'T_{rad}=', (store(es_t,64)*store(es_den,64)*lightspeed/4.0/sigmab)**(1./4.),&
+    !         'T_{gas}=', (gamma - 1.0) * mu * store(es_u,64) / Rg
+    ! print*, '-----------------'
+    ! read*
   end subroutine
 
   pure subroutine arttermconddiff(faba, fabb, ua, ub, da, db, oa, ob, qc)

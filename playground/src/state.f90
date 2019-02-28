@@ -63,7 +63,9 @@ module state
       if ((label /= ec_dim).and.&
           (label /= ec_lastprint).and.&
           (label /= ec_fixedpn).and.&
-          (label /= ec_realpn)) then
+          (label /= ec_realpn).and.&
+          (label /= ec_usedumps).and.&
+          (label /= ec_silent)) then
           call warning("Integer conversion were used unexpectedly", label, __FILE__, __LINE__)
           call warning("Value before", statevars(label), __FILE__, __LINE__)
           call warning("Value after", int(statevars(label)), __FILE__, __LINE__)
@@ -504,6 +506,7 @@ module state
    end subroutine
 
    subroutine printstate()
+     use omp_lib
      use kernel_base,  only: kernelname
 
      implicit none
@@ -590,6 +593,7 @@ module state
      else
        write(*,blockFormatStr) " #   #", "use restore dumps: ", "no"
      end if
+     write(*,blockFormatInt) " #   #", "OMP threads: ", int(omp_get_max_threads())
      if (int(statevars(ec_process)) == epc_fullyperiodic) then
        write(*,blockFormatStr) " #   #", "process: ", "fully periodic"
      else if (int(statevars(ec_process)) == epc_borderless) then

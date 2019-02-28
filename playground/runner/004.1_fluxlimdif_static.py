@@ -36,10 +36,11 @@ def main():
     # place.SetThreadsOMP(2)
     place.SimpleMake()
     place.CleanRun()
-    place.ReadFinalDump()
+    place.BackupDump("output/dump_full.h5")
+    place.ReadDumpHDF("output/dump_full.h5")
     # place.PrintState()
     place.setup.tfinish         = 1e-6
-    place.setup.dtprint         = place.setup.tfinish/1e3
+    place.setup.dtprint         = place.setup.tfinish/1e2
     place.setup.resultfile      = resfile+".info"
     place.setup.process         = place.epc['fullyperiodic']
     place.setup.time            = 0.0
@@ -59,8 +60,8 @@ def main():
     rho = 1e-7
     mass = place.CalcUniformMass(rho)
     h = place.setup.hfac * place.setup.spacing
-    # e = 1e+2
-    e = 1e+10
+    e = 1e+2
+    # e = 1e+10
     # e = u * rho => u = e / rho
     u = e/rho
     # u = prs/(place.setup.gamma -1)/rho

@@ -1,30 +1,50 @@
 module printer
   use const
+
   use kernel, only: get_krad
   use timing, only: addTime
   use state,  only: getPartNumber,&
-                    getLastPrint,&
-                    setLastPrint
+                    getStateVal,&
+                    setStateVal
 
   implicit none
 
-  public :: Output, AppendLine, printOutputInfo
+  public :: outputAscii, AppendLine, outputScreen, handleOutput
 
   private
-
-  integer(8) :: start=0, finish=0
-
+  integer(8), save :: start=0, finish=0
 
 contains
-  subroutine printOutputInfo(iter, n, t, sumdt, dedt, dt, sumdedt, store)
-    use const
+
+  subroutine handleOutput(iter, n, t, sumdt, dedt, dt, sumdedt, store, err)
+    use dumper, only: dump
+
+    integer, intent(in)::iter, n
+    real, intent(in) :: t, sumdt, dedt, dt, sumdedt
+    real, allocatable, intent(in) :: store(:,:), err(:)
+
+    integer :: lastnpic, silent, usedumps
+
+    call getStateVal(ec_silent, silent)
+    call getStateVal(ec_usedumps, usedumps)
+
+    if (silent == 0) call outputAscii(t, store, err)
+    if (usedumps == 1) call dump(store, t)
+    call outputScreen(iter, n, t, sumdt, dedt, dt, sumdedt, store)
+    if ((silent==0).or.(usedumps==1)) then
+      call getStateVal(ec_lastprint, lastnpic)
+      call setStateVal(ec_lastprint, real(lastnpic+1))
+    end if
+  end subroutine handleOutput
+
+  subroutine outputScreen(iter, n, t, sumdt, dedt, dt, sumdedt, store)
     integer, intent(in)::iter, n
     real, intent(in) :: t, sumdt, dedt, dt, sumdedt
     real, allocatable, intent(in) :: store(:,:)
 
     integer :: lastprintnumber
 
-    call getLastPrint(lastprintnumber)
+    call getStateVal(ec_lastprint, lastprintnumber)
 
     write(*, fmt="(A, I7, A, ES7.1, A, ES10.4, A, ES10.4, A, ES10.4, A, ES10.4, A, A, ES10.4, A, ES10.4)") &
       " #", lastprintnumber, &
@@ -34,9 +54,9 @@ contains
       " | h=[", minval(store(es_h,1:n)), ":", maxval(store(es_h,1:n)), "]",&
       " | dedt=", dedt*dt,&
       " | S(dedt)=", sumdedt
-  end subroutine
+  end subroutine outputScreen
 
-  subroutine Output(time, store, err)
+  subroutine outputAscii(time, store, err)
     real, allocatable, intent(in) :: &
       store(:,:), err(:)
     real, intent(in)    :: time
@@ -47,7 +67,7 @@ contains
     call system_clock(start)
     call get_krad(kr)
     call getPartNumber(r=rn)
-    call getLastPrint(ifile)
+    call getStateVal(ec_lastprint, ifile)
 
     n = size(store,2)
     write(fname, "(a,i5.5)") 'output/step_', ifile
@@ -69,7 +89,7 @@ contains
     call system_clock(finish)
     call addTime(' printer', finish - start)
     ! print*, 1
-  end subroutine Output
+  end subroutine outputAscii
 
   subroutine AppendLine(A, fname, t)
     real, allocatable, intent(inout) :: A(:)

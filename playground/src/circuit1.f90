@@ -79,7 +79,7 @@ contains
     real :: &
       w, dwdh, r(3), dr, r2, dfdh, fh, hn, &
       allowerror, maxinterr, currinterr, &
-      mb, ma, ha0, ha, hb, da, db, ra(3), rb(3), oma, omb, &
+      mb, ma, ha0, ha, hb, rhoa, rhob, ra(3), rb(3), oma, omb, &
       dtadx(3), hfac, &
       nwa(3), nwb(3), ta, tb
     integer :: &
@@ -119,7 +119,7 @@ contains
       ok(:) = okp1(:)
       !$omp parallel do default(none)&
       !$omp private(r, dr, dwdh, w, dfdh, fh, hn, j, rj, i, la, lb, r2, t0, nlistb)&
-      !$omp private(currinterr, mb, ma, da, db, ra, rb, dtadx)&
+      !$omp private(currinterr, mb, ma, rhoa, rhob, ra, rb, dtadx)&
       !$omp private(nwa, nwb, ta, tb, ha0, ha, hb, oma, omb)&
       !$omp shared(eps, allowerror, dim, hfac, ktp, maxinterr)&
       !$omp shared(store, nlista, dk, dkp1, hk, hkp1, ok, okp1)&
@@ -134,7 +134,7 @@ contains
           ra(:) = store(es_rx:es_rz,i)
           ta  = store(es_t,i)
           ha  = hk(i)
-          da  = dk(i)
+          rhoa  = dk(i)
           oma = ok(i)
           dtadx(:) = 0.
           dkp1(i)  = 0.
@@ -160,7 +160,7 @@ contains
             dr = sqrt(r2)
             mb = store(es_m,rj)
             tb = store(es_t,rj)
-            db = dk(rj)
+            rhob = dk(rj)
             hb = hk(rj)
             omb = ok(rj)
 
@@ -169,20 +169,19 @@ contains
             dkp1(i) = dkp1(i) + mb * w
             okp1(i) = okp1(i) + mb * dwdh
 
-            if (eqSet(eqs_diff) == 1) then
-              if (ktp == esd_2nw_ds) then
-                call nw(r(:), ra(:), rb(:), dr, ha, nwa)
-                dtadx(:) = dtadx(:) + mb/da/oma*(tb - ta)*nwa(:)
-              else if (ktp == esd_2nw_sd) then
-                ! print*, nlistb
+            if ((eqSet(eqs_diff) == 1).or.(eqSet(eqs_fld) == 1)) then
+              if (ktp == esd_2nw_sd) then
                 call nw(r(:), ra(:), rb(:), dr, ha, nwa)
                 call nw(r(:), ra(:), rb(:), dr, hb, nwb)
-                dtadx(:) = dtadx(:) + mb*(ta/oma/da/da*nwa(:) + tb/omb/db/db*nwb(:))
+                dtadx(:) = dtadx(:) + mb*(ta*rhoa/oma/rhoa/rhoa*nwa(:) + tb*rhoa/omb/rhob/rhob*nwb(:))
+              else
+                call nw(r(:), ra(:), rb(:), dr, ha, nwa)
+                dtadx(:) = dtadx(:) + mb/rhoa/oma*(tb*rhob - ta*rhoa)*nwa(:)
               end if
             end if
             ! if (i == 1) then
             !   print*, i, j
-            !   print*, da, db, dkp1(i)
+            !   print*, rhoa, rhob, dkp1(i)
             !   read*
             ! end if
           end do
@@ -228,7 +227,7 @@ contains
   subroutine c1simple(store)
     real, allocatable, intent(inout) :: store(:,:)
     real :: &
-      w, r(3), dr, ra(3), rb(3), ha, hb, ma, mb, da, db, hfac,&
+      w, r(3), dr, ra(3), rb(3), ha, hb, ma, mb, rhoa, rhob, hfac,&
       dtadx(3), nwa(3), nwb(3), ta, tb
     integer :: &
       i, j, rj, la, lb, dim, ktp
@@ -246,7 +245,7 @@ contains
 
     tneib = 0.
     !$omp parallel do default(none)&
-    !$omp private(ra, rb, ha, hb, ma, mb, da, db)&
+    !$omp private(ra, rb, ha, hb, ma, mb, rhoa, rhob)&
     !$omp private(r, dr, w, j, rj, i, la, lb, nlistb, t0)&
     !$omp private(dtadx, nwa, nwb, ta, tb)&
     !$omp shared(store, hfac, dim,nlista, dk, hk, nw, eqSet, ktp)&
@@ -260,7 +259,7 @@ contains
       ra(:) = store(es_rx:es_rz,i)
       ha = store(es_h,i)
       ma = store(es_m,i)
-      da = store(es_den,i)
+      rhoa = store(es_den,i)
       ta = store(es_t,i)
       ! call getneighbours(i, nlistb, t0)
       ! tneib = tneib + t0
@@ -272,7 +271,7 @@ contains
         rb(:) = store(es_rx:es_rz, j)
         hb = store(es_h,i)
         mb = store(es_m, rj)
-        db = store(es_den, rj)
+        rhob = store(es_den, rj)
         tb = store(es_t,rj)
 
         r(:) = ra(:)-rb(:)
@@ -282,12 +281,12 @@ contains
         if (eqSet(eqs_diff) == 1) then
           if (ktp == esd_2nw_ds) then
             call nw(r(:), ra(:), rb(:), dr, ha, nwa)
-            dtadx(:) = dtadx(:) + mb/da*(tb - ta)*nwa(:)
+            dtadx(:) = dtadx(:) + mb/rhoa*(tb - ta)*nwa(:)
           else if (ktp == esd_2nw_sd) then
             ! print*, nlistb
             call nw(r(:), ra(:), rb(:), dr, ha, nwa)
             call nw(r(:), ra(:), rb(:), dr, hb, nwb)
-            dtadx(:) = dtadx(:) + mb*(ta/da/da*nwa(:) + tb/db/db*nwb(:))
+            dtadx(:) = dtadx(:) + mb*(ta/rhoa/rhoa*nwa(:) + tb/rhob/rhob*nwb(:))
           end if
         end if
       end do
