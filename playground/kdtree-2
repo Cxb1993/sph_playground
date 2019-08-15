@@ -493,6 +493,7 @@ subroutine construct_node(nodeentry, nnode, mymum, level, xmini, xmaxi, npnode, 
  logical,           intent(out)   :: wassplit
  integer,           intent(out)   :: list(:) ! not actually sent out, but to avoid repeated memory allocation/deallocation
 
+ real                           :: xyzcofm(ndim)
  real                           :: totmass_node
 #ifdef MPI
  real    :: xyzcofmg(ndim)
@@ -512,12 +513,9 @@ subroutine construct_node(nodeentry, nnode, mymum, level, xmini, xmaxi, npnode, 
  real    :: quads(6)
 #endif
  real    :: pmassi
- integer         :: inodeparts_swap
+ integer         :: inodeparts_swap,k
  integer(kind=1) :: iphase_swap
  real            :: xyzh_swap(4)
- logical         :: notconverged
-
- integer :: counterl, counterr
 
  nodeisactive = .false.
  if (inoderange(1,nnode) > 0) then
@@ -546,6 +544,7 @@ subroutine construct_node(nodeentry, nnode, mymum, level, xmini, xmaxi, npnode, 
 
  r2max = 0.
  hmax  = 0.
+ xyzcofm(:) = 0.
  xcofm = 0.
  ycofm = 0.
  zcofm = 0.
@@ -612,21 +611,22 @@ subroutine construct_node(nodeentry, nnode, mymum, level, xmini, xmaxi, npnode, 
        zcofm = zcofm + fac*zi
     enddo
  endif
+ if (ndim==2) then
+    xyzcofm(1:2) = (/xcofm,ycofm/)
+ else
+    xyzcofm = (/xcofm,ycofm,zcofm/)
+ endif
 
  ! if we have no particles, then cofm is zero anyway
  if (totmass_node > 0.) then
-    xcofm = xcofm/(totmass_node*dfac)
-    ycofm = ycofm/(totmass_node*dfac)
-    zcofm = zcofm/(totmass_node*dfac)
+    xyzcofm(:)   = xyzcofm(:)/(totmass_node*dfac)
  endif
 
 #ifdef MPI
  ! if this is global node construction
  if (present(groupsize)) then
-    call get_group_cofm([xcofm,ycofm,zcofm],totmass_node,level,xyzcofmg,totmassg)
-    xcofm = xyzcofmg(1)
-    ycofm = xyzcofmg(2)
-    zcofm = xyzcofmg(3)
+    call get_group_cofm(xyzcofm,totmass_node,level,xyzcofmg,totmassg)
+    xyzcofm = xyzcofmg
     totmass_node = totmassg
  endif
 #endif
@@ -635,9 +635,7 @@ subroutine construct_node(nodeentry, nnode, mymum, level, xmini, xmaxi, npnode, 
  if (totmass_node<=0.) call fatal('mtree','totmass_node==0',val=totmass_node)
 
 !--for gravity, we need the centre of the node to be the centre of mass
- x0(1) = xcofm
- x0(2) = ycofm
- x0(3) = zcofm
+ x0(:) = xyzcofm(:)
  r2max = 0.
 #ifdef GRAVITY
  quads(:) = 0.
@@ -747,13 +745,7 @@ subroutine construct_node(nodeentry, nnode, mymum, level, xmini, xmaxi, npnode, 
 #endif
  else ! split this node and add children to stack
     iaxis  = maxloc(xmaxi - xmini,1) ! split along longest axis
-    if (iaxis==1) then
-      xpivot = xcofm
-    else if (iaxis==2) then
-      xpivot = ycofm
-    else
-      xpivot = zcofm
-    end if
+    xpivot = xyzcofm(iaxis)          ! split on centre of mass
 
     ! create two children nodes and point to them from current node
     ! always use G&R indexing for global tree
@@ -781,69 +773,56 @@ subroutine construct_node(nodeentry, nnode, mymum, level, xmini, xmaxi, npnode, 
     if (npnode > 0) then
        nl = inoderange(1,nnode)
        nr = inoderange(2,nnode)
-       counterl = 0
-       counterr = 0
-
        i = nl
        j = nr
 
-       lessthenpivot(i:j) = xyzh_soa(i:j,iaxis) <= xpivot
-
-       do while((j>=nl).and.(.not.lessthenpivot(j)))
-         counterr = counterr+1
-         j = nr-counterr
-       end do
-
-       notconverged = i < j
-       do while(notconverged)
+       lessthenpivot(i) = xyzh_soa(i,iaxis) < xpivot
+       lessthenpivot(j) = xyzh_soa(j,iaxis) < xpivot
+       ! k = 0
+       do while(i < j)
          if (lessthenpivot(i)) then
-           counterl = counterl+1
-           i = nl+counterl
-           notconverged = i < j
+           i = i + 1
+           lessthenpivot(i) = xyzh_soa(i,iaxis) < xpivot
          else
            if (.not.lessthenpivot(j)) then
-             counterr = counterr+1
-             j = nr-counterr
-             notconverged = i < j
+             j = j - 1
+             lessthenpivot(j) = xyzh_soa(j,iaxis) < xpivot
            else
              inodeparts_swap = inodeparts(i)
-             xyzh_swap(1:4) = xyzh_soa(i,1:4)
-             iphase_swap = iphase_soa(i)
+             xyzh_swap(1:4)  = xyzh_soa(i,1:4)
+             iphase_swap     = iphase_soa(i)
 
-             inodeparts(i) = inodeparts(j)
+             inodeparts(i)   = inodeparts(j)
              xyzh_soa(i,1:4) = xyzh_soa(j,1:4)
-             iphase_soa(i) = iphase_soa(j)
+             iphase_soa(i)   = iphase_soa(j)
 
-             inodeparts(j) = inodeparts_swap
+             inodeparts(j)   = inodeparts_swap
              xyzh_soa(j,1:4) = xyzh_swap(1:4)
-             iphase_soa(j) = iphase_swap
+             iphase_soa(j)   = iphase_swap
 
-             lessthenpivot(i) = .true.
-             lessthenpivot(j) = .false.
-             counterr = counterr+1
-             j = nr-counterr
-             notconverged = i < j
+             i = i + 1
+             j = j - 1
+             lessthenpivot(i) = xyzh_soa(i,iaxis) < xpivot
+             lessthenpivot(j) = xyzh_soa(j,iaxis) < xpivot
+             ! k = k + 1
            end if
          end if
        end do
-
-       if (lessthenpivot(i)) then
-         counterl = counterl+1
-       else
-         counterr = counterr+1
+       if (.not.lessthenpivot(i)) then
+         i = i - 1
+       end if
+       if (lessthenpivot(j)) then
+         j = j + 1
        end if
 
        inoderange(1,il) = nl
-       inoderange(2,il) = nl + counterl - 1
-       inoderange(1,ir) = nr - counterr + 1
+       inoderange(2,il) = i
+       inoderange(1,ir) = j
        inoderange(2,ir) = nr
-       ! print*, i, j, nl, nr, counterl, counterr
-       ! print*, inoderange(1,il), inoderange(2,il), inoderange(1,ir), inoderange(2,ir)
-       ! print*, xyzh_soa(nl:i,iaxis) <= xpivot
-       ! print*, xyzh_soa(i+1:nr,iaxis) <= xpivot
-       ! read*
-       nl = counterl
-       nr = counterr
+
+       nl = i - (nl - 1)
+       nr = nr - (j - 1)
+
        if (nr + nl  /=  npnode) then
          call error('maketree','number of left + right != parent number of particles while splitting node')
       endif
@@ -853,10 +832,9 @@ subroutine construct_node(nodeentry, nnode, mymum, level, xmini, xmaxi, npnode, 
           ! no need to move particles because if they all ended up in one node,
           ! then they are still in the original order
           nl = npnode / 2
-          nr = npnode - counterl
           inoderange(1,il) = inoderange(1,nnode)
           inoderange(2,il) = inoderange(1,nnode) + nl - 1
-          inoderange(1,ir) = inoderange(2,nnode) - nr + 1
+          inoderange(1,ir) = inoderange(1,nnode) + nl
           inoderange(2,ir) = inoderange(2,nnode)
        endif
 

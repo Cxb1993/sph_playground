@@ -83,9 +83,10 @@ ifndef kernel
 kernel=m4
 endif
 
-# FC=gfortran
-FC=h5fc
+FC=gfortran
+# FC=h5fc
 
+HDFFLAGS=-I/usr/local/opt/hdf5/include -L/usr/local/opt/hdf5/lib -lhdf5 -lhdf5_fortran
 FFLAGS=-fdefault-real-8 -fdefault-double-8\
  				-flto -O4 -cpp -Ofast
 
@@ -99,7 +100,7 @@ endif
 ifeq ($(debug),p)
 FFLAGS=-pg -static -fdefault-real-8 -fdefault-double-8 -flto -O0
 endif
-
+FFLAGS+=$(HDFFLAGS)
 ifeq ($(useomp),t)
 	FFLAGS+=-fopenmp
 endif

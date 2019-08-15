@@ -1,4 +1,5 @@
 module state
+  use omp_lib
 
   use const
   use errprinter, only: error, warning
@@ -593,7 +594,9 @@ module state
      else
        write(*,blockFormatStr) " #   #", "use restore dumps: ", "no"
      end if
+#ifdef _OPENMP
      write(*,blockFormatInt) " #   #", "OMP threads: ", int(omp_get_max_threads())
+#endif
      if (int(statevars(ec_process)) == epc_fullyperiodic) then
        write(*,blockFormatStr) " #   #", "process: ", "fully periodic"
      else if (int(statevars(ec_process)) == epc_borderless) then

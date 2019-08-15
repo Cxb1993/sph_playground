@@ -33,7 +33,7 @@ def main():
     resfile = place.GetDateTimeString()
     place.setup = defaultSetup()
     place.CleanAllLogs()
-    # place.SetThreadsOMP(2)
+    place.SetThreadsOMP(1)
     place.SimpleMake()
     place.CleanRun()
     place.BackupDump("output/dump_full.h5")
@@ -69,6 +69,7 @@ def main():
     csound = math.sqrt(place.setup.gamma*prs/rho)
     # E = ksi * rho => ksi = E / rho
     E = 1e+12
+    print(u,csound, prs)
 
     place.ModifyParticlesProperties(
         properties  = ['kappa', 't',    'c',      'm',   'den',  'h',   'p',   'u',  'om'],
