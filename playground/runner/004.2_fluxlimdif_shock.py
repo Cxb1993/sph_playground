@@ -41,7 +41,7 @@ def main():
     place.ReadDumpHDF("output/dump_full.h5")
     # place.PrintState()
     place.setup.tfinish         = 1e9
-    place.setup.dtprint         = place.setup.tfinish/1e6
+    place.setup.dtprint         = place.setup.tfinish/1e4
     place.setup.resultfile      = resfile+".info"
     place.setup.process         = place.epc['borderless']
     place.setup.time            = 0.0
@@ -54,6 +54,7 @@ def main():
     place.setup.eqonfluxlim     = place.eif['yes']
     # place.setup.eqonfluxlim     = place.eif['no']
     # place.setup.eqondiff        = place.eif['no']
+    place.setup.eqonradexch     = place.eif['yes']
 
     def c(i):
         return lambda x: i
@@ -64,7 +65,7 @@ def main():
     csound = 3.2e5
     v0 = csound
     kappa = 4e1
-    mu = 2.1
+    mu = 2.0
     gamma = 5./3.
 
     place.setup.dcondconst    = kappa

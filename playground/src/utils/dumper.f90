@@ -19,7 +19,7 @@ module dumper
 
       real :: ifile
       real, allocatable :: state(:)
-      character (len=40)  :: cfile
+      character (len=50)  :: cfile
       allocate(state(ec_total))
       call system_clock(start)
 
@@ -34,7 +34,7 @@ module dumper
         "store", es_total, int(state(ec_realpn))+int(state(ec_fixedpn)), store)
 
       call rename("output/new_dump_full.h5", "output/dump_full.h5")
-      write(cfile, "(a,i5.5)") "cp output/dump_full.h5 output/dump_", int(ifile),".h5"
+      write(cfile, "(a,i5.5,a)") "cp output/dump_full.h5 output/dump_",int(ifile),".h5"
       call system(cfile)
 
       call system_clock(finish)

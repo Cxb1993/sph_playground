@@ -179,7 +179,7 @@ contains
         if (eqSet(eqs_fld) == 1) then
           if (difiso == 1) then
             fld_ra = sqrt(dot_product(dtadx(:),dtadx(:)))/(kappaa*rhoa*ta*rhoa)
-            lambdaa = (2. + fld_ra)/(6. + 3*fld_ra + fld_ra*fld_ra)
+            lambdaa = (2. + fld_ra)/(6. + 3.*fld_ra + fld_ra*fld_ra)
             fldda = lightspeed*lambdaa/kappaa/rhoa
 
             kta(1,1) = fldda
@@ -205,15 +205,6 @@ contains
             end do
           end if
         end if
-      end if
-
-      if (eqSet(eqs_fld) == 1) then
-        alpha = 4.0*sigmaB/lightspeed
-        ! print*, alpha, sigmaB, lightspeed
-        cv = (gamma-1)*mu/Rg
-        radinteraction = alpha*lightspeed*kappaa*(ta*rhoa/alpha - (ua*cv)**4)
-        dua  = dua  + radinteraction
-        ddta = ddta - radinteraction
       end if
 
       ! tneib = tneib + t0
@@ -357,7 +348,7 @@ contains
           if (eqSet(eqs_fld) == 1) then
             if (difiso == 1) then
               fld_rb = sqrt(dot_product(dtbdx(:),dtbdx(:)))/(kappab*rhob*rhob*tb)
-              lambdab = (2. + fld_rb)/(6. + 3*fld_rb + fld_rb*fld_rb)
+              lambdab = (2. + fld_rb)/(6. + 3.*fld_rb + fld_rb*fld_rb)
               flddb = lightspeed*lambdab/kappab/rhob
               ktb(:,:) = 0.
               ktb(1,1) = flddb
@@ -405,7 +396,7 @@ contains
             kdtbdx(2) = dot_product(ktb(2,:),dtbdx(:))
             kdtbdx(3) = dot_product(ktb(3,:),dtbdx(:))
 
-            ddta = ddta + mb/rhoa*( &
+            ddta = ddta + mb*( &
               dot_product(kdtadx(:),nwa(:))*odda + dot_product(kdtbdx(:),nwb(:))*oddb)
           else if (s_ktp == esd_2nw_sd) then
             kdtadx(1) = dot_product(kta(1,:),dtadx(:))

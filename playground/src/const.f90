@@ -3,7 +3,7 @@ module const
   real, parameter :: &
     pi    = 4.*atan(1.),&
     eps0  = epsilon(0.),&
-    lightspeed = 2.997924e10,&
+    lightspeed = 29979245800.,&
     Rg = 8.314e7,&
     sigmaB = 5.67051e-5
 
@@ -45,19 +45,22 @@ module const
     ec_process       = 31,&
     ec_au            = 32,&
     ec_placement     = 33,&
+
     ec_eqonhydro     = 34,&
     ec_eqondiff      = 35,&
     ec_eqonfluxlim   = 36,&
-    ec_udist         = 37,&
-    ec_umass         = 38,&
-    ec_utime         = 39,&
-    ec_uvelocity     = 40,&
-    ec_udensity      = 41,&
-    ec_upressure     = 42,&
-    ec_uacceller     = 43,&
-    ec_time          = 44,&
-    ec_molecularmass = 45,&
-    ec_total         = 45
+    ec_eqonradexch   = 37,&
+
+    ec_udist         = 38,&
+    ec_umass         = 39,&
+    ec_utime         = 40,&
+    ec_uvelocity     = 41,&
+    ec_udensity      = 42,&
+    ec_upressure     = 43,&
+    ec_uacceller     = 44,&
+    ec_time          = 45,&
+    ec_molecularmass = 46,&
+    ec_total         = 46
 
   ! store of data
   integer, parameter :: &
@@ -169,7 +172,8 @@ module const
     eqs_magneto = 2,&
     eqs_diff    = 3,&
     eqs_fld     = 4,&
-    eqs_total   = 4
+    eqs_radexch = 5,&
+    eqs_total   = 5
 
   integer, parameter :: &
     ecn_hydro = 1,&

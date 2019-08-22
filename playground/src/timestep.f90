@@ -103,6 +103,8 @@ subroutine calc(store, dtfinal)
     minu = store(es_u,1)
     maxeddfact = 0.0
     maxlambda = 0.0
+    maxE = maxden*maxksi
+    minE = minden*minksi
 
     do i = 1, n
       nta = store(es_dtdx:es_dtdz,i)
@@ -126,45 +128,37 @@ subroutine calc(store, dtfinal)
 
       fld_ra = sqrt(dot_product(nta(:),nta(:)))/(ka*da*da*ta)
       lambdaa = (2. + fld_ra)/(6. + 3*fld_ra + fld_ra*fld_ra)
-      eddfact = lambdaa + lambdaa*lambdaa*fld_ra*fld_ra
 
       if (maxlambda < lambdaa) maxlambda = lambdaa
-      if (maxeddfact < eddfact) maxeddfact = eddfact
     end do
 
     cnfld = 0.3
-    !
-    ! dt1 = cnfld*minh*minh*minden*minkappa/lightspeed/maxlambda
-    ! ! print*, dt1
-    ! dt = min(dt, dt1)
-    !
-    dt1 = cnfld/maxeddfact/maxE
-    ! print*, 1, dt1
+
+    dt1 = cnfld*minh*minh*minden*minkappa/lightspeed/maxlambda
     dt = min(dt, dt1)
-
-    dt1 = 0.3*minksi/(alpha*lightspeed*maxkappa*abs(maxE/alpha-(maxu/cv)**4))
-    if (dt1 > timestepcut) dt = min(dt, dt1)
-
-    dt1 = cnfld*minksi/alpha/lightspeed/maxkappa/(maxE/alpha)
-    ! print*, 3, dt1
-    ! print*, dt1 > timestepcut, dt1, timestepcut, dt
-    if (dt1 > timestepcut) dt = min(dt, dt1)
-
-    dt1 = cnfld*minksi/alpha/lightspeed/maxkappa/(maxu/cv)**4
-    ! print*, 4, dt1
-    ! print*, dt1 > timestepcut, dt1, timestepcut, dt
-    if (dt1 > timestepcut) dt = min(dt, dt1)
-
-
-    dt1 = cnfld*minu/alpha/lightspeed/maxkappa/(maxE/alpha)
-    ! print*, 5, dt1
-    ! print*, dt1 > timestepcut, dt1, timestepcut, dt
-    if (dt1 > timestepcut) dt = min(dt, dt1)
-
-    dt1 = cnfld*minu/alpha/lightspeed/maxkappa/(maxu/cv)**4
-    ! print*, 6, dt1
-    if (dt1 > timestepcut) dt = min(dt, dt1)
-    ! dt = 1e-3
+    ! dt1 = 0.3*minksi/(alpha*lightspeed*maxkappa*abs(maxE/alpha-(maxu/cv)**4))
+    ! if (dt1 > timestepcut) dt = min(dt, dt1)
+    !
+    ! dt1 = cnfld*minksi/alpha/lightspeed/maxkappa/(maxE/alpha)
+    ! ! print*, 3, dt1
+    ! ! print*, dt1 > timestepcut, dt1, timestepcut, dt
+    ! if (dt1 > timestepcut) dt = min(dt, dt1)
+    !
+    ! dt1 = cnfld*minksi/alpha/lightspeed/maxkappa/(maxu/cv)**4
+    ! ! print*, 4, dt1
+    ! ! print*, dt1 > timestepcut, dt1, timestepcut, dt
+    ! if (dt1 > timestepcut) dt = min(dt, dt1)
+    !
+    !
+    ! dt1 = cnfld*minu/alpha/lightspeed/maxkappa/(maxE/alpha)
+    ! ! print*, 5, dt1
+    ! ! print*, dt1 > timestepcut, dt1, timestepcut, dt
+    ! if (dt1 > timestepcut) dt = min(dt, dt1)
+    !
+    ! dt1 = cnfld*minu/alpha/lightspeed/maxkappa/(maxu/cv)**4
+    ! ! print*, 6, dt1
+    ! if (dt1 > timestepcut) dt = min(dt, dt1)
+    ! ! dt = 1e-3
   end if
   ! print*, dt
   ! print*, '=============='

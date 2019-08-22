@@ -35,6 +35,7 @@ SRC+=state.f90\
 	errcalc.f90\
 	iterator.f90\
 	timestep.f90\
+	rad_exchange.f90\
 	main.f90
 
 	# utils/clfortran.f90\

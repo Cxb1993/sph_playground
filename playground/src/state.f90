@@ -120,24 +120,26 @@ module state
       case(eeq_hydro)
         eqSet(eqs_hydro) = 1
       case(eeq_magnetohydro)
-        eqSet(eqs_hydro) = 1
+        eqSet(eqs_hydro)   = 1
         eqSet(eqs_magneto) = 1
       case(eeq_diffusion)
         eqSet(eqs_diff) = 1
       case(eeq_hyrad)
-        eqSet(eqs_fld) = 1
-        eqSet(eqs_hydro) = 1
+        eqSet(eqs_fld)     = 1
+        eqSet(eqs_hydro)   = 1
+        eqSet(eqs_radexch) = 1
       case(eeq_magnetohydrodiffusion)
-        eqSet(eqs_hydro) = 1
+        eqSet(eqs_hydro)   = 1
         eqSet(eqs_magneto) = 1
-        eqSet(eqs_diff) = 1
+        eqSet(eqs_diff)    = 1
       case(eeq_hydrodiffusion)
         eqSet(eqs_hydro) = 1
-        eqSet(eqs_diff) = 1
+        eqSet(eqs_diff)  = 1
       case(eeq_manual)
-        if (int(statevars(ec_eqondiff))==1)     eqSet(eqs_diff) = 1
-        if (int(statevars(ec_eqonhydro))==1)    eqSet(eqs_hydro) = 1
-        if (int(statevars(ec_eqonfluxlim))==1)  eqSet(eqs_fld) = 1
+        if (int(statevars(ec_eqondiff))==1)     eqSet(eqs_diff)    = 1
+        if (int(statevars(ec_eqonhydro))==1)    eqSet(eqs_hydro)   = 1
+        if (int(statevars(ec_eqonfluxlim))==1)  eqSet(eqs_fld)     = 1
+        if (int(statevars(ec_eqonradexch))==1)  eqSet(eqs_radexch) = 1
       case default
         call error("Equation is not set", int(statevars(ec_eqs)), __FILE__, __LINE__)
       end select
@@ -624,6 +626,27 @@ module state
      case(epl_closepacked)
        write(*,blockFormatStr) " #   #", "initial particles placement: ", "ClosePacked"
      end select
+
+     if (statevars(ec_eqondiff)==1) then
+       write(*,blockFormatStr) " #   #", "diffision equations: ", "yes"
+     else
+       write(*,blockFormatStr) " #   #", "diffision equations: ", "no"
+     endif
+     if (statevars(ec_eqonhydro)==1) then
+       write(*,blockFormatStr) " #   #", "hydro equations: ", "yes"
+     else
+       write(*,blockFormatStr) " #   #", "hydro equations: ", "no"
+     endif
+     if (statevars(ec_eqonfluxlim)==1) then
+       write(*,blockFormatStr) " #   #", "flux-limiter equations: ", "yes"
+     else
+       write(*,blockFormatStr) " #   #", "flux-limiter equations: ", "no"
+     endif
+     if (statevars(ec_eqonradexch)==1) then
+       write(*,blockFormatStr) " #   #", "rad exchange equations: ", "yes"
+     else
+       write(*,blockFormatStr) " #   #", "rad exchange equations: ", "no"
+     endif
 
      print*, "#   #"
      print*, "#####"

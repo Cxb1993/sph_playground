@@ -25,7 +25,8 @@ program main
                               getLastPrint,&
                               setdtprint, getdtprint,&
                               getStateVal,&
-                              setStateVal
+                              setStateVal,&
+                              getEqComponent
   use iterator,         only: iterate
   use printer,          only: AppendLine, handleOutput
   use errcalc,          only: err_diff_laplace, &
@@ -56,6 +57,9 @@ program main
   use kernel,           only: initkernel,&
                               getcndiff,&
                               getcnhydro
+
+  use rad_exchange,     only:update_radenergy
+
   use errprinter,       only: warning, error
 
   use timestep,         only: calctimestep => calc
@@ -81,8 +85,7 @@ program main
   integer :: &
     i, n, iter, s_tt, nusedl1, nusedl2, printlen, silent,&
     ivt, stopiter, resol, realpartnumb, fixedpartnumb, npics, usedumps,&
-    dim, lastnpic
-
+    dim, lastnpic, eqSet(eqs_total)
   integer(8) :: &
     tprint
 
@@ -188,7 +191,7 @@ program main
   stopiter = 0
   sumdedt = 0.
   dedt = 0.
-
+  sumdt = 0.
   print *, '#  #-------------------------------------------------'
   print *, '#  # Initial Setup'
   call handleOutput(iter, n, t, sumdt, dedt, dt, sumdedt, store, err)
@@ -212,7 +215,8 @@ program main
     ltout = ltout + dtout
   end do
 
-  sumdt = 0.
+  call getEqComponent(eqSet)
+
   do while ((t < tfinish + eps0).and.(stopiter==0))
     call calctimestep(store, dt)
     ! print*, dt
@@ -254,9 +258,11 @@ program main
     dedtprev = dedt
     sumdedt = sumdedt + dedt*dt
 
-    ! print*, 1
     call iterate(n, gamma, store, dedt)
-    ! print*, 1
+
+    if (eqSet(eqs_radexch)==1) then
+      call update_radenergy(n,store,dt)
+    endif
 
     store(es_vx:es_vz,1:n) = &
       store(es_vx:es_vz,1:n) + 0.5*dt*(store(es_ax:es_az,1:n) - ta(:,:))
@@ -272,6 +278,7 @@ program main
     store(es_t,1:n) = &
       store(es_t,1:n) + 0.5*dt*(store(es_ddt,1:n) - tddt(:))
     ! store(es_t,1:n) = store(es_u,1:n)
+
 
     t = t + dt
     iter = iter + 1
