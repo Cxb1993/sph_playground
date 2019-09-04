@@ -8,10 +8,10 @@ module kernel
 
   implicit none
 
-  public :: nw, get_dw_dh, get_w, initkernel, &
-            n2w, get_krad, hessian,&
-            hessian_rr, getneibnumber, precalcKernel,fab,&
-            getcnhydro, getcndiff
+  public :: nw,get_dw_dh,get_w,initkernel, &
+            n2w,get_krad,hessian,&
+            hessian_rr,getneibnumber,precalcKernel,&
+            fab,getcnhydro,getcnfld,getcndiff
   save
 
   integer :: dim
@@ -80,8 +80,13 @@ contains
 
   subroutine getcndiff(cn)
     real, intent(inout) :: cn
-    cn = d2curnumb
+    cn = cnd2
   end subroutine getcndiff
+
+  subroutine getcnfld(cn)
+    real, intent(inout) :: cn
+    cn = cnfld
+  end subroutine getcnfld
 
   subroutine initkernel(indim)
     integer, intent(in) :: indim
@@ -103,23 +108,28 @@ contains
       if (kt == esd_n2w) then
         hessian => hessian_ddw_cart
         n2w     => n2w_cart
-        d2curnumb = cnarr(ecn_d2n2w)
+        cnd2 = cnarr(ecn_d2n2w)
+        cnfld = cnd2
       else if (kt == esd_fab) then
         hessian => hessian_fab_cart
         n2w     => Gab_cart
-        d2curnumb = cnarr(ecn_d2fab)
+        cnd2 = cnarr(ecn_d2fab)
+        cnfld = cnd2
       else if ((kt == esd_2nw_ds).or.(kt == esd_2nw_sd)) then
         hessian => null()
         n2w     => null()
-        d2curnumb = cnarr(ecn_d22nw)
+        cnd2 = cnarr(ecn_d22nw)
+        cnfld = cnd2
       else if (kt == esd_fw) then
         hessian => hessian_fw_cart
         n2w     => FW_cart
-        d2curnumb = cnarr(ecn_d2fab)
+        cnd2 = cnarr(ecn_d2fab)
+        cnfld = cnd2
       else
         hessian => hessian_fab_cart
         n2w     => Gab_cart
-        d2curnumb = cnarr(ecn_d2fab)
+        cnd2 = cnarr(ecn_d2fab)
+        cnfld = cnd2
         call warning('Brookshaw (Fab) is used by default as 2nd derivative of W', '', __FILE__, __LINE__)
       end if
     else if (cs == 2) then

@@ -140,8 +140,9 @@ module state
         if (int(statevars(ec_eqonhydro))==1)    eqSet(eqs_hydro)   = 1
         if (int(statevars(ec_eqonfluxlim))==1)  eqSet(eqs_fld)     = 1
         if (int(statevars(ec_eqonradexch))==1)  eqSet(eqs_radexch) = 1
+        if (int(statevars(ec_eqonsts))==1)      eqSet(eqs_sts)     = 1
       case default
-        call error("Equation is not set", int(statevars(ec_eqs)), __FILE__, __LINE__)
+        call warning("Equations are not set. Returning all zeros.", int(statevars(ec_eqs)), __FILE__, __LINE__)
       end select
     end subroutine getEqComponent
 
@@ -646,6 +647,11 @@ module state
        write(*,blockFormatStr) " #   #", "rad exchange equations: ", "yes"
      else
        write(*,blockFormatStr) " #   #", "rad exchange equations: ", "no"
+     endif
+     if (statevars(ec_eqonsts)==1) then
+       write(*,blockFormatStr) " #   #", "super time stepping: ", "yes"
+     else
+       write(*,blockFormatStr) " #   #", "super time stepping: ", "no"
      endif
 
      print*, "#   #"

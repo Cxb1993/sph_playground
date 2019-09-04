@@ -65,37 +65,37 @@ subroutine update_radenergy(n,store,dt)
   !$omp end parallel do
 end subroutine update_radenergy
 
-subroutine solve_internal_energy_implicit_substeps(unew,ui,rho,etot,dudt,ack,a,cv1,dt)
- real, intent(out) :: unew
- real, intent(in)  :: ui, etot, dudt, dt, rho, ack, a, cv1
-
- real     :: fu,dfu,eps,dts,dunew,unewp,uip
- integer  :: iter,i,level
-
- unew = ui
- unewp = 2.*ui
- eps = 1e-8
- dunew = (unewp-unew)/unew
- level = 1
- do while((abs(dunew) > eps).and.(level <= 2**10))
-   unewp = unew
-   dts   = dt/level
-   uip   = ui
-   do i=1,level
-     iter  = 0
-     fu    = huge(1.)
-     do while((abs(fu) > eps).and.(iter < 10))
-       iter = iter + 1
-       fu   = unew/dts - uip/dts - dudt - ack*(rho*(etot-unew)/a - (unew*cv1)**4)
-       dfu  = 1./dts + ack*(rho/a + 4.*(unew**3*cv1**4))
-       unew = unew - fu/dfu
-     end do
-     uip = unew
-   end do
-   dunew = (unewp-unew)/unew
-   level = level*2
- end do
-end subroutine solve_internal_energy_implicit_substeps
+! subroutine solve_internal_energy_implicit_substeps(unew,ui,rho,etot,dudt,ack,a,cv1,dt)
+!  real, intent(out) :: unew
+!  real, intent(in)  :: ui, etot, dudt, dt, rho, ack, a, cv1
+!
+!  real     :: fu,dfu,eps,dts,dunew,unewp,uip
+!  integer  :: iter,i,level
+!
+!  unew = ui
+!  unewp = 2.*ui
+!  eps = 1e-8
+!  dunew = (unewp-unew)/unew
+!  level = 1
+!  do while((abs(dunew) > eps).and.(level <= 2**10))
+!    unewp = unew
+!    dts   = dt/level
+!    uip   = ui
+!    do i=1,level
+!      iter  = 0
+!      fu    = huge(1.)
+!      do while((abs(fu) > eps).and.(iter < 10))
+!        iter = iter + 1
+!        fu   = unew/dts - uip/dts - dudt - ack*(rho*(etot-unew)/a - (unew*cv1)**4)
+!        dfu  = 1./dts + ack*(rho/a + 4.*(unew**3*cv1**4))
+!        unew = unew - fu/dfu
+!      end do
+!      uip = unew
+!    end do
+!    dunew = (unewp-unew)/unew
+!    level = level*2
+!  end do
+! end subroutine solve_internal_energy_implicit_substeps
 
 subroutine solve_internal_energy_implicit(unew,u0,rho,etot,dudt,ack,a,cv1,dt)
  real, intent(out) :: unew
@@ -117,39 +117,39 @@ subroutine solve_internal_energy_implicit(unew,u0,rho,etot,dudt,ack,a,cv1,dt)
  end do
 end subroutine solve_internal_energy_implicit
 
-subroutine solve_internal_energy_explicit(unew,ui,rho,etot,dudt,ack,a,cv1,dt)
- real, intent(out) :: unew
- real, intent(in)  :: ui, etot, dudt, dt, rho, ack, a, cv1
+! subroutine solve_internal_energy_explicit(unew,ui,rho,etot,dudt,ack,a,cv1,dt)
+!  real, intent(out) :: unew
+!  real, intent(in)  :: ui, etot, dudt, dt, rho, ack, a, cv1
+!
+!  unew = ui + dt*(dudt + ack*(rho*(etot-ui)/a - (ui*cv1)**4))
+! end subroutine solve_internal_energy_explicit
 
- unew = ui + dt*(dudt + ack*(rho*(etot-ui)/a - (ui*cv1)**4))
-end subroutine solve_internal_energy_explicit
-
-subroutine solve_internal_energy_explicit_substeps(unew,ui,rho,etot,dudt,ack,a,cv1,dt)
- real, intent(out) :: unew
- real, intent(in)  :: ui, etot, dudt, dt, rho, ack, a, cv1
- real     :: du,eps,dts,unews,uis
- integer  :: i,level
-
- level = 1
- eps   = 1e-8
- dts   = dt
-
- unew = ui + dts*(dudt + ack*(rho*(etot-ui)/a - (ui*cv1)**4))
- unews = 2*unew
- du = (unew-unews)/unew
- do while((abs(du) > eps).and.(level <= 2**10))
-   unews = unew
-   level = level*2
-   dts  = dt/level
-   unew = 0.
-   uis  = ui
-   do i=1,level
-     unew = uis + dts*(dudt + ack*(rho*(etot-uis)/a - (uis*cv1)**4))
-     uis  = unew
-   end do
-   du = (unew-unews)/unew
- end do
-end subroutine solve_internal_energy_explicit_substeps
+! subroutine solve_internal_energy_explicit_substeps(unew,ui,rho,etot,dudt,ack,a,cv1,dt)
+!  real, intent(out) :: unew
+!  real, intent(in)  :: ui, etot, dudt, dt, rho, ack, a, cv1
+!  real     :: du,eps,dts,unews,uis
+!  integer  :: i,level
+!
+!  level = 1
+!  eps   = 1e-8
+!  dts   = dt
+!
+!  unew = ui + dts*(dudt + ack*(rho*(etot-ui)/a - (ui*cv1)**4))
+!  unews = 2*unew
+!  du = (unew-unews)/unew
+!  do while((abs(du) > eps).and.(level <= 2**10))
+!    unews = unew
+!    level = level*2
+!    dts  = dt/level
+!    unew = 0.
+!    uis  = ui
+!    do i=1,level
+!      unew = uis + dts*(dudt + ack*(rho*(etot-uis)/a - (uis*cv1)**4))
+!      uis  = unew
+!    end do
+!    du = (unew-unews)/unew
+!  end do
+! end subroutine solve_internal_energy_explicit_substeps
 
 ! subroutine set_radfluxesandregions(npart,radiation,xyzh,vxyzu)
 !   use part,    only: igas,massoftype,rhoh,ifluxx,ifluxy,ifluxz,ithick,iradxi,ikappa

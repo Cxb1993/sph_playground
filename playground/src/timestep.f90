@@ -2,7 +2,8 @@ module timestep
 
 use const
 use kernel,           only: getcndiff,&
-                            getcnhydro
+                            getcnhydro,&
+                            getcnfld
 use state,            only: getStateVal,&
                             getEqComponent
 
@@ -13,7 +14,7 @@ public calc
 private
 
 real, save ::&
-  cndiff, cnhydro, difcond, mhdmuzero, cnfld
+  cndiff,cnhydro,difcond,mhdmuzero,cnfld
 integer, save ::&
   initialised=0,&
   n, eqSet(eqs_total)
@@ -27,6 +28,7 @@ subroutine init()
     nr
   call getcnhydro(cnhydro)
   call getcndiff(cndiff)
+  call getcnfld(cnfld)
   call getStateVal(ec_dcondconst, difcond)
   call getStateVal(ec_muzero, mhdmuzero)
   call getStateVal(ec_realpn, nr)
@@ -35,16 +37,16 @@ subroutine init()
   initialised = 1
 end subroutine init
 
-subroutine calc(store, dtfinal)
+subroutine calc(store, dthydro, dtdiff, dtfld, dtfinal)
   real, allocatable, intent(in) :: &
     store(:,:)
   real, intent(out) ::&
-    dtfinal
+    dtfinal, dthydro, dtdiff, dtfld
   real ::&
     dt, dt1
 
   real ::&
-    nta(3), ka, da, ta, eddfact, fld_ra, lambdaa,&
+    nta(3), ka, da, ta, fld_ra, lambdaa,&
     ha, maxeddfact, maxlambda, minden, minh, minkappa,&
     maxkappa, maxu, minksi, maxksi, minE, maxE, ua, maxden, minu
 
@@ -58,9 +60,8 @@ subroutine calc(store, dtfinal)
   dt = huge(store(1,1))
 
   if (eqSet(eqs_hydro)==1) then
-    dt1 = cnhydro * minval(store(es_h,1:n)) / maxval(store(es_c,1:n))
-    ! print*, dt1
-    dt = min(dt, dt1)
+    dthydro = cnhydro * minval(store(es_h,1:n)) / maxval(store(es_c,1:n))
+    dt = min(dt, dthydro)
   end if
 
   if (eqSet(eqs_magneto)==1) then
@@ -72,12 +73,11 @@ subroutine calc(store, dtfinal)
   end if
 
   if (eqSet(eqs_diff)==1) then
-    dt1 = cndiff * minval(store(es_den,1:n)) &
+    dtdiff = cndiff * minval(store(es_den,1:n)) &
             * minval(store(es_c,1:n)) &
             * minval(store(es_h,1:n))**2 &
             / maxval(store(es_kappa,1:n))
-    ! print*, dt1
-    dt = min(dt, dt1)
+    dt = min(dt, dtdiff)
   end if
 
   if (eqSet(eqs_fld)==1) then
@@ -132,10 +132,8 @@ subroutine calc(store, dtfinal)
       if (maxlambda < lambdaa) maxlambda = lambdaa
     end do
 
-    cnfld = 0.3
-
-    dt1 = cnfld*minh*minh*minden*minkappa/lightspeed/maxlambda
-    dt = min(dt, dt1)
+    dtfld = cnfld*minh*minh*minden*minkappa/lightspeed/maxlambda
+    dt = min(dt, dtfld)
     ! dt1 = 0.3*minksi/(alpha*lightspeed*maxkappa*abs(maxE/alpha-(maxu/cv)**4))
     ! if (dt1 > timestepcut) dt = min(dt, dt1)
     !

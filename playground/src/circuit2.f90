@@ -301,8 +301,8 @@ contains
                     )
 
           if (s_au == -1) then
-            call arttermconddiff(&
-              faba, fabb, ua, ub, rhoa, rhob, oma, omb, lamdbadiff)
+            ! call arttermconddiff(&
+            !   faba, fabb, ua, ub, rhoa, rhob, oma, omb, lamdbadiff)
               ! faba, fabb, urab, ua, ub, dtadx, dtbdx, kta, ktb, rhoa, rhob, oma, omb, lamdbadiff)
             ! call arttermconddiff(&
               ! nwa, nwb, ua, ub, dtadx, dtbdx, kta, ktb, rhoa, rhob, oma, omb, lamdbadiff)
@@ -345,6 +345,14 @@ contains
         end if
 
         if (eqSet(eqs_diff) == 1) then
+          ! call fab(dr, ha, faba)
+          ! call fab(dr, hb, fabb)
+          ! call arttermconddiff(&
+          !   faba, fabb, ta*rhoa, tb*rhob, rhoa, rhob, oma, omb,dr, lamdbadiff)
+          ! ddta = ddta + lamdbadiff*mb
+          ! ddta = ddta + lamdbadiff*mb*dr/min(1.,kappab)
+          ! print*, lamdbadiff*mb*1e20
+          ! read*
           if (eqSet(eqs_fld) == 1) then
             if (difiso == 1) then
               fld_rb = sqrt(dot_product(dtbdx(:),dtbdx(:)))/(kappab*rhob*rhob*tb)
@@ -451,10 +459,9 @@ contains
                       bb(:) * dot_product(vab(:),nwa(:)) &
                     )
         end if
-
-        if (eqSet(eqs_fld) == 1) then
-          dva(:) = dva(:) - lambdaa/rhoa*mb*tb/rhob*nwa(:)
-        end if
+        ! if (eqSet(eqs_fld) == -1) then
+        !   dva(:) = dva(:) - lambdaa/rhoa*mb*tb/rhob*nwa(:)
+        ! end if
       end do overb
 
       if ( s_adden == 1 ) then
@@ -462,13 +469,11 @@ contains
       end if
 
       if (eqSet(eqs_diff) == 1) then
-        ! if (s_ktp == esd_n2w) then
-          do li = 1,3
-            do lj = 1,3
-              ddta = ddta + tmpt1(li,lj) * tmpt2(li,lj) + tmpt3(li,lj)
-            end do
+        do li = 1,3
+          do lj = 1,3
+            ddta = ddta + tmpt1(li,lj) * tmpt2(li,lj) + tmpt3(li,lj)
           end do
-        ! end if
+        end do
       end if
 
       store(es_ax:es_az,i) = dva(:)! - 0.03*va(:)
@@ -498,15 +503,17 @@ contains
     ! read*
   end subroutine
 
-  pure subroutine arttermconddiff(faba, fabb, ua, ub, da, db, oa, ob, qc)
+  pure subroutine arttermconddiff(faba, fabb, ua, ub, da, db, oa, ob, dr, qc)
     real, intent(in)  :: da, db, ua, ub, oa, ob, &
-                         faba, fabb
+                         faba, fabb, dr
     real, intent(out) :: qc
     real              :: vsigu
     qc = 0.
     vsigu = sqrt(abs(ua - ub)/(0.5*(da + db)))
-    ! qc = vsigu * (ua - ub) * 0.5 * (dot_product((nwa(:)/oa/da + nwb(:)/ob/db),urab(:)))
+    ! vsigu = sqrt(abs(ua - ub))
+    ! qc = vsigu*(ua - ub)*0.5*(dot_product((nwa(:)/oa/da + nwb(:)/ob/db),urab(:)))
     qc = vsigu*(ua - ub)*0.5*(faba/oa/da + fabb/ob/db)
+    ! qc = vsigu*(ua - ub)*(faba/oa/da + fabb/ob/db)
   end subroutine
 
   pure subroutine art_termcond(faba, fabb, pa, pb, ua, ub, da, db, oa, ob, qc)

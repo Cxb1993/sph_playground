@@ -2,7 +2,9 @@ module kernel_base
   use const
   implicit none
 
-  public :: kf, kdf, kddf, knorm, krad, kernelname, initkernelbase, wCv, fwc, returnneibnum, cnarr, d2curnumb
+  public :: kf,kdf,kddf,knorm,krad,&
+    kernelname,initkernelbase,wCv,&
+    fwc,returnneibnum,cnarr,cnd2,cnfld
 
   private
 
@@ -14,7 +16,7 @@ module kernel_base
     integer :: maxneibnum(3) = [50, 10000, 150]
     real :: krad = 3.
 
-    real :: wCv, fwc, d2curnumb = -1.
+    real :: wCv,fwc,cnd2=-1.,cnfld=-1.
     integer :: dim, returnneibnum
 
  contains

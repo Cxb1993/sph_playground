@@ -50,17 +50,18 @@ module const
     ec_eqondiff      = 35,&
     ec_eqonfluxlim   = 36,&
     ec_eqonradexch   = 37,&
+    ec_eqonsts       = 38,&
 
-    ec_udist         = 38,&
-    ec_umass         = 39,&
-    ec_utime         = 40,&
-    ec_uvelocity     = 41,&
-    ec_udensity      = 42,&
-    ec_upressure     = 43,&
-    ec_uacceller     = 44,&
-    ec_time          = 45,&
-    ec_molecularmass = 46,&
-    ec_total         = 46
+    ec_udist         = 39,&
+    ec_umass         = 40,&
+    ec_utime         = 41,&
+    ec_uvelocity     = 42,&
+    ec_udensity      = 43,&
+    ec_upressure     = 44,&
+    ec_uacceller     = 45,&
+    ec_time          = 46,&
+    ec_molecularmass = 47,&
+    ec_total         = 47
 
   ! store of data
   integer, parameter :: &
@@ -100,11 +101,12 @@ module const
 
   ! particles types
   integer, parameter :: &
-    ept_empty     = 0,&
-    ept_real      = 1,&
-    ept_fixed     = 2,&
-    ept_fixedreal = 21,&
-    ept_periodic  = 3
+    ept_empty       = 0,&
+    ept_real        = 1,&
+    ept_fixed       = 2,&
+    ept_fixedreal   = 21,&
+    ept_fixedmirror = 22,&
+    ept_periodic    = 3
 
   ! initial setups
   integer, parameter :: &
@@ -173,7 +175,8 @@ module const
     eqs_diff    = 3,&
     eqs_fld     = 4,&
     eqs_radexch = 5,&
-    eqs_total   = 5
+    eqs_sts     = 6,&
+    eqs_total   = 6
 
   integer, parameter :: &
     ecn_hydro = 1,&

@@ -7,8 +7,8 @@ import math
 
 def defaultSetup():
     setup = Setup()
-    setup.xmin          = -1e15
-    setup.xmax          =  1e15
+    setup.xmin          = -5
+    setup.xmax          =  5
     setup.dim           = 1.0
     setup.placement     = "uniform"
     setup.tfinish       = 0.0
@@ -23,7 +23,7 @@ def defaultSetup():
     setup.adden         = "yes"
     setup.artts         = "yes"
     setup.au            = 1.0
-    setup.resolution    = 1024
+    setup.resolution    = 128
     return setup
 
 def main():
@@ -40,58 +40,47 @@ def main():
     place.BackupDump("output/dump_full.h5")
     place.ReadDumpHDF("output/dump_full.h5")
     # place.PrintState()
-    place.setup.tfinish         = 1e9
+    place.setup.tfinish         = 4e-10
     place.setup.dtprint         = place.setup.tfinish/1e2
     place.setup.resultfile      = resfile+".info"
     place.setup.process         = place.epc['borderless']
     place.setup.time            = 0.0
     place.setup.disotropic      = 1.0
     place.setup.eqs             = place.eeq['manual']
-    place.setup.eqonhydro       = place.eif['yes']
     place.setup.ddw             = place.esd['2nw_ds']
-    # place.setup.ddw             = place.esd['fab']
+    place.setup.eqonhydro       = place.eif['no']
     place.setup.eqondiff        = place.eif['yes']
     place.setup.eqonfluxlim     = place.eif['yes']
-    # place.setup.eqonfluxlim     = place.eif['no']
-    # place.setup.eqondiff        = place.eif['no']
-    place.setup.eqonradexch     = place.eif['yes']
+    place.setup.eqonradexch     = place.eif['no']
     place.setup.eqonsts         = place.eif['yes']
 
     def c(i):
         return lambda x: i
 
-    rho = 1e-10
+    rho = 1
     mass = place.CalcUniformMass(rho)
     h = place.setup.hfac * place.setup.spacing
-    csound = 3.2e5
-    v0 = csound
-    kappa = 4e-3
+    csound = 1
+    kappa = 0.1
     mu = 2.0
     gamma = 5./3.
 
     place.setup.dcondconst    = kappa
     place.setup.molecularmass = mu
     place.setup.gamma         = gamma
-    # E = ksi * rho
-    # E = 4*sigmab*T_rad^4/lightspeed
-    # ksi = 4*sigmab*T_rad^4/lightspeed/rho
-    # ksi = 4.0*pc.STEBOLTZ*((gamma-1)*mu*u/R_g)**4.0/pc.C/rho
-    T = 1500.0
-    # E = 4*pc.STEBOLTZ*T**4/pc.C
-    ksi = 4.0*pc.STEBOLTZ*T**4.0/pc.C/rho
-    # T_gas = (gamma - 1) * mu * u / R_g
-    # T_rad = (E*lightspeed/4/sigmab)^(1/4)
-    # T_rad = (ksi*rho*lightspeed/4/sigmab)^(1/4)
-    u = T*pc.RG/(gamma - 1.0)/mu
-    prs = u*rho*(gamma - 1.0)
-    print('P = ', prs)
-    print('T_gas = ', (gamma - 1.0) * mu * u / pc.RG)
-    print('T_rad = ', (ksi*rho*pc.C/4.0/pc.STEBOLTZ)**(1./4.))
 
-    place.ModifyParticlesProperties(
-        properties  = ['kappa', 't',    'c',      'm',   'den',  'h',   'p',   'u',  'om'],
-        value       = [c(kappa), c(ksi), c(csound), c(mass), c(rho), c(h), c(prs), c(u), c(1.0)]
-    )
+    sigma = 1./3.
+    s2 = sigma*sigma
+    def ksi(x):
+        return 1./math.sqrt(2.*math.pi*s2)*math.exp(-x*x/2./s2)
+    def u(x):
+        return (ksi(x)*pc.C*rho/4./pc.STEBOLTZ)**(1./4.)*pc.RG/(gamma - 1.)/mu
+    def prs(x):
+        return u(x)*rho*(gamma - 1.0)
+
+    print('P = ', prs(0))
+    print('T_gas = ', (gamma - 1.0) * mu * u(0) / pc.RG)
+    print('T_rad = ', (ksi(0)*rho*pc.C/4.0/pc.STEBOLTZ)**(1./4.))
 
     place.AddParticles(
         dim='x',
@@ -99,14 +88,10 @@ def main():
         method='periodic'
     )
 
-    speedFunc = lambda rx: v0 if (rx <= 0.0) else -v0
     place.ModifyParticlesProperties(
-        properties  = ['vx'],
-        value       = [speedFunc],
-        valuearg    = ['rx']
+        properties  = ['kappa', 't',    'c',      'm',   'den',  'h',   'p',   'u',  'om'],
+        value       = [c(kappa), ksi, c(csound), c(mass), c(rho), c(h),  prs,   u,  c(1.0)]
     )
 
-    # place.PrintState()
     place.Apply()
-    # place.ContinueRun()
 main()

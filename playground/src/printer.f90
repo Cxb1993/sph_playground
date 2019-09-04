@@ -16,11 +16,11 @@ module printer
 
 contains
 
-  subroutine handleOutput(iter, n, t, sumdt, dedt, dt, sumdedt, store, err)
+  subroutine handleOutput(iter, n, t, sumdt, dedt, dt, sumdedt, physdt, store, err)
     use dumper, only: dump
 
     integer, intent(in)::iter, n
-    real, intent(in) :: t, sumdt, dedt, dt, sumdedt
+    real, intent(in) :: t, sumdt, dedt, dt, sumdedt, physdt
     real, allocatable, intent(in) :: store(:,:), err(:)
 
     integer :: lastnpic, silent, usedumps
@@ -30,25 +30,26 @@ contains
 
     if (silent == 0) call outputAscii(t, store, err)
     if (usedumps == 1) call dump(store, t)
-    call outputScreen(iter, n, t, sumdt, dedt, dt, sumdedt, store)
+    call outputScreen(iter, n, t, sumdt, dedt, dt, sumdedt, physdt, store)
     if ((silent==0).or.(usedumps==1)) then
       call getStateVal(ec_lastprint, lastnpic)
       call setStateVal(ec_lastprint, real(lastnpic+1))
     end if
   end subroutine handleOutput
 
-  subroutine outputScreen(iter, n, t, sumdt, dedt, dt, sumdedt, store)
+  subroutine outputScreen(iter, n, t, sumdt, dedt, dt, sumdedt, physdt, store)
     integer, intent(in)::iter, n
-    real, intent(in) :: t, sumdt, dedt, dt, sumdedt
+    real, intent(in) :: t, sumdt, dedt, dt, sumdedt, physdt
     real, allocatable, intent(in) :: store(:,:)
 
     integer :: lastprintnumber
 
     call getStateVal(ec_lastprint, lastprintnumber)
 
-    write(*, fmt="(A, I7, A, ES7.1, A, ES10.4, A, ES10.4, A, ES10.4, A, ES10.4, A, A, ES10.4, A, ES10.4)") &
+    write(*, fmt="(A, I7, A, ES7.1, A, ES10.4, A, ES10.4, A, ES10.4, A, ES10.4, A, ES10.4, A, A, ES10.4, A, ES10.4)") &
       " #", lastprintnumber, &
       " | i=", real(iter), &
+      " | T=", physdt, &
       " | t=", t, &
       " | dt=", sumdt/(iter+1), &
       " | h=[", minval(store(es_h,1:n)), ":", maxval(store(es_h,1:n)), "]",&

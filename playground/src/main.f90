@@ -1,5 +1,6 @@
 program main
   ! use cudafor
+  use omp_lib
   use BC,               only: initBorders
   use IC,               only: setupV2
   use placer,           only: place
@@ -64,6 +65,10 @@ program main
 
   use timestep,         only: calctimestep => calc
 
+  use sts_integrator,   only: sts_test => test,&
+                              sts_integrate,&
+                              sts_init => init
+
   use preruncheck
   use const
   ! use cltest,           only: runcltest
@@ -81,16 +86,17 @@ program main
     dt, t, dtout, ltout, tfinish,&
     gamma, hfac, cv = 1., &
     dedt, sumdedt, dedtprev, chi(81),&
-    sumdt
+    sumdt, phystime, phystimeprev, physdt,&
+    dthydro, dtdiff, dtfld,&
+    sts_s_sum,sts_s_iter,&
+    sts_dt_min,sts_classic,sts_classic_sum,sts_classic_iter
   integer :: &
     i, n, iter, s_tt, nusedl1, nusedl2, printlen, silent,&
     ivt, stopiter, resol, realpartnumb, fixedpartnumb, npics, usedumps,&
-    dim, lastnpic, eqSet(eqs_total)
+    dim,lastnpic,eqSet(eqs_total),sts_s
   integer(8) :: &
     tprint
-
-  logical :: thereisdump
-
+  logical :: thereisdump, do_sts=.false.
   ! call runcltest()
   ! read*
 
@@ -98,7 +104,7 @@ program main
 
   print*, "##############################################"
   print*, "#####"
-  print*, "#   #   .HELLO WORLD. Setup in progress."
+  print*, "#   #   .HELLO WORLD. Setup is in progress."
   print*, "#####"
   print*, "##############################################"
 
@@ -170,6 +176,8 @@ program main
   call getStateVal(ec_realpn, realpartnumb)
   result(2) = realpartnumb
 
+  call getEqComponent(eqSet)
+
   n = realpartnumb
   do i = realpartnumb,size(store,dim=2)
     if (store(es_type,i) == ept_fixedreal) n = n + 1
@@ -187,21 +195,29 @@ program main
   allocate(tdb(3,n))
   allocate(sqerr(1:n))
 
+  if (eqSet(eqs_sts) == 1) then
+    call sts_init(n)
+  endif
+
   err(:) = 0.
   stopiter = 0
   sumdedt = 0.
   dedt = 0.
   sumdt = 0.
+  physdt = 0.
   print *, '#  #-------------------------------------------------'
   print *, '#  # Initial Setup'
-  call handleOutput(iter, n, t, sumdt, dedt, dt, sumdedt, store, err)
+  call handleOutput(iter, n, t, sumdt, dedt, dt, sumdedt, physdt, store, err)
   print *, '#  #-------------------------------------------------'
+#ifdef _OPENMP
+  phystimeprev = omp_get_wtime()
+#endif
 
   if (tfinish > 0.) then
     call checkVarsReady(s_tt, store)
     if (s_tt /= eeq_kd2) then
       ! print*, 1
-      call iterate(n, gamma, store, dedt)
+      call iterate(n, store, dedt)
     else
       stopiter = 1
     end if
@@ -215,12 +231,38 @@ program main
     ltout = ltout + dtout
   end do
 
-  call getEqComponent(eqSet)
-
+  sts_s_sum = 0.
+  sts_s_iter = 0.
+  sts_classic_sum = 0.
+  sts_classic_iter = 0.
   do while ((t < tfinish + eps0).and.(stopiter==0))
-    call calctimestep(store, dt)
-    ! print*, dt
-    ! read*
+    call calctimestep(store, dthydro, dtdiff, dtfld, dt)
+    if (eqSet(eqs_sts) == 1) then
+      ! STS force hydro (check unstable)
+      ! do_sts = .false.
+      ! dt = dthydro
+      ! STS fixed stages, varied timestep
+      sts_s = 128
+      dthydro = (sts_s*sts_s + sts_s - 2.)*0.25*sts_dt_min
+      do_sts = .true.
+      ! STS auto stages choice
+      ! sts_dt_min = min(dtdiff,dtfld)
+      sts_classic = dthydro/sts_dt_min
+      ! sts_s = int((-1.+sqrt(1.-4.*1.*(-(sts_classic*4.-2.))))/2.)+1
+      ! sts_classic = dthydro/sts_dt_min
+      ! if ((sts_classic > 1.).and.(2*sts_s <= sts_classic)) then
+      !   dt = dthydro
+      !   do_sts = .true.
+      ! else
+      !   do_sts = .false.
+      ! endif
+      ! STS status bar
+      sts_classic_sum = sts_classic_sum + max(1.,sts_classic)
+      sts_classic_iter = sts_classic_iter + 1
+      sts_s_sum  = sts_s_sum + sts_s
+      sts_s_iter = sts_s_iter + 1
+    endif
+
     if (t + dt > tfinish) then
       dt = tfinish - t
       stopiter = 1
@@ -228,7 +270,25 @@ program main
     sumdt = sumdt + dt
 
     if (t >= ltout) then
-      call handleOutput(iter, n, t, sumdt, dedt, dt, sumdedt, store, err)
+#ifdef _OPENMP
+      phystime = omp_get_wtime()
+#endif
+      physdt = phystime - phystimeprev
+      call handleOutput(iter, n, t, sumdt, dedt, dt, sumdedt, physdt, store, err)
+      if (eqSet(eqs_sts) == 1) then
+        if (do_sts) then
+          print*, "#        | V | STS-ON:  sts steps = ",int(sts_s_sum/sts_s_iter), &
+            ": classic steps = ",int(sts_classic_sum/sts_classic_iter)
+        else
+          print*, "#        | X | STS-OFF: sts steps = ",int(sts_s_sum/sts_s_iter), &
+            ": classic steps = ",int(sts_classic_sum/sts_classic_iter)
+        endif
+        sts_s_sum = 0.
+        sts_s_iter = 0.
+        sts_classic_sum = 0.
+        sts_classic_iter = 0.
+      endif
+      phystimeprev = phystime
       do while(ltout <= t)
         ltout = ltout + dtout
       end do
@@ -237,32 +297,37 @@ program main
       dt = ltout - t
     end if
 
+    ! if (do_sts) then
+    !   call sts_integrate(n,sts_s,store,dt/2.)
+    ! endif
+    ! if (eqSet(eqs_radexch)==1) then
+    !   call update_radenergy(n,store,dt/2.)
+    ! endif
+
     tr(:,:)  = store(es_rx:es_rz,1:n)
     tv(:,:)  = store(es_vx:es_vz,1:n)
     ta(:,:)  = store(es_ax:es_az,1:n)
     tdu(:)   = store(es_du,1:n)
     tdh(:)   = store(es_dh,1:n)
-    tddt(:)  = store(es_ddt,1:n)
+    if (.not.do_sts) then
+      tddt(:)  = store(es_ddt,1:n)
+    endif
     tdb(:,:) = store(es_dbx:es_dbz,1:n)
 
     store(es_rx:es_rz,1:n) = store(es_rx:es_rz,1:n)  + &
         dt * tv(:,:) + 0.5 * dt * dt * ta(:,:)
 
-    ! store(es_vx:es_vz,1:n) = (tv(:,:)  + dt * ta(:,:))/(1.03)
     store(es_vx:es_vz,1:n) = tv(:,:)  + dt * ta(:,:)
     store(es_u,1:n) = store(es_u,1:n) + dt * tdu(:)
     store(es_h,1:n) = store(es_h,1:n) + dt * tdh(:)
-    store(es_t,1:n) = store(es_t,1:n) + dt * tddt(:)
-    ! store(es_t,1:n) = store(es_u,1:n)
+    if (.not.do_sts) then
+      store(es_t,1:n) = store(es_t,1:n) + dt * tddt(:)
+    endif
     store(es_bx:es_bz,1:n) = store(es_bx:es_bz,1:n) + dt * tdb(:,:)
     dedtprev = dedt
     sumdedt = sumdedt + dedt*dt
 
-    call iterate(n, gamma, store, dedt)
-
-    if (eqSet(eqs_radexch)==1) then
-      call update_radenergy(n,store,dt)
-    endif
+    call iterate(n, store, dedt)
 
     store(es_vx:es_vz,1:n) = &
       store(es_vx:es_vz,1:n) + 0.5*dt*(store(es_ax:es_az,1:n) - ta(:,:))
@@ -275,10 +340,17 @@ program main
     store(es_bx:es_bz,1:n) = &
       store(es_bx:es_bz,1:n) + 0.5*dt*(store(es_dbx:es_dbz,1:n) - tdb(:,:))
     sumdedt = sumdedt + 0.5*dt*(dedt - dedtprev)
-    store(es_t,1:n) = &
-      store(es_t,1:n) + 0.5*dt*(store(es_ddt,1:n) - tddt(:))
-    ! store(es_t,1:n) = store(es_u,1:n)
+    if (.not.do_sts) then
+      store(es_t,1:n) = &
+        store(es_t,1:n) + 0.5*dt*(store(es_ddt,1:n) - tddt(:))
+    endif
 
+    if (do_sts) then
+      call sts_integrate(n,sts_s,store,dt)
+    endif
+    if (eqSet(eqs_radexch)==1) then
+      call update_radenergy(n,store,dt)
+    endif
 
     t = t + dt
     iter = iter + 1
@@ -327,7 +399,12 @@ program main
       write(*, fmt="(A,I7, A,ES10.4)") &
         " #", iter, &
         " | t=", t
-      call handleOutput(iter, n, t, sumdt, dedt, dt, sumdedt, store, err)
+#ifdef _OPENMP
+        phystime = omp_get_wtime()
+#endif
+        physdt = phystime - phystimeprev
+        call handleOutput(iter, n, t, sumdt, dedt, dt, sumdedt, physdt, store, err)
+        phystimeprev = phystime
     end if
     result(5) = hfac
     ! print*, printlen

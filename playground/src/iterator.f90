@@ -14,7 +14,8 @@ module iterator
                               get_equations, &
                               ginitvar,&
                               getPartNumber,&
-                              getProcess
+                              getProcess,&
+                              getGamma
   use neighboursearch,  only: findneighboursKDT
 
  implicit none
@@ -40,18 +41,19 @@ contains
     initialised = 1
   end subroutine
 
-  subroutine iterate(n, gamma, store, maxconsenrg)
+  subroutine iterate(n, store, maxconsenrg)
     real, allocatable, intent(inout) :: &
       store(:,:)
     integer, intent(in) :: n
-    real, intent(in)    :: gamma
     real, intent(out) :: maxconsenrg
 
-    integer             :: dim, ttp, rpn, fpn, i
+    integer :: dim, ttp, rpn, fpn, i
+    real    :: gamma
 
     call getdim(dim)
     call get_equations(ttp)
     call getPartNumber(r=rpn, f=fpn)
+    call getGamma(gamma)
 
     if (initialised == 0) call initIterate(n, store)
 
