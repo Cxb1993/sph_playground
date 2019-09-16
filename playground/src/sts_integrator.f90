@@ -31,18 +31,23 @@ real function nu(j)
   nu = -(j - 1.)/j*b(j)/b(j-2)
 end function nu
 
+real function w(s)
+  integer, intent(in) :: s
+  w = 4./(s*s + s - 2.)
+end function w
+
 real function mu_hat(j,s)
   integer, intent(in) :: j,s
   if (j == 1) then
-    mu_hat = 4./(3.*(s*s + s - 2.))
+    mu_hat = b(1)*w(s)
   else
-    mu_hat = 4.*(2.*j - 1.)/(j*(s*s + s - 2.))*b(j)/b(j-1)
+    mu_hat = mu(j)*w(s)
   endif
 end function mu_hat
 
 real function gm_hat(j,s)
   integer, intent(in) :: j,s
-  gm_hat = - a(j-1)*mu_hat(j,s)
+  gm_hat = -a(j-1)*mu_hat(j,s)
 end function gm_hat
 
 subroutine test()
@@ -82,13 +87,15 @@ end subroutine init
 subroutine sts_integrate(n,sts_s,store,dt)
   use const
   use iterator, only: iterate
+  use state,    only: getStateVal,&
+                      setStateVal
 
   real, allocatable, intent(inout) :: store(:,:)
   integer, intent(in) :: n,sts_s
   real, intent(in)    :: dt
 
   integer :: sts_j
-  real :: dedt
+  real :: dedt,ieqtype,ieqhydro
 
   sts_Y0(:) = store(es_t,:)
   call iterate(n, store, dedt)

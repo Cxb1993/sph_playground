@@ -83,7 +83,7 @@ program main
   real, allocatable, dimension(:,:) :: &
     store
   real :: &
-    dt, t, dtout, ltout, tfinish,&
+    dt, t, dtout, dtoutaim,ltout, tfinish,&
     gamma, hfac, cv = 1., &
     dedt, sumdedt, dedtprev, chi(81),&
     sumdt, phystime, phystimeprev, physdt,&
@@ -93,7 +93,7 @@ program main
   integer :: &
     i, n, iter, s_tt, nusedl1, nusedl2, printlen, silent,&
     ivt, stopiter, resol, realpartnumb, fixedpartnumb, npics, usedumps,&
-    dim,lastnpic,eqSet(eqs_total),sts_s
+    dim,lastnpic,eqSet(eqs_total),sts_s,sts_type,sts_fixeds
   integer(8) :: &
     tprint
   logical :: thereisdump, do_sts=.false.
@@ -227,39 +227,48 @@ program main
 
   sumdedt = sumdedt + dedt
 
-  do while(ltout <= t)
+  do while(ltout < t)
     ltout = ltout + dtout
   end do
+  dtoutaim = dtout
 
   sts_s_sum = 0.
   sts_s_iter = 0.
   sts_classic_sum = 0.
   sts_classic_iter = 0.
+  call getStateVal(ec_ststype, sts_type)
+  call getStateVal(ec_stsfixeds, sts_fixeds)
+
   do while ((t < tfinish + eps0).and.(stopiter==0))
     call calctimestep(store, dthydro, dtdiff, dtfld, dt)
     if (eqSet(eqs_sts) == 1) then
-      ! STS force hydro (check unstable)
+      do_sts = .false.
+      ! >>>>> STS force hydro (check unstable)
       ! do_sts = .false.
       ! dt = dthydro
-      ! STS fixed stages, varied timestep
-      sts_s = 128
-      dthydro = (sts_s*sts_s + sts_s - 2.)*0.25*sts_dt_min
-      do_sts = .true.
-      ! STS auto stages choice
-      ! sts_dt_min = min(dtdiff,dtfld)
-      sts_classic = dthydro/sts_dt_min
-      ! sts_s = int((-1.+sqrt(1.-4.*1.*(-(sts_classic*4.-2.))))/2.)+1
-      ! sts_classic = dthydro/sts_dt_min
-      ! if ((sts_classic > 1.).and.(2*sts_s <= sts_classic)) then
-      !   dt = dthydro
-      !   do_sts = .true.
-      ! else
-      !   do_sts = .false.
-      ! endif
-      ! STS status bar
-      sts_classic_sum = sts_classic_sum + max(1.,sts_classic)
+      sts_dt_min = min(dtdiff,dtfld)
+      if (sts_type == ests_fixeds) then
+        ! >>>>> STS fixed stages, varied timestep
+        sts_s = sts_fixeds
+        dthydro = (sts_s*sts_s + sts_s - 2.)*0.25*sts_dt_min
+        sts_classic = dthydro/sts_dt_min
+        dt = dthydro
+        do_sts = .true.
+      else if (sts_type == ests_auto) then
+        ! >>>>> STS auto stages choice, hydro timestep
+        if (dthydro > 0.) then
+          sts_classic = dthydro/sts_dt_min
+          sts_s = int((-1.+sqrt(1.-4.*1.*(-(sts_classic*4.-2.))))*0.5)+1
+          if ((sts_classic > 1.).and.(2*sts_s <= sts_classic)) then
+            dt = dthydro
+            do_sts = .true.
+          endif
+        endif
+      endif
+      ! >>>>> STS status bar
+      sts_classic_sum  = sts_classic_sum  + max(1.,sts_classic)
       sts_classic_iter = sts_classic_iter + 1
-      sts_s_sum  = sts_s_sum + sts_s
+      sts_s_sum  = sts_s_sum  + sts_s
       sts_s_iter = sts_s_iter + 1
     endif
 
@@ -277,11 +286,15 @@ program main
       call handleOutput(iter, n, t, sumdt, dedt, dt, sumdedt, physdt, store, err)
       if (eqSet(eqs_sts) == 1) then
         if (do_sts) then
-          print*, "#        | V | STS-ON:  sts steps = ",int(sts_s_sum/sts_s_iter), &
-            ": classic steps = ",int(sts_classic_sum/sts_classic_iter)
+          print*, "#        | V | STS-ON:  sts steps = ",int(sts_s_sum/sts_s_iter),&
+            dthydro, &
+            ": classic steps = ",&
+            int(sts_classic_sum/sts_classic_iter),sts_dt_min
         else
-          print*, "#        | X | STS-OFF: sts steps = ",int(sts_s_sum/sts_s_iter), &
-            ": classic steps = ",int(sts_classic_sum/sts_classic_iter)
+          print*, "#        | X | STS-OFF: sts steps = ",int(sts_s_sum/sts_s_iter),&
+          dthydro, &
+          ": classic steps = ",&
+          int(sts_classic_sum/sts_classic_iter),sts_dt_min
         endif
         sts_s_sum = 0.
         sts_s_iter = 0.
@@ -294,7 +307,11 @@ program main
       end do
     end if
     if (t + dt > ltout) then
-      dt = ltout - t
+      if (dtout < dt) then
+        ltout = ltout - dtout + dt
+      else
+        dt = ltout - t
+      endif
     end if
 
     ! if (do_sts) then

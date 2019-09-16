@@ -61,7 +61,9 @@ module const
     ec_uacceller     = 45,&
     ec_time          = 46,&
     ec_molecularmass = 47,&
-    ec_total         = 47
+    ec_ststype       = 48,&
+    ec_stsfixeds     = 49,&
+    ec_total         = 49
 
   ! store of data
   integer, parameter :: &
@@ -185,6 +187,10 @@ module const
     ecn_d22nw  = 4,&
     ecn_total = 4
 
+  integer, parameter :: &
+    ests_auto   = 0,&
+    ests_fixeds = 1
+
   character(len=*), parameter :: &
     blockFormatFlt  = "(A,A50,F15.10)",&
     blockFormatFltExp  = "(A,A50,E13.4)",&
@@ -193,6 +199,7 @@ module const
     blockFormatFlt2 = "(A,A51,F16.10,A,F16.10,A)",&
     blockFormatFlt2Sci = "(A,A51,ES13.4,A,ES13.4,A)",&
     blockFormatInt  = "(A,A50,I8)",&
+    blockFormatIntStr  = "(A,A50,I8,A)",&
     blockFormatStr  = "(A,A50,A)",&
     blockFormatStr2 = "(A,A50,A)"
 

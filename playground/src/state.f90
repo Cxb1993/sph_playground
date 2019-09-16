@@ -66,6 +66,8 @@ module state
           (label /= ec_fixedpn).and.&
           (label /= ec_realpn).and.&
           (label /= ec_usedumps).and.&
+          (label /= ec_ststype).and.&
+          (label /= ec_stsfixeds).and.&
           (label /= ec_silent)) then
           call warning("Integer conversion were used unexpectedly", label, __FILE__, __LINE__)
           call warning("Value before", statevars(label), __FILE__, __LINE__)
@@ -649,7 +651,12 @@ module state
        write(*,blockFormatStr) " #   #", "rad exchange equations: ", "no"
      endif
      if (statevars(ec_eqonsts)==1) then
-       write(*,blockFormatStr) " #   #", "super time stepping: ", "yes"
+       if (statevars(ec_ststype)==0) then
+         write(*,blockFormatStr) " #   #", "super time stepping: ", "auto"
+       else
+         write(*,blockFormatIntStr) " #   #", "super time stepping: ",&
+          int(statevars(ec_stsfixeds))," stages"
+       endif
      else
        write(*,blockFormatStr) " #   #", "super time stepping: ", "no"
      endif

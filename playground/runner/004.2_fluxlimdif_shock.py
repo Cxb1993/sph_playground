@@ -23,7 +23,7 @@ def defaultSetup():
     setup.adden         = "yes"
     setup.artts         = "yes"
     setup.au            = 1.0
-    setup.resolution    = 1024
+    setup.resolution    = 512
     return setup
 
 def main():
@@ -56,6 +56,9 @@ def main():
     # place.setup.eqondiff        = place.eif['no']
     place.setup.eqonradexch     = place.eif['yes']
     place.setup.eqonsts         = place.eif['yes']
+    # place.setup.ststype         = place.ests['auto']
+    place.setup.ststype         = place.ests['fixeds']
+    place.setup.stsfixeds       = 4
 
     def c(i):
         return lambda x: i

@@ -228,6 +228,9 @@ class Context:
     # yes / no constants
     eif     = {}
     eifRev  = {}
+    # sts
+    ests     = {}
+    estsRev  = {}
 
     def ReadConstFile(self):
         with open(self.rargs.constf90, 'r') as cf90:
@@ -305,6 +308,13 @@ class Context:
                         else:
                             self.eif[splitted[0][4:]] = float(splitted[2])
                             self.eifRev[float(splitted[2])] = splitted[0][4:]
+                    if (splitted[0][0:5] == "ests_"):
+                        if (splitted[2][-2:] == ",&"):
+                            self.ests[splitted[0][5:]] = float(splitted[2][:-2])
+                            self.estsRev[float(splitted[2][:-2])] = splitted[0][5:]
+                        else:
+                            self.ests[splitted[0][5:]] = float(splitted[2])
+                            self.estsRev[float(splitted[2])] = splitted[0][5:]
 
                 curline = cf90.readline()
 
@@ -457,4 +467,4 @@ class Context:
             e = self.ecRev[i]
             if e in self.setup.__dict__.keys():
                 self.state[i-1] = self.setup.__dict__[e]
-        self.file.flush()
+        self.file.close()

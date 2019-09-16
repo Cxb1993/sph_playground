@@ -180,6 +180,7 @@ contains
           if (difiso == 1) then
             fld_ra = sqrt(dot_product(dtadx(:),dtadx(:)))/(kappaa*rhoa*ta*rhoa)
             lambdaa = (2. + fld_ra)/(6. + 3.*fld_ra + fld_ra*fld_ra)
+            lambdaa = 1./3.
             fldda = lightspeed*lambdaa/kappaa/rhoa
 
             kta(1,1) = fldda
@@ -357,6 +358,7 @@ contains
             if (difiso == 1) then
               fld_rb = sqrt(dot_product(dtbdx(:),dtbdx(:)))/(kappab*rhob*rhob*tb)
               lambdab = (2. + fld_rb)/(6. + 3.*fld_rb + fld_rb*fld_rb)
+              lambdab = 1./3.
               flddb = lightspeed*lambdab/kappab/rhob
               ktb(:,:) = 0.
               ktb(1,1) = flddb
