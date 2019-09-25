@@ -180,12 +180,12 @@ contains
           if (difiso == 1) then
             fld_ra = sqrt(dot_product(dtadx(:),dtadx(:)))/(kappaa*rhoa*ta*rhoa)
             lambdaa = (2. + fld_ra)/(6. + 3.*fld_ra + fld_ra*fld_ra)
-            lambdaa = 1./3.
+            ! lambdaa = 1./3.
             fldda = lightspeed*lambdaa/kappaa/rhoa
-
             kta(1,1) = fldda
             kta(2,2) = fldda
             kta(3,3) = fldda
+            store(es_vfld,i) = fldda/((ta*rhoa)/sqrt(dot_product(dtadx(:),dtadx(:))))
           else
             call error("There is no anisotropic for FLD","",__FILE__,__LINE__)
           end if
@@ -358,7 +358,7 @@ contains
             if (difiso == 1) then
               fld_rb = sqrt(dot_product(dtbdx(:),dtbdx(:)))/(kappab*rhob*rhob*tb)
               lambdab = (2. + fld_rb)/(6. + 3.*fld_rb + fld_rb*fld_rb)
-              lambdab = 1./3.
+              ! lambdab = 1./3.
               flddb = lightspeed*lambdab/kappab/rhob
               ktb(:,:) = 0.
               ktb(1,1) = flddb

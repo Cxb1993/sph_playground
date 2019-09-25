@@ -216,7 +216,6 @@ program main
   if (tfinish > 0.) then
     call checkVarsReady(s_tt, store)
     if (s_tt /= eeq_kd2) then
-      ! print*, 1
       call iterate(n, store, dedt)
     else
       stopiter = 1
@@ -258,7 +257,7 @@ program main
         ! >>>>> STS auto stages choice, hydro timestep
         if (dthydro > 0.) then
           sts_classic = dthydro/sts_dt_min
-          sts_s = int((-1.+sqrt(1.-4.*1.*(-(sts_classic*4.-2.))))*0.5)+1
+          sts_s = int(0.5*sqrt(9. + 16.*sts_classic))+1
           if ((sts_classic > 1.).and.(2*sts_s <= sts_classic)) then
             dt = dthydro
             do_sts = .true.

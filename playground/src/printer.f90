@@ -83,7 +83,7 @@ contains
         write(iu, *) store(es_rx:es_rz,j), store(es_vx:es_vz,j),&
           store(es_ax:es_az,j),store(es_m,j),store(es_den,j),&
           store(es_h,j),store(es_p,j),store(es_u,j),store(es_t,j),&
-          store(es_dtdx:es_dtdz,j), e
+          store(es_dtdx:es_dtdz,j), store(es_vfld,j), e
       end if
     end do
     close(iu)

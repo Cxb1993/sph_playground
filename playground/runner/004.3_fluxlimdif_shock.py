@@ -23,7 +23,7 @@ def defaultSetup():
     setup.adden         = "yes"
     setup.artts         = "yes"
     setup.au            = 1.0
-    setup.resolution    = 512
+    setup.resolution    = 128
     return setup
 
 def main():
@@ -62,7 +62,7 @@ def main():
     place.setup.eqonsts         = place.eif['yes']
     place.setup.ststype         = place.ests['auto']
     # place.setup.ststype         = place.ests['fixeds']
-    # place.setup.stsfixeds       = steps
+    # place.setup.stsfixeds       = 16
 
     def c(i):
         return lambda x: i
@@ -72,7 +72,7 @@ def main():
     h = place.setup.hfac * place.setup.spacing
     csound = 3.2e5
     v0 = csound
-    kappa = 4e-3
+    kappa = 4e-5
     mu = 2.0
     gamma = 5./3.
 

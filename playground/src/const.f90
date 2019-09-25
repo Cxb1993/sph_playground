@@ -98,7 +98,8 @@ module const
     es_c        = 29,&
     es_om       = 30,&
     es_type     = 31,&
-    es_total    = 31,&
+    es_vfld     = 32,&
+    es_total    = 32,&
     es_postr    = 4
 
   ! particles types

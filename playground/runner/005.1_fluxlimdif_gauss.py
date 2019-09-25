@@ -23,7 +23,7 @@ def defaultSetup():
     setup.adden         = "yes"
     setup.artts         = "yes"
     setup.au            = 1.0
-    setup.resolution    = 4096
+    setup.resolution    = 2048
     return setup
 
 def main():
@@ -33,14 +33,14 @@ def main():
     resfile = place.GetDateTimeString()
     place.setup = defaultSetup()
     place.CleanAllLogs()
-    # place.SetThreadsOMP(2)
+    place.SetThreadsOMP(2)
     # place.SimpleMake(debug=True)
     place.SimpleMake()
     place.CleanRun()
     place.BackupDump("output/dump_full.h5")
     place.ReadDumpHDF("output/dump_full.h5")
     # place.PrintState()
-    place.setup.tfinish         = 2e-12
+    place.setup.tfinish         = 4e-12
     place.setup.dtprint         = place.setup.tfinish/1e2
     place.setup.resultfile      = resfile+".info"
     place.setup.process         = place.epc['borderless']
@@ -52,7 +52,7 @@ def main():
     place.setup.eqondiff        = place.eif['yes']
     place.setup.eqonfluxlim     = place.eif['yes']
     place.setup.eqonradexch     = place.eif['no']
-    place.setup.eqonsts         = place.eif['yes']
+    place.setup.eqonsts         = place.eif['no']
     place.setup.ststype         = place.ests['fixeds']
     place.setup.stsfixeds       = 1024
 
@@ -82,7 +82,12 @@ def main():
     def prs(x):
         return u(x)*rho*(gamma - 1.0)
 
-    print('P = ', prs(0))
+    print('P = ',
+        prs(place.setup.xmin), " : ",
+        prs((place.setup.xmin+place.setup.xmax)/2.), " : ",
+        prs(place.setup.xmax)
+    )
+
     print('T_gas = ', (gamma - 1.0) * mu * u(0) / pc.RG)
     print('T_rad = ', (ksi(0)*rho*pc.C/4.0/pc.STEBOLTZ)**(1./4.))
 
