@@ -3,7 +3,7 @@ module const
   real, parameter :: &
     pi    = 4.*atan(1.),&
     eps0  = epsilon(0.),&
-    lightspeed = 29979245800.,&
+    lightspeed = 2.997924e10,&
     Rg = 8.314e7,&
     sigmaB = 5.67051e-5
 

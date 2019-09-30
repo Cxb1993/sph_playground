@@ -27,7 +27,7 @@ contains
     call getNeibListL1(nlista)
     do la = 1, size(nlista)
       i = nlista(la)
-      store(es_p,i) = (gamma - 1) * store(es_den,i) * store(es_u,i)
+      store(es_p,i) = (gamma - 1.) * store(es_den,i) * store(es_u,i)
       store(es_c,i) = sqrt(gamma * store(es_p,i) / store(es_den,i))
     end do
   end subroutine
