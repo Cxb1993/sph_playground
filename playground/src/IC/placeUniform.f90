@@ -39,7 +39,11 @@ contains
     if (.not.present(dxmax)) then
       dmx = dxmin
     else
-      dmx = dxmax
+      if (dxmax <= 0) then
+        dmx = dxmin
+      else
+        dmx = dxmax
+      endif
     end if
     if (.not.present(padding)) then
       pdg = 0.

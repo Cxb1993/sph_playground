@@ -269,9 +269,9 @@ contains
         j = xgetneighindex(i, lb)
         rj = getCrossRef(j)
         rb(:) = store(es_rx:es_rz, j)
-        hb = store(es_h,i)
-        mb = store(es_m, rj)
-        rhob = store(es_den, rj)
+        hb = store(es_h,rj)
+        mb = store(es_m,rj)
+        rhob = store(es_den,rj)
         tb = store(es_t,rj)
 
         r(:) = ra(:)-rb(:)
@@ -298,7 +298,7 @@ contains
     !$omp end parallel do
     store(es_den,1:realpartnumb) = dk(1:realpartnumb)
     store(es_h,1:realpartnumb)   = hk(1:realpartnumb)
-
+    store(es_om,1:realpartnumb)  = 1.
     call system_clock(finish)
     call addTime(' circuit1', finish - start)
     ! call addTime(' circuit1', finish - start - tneib)

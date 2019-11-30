@@ -91,7 +91,6 @@ contains
 
     if (initialised == 0) call c2init()
 
-
     ! lightspeed = 2.997924e10
     ! Rg = 8.314e7
     ! sigmaB = 5.67051e-5

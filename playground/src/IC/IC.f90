@@ -20,7 +20,8 @@ module IC
                               getspacing,&
                               getPartNumber,&
                               setPartNumber,&
-                              setGamma
+                              setGamma,&
+                              setStateVal
   use BC,               only: createFixedBorders, &
                               getPeriodPartNumber,&
                               createPeriodicBorder,&
@@ -97,7 +98,7 @@ contains
       rho1 = 1.
       prs1 = 1.
       gamma = 5./3.
-
+      call setStateVal(ec_gamma,gamma)
       brdx1 = -1.
       brdx2 =  1.
       if (resol == 0) then

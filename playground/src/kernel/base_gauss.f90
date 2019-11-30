@@ -3,20 +3,23 @@ module kernel_base
 
   implicit none
 
-  public :: kf, kdf, kddf, knorm, krad, kernelname, initkernelbase, wCv, fwc, returnneibnum, cnarr, d2curnumb
+  public :: kf,kdf,kddf,knorm,krad,&
+    kernelname,initkernelbase,wCv,&
+    fwc,returnneibnum,cnarr,cnd2,cnfld
 
 
   private
 
-    real :: knorm(3) = [ 1./sqrt(pi), 1./pi, 1./pi**(1.5) ]
-    real :: fwcl(3) = [4., 4., 4.]
-    real :: cnarr(ecn_total)
-    integer :: maxneibnum(3) = [100, 5000, 50000]
+  character (len=10) :: kernelname='gauss'
 
-    real :: wCv, fwc, d2curnumb = -1.
-    real :: krad = 10.
-    integer :: dim, returnneibnum
-    character (len=10) :: kernelname='Gauss'
+  real :: knorm(3) = [ 1./sqrt(pi), 1./pi, 1./pi**(1.5) ]
+  real :: cnarr(ecn_total)
+  real :: fwcl(3) = [4., 4., 4.]
+  integer :: maxneibnum(3) = [100, 5000, 50000]
+  real :: krad = 10.
+
+  real :: wCv,fwc,cnd2=-1.,cnfld=-1.
+  integer :: dim, returnneibnum
 
  contains
 
@@ -27,7 +30,7 @@ module kernel_base
     wCv = knorm(dim)
     fwc = fwcl(dim)
     returnneibnum = maxneibnum(dim)
-    cnarr(ecn_hydro) = 0.59 ! 0.55 < c < 0.63
+    cnarr(ecn_hydro) = 0.55 ! 0.55 < c < 0.63
     cnarr(ecn_d22nw) = 1.25 !        c < 1.8  || + *1.15 || - *0.75
     cnarr(ecn_d2fab) = 0.24 !        c < 0.34 || + *1.15 || - *0.75
     cnarr(ecn_d2n2w) = 0.50 !        c < 0.67 || + *1.15 || - *0.75

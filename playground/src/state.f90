@@ -155,9 +155,9 @@ module state
         statevars(ec_ddw) = esd_n2w
       case('fab')
         statevars(ec_ddw) = esd_fab
-      case('2nw_ds')
+      case('2nw-+')
         statevars(ec_ddw) = esd_2nw_ds
-      case('2nw_sd')
+      case('2nw+-')
         statevars(ec_ddw) = esd_2nw_sd
       case('fw')
         statevars(ec_ddw) = esd_fw
