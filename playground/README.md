@@ -36,7 +36,9 @@ It is possible to run the code without FortDriver in backward compatibility mode
             --resultfile result.info --process relaxation
             --usedumps yes --dim 2.0 --tfinish 20.0 --ddw fab
 ```
-What is in code
+
+What is in this code
+---
 - N-deminsional SPH in two loops
 - bunch of kernels that can be chosen on compile time only (FortDriver can handle this) ([playground/src/kernel](https://github.com/Evedel/sph_playgroung/tree/master/playground/src/kernel))
 - bunch of second derivative methods that can be chosen on run time and implemented with the function pointers ([playground/src/kernel/kernel.f90](https://github.com/Evedel/sph_playgroung/blob/master/playground/src/kernel/kernel.f90))
