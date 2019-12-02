@@ -20,6 +20,7 @@ Division vs multiplication test
 A simple test which checks that in `Fortran` it is indeed up to `30%` faster to use `*0.25` rather than `\4.`
 
 [sph_playgroung/test_4vs025.f90](https://github.com/Evedel/sph_playgroung/blob/master/test_4vs025.f90)
+
 Compiled with  `gfortran -O4 -Wall test_4vs025.f90 -fopenmp -o test_4vs025`
 
 Memory allignment test
